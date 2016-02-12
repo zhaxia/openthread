@@ -1,0 +1,84 @@
+import "static-c.proto";
+
+message ThreadPrimitive {
+  enum Type {
+    THREAD_KEY = 1;
+    THREAD_KEY_SEQUENCE = 2;
+    THREAD_MESH_LOCAL_PREFIX = 3;
+    THREAD_MODE = 4;
+    THREAD_STATUS = 5;
+    THREAD_TIMEOUT = 6;
+    IEEE802154_CHANNEL = 7;
+    IEEE802154_PANID = 8;
+    IEEE802154_EXTENDED_PANID = 9;
+    IEEE802154_NETWORK_NAME = 10;
+    IEEE802154_SHORT_ADDR = 11;
+    IEEE802154_EXT_ADDR = 12;
+  };
+  required Type type = 1;
+  oneof value {
+    bool bool = 2;
+    uint32 uint32 = 3;
+    bytes bytes = 4 [(max_length) = 16];
+  };
+};
+
+message ThreadState {
+  enum State {
+    DETACHED = 0;
+    CHILD = 1;
+    ROUTER = 2;
+    LEADER = 3;
+  };
+  optional State state = 1;
+};
+
+message ThreadWhitelist {
+  enum Type {
+    STATUS = 0;
+    LIST = 1;
+    ADD = 2;
+    DELETE = 3;
+    CLEAR = 4;
+  };
+  required Type type = 1;
+  enum Status {
+    DISABLE = 0;  
+    ENABLE = 1;
+  };
+  optional Status status = 2;
+  repeated bytes address = 3 [(max_repeat) = 8, (max_length) = 8];
+};
+
+message ThreadIp6Addresses {
+  repeated bytes address = 1 [(max_repeat) = 4, (max_length) = 16];
+};
+
+message ThreadScanRequest {
+  optional uint32 channel_mask = 1;
+  optional uint32 scan_interval_per_channel = 2;
+};
+
+message ThreadScanResult {
+  required bytes network_name = 1 [(max_length) = 16];
+  required bytes ext_panid = 2 [(max_length) = 8];
+  required bytes ext_addr = 3 [(max_length) = 8];
+  required uint32 panid = 4;
+  required uint32 channel = 5;
+  required int32 rssi = 6;
+};
+
+message ThreadScanResultDone {
+};
+
+message ThreadControl {
+  oneof message {
+    ThreadPrimitive primitive = 1;
+    ThreadState state = 2;
+    ThreadIp6Addresses addresses = 3;
+    ThreadWhitelist whitelist = 4;
+    ThreadScanRequest scan_request = 5;
+    ThreadScanResult scan_result = 6; 
+    ThreadScanResultDone scan_result_done = 7;
+  }
+}
