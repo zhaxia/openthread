@@ -15,9 +15,9 @@
 
 include pre.mak
 
-include src/thread.mak
-
 ifeq ($(BUILD_FEATURE_NLTHREAD),1)
+
+include src/thread.mak
 
 .DEFAULT_GOAL = all
 
@@ -25,6 +25,7 @@ VPATH                                          = \
     include                                      \
     include/common                               \
     src                                          \
+    src/app                                      \
     src/coap                                     \
     src/common                                   \
     src/crypto                                   \
@@ -42,36 +43,25 @@ ARCHIVES = nlthread
 IncludeFiles                                  := \
     $(COREINCLUDES)                              \
 
-
 nlthread_SOURCES                               = \
     $(COREFILES)                                 \
 
-
-# --- PLATFORM SPECIFIC -------
+ifeq ($(BUILD_FEATURE_COMMSIM),1)
 
 VPATH                                         += \
     src/platform/commsim                         \
 
-IncludeFiles += \
-#    platform/commsim/atomic.h \ 
-#    platform/common/phy.h
-
-#nlthread_SOURCES                              += \
-#    platform/commsim/alarm.cc                    \
-#    platform/commsim/atomic.cc                   \
-#    platform/commsim/phy.cc                      \
-#    platform/commsim/sleep.cc                    \
-#    platform/commsim/uart.cc                     \
+nlthread_SOURCES                              += \
+    $(COREFILES_VNCP)                            \
 
 nlthread_SOURCES                              += \
-    alarm.cc                                     \
-    atomic.cc                                    \
-    phy.cc                                       \
-    sleep.cc                                     \
-    uart.cc                                      \
+    platform/commsim/alarm.cc                    \
+    platform/commsim/atomic.cc                   \
+    platform/commsim/phy.cc                      \
+    platform/commsim/sleep.cc                    \
+    platform/commsim/uart.cc                     \
 
-# -------
-
+endif
 
 nlthread_INCLUDES =                              \
     include                                      \

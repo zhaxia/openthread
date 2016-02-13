@@ -1,7 +1,20 @@
-
-
+#
+#    Copyright (c) 2016 Nest Labs, Inc.
+#    All rights reserved.
+#
+#    This document is the property of Nest Labs. It is considered
+#    confidential and proprietary information.
+#
+#    This document may not be reproduced or transmitted in any form,
+#    in whole or in part, without the express written permission of
+#    Nest Labs.
+#
+#    Description:
+#      This is a make file for OpenThread library.
+#
 
 COREINCLUDES = \
+    app/app.h \
     coap/coap_message.h \
     coap/coap_server.h \
     common/encoding.h \
@@ -39,8 +52,6 @@ COREINCLUDES = \
 
 
 # The minimum set of files needed for open thread
-
-ifeq (0,1)
 
 COREFILES = \
     coap/coap_message.cc \
@@ -80,49 +91,11 @@ COREFILES = \
     tun/tun_netif.cc \
     $(NULL)
 
-else
 
-COREFILES = \
-    coap_message.cc \
-    coap_server.cc \
-    message.cc \
-    random.cc \
-    tasklet.cc \
-    timer.cc \
-    aes_ccm.cc \
-    aes_ecb.cc \
-    hmac.cc \
-    sha256.cc \
-    mac.cc \
-    mac_frame.cc \
-    mac_whitelist.cc \
-    icmp6.cc \
-    ip6.cc \
-    ip6_address.cc \
-    ip6_mpl.cc \
-    ip6_routes.cc \
-    netif.cc \
-    udp6.cc \
-    hdlc.cc \
-    ncp.cc \
-    ncp.pb-c.c \
-    protobuf-c.c \
-    address_resolver.cc \
-    key_manager.cc \
-    lowpan.cc \
-    mesh_forwarder.cc \
-    mle.cc \
-    mle_router.cc \
-    network_data.cc \
-    network_data_local.cc \
-    network_data_leader.cc \
-    thread_netif.cc \
-    tun_netif.cc \
-    $(NULL)
+COREFILES_VNCP = \
+    app/soc_app.cpp \
 
 
-endif
-
-#COREFILES = \
-#    coap_message.cc \
+COREFILES_NCP = \
+    app/ncp_app.cpp \
 
