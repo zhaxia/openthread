@@ -15,7 +15,7 @@
 
 include pre.mak
 
-ifeq ($(BUILD_FEATURE_NLTHREAD),1)
+ifeq ($(BUILD_FEATURE_OPENTHREAD),1)
 
 include src/thread.mak
 
@@ -38,12 +38,12 @@ VPATH                                          = \
     src/thread                                   \
     src/tun                                      \
 
-ARCHIVES = nlthread
+ARCHIVES = openthread
 
 IncludeFiles                                  := \
     $(COREINCLUDES)                              \
 
-nlthread_SOURCES                               = \
+openthread_SOURCES                             = \
     $(COREFILES)                                 \
 
 ifeq ($(BUILD_FEATURE_COMMSIM),1)
@@ -51,10 +51,10 @@ ifeq ($(BUILD_FEATURE_COMMSIM),1)
 VPATH                                         += \
     src/platform/commsim                         \
 
-nlthread_SOURCES                              += \
+openthread_SOURCES                            += \
     $(COREFILES_VNCP)                            \
 
-nlthread_SOURCES                              += \
+openthread_SOURCES                            += \
     platform/commsim/alarm.cc                    \
     platform/commsim/atomic.cc                   \
     platform/commsim/phy.cc                      \
@@ -63,12 +63,12 @@ nlthread_SOURCES                              += \
 
 endif
 
-nlthread_INCLUDES =                              \
+openthread_INCLUDES =                            \
     include                                      \
     src                                          \
     $(IncludeFiles)                              \
-    $(NlThreadOptsPath)                          \
-    $(NlThreadIncludePaths)                      \
+    $(OpenThreadOptsPath)                        \
+    $(OpenThreadIncludePaths)                    \
     $(AppsIncludePaths)                          \
     $(NLERIncludePaths)                          \
 #    $(LwIPIncludePaths)                          \
@@ -83,14 +83,14 @@ nlthread_INCLUDES =                              \
 #    $(NlEnvIncludePaths)                         \
 #    $(NlNetworkManagerIncludePaths)              \
 
-nlthread_DEFINES =                               \
+openthread_DEFINES =                             \
 
-#ProductIncludeFiles     := $(ProductFpsDir)/nlthread/products/$(BuildProduct)/nlthread_opts.h
-#ProductIncludePath      := $(BuildRoot)/$(ProductFpsDir)/nlthread/products/$(BuildProduct)/nlthread_opts.h
+#ProductIncludeFiles     := $(ProductFpsDir)/openthread/products/$(BuildProduct)/openthread_opts.h
+#ProductIncludePath      := $(BuildRoot)/$(ProductFpsDir)/openthread/products/$(BuildProduct)/openthread_opts.h
 #ProductIncludeDirName   := ../../
 #ProductResultIncDir     := $(call GenerateResultPaths,,$(ProductIncludeDirName))
 #ProductResultIncPaths   := $(call GenerateResultPaths,,$(addprefix $(ProductIncludeDirName)/,$(ProductIncludeFiles)))
-#NlThreadOptsPath        := $(ProductResultIncDir)/$(ProductFpsDir)/nlthread/products/$(BuildProduct)
+#OpenThreadOptsPath      := $(ProductResultIncDir)/$(ProductFpsDir)/openthread/products/$(BuildProduct)
 #CleanPaths              += $(ProductResultIncPaths)
 #TARGETS                 += $(ProductResultIncPaths)
 
@@ -100,7 +100,7 @@ nlthread_DEFINES =                               \
 
 IncludeDirName          := include
 ResultIncDir            := $(call GenerateResultPaths,,$(IncludeDirName))
-ResultIncPaths          := $(call GenerateResultPaths,$(NlThreadDir)/$(IncludeDirName),$(IncludeFiles))
+ResultIncPaths          := $(call GenerateResultPaths,$(OpenThreadDir)/$(IncludeDirName),$(IncludeFiles))
 CleanPaths              += $(ResultIncPaths)
 TARGETS                 += $(ResultIncPaths)
 $(ResultIncPaths): $(ResultIncDir)/%: %
@@ -108,7 +108,7 @@ $(ResultIncPaths): $(ResultIncDir)/%: %
 $(ResultIncPaths): $(ResultIncDir)/%: %
 	$(install-result)
 
-endif # ifeq ($(BUILD_FEATURE_NLTHREAD),1)
+endif # ifeq ($(BUILD_FEATURE_OPENTHREAD),1)
 
 include post.mak
 
