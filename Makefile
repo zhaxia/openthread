@@ -17,7 +17,7 @@ include pre.mak
 
 ifeq ($(BUILD_FEATURE_OPENTHREAD),1)
 
-include src/thread.mak
+include openthread.mak
 
 .DEFAULT_GOAL = all
 
@@ -41,10 +41,10 @@ VPATH                                          = \
 ARCHIVES = openthread
 
 IncludeFiles                                  := \
-    $(COREINCLUDES)                              \
+    $(OPENTHREAD_INCLUDES)                       \
 
 openthread_SOURCES                             = \
-    $(COREFILES)                                 \
+    $(OPENTHREAD_SOURCES)                        \
 
 ifeq ($(BUILD_FEATURE_COMMSIM),1)
 
@@ -52,7 +52,7 @@ VPATH                                         += \
     src/platform/commsim                         \
 
 openthread_SOURCES                            += \
-    $(COREFILES_VNCP)                            \
+    $(OPENTHREAD_SOURCES_VNCP)                   \
 
 openthread_SOURCES                            += \
     platform/commsim/alarm.cc                    \
