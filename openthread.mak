@@ -13,7 +13,7 @@
 #      This is a make file for OpenThread library.
 #
 
-COREINCLUDES = \
+OPENTHREAD_INCLUDES = \
     app/app.h \
     coap/coap_header.h \
     coap/coap_server.h \
@@ -56,7 +56,7 @@ COREINCLUDES = \
 
 # The minimum set of files needed for open thread
 
-COREFILES = \
+OPENTHREAD_SOURCES = \
     coap/coap_header.cc \
     coap/coap_server.cc \
     common/message.cc \
@@ -97,10 +97,10 @@ COREFILES = \
     $(NULL)
 
 
-COREFILES_VNCP = \
+OPENTHREAD_SOURCES_VNCP = \
     app/soc_app.cpp \
 
 
-COREFILES_NCP = \
+OPENTHREAD_SOURCES_NCP = \
     app/ncp_app.cpp \
 
