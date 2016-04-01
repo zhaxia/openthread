@@ -17,117 +17,128 @@
 #include <cli/cli_command.h>
 #include <cli/cli_udp.h>
 #include <common/code_utils.h>
-#include <common/encoding.h>
 #include <stdio.h>
 #include <string.h>
 
-using Thread::Encoding::BigEndian::HostSwap16;
-
 namespace Thread {
+namespace Cli {
 
-CliServerUdp::CliServerUdp():
-  socket_(&RecvFrom, this) {
+Udp::Udp():
+    m_socket(&HandleUdpReceive, this)
+{
 }
 
-ThreadError CliServerUdp::Add(CliCommand *command) {
-  ThreadError error = kThreadError_None;
-  CliCommand *cur_command;
+ThreadError Udp::Start()
+{
+    struct sockaddr_in6 sockaddr;
 
-  VerifyOrExit(command->next_ == NULL, error = kThreadError_Busy);
+    memset(&sockaddr, 0, sizeof(sockaddr));
+    sockaddr.sin6_port = 7335;
 
-  if (commands_ == NULL) {
-    commands_ = command;
-  } else {
-    for (cur_command = commands_; cur_command->next_; cur_command = cur_command->next_) {}
-    cur_command->next_ = command;
-  }
+    return m_socket.Bind(&sockaddr);
+}
+
+void Udp::HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info)
+{
+    Udp *obj = reinterpret_cast<Udp *>(context);
+    obj->HandleUdpReceive(message, message_info);
+}
+
+void Udp::HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info)
+{
+    ThreadError error = kThreadError_None;
+    uint16_t payload_length = message.GetLength() - message.GetOffset();
+    Message *reply;
+    char buf[512];
+    char *cmd;
+    char *last;
+
+    VerifyOrExit(payload_length <= sizeof(buf), ;);
+    message.Read(message.GetOffset(), payload_length, buf);
+
+    if (buf[payload_length - 1] == '\n')
+    {
+        buf[--payload_length] = '\0';
+    }
+
+    if (buf[payload_length - 1] == '\r')
+    {
+        buf[--payload_length] = '\0';
+    }
+
+    VerifyOrExit((cmd = strtok_r(buf, " ", &last)) != NULL, ;);
+
+    m_peer = message_info;
+
+    if (strncmp(cmd, "?", 1) == 0)
+    {
+        char *cur = buf;
+        char *end = cur + sizeof(buf);
+
+        snprintf(cur, end - cur, "%s", "Commands:\r\n");
+        cur += strlen(cur);
+
+        for (Command *command = m_commands; command; command = command->GetNext())
+        {
+            snprintf(cur, end - cur, "%s\r\n", command->GetName());
+            cur += strlen(cur);
+        }
+
+        VerifyOrExit((reply = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+        reply->Append(buf, cur - buf);
+
+        SuccessOrExit(error = m_socket.SendTo(*reply, m_peer));
+    }
+    else
+    {
+        int argc;
+        char *argv[kMaxArgs];
+
+        for (argc = 0; argc < kMaxArgs; argc++)
+        {
+            if ((argv[argc] = strtok_r(NULL, " ", &last)) == NULL)
+            {
+                break;
+            }
+        }
+
+        for (Command *command = m_commands; command; command = command->GetNext())
+        {
+            if (strcmp(cmd, command->GetName()) == 0)
+            {
+                command->Run(argc, argv, *this);
+                break;
+            }
+        }
+    }
 
 exit:
-  return error;
-}
 
-ThreadError CliServerUdp::Start(uint16_t port) {
-  struct sockaddr_in6 sockaddr;
-
-  memset(&sockaddr, 0, sizeof(sockaddr));
-  sockaddr.sin6_port = HostSwap16(port);
-
-  return socket_.Bind(&sockaddr);
-}
-
-void CliServerUdp::RecvFrom(void *context, Message *message, const Ip6MessageInfo *message_info) {
-  CliServerUdp *obj = reinterpret_cast<CliServerUdp*>(context);
-  obj->RecvFrom(message, message_info);
-}
-
-void CliServerUdp::RecvFrom(Message *message, const Ip6MessageInfo *message_info) {
-  ThreadError error = kThreadError_None;
-  uint16_t payload_length = message->GetLength() - message->GetOffset();
-  char buf[512];
-  char *cmd;
-  char *last;
-
-  VerifyOrExit(payload_length <= sizeof(buf), ;);
-  message->Read(message->GetOffset(), payload_length, buf);
-
-  if (buf[payload_length-1] == '\n')
-    buf[--payload_length] = '\0';
-  if (buf[payload_length-1] == '\r')
-    buf[--payload_length] = '\0';
-
-  VerifyOrExit((cmd = strtok_r(buf, " ", &last)) != NULL, ;);
-
-  peer_ = *message_info;
-
-  if (strncmp(cmd, "?", 1) == 0) {
-    char *cur = buf;
-    char *end = cur + sizeof(buf);
-
-    snprintf(cur, end - cur, "%s", "Commands:\r\n");
-    cur += strlen(cur);
-    for (CliCommand *command = commands_; command; command = command->next_) {
-      snprintf(cur, end - cur, "%s\r\n", command->GetName());
-      cur += strlen(cur);
+    if (error != kThreadError_None && reply != NULL)
+    {
+        Message::Free(*reply);
     }
+}
+
+ThreadError Udp::Output(const char *buf, uint16_t buf_length)
+{
+    ThreadError error = kThreadError_None;
+    Message *message;
 
     VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
-    message->Append(buf, cur - buf);
-
-    SuccessOrExit(error = socket_.SendTo(message, &peer_));
-  } else {
-    int argc;
-    char *argv[kMaxArgs];
-
-    for (argc = 0; argc < kMaxArgs; argc++) {
-      if ((argv[argc] = strtok_r(NULL, " ", &last)) == NULL)
-        break;
-    }
-
-    for (CliCommand *command = commands_; command; command = command->next_) {
-      if (strcmp(cmd, command->GetName()) == 0) {
-        command->Run(argc, argv, this);
-        break;
-      }
-    }
-  }
-exit:
-  if (error != kThreadError_None && message != NULL)
-    Message::Free(message);
-}
-
-ThreadError CliServerUdp::Output(const char *buf, uint16_t buf_length) {
-  ThreadError error = kThreadError_None;
-  Message *message;
-
-  VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
-  SuccessOrExit(error = message->SetLength(buf_length));
-  message->Write(0, buf_length, buf);
-  SuccessOrExit(error = socket_.SendTo(message, &peer_));
+    SuccessOrExit(error = message->SetLength(buf_length));
+    message->Write(0, buf_length, buf);
+    SuccessOrExit(error = m_socket.SendTo(*message, m_peer));
 
 exit:
-  if (error != kThreadError_None && message != NULL)
-    Message::Free(message);
-  return error;
+
+    if (error != kThreadError_None && message != NULL)
+    {
+        Message::Free(*message);
+    }
+
+    return error;
 }
 
+}  // namespace Cli
 }  // namespace Thread

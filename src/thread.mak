@@ -15,7 +15,7 @@
 
 COREINCLUDES = \
     app/app.h \
-    coap/coap_message.h \
+    coap/coap_header.h \
     coap/coap_server.h \
     common/encoding.h \
     common/message.h \
@@ -36,11 +36,14 @@ COREINCLUDES = \
     thread/lowpan.h \
     thread/mesh_forwarder.h \
     thread/mle.h \
+    thread/mle_tlvs.h \
     thread/mle_router.h \
     thread/network_data.h \
     thread/network_data_leader.h \
     thread/network_data_local.h \
+    thread/network_data_tlvs.h \
     thread/thread_netif.h \
+    thread/thread_tlvs.h \
     thread/topology.h \
     platform/common/alarm.h \
     platform/common/alarm_interface.h \
@@ -54,7 +57,7 @@ COREINCLUDES = \
 # The minimum set of files needed for open thread
 
 COREFILES = \
-    coap/coap_message.cc \
+    coap/coap_header.cc \
     coap/coap_server.cc \
     common/message.cc \
     common/random.cc \
@@ -83,11 +86,13 @@ COREFILES = \
     thread/lowpan.cc \
     thread/mesh_forwarder.cc \
     thread/mle.cc \
+    thread/mle_tlvs.cc \
     thread/mle_router.cc \
     thread/network_data.cc \
     thread/network_data_local.cc \
     thread/network_data_leader.cc \
     thread/thread_netif.cc \
+    thread/thread_tlvs.cc \
     tun/tun_netif.cc \
     $(NULL)
 

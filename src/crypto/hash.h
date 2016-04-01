@@ -14,22 +14,25 @@
  *
  */
 
-#ifndef CRYPTO_HASH_H_
-#define CRYPTO_HASH_H_
+#ifndef HASH_H_
+#define HASH_H_
 
-#include <common/thread_error.h>
 #include <stdint.h>
+#include <common/thread_error.h>
 
 namespace Thread {
+namespace Crypto {
 
-class Hash {
- public:
-  virtual uint16_t GetSize() const = 0;
-  virtual ThreadError Init() = 0;
-  virtual ThreadError Input(const void *buf, uint16_t buf_length) = 0;
-  virtual ThreadError Finalize(uint8_t *hash) = 0;
+class Hash
+{
+public:
+    virtual uint16_t GetSize() const = 0;
+    virtual ThreadError Init() = 0;
+    virtual ThreadError Input(const void *buf, uint16_t buf_length) = 0;
+    virtual ThreadError Finalize(uint8_t *hash) = 0;
 };
 
+}  // namespace Crypto
 }  // namespace Thread
 
-#endif  // CRYPTO_HASH_H_
+#endif  // HASH_H_

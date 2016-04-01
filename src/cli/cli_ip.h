@@ -14,28 +14,31 @@
  *
  */
 
-#ifndef CLI_CLI_IP_H_
-#define CLI_CLI_IP_H_
+#ifndef CLI_IP_H_
+#define CLI_IP_H_
 
 #include <cli/cli_command.h>
 #include <net/netif.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliIp: public CliCommand {
- public:
-    explicit CliIp(CliServer *server);
+class Ip: public Command
+{
+public:
+    explicit Ip(Server &server);
     const char *GetName() final;
-    void Run(int argc, char *argv[], CliServer *server) final;
+    void Run(int argc, char *argv[], Server &server) final;
 
- private:
+private:
     int PrintUsage(char *buf, uint16_t buf_length);
     ThreadError AddAddress(int argc, char *argv[]);
     ThreadError DeleteAddress(int argc, char *argv[]);
 
-    NetifAddress address_;
+    NetifUnicastAddress m_address;
 };
 
-}  // namespace Thread 
+}  // namespace Cli
+}  // namespace Thread
 
-#endif  // CLI_CLI_IP_H_
+#endif  // CLI_IP_H_

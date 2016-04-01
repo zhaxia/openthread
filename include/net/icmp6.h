@@ -14,108 +14,125 @@
  *
  */
 
-#ifndef NET_ICMP6_H_
-#define NET_ICMP6_H_
+#ifndef ICMP6_H_
+#define ICMP6_H_
 
+#include <common/encoding.h>
 #include <net/ip6.h>
+
+using Thread::Encoding::BigEndian::HostSwap16;
 
 namespace Thread {
 
-typedef struct icmp6_hdr {
-  uint8_t        icmp6_type;     /* type field */
-  uint8_t        icmp6_code;     /* code field */
-  uint16_t       icmp6_cksum;    /* checksum field */
-  union {
-    uint32_t       icmp6_un_data32[1]; /* type-specific field */
-    uint16_t       icmp6_un_data16[2]; /* type-specific field */
-    uint8_t        icmp6_un_data8[4];  /* type-specific field */
-  } icmp6_dataun;
-} Icmp6Header;
+class Icmp6Header
+{
+public:
+    void Init() { m_type = 0; m_code = 0; m_checksum = 0; m_data.d32[0] = 0; }
 
-class Icmp6 {
- public:
-  class Callbacks {
-    friend Icmp6;
+    enum Type
+    {
+        kTypeDstUnreach = 0,
+        kTypeEchoRequest = 128,
+        kTypeEchoReply = 129,
+    };
+    Type GetType() const { return static_cast<Type>(m_type); }
+    void SetType(Type type) { m_type = static_cast<uint8_t>(type); }
 
-   public:
-    typedef void (*HandleDstUnreach)(void *context, Message *mesage, const Icmp6Header *icmp6_header,
-                                     const Ip6MessageInfo *message_info);
-    Callbacks(HandleDstUnreach handle_dst_unreach, void *context) {
-      handle_dst_unreach_ = handle_dst_unreach;
-      context_ = context;
-    }
+    enum Code
+    {
+        kCodeDstUnreachNoRoute = 0,
+    };
+    Code GetCode() const { return static_cast<Code>(m_code); }
+    void SetCode(Code code) { m_code = static_cast<uint8_t>(code); }
 
-   private:
-    HandleDstUnreach handle_dst_unreach_;
-    void *context_;
-    Callbacks *next_;
-  };
+    uint16_t GetChecksum() const { return HostSwap16(m_checksum); }
+    void SetChecksum(uint16_t checksum) { m_checksum = HostSwap16(checksum); }
 
-  class EchoClient {
+    uint16_t GetId() const { return HostSwap16(m_data.d16[0]); }
+    void SetId(uint16_t id) { m_data.d16[0] = HostSwap16(id); }
+
+    uint16_t GetSequence() const { return HostSwap16(m_data.d16[1]); }
+    void SetSequence(uint16_t sequence) { m_data.d16[1] = HostSwap16(sequence); }
+
+    static uint8_t GetChecksumOffset() { return offsetof(Icmp6Header, m_checksum); }
+    static uint8_t GetDataOffset() { return offsetof(Icmp6Header, m_data); }
+
+private:
+    uint8_t m_type;
+    uint8_t m_code;
+    uint16_t m_checksum;
+    union
+    {
+        uint32_t d32[1];
+        uint16_t d16[2];
+        uint8_t d8[4];
+    } m_data;
+} __attribute__((packed));
+
+class Icmp6Echo
+{
     friend class Icmp6;
 
-   public:
-    typedef void (*HandleEchoResponse)(void *context, Message *message, const Ip6MessageInfo *message_info);
-    EchoClient(HandleEchoResponse handle_echo_response, void *context);
-    ThreadError SendEchoRequest(const struct sockaddr_in6 *address, const void *payload, uint16_t payload_length);
+public:
+    typedef void (*EchoReplyHandler)(void *context, Message &message, const Ip6MessageInfo &message_info);
+    Icmp6Echo(EchoReplyHandler handler, void *context);
+    ThreadError SendEchoRequest(const struct sockaddr_in6 &address, const void *payload, uint16_t payload_length);
 
-   private:
-    HandleEchoResponse handle_echo_response_;
-    void *context_;
-    uint16_t id_;
-    uint16_t seq_;
-    EchoClient *next_;
-    static uint16_t next_id_;
-  };
+private:
+    void HandleEchoReply(Message &message, const Ip6MessageInfo &message_info) {
+        m_handler(m_context, message, message_info);
+    }
 
-  static ThreadError RegisterCallbacks(Callbacks *callbacks);
-  static ThreadError SendError(const Ip6Address *dst, uint8_t type, uint8_t code, const Ip6Header *ip6_header);
-  static ThreadError HandleMessage(Message *message, Ip6MessageInfo *message_info);
-  static ThreadError UpdateChecksum(Message *message, uint16_t pseudoheader_checksum);
+    EchoReplyHandler m_handler;
+    void *m_context;
+    uint16_t m_id;
+    uint16_t m_seq;
+    Icmp6Echo *m_next;
 
- private:
-  static ThreadError HandleDstUnreach(Message *message, const Icmp6Header *icmp6_header,
-                                      const Ip6MessageInfo *message_info);
-  static ThreadError HandleEchoRequest(Message *message, const Ip6MessageInfo *message_info);
-  static ThreadError HandleEchoReply(Message *message, const Icmp6Header *icmp6_header,
-                                     const Ip6MessageInfo *message_info);
-
-  static Callbacks *callbacks_;
-  static EchoClient *echo_clients_;
+    static uint16_t s_next_id;
+    static Icmp6Echo *s_echo_clients;
 };
 
-#define icmp6_data32    icmp6_dataun.icmp6_un_data32
-#define icmp6_data16    icmp6_dataun.icmp6_un_data16
-#define icmp6_data8     icmp6_dataun.icmp6_un_data8
-#define icmp6_pptr      icmp6_data32[0]         /* parameter prob */
-#define icmp6_mtu       icmp6_data32[0]         /* packet too big */
-#define icmp6_id        icmp6_data16[0]         /* echo request/reply */
-#define icmp6_seq       icmp6_data16[1]         /* echo request/reply */
-#define icmp6_maxdelay  icmp6_data16[0]         /* mcast group membership */
+class Icmp6Handler
+{
+    friend class Icmp6;
 
-#define ICMP6_DST_UNREACH               1       /* dest unreachable, codes: */
-#define ICMP6_PACKET_TOO_BIG            2       /* packet too big */
-#define ICMP6_TIME_EXCEEDED             3       /* time exceeded, code: */
-#define ICMP6_PARAM_PROB                4       /* ip6 header bad */
+public:
+    typedef void (*DstUnreachHandler)(void *context, Message &mesage, const Ip6MessageInfo &message_info,
+                                      const Icmp6Header &icmp6_header);
+    Icmp6Handler(DstUnreachHandler dst_unreach_handler, void *context) {
+        m_dst_unreach_handler = dst_unreach_handler;
+        m_context = context;
+    }
 
-#define ICMP6_ECHO_REQUEST              128     /* echo service */
-#define ICMP6_ECHO_REPLY                129     /* echo reply */
+private:
+    void HandleDstUnreach(Message &message, const Ip6MessageInfo &message_info, const Icmp6Header &icmp6_header) {
+        m_dst_unreach_handler(m_context, message, message_info, icmp6_header);
+    }
 
-#define ICMP6_DST_UNREACH_NOROUTE       0       /* no route to destination */
-#define ICMP6_DST_UNREACH_ADMIN         1       /* administratively prohibited */
-#define ICMP6_DST_UNREACH_NOTNEIGHBOR   2       /* not a neighbor(obsolete) */
-#define ICMP6_DST_UNREACH_BEYONDSCOPE   2       /* beyond scope of source address */
-#define ICMP6_DST_UNREACH_ADDR          3       /* address unreachable */
-#define ICMP6_DST_UNREACH_NOPORT        4       /* port unreachable */
+    DstUnreachHandler m_dst_unreach_handler;
+    void *m_context;
+    Icmp6Handler *m_next;
 
-#define ICMP6_TIME_EXCEED_TRANSIT       0       /* ttl==0 in transit */
-#define ICMP6_TIME_EXCEED_REASSEMBLY    1       /* ttl==0 in reass */
+    static Icmp6Handler *s_handlers;
+};
 
-#define ICMP6_PARAMPROB_HEADER          0       /* erroneous header field */
-#define ICMP6_PARAMPROB_NEXTHEADER      1       /* unrecognized next header */
-#define ICMP6_PARAMPROB_OPTION          2       /* unrecognized option */
+class Icmp6
+{
+public:
+    static ThreadError RegisterCallbacks(Icmp6Handler &handler);
+    static ThreadError SendError(const Ip6Address &dst, Icmp6Header::Type type, Icmp6Header::Code code,
+                                 const Ip6Header &ip6_header);
+    static ThreadError HandleMessage(Message &message, Ip6MessageInfo &message_info);
+    static ThreadError UpdateChecksum(Message &message, uint16_t pseudoheader_checksum);
 
-#define ICMP6_INFOMSG_MASK              0x80    /* all informational messages */
+private:
+    static ThreadError HandleDstUnreach(Message &message, const Ip6MessageInfo &message_info,
+                                        const Icmp6Header &icmp6_header);
+    static ThreadError HandleEchoRequest(Message &message, const Ip6MessageInfo &message_info);
+    static ThreadError HandleEchoReply(Message &message, const Ip6MessageInfo &message_info,
+                                       const Icmp6Header &icmp6_header);
+};
 
 }  // namespace Thread
 

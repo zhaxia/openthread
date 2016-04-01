@@ -14,31 +14,36 @@
  *
  */
 
-#ifndef CLI_CLI_PING_H_
-#define CLI_CLI_PING_H_
+#ifndef CLI_PING_H_
+#define CLI_PING_H_
 
 #include <cli/cli_command.h>
 #include <net/icmp6.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliPing: public CliCommand {
- public:
-  explicit CliPing(CliServer *cli_server);
-  const char *GetName() final;
-  void Run(int argc, char *argv[], CliServer *server) final;
+class Ping: public Command
+{
+public:
+    explicit Ping(Server &server);
+    const char *GetName() final;
+    void Run(int argc, char *argv[], Server &server) final;
 
- private:
-  static void HandleEchoResponse(void *context, Message *message, const Ip6MessageInfo *message_info);
-  void HandleEchoResponse(Message *message, const Ip6MessageInfo *message_info);
+private:
+    static void HandleEchoResponse(void *context, Message &message, const Ip6MessageInfo &message_info);
+    void HandleEchoResponse(Message &message, const Ip6MessageInfo &message_info);
 
-  int PrintUsage(char *buf, uint16_t buf_length);
-  void EchoRequest();
+    int PrintUsage(char *buf, uint16_t buf_length);
+    void EchoRequest();
 
-  Icmp6::EchoClient echo_client_;
-  uint16_t length_ = 0;
+    sockaddr_in6 m_sockaddr;
+    Server *m_server;
+    Icmp6Echo m_icmp6_echo;
+    uint16_t m_length = 0;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_PING_H_
+#endif  // CLI_PING_H_

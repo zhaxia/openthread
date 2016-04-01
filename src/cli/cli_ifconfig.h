@@ -14,20 +14,23 @@
  *
  */
 
-#ifndef CLI_CLI_IFCONFIG_H_
-#define CLI_CLI_IFCONFIG_H_
+#ifndef CLI_IFCONFIG_H_
+#define CLI_IFCONFIG_H_
 
 #include <cli/cli_command.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliIfconfig: public CliCommand {
- public:
-  explicit CliIfconfig(CliServer *server);
-  const char *GetName() final;
-  void Run(int argc, char *argv[], CliServer *server) final;
+class Ifconfig: public Command
+{
+public:
+    explicit Ifconfig(Server &server);
+    const char *GetName() final;
+    void Run(int argc, char *argv[], Server &server) final;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_IFCONFIG_H_
+#endif  // CLI_IFCONFIG_H_

@@ -14,39 +14,40 @@
  *
  */
 
-#ifndef COMMON_TASKLET_H_
-#define COMMON_TASKLET_H_
+#ifndef TASKLET_H_
+#define TASKLET_H_
 
 #include <common/thread_error.h>
-#include <pthread.h>
 
 namespace Thread {
 
-class Tasklet {
-  friend class TaskletScheduler;
+class Tasklet
+{
+    friend class TaskletScheduler;
 
- public:
-  typedef void (*Callback)(void *context);
-  Tasklet(Callback callback, void *context);
-  ThreadError Post();
+public:
+    typedef void (*Handler)(void *context);
+    Tasklet(Handler handler, void *context);
+    ThreadError Post();
 
- private:
-  Callback m_callback;
-  void *m_context;
-  Tasklet *m_next;
+private:
+    void RunTask() { m_handler(m_context); }
+
+    Handler m_handler;
+    void *m_context;
+    Tasklet *m_next;
 };
 
-class TaskletScheduler {
- public:
-  static ThreadError Post(Tasklet *tasklet);
-  static void Run();
+class TaskletScheduler
+{
+public:
+    static ThreadError Post(Tasklet &tasklet);
+    static void Run();
 
- private:
-  static Tasklet *PopTasklet();
-  static Tasklet *m_head;
-  static Tasklet *m_tail;
+private:
+    static Tasklet *PopTasklet();
 };
 
 }  // namespace Thread
 
-#endif  // COMMON_TASKLET_H_
+#endif  // TASKLET_H_

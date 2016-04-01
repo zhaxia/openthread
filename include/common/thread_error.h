@@ -14,26 +14,32 @@
  *
  */
 
-#ifndef COMMON_THREAD_ERROR_H_
-#define COMMON_THREAD_ERROR_H_
+#ifndef THREAD_ERROR_H_
+#define THREAD_ERROR_H_
 
-namespace Thread {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-enum ThreadError {
-  kThreadError_None = 0,
-  kThreadError_Error = 1,
-  kThreadError_Drop = 2,
-  kThreadError_NoBufs = 3,
-  kThreadError_NoRoute = 4,
-  kThreadError_Busy = 5,
-  kThreadError_Parse = 6,
-  kThreadError_InvalidArgs = 7,
-  kThreadError_Security = 8,
-  kThreadError_LeaseQuery = 9,
-  kThreadError_NoAddress = 10,
-  kThreadError_NotReceiving = 11,
+enum ThreadError
+{
+    kThreadError_None = 0,
+    kThreadError_Error = 1,
+    kThreadError_Drop = 2,
+    kThreadError_NoBufs = 3,
+    kThreadError_NoRoute = 4,
+    kThreadError_Busy = 5,
+    kThreadError_Parse = 6,
+    kThreadError_InvalidArgs = 7,
+    kThreadError_Security = 8,
+    kThreadError_LeaseQuery = 9,
+    kThreadError_NoAddress = 10,
+    kThreadError_NotReceiving = 11,
+    kThreadError_Abort = 12,
 };
 
-}  // namespace Thread
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif
 
-#endif  // COMMON_THREAD_ERROR_H_
+#endif  // THREAD_ERROR_H_

@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef NET_IP6_ROUTES_H_
-#define NET_IP6_ROUTES_H_
+#ifndef IP6_ROUTES_H_
+#define IP6_ROUTES_H_
 
 #include <common/message.h>
 #include <common/thread_error.h>
@@ -23,18 +23,20 @@
 
 namespace Thread {
 
-struct Ip6Route {
-  Ip6Address prefix;
-  uint8_t prefix_length;
-  uint8_t interface_id;
-  struct Ip6Route *next;
+struct Ip6Route
+{
+    Ip6Address prefix;
+    uint8_t prefix_length;
+    uint8_t interface_id;
+    struct Ip6Route *next;
 };
 
-class Ip6Routes {
- public:
-  static ThreadError Add(Ip6Route *route);
-  static ThreadError Remove(Ip6Route *route);
-  static const Ip6Route *Lookup(const Ip6Address *source, const Ip6Address *destination);
+class Ip6Routes
+{
+public:
+    static ThreadError Add(Ip6Route &route);
+    static ThreadError Remove(Ip6Route &route);
+    static int Lookup(const Ip6Address &source, const Ip6Address &destination);
 };
 
 }  // namespace Thread

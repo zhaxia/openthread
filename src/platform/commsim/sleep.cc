@@ -14,16 +14,21 @@
  *
  */
 
-#include <platform/posix/sleep.h>
-#include <platform/posix/atomic.h>
+#include <pthread.h>
+#include <platform/common/sleep.h>
 
-namespace Thread {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-void Sleep::Begin() {
-  Atomic::TimedWait();
+extern pthread_mutex_t s_mutex;
+extern pthread_cond_t s_cond;
+
+void sleep_start()
+{
+    pthread_cond_wait(&s_cond, &s_mutex);
 }
 
-void Sleep::End() {
-}
-
-}  // namespace Thread
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif

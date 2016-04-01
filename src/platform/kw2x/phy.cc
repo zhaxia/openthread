@@ -14,448 +14,529 @@
  *
  */
 
-#include <platform/kw2x/phy.h>
+#include <platform/common/alarm.h>
+#include <platform/common/phy.h>
 #include <common/code_utils.h>
 #include <common/tasklet.h>
-#include <common/timer.h>
 #include <mac/mac_frame.h>
-#include <platform/kw2x/alarm.h>
-#include <cpu/CpuGpio.hpp>
+#include <core/cpu.h>
+#include <bsp/PLM/Interface/EmbeddedTypes.h>
+#include <bsp/PLM/Source/Common/MC1324xDrv/MC1324xDrv.h>
+#include <bsp/PLM/Source/Common/MC1324xDrv/MC1324xReg.h>
+#include <bsp/MacPhy/Phy/Interface/Phy.h>
 
-namespace Thread {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-static nl::Thread::CpuGpio theLed0(3, 4, 1);
+enum
+{
+    // Time in milliseconds required by the transceiver to switch the
+    // CLK_OUT clock frequency (in our case from 32KHz to 4 MHz)
+    mClkSwitchDelayTime_c = 50,
+    mRst_B_AssertTime_c = 50,
 
-uint8_t phy_events_[64];
-uint8_t phy_events_cur_ = 0;
+    // CLK_OUT_DIV field value for 4 MHz clock out frequency
+    mCLK_OUT_DIV_4MHz_c = 3,
+};
 
-Phy *phy_ = NULL;
+extern void phy_handle_transmit_done(PhyPacket *packet, bool rx_pending, ThreadError error);
+extern void phy_handle_receive_done(PhyPacket *packet, ThreadError error);
 
-uint8_t *PhyPacket::GetPsdu() {
-  return packet_.data;
+static void received_task(void *context);
+static void sent_task(void *context);
+static Thread::Tasklet received_task_(&received_task, NULL);
+static Thread::Tasklet sent_task_(&sent_task, NULL);
+
+static PhyState s_state = kStateDisabled;
+static PhyPacket *s_receive_frame = NULL;
+static PhyPacket *s_transmit_frame = NULL;
+static ThreadError s_transmit_error;
+static ThreadError s_receive_error;
+static phyRxParams_t s_rx_params;
+
+static uint8_t s_phy_events[64];
+static uint8_t s_phy_events_cur = 0;
+
+static void delayMs(uint16_t val)
+{
+    uint32_t now = Thread::alarm_get_now();
+
+    while (Thread::alarm_get_now() - now <= val) {}
 }
 
-uint8_t PhyPacket::GetPsduLength() const {
-  return packet_.frameLength;
+static void phy_doze()
+{
+    uint8_t phyPwrModesReg = 0;
+    phyPwrModesReg = MC1324xDrv_DirectAccessSPIRead(PWR_MODES);
+    phyPwrModesReg |= (0x10);  /* XTALEN = 1 */
+    phyPwrModesReg &= (0xFE);  /* PMC_MODE = 0 */
+    MC1324xDrv_DirectAccessSPIWrite(PWR_MODES, phyPwrModesReg);
 }
 
-void PhyPacket::SetPsduLength(uint8_t psdu_length) {
-  packet_.frameLength = psdu_length;
+ThreadError phy_set_pan_id(uint16_t panid)
+{
+    uint8_t buf[2];
+    buf[0] = panid >> 0;
+    buf[1] = panid >> 8;
+    PhyPpSetPanIdPAN0(buf);
+    return kThreadError_None;
 }
 
-uint8_t PhyPacket::GetChannel() const {
-  return channel_;
+ThreadError phy_set_extended_address(uint8_t *address)
+{
+    PhyPpSetLongAddrPAN0(address);
+    return kThreadError_None;
 }
 
-void PhyPacket::SetChannel(uint8_t channel) {
-  channel_ = channel;
+ThreadError phy_set_short_address(uint16_t address)
+{
+    uint8_t buf[2];
+    buf[0] = address >> 0;
+    buf[1] = address >> 8;
+    PhyPpSetShortAddrPAN0(buf);
+    return kThreadError_None;
 }
 
-int8_t PhyPacket::GetPower() const {
-  return power_;
+ThreadError phy_init()
+{
+    /* Initialize the transceiver SPI driver */
+    MC1324xDrv_SPIInit();
+    /* Configure the transceiver IRQ_B port */
+    MC1324xDrv_IRQ_PortConfig();
+
+    /* Configure the transceiver RST_B port */
+    MC1324xDrv_RST_B_PortConfig();
+
+    /* Transceiver Hard/RST_B RESET */
+    MC1324xDrv_RST_B_Assert();
+    delayMs(mRst_B_AssertTime_c);
+    MC1324xDrv_RST_B_Deassert();
+
+    /* Wait for transceiver to deassert IRQ pin */
+    while (MC1324xDrv_IsIrqPending()) {}
+
+    /* Wait for transceiver wakeup from POR iterrupt */
+    while (!MC1324xDrv_IsIrqPending()) {}
+
+    /* Enable transceiver SPI interrupt request */
+    NVIC_EnableIRQ(MC1324x_Irq_Number);
+
+    NVIC_SetPriority(MC1324x_Irq_Number, MC1324x_Irq_Priority);
+
+    /* Enable the transceiver IRQ_B interrupt request */
+    MC1324xDrv_IRQ_Enable();
+
+    MC1324xDrv_Set_CLK_OUT_Freq(gCLK_OUT_FREQ_4_MHz);
+
+    /* wait until the external reference clock is stable */
+    delayMs(mClkSwitchDelayTime_c);
+
+    PhyInit();
+    PhyPlmeSetLQIModeRequest(1);  // LQI Based on RSSI
+    phy_doze();
+
+    return kThreadError_None;
 }
 
-void PhyPacket::SetPower(int8_t power) {
-  power_ = power;
-}
+ThreadError phy_start()
+{
+    ThreadError error = kThreadError_None;
 
-phyPacket_t *PhyPacket::GetPacket() {
-  return &packet_;
-}
-
-/*
- * Name: mClkSwitchDelayTime_c
- * Description: Time in milliseconds required by the transceiver to switch
- *              the CLK_OUT clock frequency (in our case from 32KHz to 4 MHz)
- */
-#define mClkSwitchDelayTime_c           50
-#define mRst_B_AssertTime_c             50
-
-/*
- * Name: mCLK_OUT_DIV_4MHz_c
- * Description: CLK_OUT_DIV field value for 4 MHz clock out frequency
- */
-#define mCLK_OUT_DIV_4MHz_c             3
-
-static void delayMs(uint16_t val) {
-  uint32_t now = Alarm::GetNow();
-  while (Alarm::GetNow() - now <= val) {}
-}
-
-static void HandleLedTimer(void *context) {
-  theLed0.hi();
-}
-
-static Timer ledTimer(&HandleLedTimer, NULL);
-
-Phy::Phy(Callbacks *callbacks):
-    PhyInterface(callbacks),
-    received_task_(&ReceivedTask, this),
-    sent_task_(&SentTask, this) {
-}
-
-Phy::Error Phy::SetPanId(uint16_t panid) {
-  uint8_t buf[2];
-  buf[0] = panid >> 0;
-  buf[1] = panid >> 8;
-  PhyPpSetPanIdPAN0(buf);
-  return kErrorNone;
-}
-
-Phy::Error Phy::SetExtendedAddress(uint8_t *address) {
-  PhyPpSetLongAddrPAN0(address);
-  return kErrorNone;
-}
-
-Phy::Error Phy::SetShortAddress(uint16_t address) {
-  uint8_t buf[2];
-  buf[0] = address >> 0;
-  buf[1] = address >> 8;
-  PhyPpSetShortAddrPAN0(buf);
-  return kErrorNone;
-}
-
-Phy::Error Phy::Start() {
-  theLed0.init();
-
-  /* Initialize the transceiver SPI driver */
-  MC1324xDrv_SPIInit();
-  /* Configure the transceiver IRQ_B port */
-  MC1324xDrv_IRQ_PortConfig();
-
-  /* Configure the transceiver RST_B port */
-  MC1324xDrv_RST_B_PortConfig();
-
-  /* Transceiver Hard/RST_B RESET */
-  MC1324xDrv_RST_B_Assert();
-  delayMs(mRst_B_AssertTime_c);
-  MC1324xDrv_RST_B_Deassert();
-
-  /* Wait for transceiver to deassert IRQ pin */
-  while (MC1324xDrv_IsIrqPending()) {}
-  /* Wait for transceiver wakeup from POR iterrupt */
-  while (!MC1324xDrv_IsIrqPending()) {}
-
-  /* Enable transceiver SPI interrupt request */
-  NVIC_EnableIRQ(MC1324x_Irq_Number);
-
-  NVIC_SetPriority(MC1324x_Irq_Number, MC1324x_Irq_Priority);
-
-  /* Enable the transceiver IRQ_B interrupt request */
-  MC1324xDrv_IRQ_Enable();
-
-  MC1324xDrv_Set_CLK_OUT_Freq(gCLK_OUT_FREQ_4_MHz);
-
-  /* wait until the external reference clock is stable */
-  delayMs(mClkSwitchDelayTime_c);
-
-  PhyInit();
-  PhyPlmeSetLQIModeRequest(1);  // LQI Based on RSSI
-
-  state_ = kStateSleep;
-  phy_ = this;
-
-  return kErrorNone;
-}
-
-Phy::Error Phy::Stop() {
-  MC1324xDrv_IRQ_Disable();
-  MC1324xDrv_RST_B_Assert();
-  state_ = kStateDisabled;
-  return kErrorNone;
-}
-
-Phy::Error Phy::Sleep() {
-  Error error = kErrorNone;
-
-  MC1324xDrv_IRQ_Disable();
-  VerifyOrExit(state_ == kStateIdle, error = kErrorInvalidState);
-  state_ = kStateSleep;
+    MC1324xDrv_IRQ_Disable();
+    VerifyOrExit(s_state == kStateDisabled, error = kThreadError_Busy);
+    s_state = kStateSleep;
 
 exit:
-  MC1324xDrv_IRQ_Enable();
-  return error;
+    MC1324xDrv_IRQ_Enable();
+    return error;
 }
 
-Phy::Error Phy::Idle() {
-  Error error = kErrorNone;
+ThreadError phy_stop()
+{
+    MC1324xDrv_IRQ_Disable();
+    PhyAbort();
+    phy_doze();
+    s_state = kStateDisabled;
+    MC1324xDrv_IRQ_Enable();
+    return kThreadError_None;
+}
 
-  MC1324xDrv_IRQ_Disable();
-  switch (state_) {
+ThreadError phy_sleep()
+{
+    ThreadError error = kThreadError_None;
+
+    MC1324xDrv_IRQ_Disable();
+    VerifyOrExit(s_state == kStateIdle, error = kThreadError_Busy);
+    phy_doze();
+    s_state = kStateSleep;
+
+exit:
+    MC1324xDrv_IRQ_Enable();
+    return error;
+}
+
+ThreadError phy_idle()
+{
+    ThreadError error = kThreadError_None;
+
+    MC1324xDrv_IRQ_Disable();
+
+    switch (s_state)
+    {
     case kStateSleep:
-      state_ = kStateIdle;
-      break;
+        s_state = kStateIdle;
+        break;
+
     case kStateIdle:
-      break;
+        break;
+
     case kStateListen:
     case kStateTransmit:
-      PhyAbort();
-      state_ = kStateIdle;
-      break;
+        PhyAbort();
+        s_state = kStateIdle;
+        break;
+
     case kStateDisabled:
     case kStateReceive:
-      ExitNow(error = kErrorInvalidState);
-      break;
-  }
+        ExitNow(error = kThreadError_Busy);
+        break;
+    }
 
 exit:
-  MC1324xDrv_IRQ_Enable();
-  return error;
+    MC1324xDrv_IRQ_Enable();
+    return error;
 }
 
-Phy::Error Phy::Receive(PhyPacket *packet) {
-  Error error = kErrorNone;
+ThreadError phy_receive(PhyPacket *packet)
+{
+    ThreadError error = kThreadError_None;
 
-  MC1324xDrv_IRQ_Disable();
-  VerifyOrExit(state_ == kStateIdle, error = kErrorInvalidState);
-  state_ = kStateListen;
-  receive_packet_ = packet;
-  VerifyOrExit(PhyPlmeSetCurrentChannelRequestPAN0(packet->GetChannel()) == gPhySuccess_c,
-               error = kErrorInvalidState);
-  VerifyOrExit(PhyPlmeRxRequest(receive_packet_->GetPacket(), 0, &rx_params_) == gPhySuccess_c,
-               error = kErrorInvalidState);
-  phy_events_[phy_events_cur_++] = 0x10;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
+    MC1324xDrv_IRQ_Disable();
+    VerifyOrExit(s_state == kStateIdle, error = kThreadError_Busy);
+    s_state = kStateListen;
+    s_receive_frame = packet;
+    VerifyOrExit(PhyPlmeSetCurrentChannelRequestPAN0(packet->m_channel) == gPhySuccess_c, error = kThreadError_Busy);
+    VerifyOrExit(PhyPlmeRxRequest((phyPacket_t *)s_receive_frame, 0, &s_rx_params) == gPhySuccess_c,
+                 error = kThreadError_Busy);
+    s_phy_events[s_phy_events_cur++] = 0x10;
+
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
 
 exit:
-  MC1324xDrv_IRQ_Enable();
-  return error;
+    MC1324xDrv_IRQ_Enable();
+    return error;
 }
 
-uint8_t GetPhyTxMode(PhyPacket *packet) {
-  return reinterpret_cast<MacFrame*>(packet)->GetAckRequest() ?
-  gDataReq_Ack_Cca_Unslotted_c : gDataReq_NoAck_Cca_Unslotted_c;
+uint8_t GetPhyTxMode(PhyPacket *packet)
+{
+    return reinterpret_cast<Thread::Mac::Frame *>(packet)->GetAckRequest() ?
+           gDataReq_Ack_Cca_Unslotted_c : gDataReq_NoAck_Cca_Unslotted_c;
 }
 
-Phy::Error Phy::Transmit(PhyPacket *packet) {
-  Error error = kErrorNone;
+ThreadError phy_transmit(PhyPacket *packet)
+{
+    ThreadError error = kThreadError_None;
 
-  MC1324xDrv_IRQ_Disable();
-  VerifyOrExit(state_ == kStateIdle, error = kErrorInvalidState);
-  state_ = kStateTransmit;
-  transmit_packet_ = packet;
-  VerifyOrExit(PhyPlmeSetCurrentChannelRequestPAN0(packet->GetChannel()) == gPhySuccess_c,
-               error = kErrorInvalidState);
-  VerifyOrExit(PhyPdDataRequest(transmit_packet_->GetPacket(), GetPhyTxMode(transmit_packet_), NULL) ==
-               gPhySuccess_c, error = kErrorInvalidState);
-  phy_events_[phy_events_cur_++] = 0x11;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  theLed0.lo();
-  ledTimer.Start(100);
+    MC1324xDrv_IRQ_Disable();
+    VerifyOrExit(s_state == kStateIdle, error = kThreadError_Busy);
+    s_state = kStateTransmit;
+    s_transmit_frame = packet;
+    VerifyOrExit(PhyPlmeSetCurrentChannelRequestPAN0(packet->m_channel) == gPhySuccess_c, error = kThreadError_Busy);
+    VerifyOrExit(PhyPdDataRequest((phyPacket_t *)s_transmit_frame, GetPhyTxMode(s_transmit_frame), NULL) == gPhySuccess_c,
+                 error = kThreadError_Busy);
+    s_phy_events[s_phy_events_cur++] = 0x11;
+
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
 
 exit:
-  assert(error == kErrorNone);
-  MC1324xDrv_IRQ_Enable();
-  return error;
+    assert(error == kThreadError_None);
+    MC1324xDrv_IRQ_Enable();
+    return error;
 }
 
-Phy::State Phy::GetState() {
-  return state_;
+PhyState phy_get_state()
+{
+    return s_state;
 }
 
-int8_t Phy::GetNoiseFloor() {
-  return 0;
+int8_t phy_get_noise_floor()
+{
+    return 0;
 }
 
-void Phy::PhyPlmeSyncLossIndication() {
-  switch (state_) {
+extern "C" void PhyPlmeSyncLossIndication()
+{
+    s_phy_events[s_phy_events_cur++] = 1;
+
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
+
+    switch (s_state)
+    {
+    case kStateDisabled:
+    case kStateSleep:
+        break;
+
     case kStateListen:
-      receive_error_ = kErrorAbort;
-      PhyAbort();
-      state_ = kStateReceive;
-      received_task_.Post();
-      break;
+        s_receive_error = kThreadError_Abort;
+        PhyAbort();
+        s_state = kStateReceive;
+        received_task_.Post();
+        break;
+
     default:
-      assert(false);
-      break;
-  }
+        assert(false);
+        break;
+    }
 }
 
-void Phy::PhyTimeRxTimeoutIndication() {
-  assert(false);
+extern "C" void PhyTimeRxTimeoutIndication()
+{
+    s_phy_events[s_phy_events_cur++] = 2;
+
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
+
+    assert(false);
 }
 
-void Phy::PhyTimeStartEventIndication() {
-  assert(false);
+extern "C" void PhyTimeStartEventIndication()
+{
+    s_phy_events[s_phy_events_cur++] = 3;
+
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
+
+    assert(false);
 }
 
-void Phy::PhyPlmeCcaConfirm(bool channelInUse) {
-  switch (state_) {
+extern "C" void PhyPlmeCcaConfirm(bool_t channelInUse)
+{
+    s_phy_events[s_phy_events_cur++] = 4;
+
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
+
+    switch (s_state)
+    {
+    case kStateDisabled:
+    case kStateSleep:
+        break;
+
     case kStateTransmit:
-      transmit_error_ = kErrorAbort;
-      sent_task_.Post();
-      break;
+        s_transmit_error = kThreadError_Abort;
+        sent_task_.Post();
+        break;
+
     default:
-      assert(false);
-      break;
-  }
+        assert(false);
+        break;
+    }
 }
 
-void Phy::PhyPlmeEdConfirm(uint8_t energyLevel) {
-  assert(false);
+extern "C" void PhyPlmeEdConfirm(uint8_t energyLevel)
+{
+    s_phy_events[s_phy_events_cur++] = 5;
+
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
+
+    assert(false);
 }
 
-void Phy::PhyPdDataConfirm() {
-  assert(state_ == kStateTransmit);
-  transmit_error_ = kErrorNone;
-  sent_task_.Post();
+extern "C" void PhyPdDataConfirm()
+{
+    s_phy_events[s_phy_events_cur++] = 6;
+
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
+
+    assert(s_state == kStateTransmit);
+    s_transmit_error = kThreadError_None;
+    sent_task_.Post();
 }
 
-void Phy::PhyPdDataIndication() {
-  assert(state_ == kStateListen || state_ == kStateReceive);
-  state_ = kStateReceive;
+extern "C" void PhyPdDataIndication()
+{
+    int rssi;
 
-  int rssi;
-  rssi = rx_params_.linkQuality;
-  rssi = ((rssi * 105) / 255) - 105;
+    s_phy_events[s_phy_events_cur++] = 7;
 
-  receive_packet_->SetPower(rssi);
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
 
-  receive_error_ = kErrorNone;
-  received_task_.Post();
+    switch (s_state)
+    {
+    case kStateDisabled:
+    case kStateSleep:
+        break;
+
+    case kStateListen:
+    case kStateReceive:
+        s_state = kStateReceive;
+
+        rssi = s_rx_params.linkQuality;
+        rssi = ((rssi * 105) / 255) - 105;
+
+        s_receive_frame->m_power = rssi;
+
+        s_receive_error = kThreadError_None;
+        received_task_.Post();
+        break;
+
+    default:
+        assert(false);
+    }
 }
 
-void Phy::PhyPlmeFilterFailRx() {
+extern "C" void PhyPlmeFilterFailRx()
+{
+    s_phy_events[s_phy_events_cur++] = 8;
+
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
+
 #if 1
-  switch (state_) {
+
+    switch (s_state)
+    {
+    case kStateDisabled:
+    case kStateSleep:
+        break;
+
+    case kStateIdle:
+        PhyAbort();
+        break;
+
     case kStateListen:
     case kStateReceive:
-      PhyAbort();
-      PhyPlmeRxRequest(receive_packet_->GetPacket(), 0, &rx_params_);
-      state_ = kStateListen;
-      break;
+        PhyAbort();
+        PhyPlmeRxRequest((phyPacket_t *)s_receive_frame, 0, &s_rx_params);
+        s_state = kStateListen;
+        break;
+
     case kStateTransmit:
-      break;
+        break;
+
     default:
-      assert(false);
-      break;
-  }
+        assert(false);
+        break;
+    }
+
 #else
-  switch (state_) {
+
+    switch (s_state)
+    {
+    case kStateDisabled:
+    case kStateSleep:
+        break;
+
     case kStateListen:
-      break;
+        break;
+
     case kStateReceive:
-      state_ = kStateListen;
-      break;
+        s_state = kStateListen;
+        break;
+
     case kStateTransmit:
-      break;
+        break;
+
     default:
-      assert(false);
-      break;
-  }
+        assert(false);
+        break;
+    }
+
 #endif
 }
 
-uint8_t framelen_;
+extern "C" void PhyPlmeRxSfdDetect(uint8_t frame_length)
+{
+    s_phy_events[s_phy_events_cur++] = 9;
 
-void Phy::PhyPlmeRxSfdDetect(uint8_t frameLen) {
-  framelen_ = PhyPpGetState();
-  switch (state_) {
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
+
+    switch (s_state)
+    {
+    case kStateDisabled:
+    case kStateSleep:
+        break;
+
     case kStateListen:
-      state_ = kStateReceive;
-      break;
+        s_state = kStateReceive;
+        break;
+
     case kStateReceive:
-      break;
+        break;
+
     case kStateTransmit:
-      break;
+        break;
+
     default:
-      assert(false);
-      break;
-  }
+        assert(false);
+        break;
+    }
 }
 
-extern "C" void PhyPlmeSyncLossIndication() {
-  phy_events_[phy_events_cur_++] = 1;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  phy_->PhyPlmeSyncLossIndication();
+extern "C" void PhyUnexpectedTransceiverReset()
+{
+    s_phy_events[s_phy_events_cur++] = 10;
+
+    if (s_phy_events_cur >= sizeof(s_phy_events))
+    {
+        s_phy_events_cur = 0;
+    }
+
+    assert(false);
 }
 
-extern "C" void PhyTimeRxTimeoutIndication() {
-  phy_events_[phy_events_cur_++] = 2;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  phy_->PhyTimeRxTimeoutIndication();
+void sent_task(void *context)
+{
+    VerifyOrExit(s_state != kStateDisabled, ;);
+    assert(s_state == kStateTransmit);
+    s_state = kStateIdle;
+    phy_handle_transmit_done(s_transmit_frame, PhyPpIsRxAckDataPending(), s_transmit_error);
+
+exit:
+    {}
 }
 
-extern "C" void PhyTimeStartEventIndication() {
-  phy_events_[phy_events_cur_++] = 3;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  phy_->PhyTimeStartEventIndication();
+void received_task(void *context)
+{
+    VerifyOrExit(s_state != kStateDisabled, ;);
+    assert(s_state == kStateReceive);
+    s_state = kStateIdle;
+    phy_handle_receive_done(s_receive_frame, s_receive_error);
+
+exit:
+    {}
 }
 
-extern "C" void PhyPlmeCcaConfirm(bool_t channelInUse) {
-  phy_events_[phy_events_cur_++] = 4;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  phy_->PhyPlmeCcaConfirm(channelInUse);
-}
-
-extern "C" void PhyPlmeEdConfirm(uint8_t energyLevel) {
-  phy_events_[phy_events_cur_++] = 5;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  phy_->PhyPlmeEdConfirm(energyLevel);
-}
-
-extern "C" void PhyPdDataConfirm() {
-  phy_events_[phy_events_cur_++] = 6;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  phy_->PhyPdDataConfirm();
-}
-
-extern "C" void PhyPdDataIndication() {
-  phy_events_[phy_events_cur_++] = 7;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  phy_->PhyPdDataIndication();
-}
-
-extern "C" void PhyPlmeFilterFailRx() {
-  phy_events_[phy_events_cur_++] = 8;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  phy_->PhyPlmeFilterFailRx();
-}
-
-extern "C" void PhyPlmeRxSfdDetect(uint8_t frame_length) {
-  phy_events_[phy_events_cur_++] = 9;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  phy_->PhyPlmeRxSfdDetect(frame_length);
-}
-
-extern "C" void PhyUnexpectedTransceiverReset() {
-  phy_events_[phy_events_cur_++] = 10;
-  if (phy_events_cur_ >= sizeof(phy_events_))
-    phy_events_cur_ = 0;
-  while (1) {}
-}
-
-void Phy::SentTask(void *context) {
-  Phy *obj = reinterpret_cast<Phy*>(context);
-  obj->SentTask();
-}
-
-void Phy::SentTask() {
-  assert(state_ == kStateTransmit);
-  state_ = kStateIdle;
-  callbacks_->HandleTransmitDone(transmit_packet_, PhyPpIsRxAckDataPending(), transmit_error_);
-}
-
-void Phy::ReceivedTask(void *context) {
-  Phy *obj = reinterpret_cast<Phy*>(context);
-  obj->ReceivedTask();
-}
-
-void Phy::ReceivedTask() {
-  assert(state_ == kStateReceive);
-  state_ = kStateIdle;
-  callbacks_->HandleReceiveDone(receive_packet_, receive_error_);
-}
-
-}  // namespace Thread
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif

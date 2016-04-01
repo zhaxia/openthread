@@ -14,157 +14,166 @@
  *
  */
 
+#include <platform/common/uart.h>
 #include <platform/posix/cmdline.h>
-#include <platform/posix/uart.h>
 #include <common/code_utils.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/select.h>
+#include <common/tasklet.h>
+#include <pthread.h>
+#include <semaphore.h>
 #include <termios.h>
 #include <unistd.h>
+// Linux build needs these
+#include <stdlib.h>
+#include <fcntl.h>
 
-////extern struct gengetopt_args_info args_info;
-
-namespace Thread {
-
-Uart::Uart(Callbacks *callbacks):
-    UartInterface(callbacks),
-    receive_task_(&ReceiveTask, this),
-    send_task_(&SendTask, this) {
-}
-
-ThreadError Uart::Start() {
-  ThreadError error = kThreadError_None;
-  struct termios termios;
-
-  // open file
-#if 0
-  VerifyOrExit((fd_ = posix_openpt(O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
-  VerifyOrExit(grantpt(fd_) == 0, perror("grantpt"); error = kThreadError_Error);
-  VerifyOrExit(unlockpt(fd_) == 0, perror("unlockpt"); error = kThreadError_Error);
-
-  // print pty path
-  char *path;
-  VerifyOrExit((path = ptsname(fd_)) != NULL, perror("ptsname"); error = kThreadError_Error);
-  printf("%s\n", path);
-  free(path);
-#else
-  char *path;
-////  asprintf(&path, "/dev/ptyp%d", args_info.eui64_arg);
-  asprintf(&path, "/dev/ptyp%d", 1);
-  VerifyOrExit((fd_ = open(path, O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
-  free(path);
-
-  // print pty path
-////  printf("/dev/ttyp%d\n", args_info.eui64_arg);
-  printf("/dev/ttyp%d\n", 0);
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-  // check if file descriptor is pointing to a TTY device
-  VerifyOrExit(isatty(fd_), error = kThreadError_Error);
+// COMMSIM DIFF extern struct gengetopt_args_info args_info;
+extern void uart_handle_receive(uint8_t *buf, uint16_t buf_length);
+extern void uart_handle_send_done();
 
-  // get current configuration
-  VerifyOrExit(tcgetattr(fd_, &termios) == 0, perror("tcgetattr"); error = kThreadError_Error);
+static void uart_receive_task(void *context);
+static void uart_send_task(void *context);
+static void *uart_receive_thread(void *arg);
 
-  // turn off input processing
-  termios.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+static Thread::Tasklet s_receive_task(&uart_receive_task, NULL);
+static Thread::Tasklet s_send_task(&uart_send_task, NULL);
+static int s_fd;
+static pthread_t s_pthread;
+static sem_t *s_semaphore;
 
-  // turn off output processing
-  termios.c_oflag = 0;
+ThreadError uart_start()
+{
+    ThreadError error = kThreadError_None;
+    struct termios termios;
+    char *path;
+    char cmd[256];
 
-  // turn off line processing
-  termios.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+    // open file
+#if __APPLE__
 
-  // turn off character processing
-  termios.c_cflag &= ~(CSIZE | PARENB);
-  termios.c_cflag |= CS8;
+// COMMSIM DIFF    asprintf(&path, "/dev/ptyp%d", args_info.eui64_arg);
+    VerifyOrExit((s_fd = open(path, O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
+    free(path);
 
-  // return 1 byte at a time
-  termios.c_cc[VMIN]  = 1;
+    // print pty path
+// COMMSIM DIFF    printf("/dev/ttyp%d\n", args_info.eui64_arg);
 
-  // turn off inter-character timer
-  termios.c_cc[VTIME] = 0;
+#else
 
-  // configure baud rate
-  VerifyOrExit(cfsetispeed(&termios, B115200) == 0, perror("cfsetispeed"); error = kThreadError_Error);
-  VerifyOrExit(cfsetospeed(&termios, B115200) == 0, perror("cfsetispeed"); error = kThreadError_Error);
+    VerifyOrExit((s_fd = posix_openpt(O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
+    VerifyOrExit(grantpt(s_fd) == 0, perror("grantpt"); error = kThreadError_Error);
+    VerifyOrExit(unlockpt(s_fd) == 0, perror("unlockpt"); error = kThreadError_Error);
 
-  // set configuration
-  VerifyOrExit(tcsetattr(fd_, TCSAFLUSH, &termios) == 0, perror("tcsetattr"); error = kThreadError_Error);
+    // print pty path
+    VerifyOrExit((path = ptsname(s_fd)) != NULL, perror("ptsname"); error = kThreadError_Error);
+    printf("%s\n", path);
+    free(path);
+#endif
 
-  char cmd[256];
-////  snprintf(cmd, sizeof(cmd), "thread_uart_semaphore_%d", args_info.eui64_arg);
-  snprintf(cmd, sizeof(cmd), "thread_uart_semaphore_%d", 0);
-  semaphore_ = sem_open(cmd, O_CREAT, 0644, 0);
-  pthread_create(&thread_, NULL, ReceiveThread, this);
+    // check if file descriptor is pointing to a TTY device
+    VerifyOrExit(isatty(s_fd), error = kThreadError_Error);
 
-  return error;
+    // get current configuration
+    VerifyOrExit(tcgetattr(s_fd, &termios) == 0, perror("tcgetattr"); error = kThreadError_Error);
+
+    // turn off input processing
+    termios.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+
+    // turn off output processing
+    termios.c_oflag = 0;
+
+    // turn off line processing
+    termios.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+
+    // turn off character processing
+    termios.c_cflag &= ~(CSIZE | PARENB);
+    termios.c_cflag |= CS8;
+
+    // return 1 byte at a time
+    termios.c_cc[VMIN]  = 1;
+
+    // turn off inter-character timer
+    termios.c_cc[VTIME] = 0;
+
+    // configure baud rate
+    VerifyOrExit(cfsetispeed(&termios, B115200) == 0, perror("cfsetispeed"); error = kThreadError_Error);
+    VerifyOrExit(cfsetospeed(&termios, B115200) == 0, perror("cfsetispeed"); error = kThreadError_Error);
+
+    // set configuration
+    VerifyOrExit(tcsetattr(s_fd, TCSAFLUSH, &termios) == 0, perror("tcsetattr"); error = kThreadError_Error);
+
+// COMMSIM DIFF    snprintf(cmd, sizeof(cmd), "thread_uart_semaphore_%d", args_info.eui64_arg);
+    s_semaphore = sem_open(cmd, O_CREAT, 0644, 0);
+    pthread_create(&s_pthread, NULL, &uart_receive_thread, NULL);
+
+    return error;
 
 exit:
-  close(fd_);
-  return error;
+    close(s_fd);
+    return error;
 }
 
-ThreadError Uart::Stop() {
-  ThreadError error = kThreadError_None;
+ThreadError uart_stop()
+{
+    ThreadError error = kThreadError_None;
 
-  close(fd_);
+    close(s_fd);
 
-  return error;
+    return error;
 }
 
-ThreadError Uart::Send(const uint8_t *buf, uint16_t buf_length) {
-  ThreadError error = kThreadError_None;
+ThreadError uart_send(const uint8_t *buf, uint16_t buf_length)
+{
+    ThreadError error = kThreadError_None;
 
-  VerifyOrExit(write(fd_, buf, buf_length) >= 0, error = kThreadError_Error);
-  send_task_.Post();
+    VerifyOrExit(write(s_fd, buf, buf_length) >= 0, error = kThreadError_Error);
+    s_send_task.Post();
 
 exit:
-  return error;
+    return error;
 }
 
-void Uart::SendTask(void *context) {
-  Uart *obj = reinterpret_cast<Uart*>(context);
-  obj->SendTask();
+void uart_send_task(void *context)
+{
+    uart_handle_send_done();
 }
 
-void Uart::SendTask() {
-  callbacks_->HandleSendDone();
-}
-
-void *Uart::ReceiveThread(void *arg) {
-  Uart *obj = reinterpret_cast<Uart*>(arg);
-
-  while (1) {
+void *uart_receive_thread(void *arg)
+{
     fd_set fds;
-    FD_ZERO(&fds);
-    FD_SET(obj->fd_, &fds);
+    int rval;
 
-    int rval = select(obj->fd_ + 1, &fds, NULL, NULL, NULL);
-    if (rval >= 0 && FD_ISSET(obj->fd_, &fds)) {
-      obj->receive_task_.Post();
-      sem_wait(obj->semaphore_);
+    while (1)
+    {
+        FD_ZERO(&fds);
+        FD_SET(s_fd, &fds);
+
+        rval = select(s_fd + 1, &fds, NULL, NULL, NULL);
+
+        if (rval >= 0 && FD_ISSET(s_fd, &fds))
+        {
+            s_receive_task.Post();
+            sem_wait(s_semaphore);
+        }
     }
-  }
 
-  return NULL;
+    return NULL;
 }
 
-void Uart::ReceiveTask(void *context) {
-  Uart *obj = reinterpret_cast<Uart*>(context);
-  obj->ReceiveTask();
+void uart_receive_task(void *context)
+{
+    uint8_t receive_buffer[1024];
+    size_t len;
+
+    len = read(s_fd, receive_buffer, sizeof(receive_buffer));
+    uart_handle_receive(receive_buffer, len);
+
+    sem_post(s_semaphore);
 }
 
-void Uart::ReceiveTask() {
-  uint8_t receive_buffer[1024];
-  size_t len;
-
-  len = read(fd_, receive_buffer, sizeof(receive_buffer));
-  callbacks_->HandleReceive(receive_buffer, len);
-
-  sem_post(semaphore_);
-}
-
-}  // namespace Thread
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif

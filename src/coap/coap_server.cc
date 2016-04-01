@@ -16,93 +16,109 @@
 
 #include <coap/coap_server.h>
 #include <common/code_utils.h>
-#include <common/encoding.h>
 #include <common/thread_error.h>
 
-using Thread::CoapMessage;
-using Thread::Encoding::BigEndian::HostSwap16;
-
 namespace Thread {
+namespace Coap {
 
-CoapServer::CoapServer(uint16_t port):
-    socket_(&RecvFrom, this) {
-  port_ = port;
+Server::Server(uint16_t port):
+    m_socket(&HandleUdpReceive, this)
+{
+    m_port = port;
 }
 
-ThreadError CoapServer::Start() {
-  ThreadError error;
+ThreadError Server::Start()
+{
+    ThreadError error;
+    struct sockaddr_in6 sockaddr;
 
-  struct sockaddr_in6 sockaddr;
-  memset(&sockaddr, 0, sizeof(sockaddr));
-  sockaddr.sin6_port = HostSwap16(port_);
-  SuccessOrExit(error = socket_.Bind(&sockaddr));
+    memset(&sockaddr, 0, sizeof(sockaddr));
+    sockaddr.sin6_port = m_port;
+    SuccessOrExit(error = m_socket.Bind(&sockaddr));
 
 exit:
-  return error;
+    return error;
 }
 
-ThreadError CoapServer::Stop() {
-  return socket_.Close();
+ThreadError Server::Stop()
+{
+    return m_socket.Close();
 }
 
-ThreadError CoapServer::AddResource(Resource *resource) {
-  ThreadError error = kThreadError_None;
+ThreadError Server::AddResource(Resource &resource)
+{
+    ThreadError error = kThreadError_None;
 
-  for (Resource *cur = resources_; cur; cur = cur->next_)
-    VerifyOrExit(cur != resource, error = kThreadError_Busy);
-
-  resource->next_ = resources_;
-  resources_ = resource;
-
-exit:
-  return error;
-}
-
-void CoapServer::RecvFrom(void *context, Message *message, const Ip6MessageInfo *message_info) {
-  CoapServer *obj = reinterpret_cast<CoapServer*>(context);
-  obj->RecvFrom(message, message_info);
-}
-
-void CoapServer::RecvFrom(Message *message, const Ip6MessageInfo *message_info) {
-  CoapMessage coap;
-  char uri_path[32];
-  char *cur_uri_path = uri_path;
-
-  SuccessOrExit(coap.FromMessage(message));
-  message->MoveOffset(coap.GetHeaderLength());
-
-  const CoapMessage::Option *coap_option;
-  coap_option = coap.GetCurrentOption();
-  while (coap_option != NULL) {
-    switch (coap_option->number) {
-      case CoapMessage::Option::kOptionUriPath:
-        VerifyOrExit(coap_option->length < sizeof(uri_path) - (cur_uri_path - uri_path), ;);
-        memcpy(cur_uri_path, coap_option->value, coap_option->length);
-        cur_uri_path[coap_option->length] = '/';
-        cur_uri_path += coap_option->length + 1;
-        break;
-      case CoapMessage::Option::kOptionContentFormat:
-        break;
-      default:
-        ExitNow();
+    for (Resource *cur = m_resources; cur; cur = cur->m_next)
+    {
+        VerifyOrExit(cur != &resource, error = kThreadError_Busy);
     }
-    coap_option = coap.GetNextOption();
-  }
-  cur_uri_path[-1] = '\0';
 
-  for (Resource *resource = resources_; resource; resource = resource->next_) {
-    if (strcmp(resource->uri_path_, uri_path) == 0) {
-      resource->callback_(resource->context_, &coap, message, message_info);
-      ExitNow();
-    }
-  }
+    resource.m_next = m_resources;
+    m_resources = &resource;
 
 exit:
-  {}
+    return error;
 }
 
-ThreadError CoapServer::SendMessage(Thread::Message *message, const Ip6MessageInfo *message_info) {
-  return socket_.SendTo(message, message_info);
+void Server::HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info)
+{
+    Server *obj = reinterpret_cast<Server *>(context);
+    obj->HandleUdpReceive(message, message_info);
 }
 
+void Server::HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info)
+{
+    Header header;
+    char uri_path[32];
+    char *cur_uri_path = uri_path;
+    const Header::Option *coap_option;
+
+    SuccessOrExit(header.FromMessage(message));
+    message.MoveOffset(header.GetLength());
+
+    coap_option = header.GetCurrentOption();
+
+    while (coap_option != NULL)
+    {
+        switch (coap_option->number)
+        {
+        case Header::Option::kOptionUriPath:
+            VerifyOrExit(coap_option->length < sizeof(uri_path) - (cur_uri_path - uri_path), ;);
+            memcpy(cur_uri_path, coap_option->value, coap_option->length);
+            cur_uri_path[coap_option->length] = '/';
+            cur_uri_path += coap_option->length + 1;
+            break;
+
+        case Header::Option::kOptionContentFormat:
+            break;
+
+        default:
+            ExitNow();
+        }
+
+        coap_option = header.GetNextOption();
+    }
+
+    cur_uri_path[-1] = '\0';
+
+    for (Resource *resource = m_resources; resource; resource = resource->m_next)
+    {
+        if (strcmp(resource->m_uri_path, uri_path) == 0)
+        {
+            resource->m_handler(resource->m_context, header, message, message_info);
+            ExitNow();
+        }
+    }
+
+exit:
+    {}
+}
+
+ThreadError Server::SendMessage(Message &message, const Ip6MessageInfo &message_info)
+{
+    return m_socket.SendTo(message, message_info);
+}
+
+}  // namespace Coap
 }  // namespace Thread

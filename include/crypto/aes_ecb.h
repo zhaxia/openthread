@@ -14,24 +14,27 @@
  *
  */
 
-#ifndef CRYPTO_AES_ECB_H_
-#define CRYPTO_AES_ECB_H_
+#ifndef AES_ECB_H_
+#define AES_ECB_H_
 
+#include <stdint.h>
 #include <common/thread_error.h>
 #include <crypto/aes.h>
-#include <stdint.h>
 
 namespace Thread {
+namespace Crypto {
 
-class AesEcb {
- public:
-  ThreadError SetKey(const uint8_t *key, uint16_t keylen);
-  ThreadError Encrypt(const uint8_t *pt, uint8_t *ct) const;
+class AesEcb
+{
+public:
+    ThreadError SetKey(const uint8_t *key, uint16_t keylen);
+    void Encrypt(const uint8_t *pt, uint8_t *ct) const;
 
- private:
-  uint32_t eK_[44];
+private:
+    uint32_t m_eK[44];
 };
 
+}  // namespace Crypto
 }  // namespace Thread
 
-#endif  // CRYPTO_AES_ECB_H_
+#endif  // AES_ECB_H_

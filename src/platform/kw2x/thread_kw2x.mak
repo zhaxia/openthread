@@ -20,22 +20,31 @@ TARGET = thread_kw2x
 ARCHIVES = $(TARGET)
 
 VPATH = \
-        $(BspRoot)/MacPhy/Phy/Source		 \
-        $(BspRoot)/PLM/Source/Common/MC1324xDrv
+      	$(BspRoot)/MacPhy/Phy/Source \
+	$(BspRoot)/PLM/Source/Common/MC1324xDrv \
+	$(BuildRoot)/src/lib/thread/src/platform/cortex-m
 
 # Define SOURCES, INCLUDES, DEFINES according to Nest make macro naming:
 # <module>_SOURCES, where <module> is one of
 # PROGRAMS, IMAGES, ARCHIVES, LIBRARIES
 
 $(TARGET)_SOURCES = \
-	$(wildcard *.cc)						 \
-	$(foreach dir,$(VPATH),$(patsubst $(dir)/%,%,$(wildcard $(dir)/*.c)))
+	$(BspRoot)/MacPhy/Phy/Source/PhyISR.c \
+	$(BspRoot)/MacPhy/Phy/Source/PhyPacketProcessor.c \
+	$(BspRoot)/MacPhy/Phy/Source/PhyPlmeData.c \
+	$(BspRoot)/MacPhy/Phy/Source/PhyTime.c \
+	$(BspRoot)/PLM/Source/Common/MC1324xDrv/MC1324xDrv.c \
+	$(BuildRoot)/src/lib/thread/src/platform/cortex-m/atomic.cc \
+	$(BuildRoot)/src/lib/thread/src/platform/cortex-m/sleep.cc \
+	alarm.cc \
+	phy.cc \
+	uart.cc
 
 $(TARGET)_INCLUDES = \
 	$(BuildRoot)/src/lib/thread/src		\
 	$(BspRoot)/MacPhy/Interface		\
 	$(BspRoot)/MacPhy/Phy/Interface		\
         $(BspRoot)/PLM/Source/Common/MC1324xDrv \
-	$(BspRoot)/PLM/Source/NVIC		\
+	$(BspRoot)/PLM/Source/NVIC
 
 include post.mak

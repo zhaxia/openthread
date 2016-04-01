@@ -14,149 +14,186 @@
  *
  */
 
-#include <thread/key_manager.h>
 #include <common/code_utils.h>
 #include <common/thread_error.h>
 #include <crypto/hmac.h>
 #include <crypto/sha256.h>
+#include <thread/key_manager.h>
 #include <thread/mle_router.h>
+#include <thread/thread_netif.h>
 
 namespace Thread {
 
-static const uint8_t kThreadString[] = {
-  'T', 'h', 'r', 'e', 'a', 'd',
+static const uint8_t kThreadString[] =
+{
+    'T', 'h', 'r', 'e', 'a', 'd',
 };
 
-KeyManager::KeyManager(MleRouter *mle) {
-  mle_ = mle;
+KeyManager::KeyManager(ThreadNetif &netif)
+{
+    m_netif = &netif;
 }
 
-ThreadError KeyManager::GetMasterKey(void *key, uint8_t *key_length) {
-  if (key)
-    memcpy(key, master_key_, master_key_length_);
-  if (key_length)
-    *key_length = master_key_length_;
-  return kThreadError_None;
+ThreadError KeyManager::GetMasterKey(void *key, uint8_t *key_length) const
+{
+    if (key)
+    {
+        memcpy(key, m_master_key, m_master_key_length);
+    }
+
+    if (key_length)
+    {
+        *key_length = m_master_key_length;
+    }
+
+    return kThreadError_None;
 }
 
-ThreadError KeyManager::SetMasterKey(const void *key, uint8_t key_length) {
-  ThreadError error = kThreadError_None;
+ThreadError KeyManager::SetMasterKey(const void *key, uint8_t key_length)
+{
+    ThreadError error = kThreadError_None;
 
-  VerifyOrExit(key_length <= sizeof(master_key_), error = kThreadError_InvalidArgs);
-  memcpy(master_key_, key, key_length);
-  master_key_length_ = key_length;
-  current_key_sequence_ = 0;
-  ComputeKey(current_key_sequence_, current_key_);
+    VerifyOrExit(key_length <= sizeof(m_master_key), error = kThreadError_InvalidArgs);
+    memcpy(m_master_key, key, key_length);
+    m_master_key_length = key_length;
+    m_current_key_sequence = 0;
+    ComputeKey(m_current_key_sequence, m_current_key);
 
 exit:
-  return error;
+    return error;
 }
 
-ThreadError KeyManager::ComputeKey(uint32_t key_sequence, uint8_t *key) {
-  Sha256 sha256;
-  Hmac hmac(&sha256);
+ThreadError KeyManager::ComputeKey(uint32_t key_sequence, uint8_t *key)
+{
+    Crypto::Sha256 sha256;
+    Crypto::Hmac hmac(sha256);
+    uint8_t key_sequence_bytes[4];
 
-  hmac.SetKey(master_key_, master_key_length_);
-  hmac.Init();
+    hmac.SetKey(m_master_key, m_master_key_length);
+    hmac.Init();
 
-  uint8_t key_sequence_bytes[4];
-  key_sequence_bytes[0] = key_sequence >> 24;
-  key_sequence_bytes[1] = key_sequence >> 16;
-  key_sequence_bytes[2] = key_sequence >> 8;
-  key_sequence_bytes[3] = key_sequence >> 0;
-  hmac.Input(key_sequence_bytes, sizeof(key_sequence_bytes));
-  hmac.Input(kThreadString, sizeof(kThreadString));
+    key_sequence_bytes[0] = key_sequence >> 24;
+    key_sequence_bytes[1] = key_sequence >> 16;
+    key_sequence_bytes[2] = key_sequence >> 8;
+    key_sequence_bytes[3] = key_sequence >> 0;
+    hmac.Input(key_sequence_bytes, sizeof(key_sequence_bytes));
+    hmac.Input(kThreadString, sizeof(kThreadString));
 
-  hmac.Finalize(key);
+    hmac.Finalize(key);
 
-  return kThreadError_None;
+    return kThreadError_None;
 }
 
-uint32_t KeyManager::GetCurrentKeySequence() const {
-  return current_key_sequence_;
+uint32_t KeyManager::GetCurrentKeySequence() const
+{
+    return m_current_key_sequence;
 }
 
-ThreadError KeyManager::SetCurrentKeySequence(uint32_t key_sequence) {
-  ThreadError error = kThreadError_None;
+void KeyManager::UpdateNeighbors()
+{
+    uint8_t num_neighbors;
+    Router *routers;
+    Child *children;
 
-  previous_key_valid_ = true;
-  previous_key_sequence_ = current_key_sequence_;
-  memcpy(previous_key_, current_key_, sizeof(previous_key_));
+    routers = m_netif->GetMle()->GetParent();
+    routers->previous_key = true;
 
-  current_key_sequence_ = key_sequence;
-  ComputeKey(current_key_sequence_, current_key_);
+    routers = m_netif->GetMle()->GetRouters(&num_neighbors);
 
-  mac_frame_counter_ = 0;
-  mle_frame_counter_ = 0;
+    for (int i = 0; i < num_neighbors; i++)
+    {
+        routers[i].previous_key = true;
+    }
 
-  uint8_t num_neighbors;
+    children = m_netif->GetMle()->GetChildren(&num_neighbors);
 
-  Router *routers;
-  routers = mle_->GetParent();
-  routers->previous_key = true;
-
-  routers = mle_->GetRouters(&num_neighbors);
-  for (int i = 0; i < num_neighbors; i++)
-    routers[i].previous_key = true;
-
-  Child *children;
-  children = mle_->GetChildren(&num_neighbors);
-  for (int i = 0; i < num_neighbors; i++)
-    children[i].previous_key = true;
-
-  return error;
+    for (int i = 0; i < num_neighbors; i++)
+    {
+        children[i].previous_key = true;
+    }
 }
 
-const uint8_t *KeyManager::GetCurrentMacKey() const {
-  return current_key_ + 16;
+ThreadError KeyManager::SetCurrentKeySequence(uint32_t key_sequence)
+{
+    ThreadError error = kThreadError_None;
+
+    m_previous_key_valid = true;
+    m_previous_key_sequence = m_current_key_sequence;
+    memcpy(m_previous_key, m_current_key, sizeof(m_previous_key));
+
+    m_current_key_sequence = key_sequence;
+    ComputeKey(m_current_key_sequence, m_current_key);
+
+    m_mac_frame_counter = 0;
+    m_mle_frame_counter = 0;
+
+    UpdateNeighbors();
+
+    return error;
 }
 
-const uint8_t *KeyManager::GetCurrentMleKey() const {
-  return current_key_;
+const uint8_t *KeyManager::GetCurrentMacKey() const
+{
+    return m_current_key + 16;
 }
 
-bool KeyManager::IsPreviousKeyValid() const {
-  return previous_key_valid_;
+const uint8_t *KeyManager::GetCurrentMleKey() const
+{
+    return m_current_key;
 }
 
-uint32_t KeyManager::GetPreviousKeySequence() const {
-  return previous_key_sequence_;
+bool KeyManager::IsPreviousKeyValid() const
+{
+    return m_previous_key_valid;
 }
 
-const uint8_t *KeyManager::GetPreviousMacKey() const {
-  return previous_key_ + 16;
+uint32_t KeyManager::GetPreviousKeySequence() const
+{
+    return m_previous_key_sequence;
 }
 
-const uint8_t *KeyManager::GetPreviousMleKey() const {
-  return previous_key_;
+const uint8_t *KeyManager::GetPreviousMacKey() const
+{
+    return m_previous_key + 16;
 }
 
-const uint8_t *KeyManager::GetTemporaryMacKey(uint32_t key_sequence) {
-  ComputeKey(key_sequence, temporary_key_);
-  return temporary_key_ + 16;
+const uint8_t *KeyManager::GetPreviousMleKey() const
+{
+    return m_previous_key;
 }
 
-const uint8_t *KeyManager::GetTemporaryMleKey(uint32_t key_sequence) {
-  ComputeKey(key_sequence, temporary_key_);
-  return temporary_key_;
+const uint8_t *KeyManager::GetTemporaryMacKey(uint32_t key_sequence)
+{
+    ComputeKey(key_sequence, m_temporary_key);
+    return m_temporary_key + 16;
 }
 
-uint32_t KeyManager::GetMacFrameCounter() const {
-  return mac_frame_counter_;
+const uint8_t *KeyManager::GetTemporaryMleKey(uint32_t key_sequence)
+{
+    ComputeKey(key_sequence, m_temporary_key);
+    return m_temporary_key;
 }
 
-uint32_t KeyManager::GetMleFrameCounter() const {
-  return mle_frame_counter_;
+uint32_t KeyManager::GetMacFrameCounter() const
+{
+    return m_mac_frame_counter;
 }
 
-ThreadError KeyManager::IncrementMacFrameCounter() {
-  mac_frame_counter_++;
-  return kThreadError_None;
+uint32_t KeyManager::GetMleFrameCounter() const
+{
+    return m_mle_frame_counter;
 }
 
-ThreadError KeyManager::IncrementMleFrameCounter() {
-  mle_frame_counter_++;
-  return kThreadError_None;
+ThreadError KeyManager::IncrementMacFrameCounter()
+{
+    m_mac_frame_counter++;
+    return kThreadError_None;
+}
+
+ThreadError KeyManager::IncrementMleFrameCounter()
+{
+    m_mle_frame_counter++;
+    return kThreadError_None;
 }
 
 }  // namespace Thread

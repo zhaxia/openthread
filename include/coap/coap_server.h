@@ -14,51 +14,55 @@
  *
  */
 
-#ifndef COAP_COAP_SERVER_H_
-#define COAP_COAP_SERVER_H_
+#ifndef COAP_SERVER_H_
+#define COAP_SERVER_H_
 
-#include <coap/coap_message.h>
+#include <coap/coap_header.h>
 #include <common/message.h>
 #include <net/udp6.h>
 
 namespace Thread {
+namespace Coap {
 
-class CoapServer {
- public:
-  class Resource {
-    friend CoapServer;
+class Resource
+{
+    friend class Server;
 
-   public:
-    typedef void (*HandleCoapMessage)(void *context, CoapMessage *coap, Message *message,
-                                      const Ip6MessageInfo *message_info);
-    Resource(const char *uri_path, HandleCoapMessage callback, void *context) {
-      uri_path_ = uri_path;
-      callback_ = callback;
-      context_ = context;
+public:
+    typedef void (*CoapMessageHandler)(void *context, Header &header, Message &message,
+                                       const Ip6MessageInfo &message_info);
+    Resource(const char *uri_path, CoapMessageHandler handler, void *context) {
+        m_uri_path = uri_path;
+        m_handler = handler;
+        m_context = context;
     }
 
-   private:
-    const char *uri_path_;
-    HandleCoapMessage callback_;
-    void *context_;
-    Resource *next_ = NULL;
-  };
-
-  explicit CoapServer(uint16_t port);
-  ThreadError Start();
-  ThreadError Stop();
-  ThreadError AddResource(Resource *resource);
-  ThreadError SendMessage(Message *message, const Ip6MessageInfo *message_info);
-
- private:
-  static void RecvFrom(void *context, Message *message, const Ip6MessageInfo *message_info);
-  void RecvFrom(Message *message, const Ip6MessageInfo *message_info);
-
-  Udp6Socket socket_;
-  uint16_t port_;
-  Resource *resources_ = NULL;
+private:
+    const char *m_uri_path;
+    CoapMessageHandler m_handler;
+    void *m_context;
+    Resource *m_next;
 };
 
+class Server
+{
+public:
+    explicit Server(uint16_t port);
+    ThreadError Start();
+    ThreadError Stop();
+    ThreadError AddResource(Resource &resource);
+    ThreadError SendMessage(Message &message, const Ip6MessageInfo &message_info);
+
+private:
+    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info);
+    void HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info);
+
+    Udp6Socket m_socket;
+    uint16_t m_port;
+    Resource *m_resources = NULL;
+};
+
+}  // namespace Coap
 }  // namespace Thread
 
 #endif  // COAP_COAP_SERVER_H_

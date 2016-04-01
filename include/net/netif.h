@@ -25,88 +25,113 @@
 
 namespace Thread {
 
-class LinkAddress {
- public :
-  enum HardwareType {
-    kEui64 = 27,
-  };
-  HardwareType type;
-  uint8_t length;
-  MacAddr64 address64;
+class LinkAddress
+{
+public :
+    enum HardwareType
+    {
+        kEui64 = 27,
+    };
+    HardwareType type;
+    uint8_t length;
+    Mac::Address64 address64;
 };
 
-class NetifAddress {
- public:
-  Ip6Address address;
-  uint32_t preferred_lifetime;
-  uint32_t valid_lifetime;
-  uint8_t prefix_length;
-  NetifAddress *next_;
+class NetifUnicastAddress
+{
+    friend class Netif;
+
+public:
+    const NetifUnicastAddress *GetNext() const { return m_next; }
+
+    Ip6Address address;
+    uint32_t preferred_lifetime;
+    uint32_t valid_lifetime;
+    uint8_t prefix_length;
+
+private:
+    NetifUnicastAddress *m_next;
 };
 
-class NetifMulticastAddress {
- public:
-  Ip6Address address_;
-  NetifMulticastAddress *next_;
+class NetifMulticastAddress
+{
+    friend class Netif;
+
+public:
+    const NetifMulticastAddress *GetNext() const { return m_next; }
+
+    Ip6Address address;
+
+private:
+    NetifMulticastAddress *m_next;
 };
 
-class NetifCallback {
-  friend class Netif;
+class NetifHandler
+{
+    friend class Netif;
 
- public:
-  typedef void (*Callback)(void *context);
-  NetifCallback(Callback callback, void *context) {
-    callback_ = callback;
-    context_ = context;
-  }
+public:
+    typedef void (*UnicastAddressesChangedHandler)(void *context);
+    NetifHandler(UnicastAddressesChangedHandler handler, void *context) {
+        m_unicast_handler = handler;
+        m_context = context;
+    }
 
- private:
-  Callback callback_;
-  void *context_;
-  NetifCallback *next_;
+private:
+    void HandleUnicastAddressesChanged() { m_unicast_handler(m_context); }
+
+    UnicastAddressesChangedHandler m_unicast_handler;
+    void *m_context;
+    NetifHandler *m_next;
 };
 
-class Netif {
- public:
-  Netif();
-  ThreadError AddNetif();
-  ThreadError RemoveNetif();
-  Netif *GetNext() const;
-  int GetInterfaceId() const;
-  const NetifAddress *GetAddresses() const;
-  ThreadError AddAddress(NetifAddress *address);
-  ThreadError RemoveAddress(const NetifAddress *address);
+class Netif
+{
+public:
+    Netif();
+    ThreadError AddNetif();
+    ThreadError RemoveNetif();
+    Netif *GetNext() const;
+    int GetInterfaceId() const;
+    const NetifUnicastAddress *GetUnicastAddresses() const;
+    ThreadError AddUnicastAddress(NetifUnicastAddress &address);
+    ThreadError RemoveUnicastAddress(const NetifUnicastAddress &address);
 
-  bool IsMulticastSubscribed(Ip6Address *address) const;
-  ThreadError SubscribeAllRoutersMulticast();
-  ThreadError UnsubscribeAllRoutersMulticast();
-  ThreadError SubscribeMulticast(NetifMulticastAddress *address);
-  ThreadError UnsubscribeMulticast(NetifMulticastAddress *address);
+    bool IsMulticastSubscribed(const Ip6Address &address) const;
+    ThreadError SubscribeAllRoutersMulticast();
+    ThreadError UnsubscribeAllRoutersMulticast();
+    ThreadError SubscribeMulticast(NetifMulticastAddress &address);
+    ThreadError UnsubscribeMulticast(const NetifMulticastAddress &address);
 
-  ThreadError RegisterCallback(NetifCallback *callback);
+    ThreadError RegisterHandler(NetifHandler &handler);
 
-  virtual ThreadError SendMessage(Message *message) = 0;
-  virtual const char *GetName() const = 0;
-  virtual ThreadError GetLinkAddress(LinkAddress *address) const = 0;
+    virtual ThreadError SendMessage(Message &message) = 0;
+    virtual const char *GetName() const = 0;
+    virtual ThreadError GetLinkAddress(LinkAddress &address) const = 0;
+    virtual ThreadError RouteLookup(const Ip6Address &source, const Ip6Address &destination,
+                                    uint8_t *prefix_match) = 0;
 
-  static Netif *GetNetifList();
-  static Netif *GetNetifById(uint8_t interface_id);
-  static Netif *GetNetifByName(char *name);
-  static bool IsAddress(const Ip6Address *address);
-  static const NetifAddress *SelectSourceAddress(Ip6MessageInfo *message_info);
-  static int GetOnLinkNetif(Ip6Address *address);
+    static Netif *GetNetifList();
+    static Netif *GetNetifById(uint8_t interface_id);
+    static Netif *GetNetifByName(char *name);
+    static bool IsUnicastAddress(const Ip6Address &address);
+    static const NetifUnicastAddress *SelectSourceAddress(Ip6MessageInfo &message_info);
+    static int GetOnLinkNetif(const Ip6Address &address);
 
- private:
-  static void HandleCallbackTask(void *context);
-  void HandleCallbackTask();
+private:
+    static void HandleUnicastChangedTask(void *context);
+    void HandleUnicastChangedTask();
 
-  NetifCallback *callbacks_ = NULL;
-  NetifAddress *unicast_addresses_ = NULL;
-  NetifMulticastAddress *multicast_addresses_ = NULL;
-  int interface_id_ = -1;
-  bool all_routers_subscribed_ = false;
-  Netif *next_ = NULL;
-  Tasklet callback_task_;
+    NetifHandler *m_handlers = NULL;
+    NetifUnicastAddress *m_unicast_addresses = NULL;
+    NetifMulticastAddress *m_multicast_addresses = NULL;
+    int m_interface_id = -1;
+    bool m_all_routers_subscribed = false;
+    Tasklet m_unicast_changed_task;
+    Netif *m_next = NULL;
+
+    static Netif *s_netif_list_head;
+    static int s_next_interface_id;
 };
 
 }  // namespace Thread

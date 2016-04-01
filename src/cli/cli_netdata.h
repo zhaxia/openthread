@@ -14,36 +14,43 @@
  *
  */
 
-#ifndef CLI_CLI_NETDATA_H_
-#define CLI_CLI_NETDATA_H_
+#ifndef CLI_NETDATA_H_
+#define CLI_NETDATA_H_
 
 #include <cli/cli_command.h>
 #include <thread/thread_netif.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliNetData: public CliCommand {
- public:
-  explicit CliNetData(CliServer *server, ThreadNetif *netif);
-  const char *GetName() final;
-  void Run(int argc, char *argv[], CliServer *server) final;
+class NetData: public Command
+{
+public:
+    explicit NetData(Server &server, ThreadNetif &netif);
+    const char *GetName() final;
+    void Run(int argc, char *argv[], Server &server) final;
 
- private:
-  enum {
-    kMaxLocalOnMeshData = 4,
-  };
+private:
+    enum
+    {
+        kMaxLocalOnMeshData = 4,
+    };
 
-  int PrintUsage(char *buf, uint16_t buf_length);
-  int AddOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_length);
-  int RemoveOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_length);
-  int PrintLocalOnMeshPrefixes(char *buf, uint16_t buf_length);
-  int PrintContextIdReuseDelay(char *buf, uint16_t buf_length);
+    int PrintUsage(char *buf, uint16_t buf_length);
+    int AddHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t buf_length);
+    int RemoveHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t buf_length);
+    int AddOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_length);
+    int RemoveOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_length);
+    int PrintLocalHasRoutePrefixes(char *buf, uint16_t buf_length);
+    int PrintLocalOnMeshPrefixes(char *buf, uint16_t buf_length);
+    int PrintContextIdReuseDelay(char *buf, uint16_t buf_length);
 
-  Mle *mle_;
-  NetworkDataLocal *network_data_;
-  NetworkDataLeader *network_data_leader_;
+    Mle::MleRouter *m_mle;
+    NetworkData::Local *m_network_data_local;
+    NetworkData::Leader *m_network_data_leader;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_NETDATA_H_
+#endif  // CLI_NETDATA_H_

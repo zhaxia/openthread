@@ -14,62 +14,64 @@
  *
  */
 
-#ifndef THREAD_KEY_MANAGER_H_
-#define THREAD_KEY_MANAGER_H_
+#ifndef KEY_MANAGER_H_
+#define KEY_MANAGER_H_
 
-#include <common/thread_error.h>
 #include <stdint.h>
+#include <common/thread_error.h>
 
 namespace Thread {
 
-class MleRouter;
+class ThreadNetif;
 
-class KeyManager {
- public:
-  explicit KeyManager(MleRouter *mle);
-  ThreadError GetMasterKey(void *key, uint8_t *key_length);
-  ThreadError SetMasterKey(const void *key, uint8_t key_length);
+class KeyManager
+{
+public:
+    explicit KeyManager(ThreadNetif &netif);
+    ThreadError GetMasterKey(void *key, uint8_t *key_length) const;
+    ThreadError SetMasterKey(const void *key, uint8_t key_length);
 
-  uint32_t GetCurrentKeySequence() const;
-  ThreadError SetCurrentKeySequence(uint32_t key_sequence);
-  const uint8_t *GetCurrentMacKey() const;
-  const uint8_t *GetCurrentMleKey() const;
+    uint32_t GetCurrentKeySequence() const;
+    ThreadError SetCurrentKeySequence(uint32_t key_sequence);
+    const uint8_t *GetCurrentMacKey() const;
+    const uint8_t *GetCurrentMleKey() const;
 
-  bool IsPreviousKeyValid() const;
-  uint32_t GetPreviousKeySequence() const;
-  const uint8_t *GetPreviousMacKey() const;
-  const uint8_t *GetPreviousMleKey() const;
+    bool IsPreviousKeyValid() const;
+    uint32_t GetPreviousKeySequence() const;
+    const uint8_t *GetPreviousMacKey() const;
+    const uint8_t *GetPreviousMleKey() const;
 
-  const uint8_t *GetTemporaryMacKey(uint32_t key_sequence);
-  const uint8_t *GetTemporaryMleKey(uint32_t key_sequence);
+    const uint8_t *GetTemporaryMacKey(uint32_t key_sequence);
+    const uint8_t *GetTemporaryMleKey(uint32_t key_sequence);
 
-  uint32_t GetMacFrameCounter() const;
-  uint32_t GetMleFrameCounter() const;
+    uint32_t GetMacFrameCounter() const;
+    uint32_t GetMleFrameCounter() const;
 
-  ThreadError IncrementMacFrameCounter();
-  ThreadError IncrementMleFrameCounter();
+    ThreadError IncrementMacFrameCounter();
+    ThreadError IncrementMleFrameCounter();
 
- private:
-  ThreadError ComputeKey(uint32_t key_sequence, uint8_t *key);
+private:
+    ThreadError ComputeKey(uint32_t key_sequence, uint8_t *key);
+    void UpdateNeighbors();
 
-  uint8_t master_key_[16];
-  uint8_t master_key_length_;
+    uint8_t m_master_key[16];
+    uint8_t m_master_key_length;
 
-  uint32_t previous_key_sequence_;
-  uint8_t previous_key_[32];
-  bool previous_key_valid_ = false;
+    uint32_t m_previous_key_sequence;
+    uint8_t m_previous_key[32];
+    bool m_previous_key_valid = false;
 
-  uint32_t current_key_sequence_;
-  uint8_t current_key_[32];
+    uint32_t m_current_key_sequence;
+    uint8_t m_current_key[32];
 
-  uint8_t temporary_key_[32];
+    uint8_t m_temporary_key[32];
 
-  uint32_t mac_frame_counter_ = 0;
-  uint32_t mle_frame_counter_ = 0;
+    uint32_t m_mac_frame_counter = 0;
+    uint32_t m_mle_frame_counter = 0;
 
-  MleRouter *mle_;
+    ThreadNetif *m_netif;
 };
 
 }  // namespace Thread
 
-#endif  // THREAD_KEY_MANAGER_H_
+#endif  // KEY_MANAGER_H_

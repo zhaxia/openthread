@@ -1,5 +1,5 @@
 /**
- * Implementation of the Uart Adaptor for lib/Thread tasklet context 
+ * Implementation of the Uart Adaptor for lib/Thread tasklet context
  * to zircon CpuUart driver abstraction.
  *
  *    @file    da15100/uart.cc
@@ -21,11 +21,12 @@
  *
  */
 
+#include <common/tasklet.h>
 #include <core/cpu.hpp>
 #include <os/ITask.hpp>
 #include <io/IStreamAsync.hpp>
 
-#include <platform/da15100/uart.h>
+#include <platform/common/uart.h>
 
 #define UART_BAUD              115200
 
@@ -35,81 +36,88 @@ using nl::Thread::IStreamAsync;
 
 namespace Thread {
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+extern void uart_handle_receive(uint8_t *buf, uint16_t buf_length);
+
 /// TODO: Use libhw abstraction.
-/// This should call theHw.getUart() to get the resource, 
+/// This should call theHw.getUart() to get the resource,
 /// not allocate the debug uart here for itself...
-static CpuUart the_uart_(CPU_UART_DEFAULT);     
-  
+static CpuUart the_uart_(CPU_UART_DEFAULT);
+
 
 /**
  * Callback handler for asynchronous uart driver.
  */
-class CpuUartAsync : public IStreamAsync {
-  Uart *wrap_;
-  uint8_t rx_byte_;
-  Tasklet task_;
+class CpuUartAsync : public IStreamAsync
+{
+    uint8_t rx_byte_;
+    Tasklet task_;
 
-public: 
-  CpuUartAsync(): task_(&RunTask, this) {}
+public:
+    CpuUartAsync(): task_(&RunTask, this) {}
 
-  void init(Uart *uart) { 
-    wrap_ = uart; 
-    readKick();
-  }
+    void init() {
+        readKick();
+    }
 
-  /// Callback for the last read operation completing.
-  virtual void readDone(uint8_t *buf, int len) { 
-    // TODO: Move to use lib/util/ring
-    rx_byte_ = *buf;
-    task_.Post();
-  }
-  
-  /// Kick off a read of the next uart byte.
-  void readKick() {
-    the_uart_.readByte(rx_byte_);  // Kick next byte
-  }
-  
-  /// Unused callback.  Currently, write is a blocking call.
-  virtual void writeDone() {}
-  
-  
-  /// Receive tasklet handler.
-  static void RunTask(void *context) {
-    CpuUartAsync *obj = (CpuUartAsync*)context;
-    obj->RunTask();
-  }
+    /// Callback for the last read operation completing.
+    virtual void readDone(uint8_t *buf, int len) {
+        // TODO: Move to use lib/util/ring
+        rx_byte_ = *buf;
+        task_.Post();
+    }
 
-  void RunTask() {
-    // TODO: Move to lib/util/ring
-    if (wrap_->callbacks_) wrap_->callbacks_->HandleReceive(&rx_byte_, 1);      
-    readKick();
-  }
-}; 
+    /// Kick off a read of the next uart byte.
+    void readKick() {
+        the_uart_.readByte(rx_byte_);  // Kick next byte
+    }
+
+    /// Unused callback.  Currently, write is a blocking call.
+    virtual void writeDone() {}
 
 
-Uart::Uart(Callbacks *callbacks) :
-  UartInterface(callbacks) {
-}
+    /// Receive tasklet handler.
+    static void RunTask(void *context) {
+        CpuUartAsync *obj = (CpuUartAsync *)context;
+        obj->RunTask();
+    }
+
+    void RunTask() {
+        // TODO: Move to lib/util/ring
+        uart_handle_receive(&rx_byte_, 1);
+        readKick();
+    }
+};
 
 static CpuUartAsync the_uart_async_;
 
-ThreadError Uart::Start() {
-  the_uart_.init(UART_BAUD, &the_uart_async_);
-  the_uart_async_.init(this);
-  return kThreadError_None;
+ThreadError uart_start()
+{
+    the_uart_.init(UART_BAUD, &the_uart_async_);
+    the_uart_async_.init();
+    return kThreadError_None;
 }
 
-ThreadError Uart::Stop() {
-  // XXX: Not implemented
-  return kThreadError_Error;
+ThreadError uart_stop()
+{
+    // XXX: Not implemented
+    return kThreadError_Error;
 }
 
-ThreadError Uart::Send(const uint8_t *buf, uint16_t buf_len) {
-  // Blocking write.  
-  // TODO: split into new IStreamAsync API.
-  the_uart_.write((uint8_t*)buf, buf_len);
+ThreadError uart_send(const uint8_t *buf, uint16_t buf_len)
+{
+    // Blocking write.
+    // TODO: split into new IStreamAsync API.
+    the_uart_.write((uint8_t *)buf, buf_len);
 
-  return kThreadError_None;
+    return kThreadError_None;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 }  // namespace Thread

@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef COMMON_CODE_UTILS_H_
-#define COMMON_CODE_UTILS_H_
+#ifndef CODE_UTILS_H_
+#define CODE_UTILS_H_
 
 #include <common/debug.h>
 
@@ -44,4 +44,4 @@ namespace Thread {
 
 }  // namespace Thread
 
-#endif  // COMMON_CODE_UTILS_H_
+#endif  // CODE_UTILS_H_
