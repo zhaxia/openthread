@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef CLI_CLI_UDP_H_
-#define CLI_CLI_UDP_H_
+#ifndef CLI_UDP_H_
+#define CLI_UDP_H_
 
 #include <cli/cli_server.h>
 #include <common/thread_error.h>
@@ -24,24 +24,26 @@
 #include <net/udp6.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliCommand;
+class Command;
 
-class CliServerUdp: public CliServer {
- public:
-  CliServerUdp();
-  ThreadError Add(CliCommand *command) final;
-  ThreadError Start(uint16_t port) final;
-  ThreadError Output(const char *buf, uint16_t buf_length) final;
+class Udp: public Server
+{
+public:
+    Udp();
+    ThreadError Start() final;
+    ThreadError Output(const char *buf, uint16_t buf_length) final;
 
- private:
-  static void RecvFrom(void *context, Message *message, const Ip6MessageInfo *message_info);
-  void RecvFrom(Message *message, const Ip6MessageInfo *message_info);
+private:
+    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info);
+    void HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info);
 
-  Udp6Socket socket_;
-  Ip6MessageInfo peer_;
+    Udp6Socket m_socket;
+    Ip6MessageInfo m_peer;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_UDP_H_
+#endif  // CLI_UDP_H_

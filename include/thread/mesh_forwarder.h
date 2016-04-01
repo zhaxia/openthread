@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef THREAD_MESH_FORWARDER_H_
-#define THREAD_MESH_FORWARDER_H_
+#ifndef MESH_FORWARDER_H_
+#define MESH_FORWARDER_H_
 
 #include <common/tasklet.h>
 #include <common/thread_error.h>
@@ -30,96 +30,105 @@
 
 namespace Thread {
 
-enum {
-  kReassemblyTimeout = 5,  // seconds
+enum
+{
+    kReassemblyTimeout = 5,  // seconds
 };
 
 class MleRouter;
 struct ThreadMessageInfo;
 
-class MeshForwarder {
- public:
-  MeshForwarder(AddressResolver *address_resolver, Mac *mac, MleRouter *mle, Netif *netif,
-                NetworkDataLeader *network_data);
-  ThreadError Start();
-  ThreadError Stop();
+class MeshForwarder
+{
+public:
+    explicit MeshForwarder(ThreadNetif &netif);
+    ThreadError Start();
+    ThreadError Stop();
 
-  ThreadError SendMessage(Message *message);
+    ThreadError SendMessage(Message &message);
 
-  const MacAddr64 *GetAddress64() const;
+    const Mac::Address64 *GetAddress64() const;
 
-  MacAddr16 GetAddress16() const;
-  ThreadError SetAddress16(MacAddr16 address16);
-  void HandleResolved(const Ip6Address *eid);
+    Mac::Address16 GetAddress16() const;
+    ThreadError SetAddress16(Mac::Address16 address16);
+    void HandleResolved(const Ip6Address &eid);
 
-  bool GetRxOnWhenIdle();
-  ThreadError SetRxOnWhenIdle(bool rx_on_when_idle);
-  ThreadError SetPollPeriod(uint32_t period);
+    bool GetRxOnWhenIdle();
+    ThreadError SetRxOnWhenIdle(bool rx_on_when_idle);
+    ThreadError SetPollPeriod(uint32_t period);
 
- private:
-  void MoveToResolving(const Ip6Address *destination);
-  ThreadError UpdateIp6Route(Message *message);
-  ThreadError UpdateMeshRoute(Message *message);
-  ThreadError SendPoll(Message *message, MacFrame *frame);
-  ThreadError SendMesh(Message *message, MacFrame *frame);
-  ThreadError SendFragment(Message *message, MacFrame *frame);
-  ThreadError CheckReachability(uint8_t *frame, uint8_t frame_length, MacAddress *meshsrc, MacAddress *meshdst);
-  void UpdateFramePending();
-  void HandleMesh(uint8_t *frame, uint8_t payload_length, MacAddress *macsrc, MacAddress *macdst,
-                  ThreadMessageInfo *message_info);
-  void HandleFragment(uint8_t *frame, uint8_t payload_length, MacAddress *macsrc, MacAddress *macdst,
-                      ThreadMessageInfo *message_info);
-  void HandleLowpanHC(uint8_t *frame, uint8_t payload_length, MacAddress *macsrc, MacAddress *macdst,
-                      ThreadMessageInfo *message_info);
-  void HandleDataRequest(MacAddress *macsrc);
+private:
+    ThreadError CheckReachability(uint8_t *frame, uint8_t frame_length,
+                                  const Mac::Address &meshsrc, const Mac::Address &meshdst);
+    ThreadError GetMacDestinationAddress(const Ip6Address &ipaddr, Mac::Address &macaddr);
+    ThreadError GetMacSourceAddress(const Ip6Address &ipaddr, Mac::Address &macaddr);
+    Message *GetDirectTransmission();
+    Message *GetIndirectTransmission(const Child &child);
+    void HandleMesh(uint8_t *frame, uint8_t payload_length,
+                    const Mac::Address &macsrc, const Mac::Address &macdst, const ThreadMessageInfo &message_info);
+    void HandleFragment(uint8_t *frame, uint8_t payload_length, const Mac::Address &macsrc, const Mac::Address &macdst,
+                        const ThreadMessageInfo &message_info);
+    void HandleLowpanHC(uint8_t *frame, uint8_t payload_length, const Mac::Address &macsrc, const Mac::Address &macdst,
+                        const ThreadMessageInfo &message_info);
+    void HandleDataRequest(const Mac::Address &macsrc);
+    void MoveToResolving(const Ip6Address &destination);
+    ThreadError SendPoll(Message &message, Mac::Frame &frame);
+    ThreadError SendMesh(Message &message, Mac::Frame &frame);
+    ThreadError SendFragment(Message &message, Mac::Frame &frame);
+    void UpdateFramePending();
+    ThreadError UpdateIp6Route(Message &message);
+    ThreadError UpdateMeshRoute(Message &message);
 
-  static void HandleReceivedFrame(void *context, MacFrame *frame, ThreadError error);
-  void HandleReceivedFrame(MacFrame *frame, ThreadError error);
+    static void HandleReceivedFrame(void *context, Mac::Frame &frame, ThreadError error);
+    void HandleReceivedFrame(Mac::Frame &frame, ThreadError error);
 
-  static ThreadError HandleFrameRequest(void *context, MacFrame *frame);
-  ThreadError HandleFrameRequest(MacFrame *frame);
+    static ThreadError HandleFrameRequest(void *context, Mac::Frame &frame);
+    ThreadError HandleFrameRequest(Mac::Frame &frame);
 
-  static void HandleSentFrame(void *context, MacFrame *frame);
-  void HandleSentFrame(MacFrame *frame);
+    static void HandleSentFrame(void *context, Mac::Frame &frame);
+    void HandleSentFrame(Mac::Frame &frame);
 
-  static void HandleReassemblyTimer(void *context);
-  void HandleReassemblyTimer();
-  static void HandlePollTimer(void *context);
-  void HandlePollTimer();
+    static void HandleReassemblyTimer(void *context);
+    void HandleReassemblyTimer();
+    static void HandlePollTimer(void *context);
+    void HandlePollTimer();
 
-  ThreadError GetMacDestinationAddress(const Ip6Address *ipaddr, MacAddress *macaddr);
-  ThreadError GetMacSourceAddress(const Ip6Address *ipaddr, MacAddress *macaddr);
+    static void ScheduleTransmissionTask(void *context);
+    void ScheduleTransmissionTask();
 
-  Lowpan lowpan_;
-  Mac::Receiver mac_receiver_;
-  Mac::Sender mac_sender_;
-  Timer poll_timer_;
-  Timer reassembly_timer_;
+    Mac::Receiver m_mac_receiver;
+    Mac::Sender m_mac_sender;
+    Timer m_poll_timer;
+    Timer m_reassembly_timer;
 
-  Netif *netif_ = NULL;
-  AddressResolver *address_resolver_;
-  Mac *mac_;
-  NetworkDataLeader *network_data_;
-  MleRouter *mle_;
-  bool enabled_ = false;
+    MessageQueue m_send_queue;
+    MessageQueue m_reassembly_list;
+    MessageQueue m_resolving_queue;
+    uint16_t m_frag_tag;
+    uint16_t m_message_next_offset;
+    uint32_t m_poll_period = 0;
+    Message *m_send_message = NULL;
 
-  MessageQueue send_queue_;
-  MessageQueue reassembly_list_;
-  MessageQueue resolving_queue_;
-  uint16_t frag_tag_;
-  uint16_t message_next_offset_;
-  uint32_t poll_period_ = 0;
-  Message *send_message_ = NULL;
+    Mac::Address m_macsrc;
+    Mac::Address m_macdst;
+    uint16_t m_meshsrc;
+    uint16_t m_meshdst;
+    bool m_add_mesh_header;
 
-  Message *GetDirectTransmission();
-  Message *GetIndirectTransmission(Child *child);
-  bool send_busy_ = false;
+    bool m_send_busy = false;
 
-  static void ScheduleTransmissionTask(void *context);
-  void ScheduleTransmissionTask();
-  Tasklet schedule_transmission_task_;
+
+    Tasklet m_schedule_transmission_task;
+    bool m_enabled = false;
+
+    Lowpan *m_lowpan;
+    Netif *m_netif;
+    AddressResolver *m_address_resolver;
+    Mac::Mac *m_mac;
+    NetworkData::Leader *m_network_data;
+    Mle::MleRouter *m_mle;
 };
 
 }  // namespace Thread
 
-#endif  // THREAD_MESH_FORWARDER_H_
+#endif  // MESH_FORWARDER_H_

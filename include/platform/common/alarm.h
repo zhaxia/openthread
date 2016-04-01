@@ -15,24 +15,53 @@
 /**
  *    @file
  *    @brief
- *      Maps to the appropriate platform-specific alarm.h.
+ *      Defines the interface to the Alarm object that drives Thread
+ *      timers.
  *
  *    @author    Jonathan Hui <jonhui@nestlabs.com>
  */
 
-#ifndef PLATFORM_COMMON_ALARM_H_
-#define PLATFORM_COMMON_ALARM_H_
+#ifndef ALARM_H_
+#define ALARM_H_
 
-#ifdef CPU_KW2X
-#include "platform/kw2x/alarm.h"
-#elif CPU_KW4X
-#include "platform/kw4x/alarm.h"
-#elif CPU_DA15100
-#include "platform/da15100/alarm.h"
-#elif CPU_EM35X
-#include "platform/em35x/alarm.h"
-#else
-#include "platform/posix/alarm.h"
+#include <stdint.h>
+
+namespace Thread {
+
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#endif  // PLATFORM_COMMON_ALARM_H_
+/**
+ * Initialize the Alarm resources.  This will typically initilize
+ * hardware resources that are used to implement the alarm.
+ */
+void alarm_init();
+
+/**
+ * Set the alarm to fire at a time delay relative from t0.
+ *
+ * @param[in] t0  The reference time.
+ * @param[in] dt  The time delay in milliseconds.
+ */
+void alarm_start_at(uint32_t t0, uint32_t dt);
+
+/**
+ * Stop the alarm.
+ */
+void alarm_stop();
+
+/**
+ * Get the current current time.
+ *
+ * @return The current time.
+ */
+uint32_t alarm_get_now();
+
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif
+
+}  // namespace Thread
+
+#endif  // ALARM_H_

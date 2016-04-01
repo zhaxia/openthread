@@ -14,41 +14,40 @@
  *
  */
 
-#ifndef CLI_CLI_SERIAL_H_
-#define CLI_CLI_SERIAL_H_
+#ifndef CLI_SERIAL_H_
+#define CLI_SERIAL_H_
 
 #include <cli/cli_server.h>
 #include <common/thread_error.h>
-#include <common/message.h>
-#include <platform/common/uart.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliCommand;
+class Command;
 
-class CliServerSerial: public CliServer, private UartInterface::Callbacks {
- public:
-  CliServerSerial();
-  ThreadError Add(CliCommand *command) final;
-  ThreadError Start(uint16_t port) final;
-  ThreadError Output(const char *buf, uint16_t buf_length) final;
+class Serial: public Server
+{
+public:
+    Serial();
+    ThreadError Start() final;
+    ThreadError Output(const char *buf, uint16_t buf_length) final;
 
- private:
-  enum {
-    kMaxArgs = 8,
-    kRxBufferSize = 128,
-  };
+    void HandleReceive(uint8_t *buf, uint16_t buf_length);
+    void HandleSendDone();
 
-  void HandleReceive(uint8_t *buf, uint16_t buf_length) final;
-  void HandleSendDone() final;
-  ThreadError ProcessCommand();
+private:
+    enum
+    {
+        kRxBufferSize = 128,
+    };
 
-  CliCommand *commands_ = NULL;
-  char rx_buffer_[kRxBufferSize];
-  uint16_t rx_length_;
-  Uart uart_;
+    ThreadError ProcessCommand();
+
+    char m_rx_buffer[kRxBufferSize];
+    uint16_t m_rx_length;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_SERIAL_H_
+#endif  // CLI_SERIAL_H_

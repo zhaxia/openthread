@@ -14,39 +14,48 @@
  *
  */
 
-#ifndef THREAD_NETWORK_DATA_LOCAL_H_
-#define THREAD_NETWORK_DATA_LOCAL_H_
+#ifndef NETWORK_DATA_LOCAL_H_
+#define NETWORK_DATA_LOCAL_H_
 
 #include <net/udp6.h>
+#include <thread/mle_router.h>
 #include <thread/network_data.h>
 
 namespace Thread {
 
-class Mle;
+class ThreadNetif;
 
-class NetworkDataLocal: public NetworkData {
- public:
-  explicit NetworkDataLocal(Mle *mle);
-  ThreadError AddOnMeshPrefix(const uint8_t *prefix, uint8_t prefix_length, uint8_t flags, bool stable);
-  ThreadError RemoveOnMeshPrefix(const uint8_t *prefix, uint8_t prefix_length);
+namespace NetworkData {
 
-  ThreadError Register(const Ip6Address *destination);
+class Local: public NetworkData
+{
+public:
+    explicit Local(ThreadNetif &netif);
+    ThreadError AddOnMeshPrefix(const uint8_t *prefix, uint8_t prefix_length, int8_t prf, uint8_t flags, bool stable);
+    ThreadError RemoveOnMeshPrefix(const uint8_t *prefix, uint8_t prefix_length);
 
- private:
-  static void RecvFrom(void *context, Message *message, const Ip6MessageInfo *message_info);
-  void RecvFrom(Message *message, const Ip6MessageInfo *message_info);
+    ThreadError AddHasRoutePrefix(const uint8_t *prefix, uint8_t prefix_length, int8_t prf, bool stable);
+    ThreadError RemoveHasRoutePrefix(const uint8_t *prefix, uint8_t prefix_length);
 
-  ThreadError UpdateRloc();
-  ThreadError UpdateRloc(PrefixTlv *prefix);
-  ThreadError UpdateRloc(BorderRouterTlv *border_router);
+    ThreadError Register(const Ip6Address &destination);
 
-  Udp6Socket socket_;
-  uint8_t coap_token_[2];
-  uint16_t coap_message_id_;
+private:
+    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info);
+    void HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info);
 
-  Mle *mle_;
+    ThreadError UpdateRloc();
+    ThreadError UpdateRloc(PrefixTlv &prefix);
+    ThreadError UpdateRloc(HasRouteTlv &has_route);
+    ThreadError UpdateRloc(BorderRouterTlv &border_router);
+
+    Udp6Socket m_socket;
+    uint8_t m_coap_token[2];
+    uint16_t m_coap_message_id;
+
+    Mle::MleRouter *m_mle;
 };
 
+}  // namespace NetworkData
 }  // namespace Thread
 
-#endif  // THREAD_NETWORK_DATA_LOCAL_H_
+#endif  // NETWORK_DATA_LOCAL_H_

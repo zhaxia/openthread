@@ -15,64 +15,93 @@
  */
 
 #include <net/ip6_routes.h>
+#include <net/netif.h>
 #include <common/code_utils.h>
 #include <common/message.h>
 
 namespace Thread {
 
-static Ip6Route *routes_ = NULL;
+static Ip6Route *s_routes = NULL;
 
-ThreadError Ip6Routes::Add(Ip6Route *route) {
-  ThreadError error = kThreadError_None;
+ThreadError Ip6Routes::Add(Ip6Route &route)
+{
+    ThreadError error = kThreadError_None;
 
-  for (Ip6Route *cur = routes_; cur; cur = cur->next)
-    VerifyOrExit(cur != route, error = kThreadError_Busy);
+    for (Ip6Route *cur = s_routes; cur; cur = cur->next)
+    {
+        VerifyOrExit(cur != &route, error = kThreadError_Busy);
+    }
 
-  route->next = routes_;
-  routes_ = route;
+    route.next = s_routes;
+    s_routes = &route;
 
 exit:
-  return error;
+    return error;
 }
 
-ThreadError Ip6Routes::Remove(Ip6Route *route) {
-  if (route == routes_) {
-    routes_ = route->next;
-  } else {
-    for (Ip6Route *cur = routes_; cur; cur = cur->next) {
-      if (cur->next == route) {
-        cur->next = route->next;
-        break;
-      }
+ThreadError Ip6Routes::Remove(Ip6Route &route)
+{
+    if (&route == s_routes)
+    {
+        s_routes = route.next;
     }
-  }
+    else
+    {
+        for (Ip6Route *cur = s_routes; cur; cur = cur->next)
+        {
+            if (cur->next == &route)
+            {
+                cur->next = route.next;
+                break;
+            }
+        }
+    }
 
-  route->next = NULL;
+    route.next = NULL;
 
-  return kThreadError_None;
+    return kThreadError_None;
 }
 
-const Ip6Route *Ip6Routes::Lookup(const Ip6Address *source, const Ip6Address *destination) {
-  int max_prefix_match = -1;
-  Ip6Route *rval = NULL;
-
-  for (Ip6Route *cur = routes_; cur; cur = cur->next) {
+int Ip6Routes::Lookup(const Ip6Address &source, const Ip6Address &destination)
+{
+    int max_prefix_match = -1;
     uint8_t prefix_match;
+    int rval = -1;
 
-    prefix_match = cur->prefix.PrefixMatch(destination);
-    if (prefix_match < cur->prefix_length)
-      continue;
-    if (prefix_match > cur->prefix_length)
-      prefix_match = cur->prefix_length;
+    for (Ip6Route *cur = s_routes; cur; cur = cur->next)
+    {
+        prefix_match = cur->prefix.PrefixMatch(destination);
 
-    if (max_prefix_match > prefix_match)
-      continue;
+        if (prefix_match < cur->prefix_length)
+        {
+            continue;
+        }
 
-    max_prefix_match = prefix_match;
-    rval = cur;
-  }
+        if (prefix_match > cur->prefix_length)
+        {
+            prefix_match = cur->prefix_length;
+        }
 
-  return rval;
+        if (max_prefix_match > prefix_match)
+        {
+            continue;
+        }
+
+        max_prefix_match = prefix_match;
+        rval = cur->interface_id;
+    }
+
+    for (Netif *netif = Netif::GetNetifList(); netif; netif = netif->GetNext())
+    {
+        if (netif->RouteLookup(source, destination, &prefix_match) == kThreadError_None &&
+            prefix_match > max_prefix_match)
+        {
+            max_prefix_match = prefix_match;
+            rval = netif->GetInterfaceId();
+        }
+    }
+
+    return rval;
 }
 
 }  // namespace Thread

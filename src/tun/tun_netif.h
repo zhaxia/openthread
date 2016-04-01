@@ -14,40 +14,38 @@
  *
  */
 
-#ifndef TUN_TUN_NETIF_H_
-#define TUN_TUN_NETIF_H_
+#ifndef TUN_NETIF_H_
+#define TUN_NETIF_H_
 
-#include <common/tasklet.h>
-#include <net/netif.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <common/tasklet.h>
+#include <net/netif.h>
 
 namespace Thread {
 
-class TunNetif: public Netif {
- public:
-  TunNetif();
-  ThreadError Start(uint8_t tunid);
-  const char *GetName() const final;
-  ThreadError GetLinkAddress(LinkAddress *address) const final;
-  ThreadError SendMessage(Message *message) final;
+class TunNetif: public Netif
+{
+public:
+    TunNetif();
+    ThreadError Start(uint8_t tunid);
+    const char *GetName() const final;
+    ThreadError GetLinkAddress(LinkAddress &address) const final;
+    ThreadError SendMessage(Message &message) final;
 
- private:
-  NetifAddress link_local_;
+private:
+    static void *ReceiveThread(void *arg);
+    static void ReceiveTask(void *context);
+    void ReceiveTask();
 
-  int tunfd_;
-  pthread_t thread_;
-  sem_t *semaphore_;
+    NetifUnicastAddress m_link_local;
+    Tasklet m_receive_task;
 
-  uint8_t receive_buffer_[2048];
-
-  static void ReceiveTask(void *context);
-  void ReceiveTask();
-  Tasklet receive_task_;
-
-  static void *ReceiveThread(void *arg);
+    pthread_t m_pthread;
+    sem_t *m_semaphore;
+    int m_tunfd;
 };
 
 }  // namespace Thread
 
-#endif  // TUN_TUN_NETIF_H_
+#endif  // TUN_NETIF_H_

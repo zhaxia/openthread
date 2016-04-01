@@ -14,32 +14,35 @@
  *
  */
 
-#ifndef CLI_CLI_MAC_H_
-#define CLI_CLI_MAC_H_
+#ifndef CLI_MAC_H_
+#define CLI_MAC_H_
 
 #include <cli/cli_command.h>
 #include <thread/thread_netif.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliMac: public CliCommand {
- public:
-  explicit CliMac(CliServer *server, ThreadNetif *netif);
-  const char *GetName() final;
-  void Run(int argc, char *argv[], CliServer *server) final;
+class Mac: public Command
+{
+public:
+    explicit Mac(Server &server, ThreadNetif &netif);
+    const char *GetName() final;
+    void Run(int argc, char *argv[], Server &server) final;
 
- private:
-  static void HandleActiveScanResult(void *context, Mac::ActiveScanResult *result);
-  void HandleActiveScanResult(Mac::ActiveScanResult *result);
+private:
+    static void HandleActiveScanResult(void *context, Thread::Mac::ActiveScanResult *result);
+    void HandleActiveScanResult(Thread::Mac::ActiveScanResult *result);
 
-  int PrintUsage(char *buf, uint16_t buf_length);
-  int PrintWhitelist(char *buf, uint16_t buf_length);
+    int PrintUsage(char *buf, uint16_t buf_length);
+    int PrintWhitelist(char *buf, uint16_t buf_length);
+    int ProcessWhitelist(int argc, char *argv[], char *buf, uint16_t buf_length);
 
-  CliServer *server_;
-  Mac *mac_;
-  ThreadNetif *netif_;
+    Server *m_server;
+    Thread::Mac::Mac *m_mac;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_MAC_H_
+#endif  // CLI_MAC_H_

@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef NET_IP6_H_
-#define NET_IP6_H_
+#ifndef IP6_H_
+#define IP6_H_
 
 #include <common/encoding.h>
 #include <common/message.h>
@@ -24,143 +24,166 @@
 #include <net/netif.h>
 #include <net/socket.h>
 
+using Thread::Encoding::BigEndian::HostSwap16;
+
 namespace Thread {
 
 class Ncp;
 
-class Ip6 {
- public:
-  enum {
-    kDefaultHopLimit = 64,
-    kMaxDatagramLength = 1500,
-  };
-
-  static Message *NewMessage(uint16_t reserved);
-  static ThreadError SendDatagram(Message *message, Ip6MessageInfo *message_info, uint8_t ipproto);
-  static ThreadError HandleDatagram(Message *message, Netif *netif, uint8_t interface_id, void *link_message_info,
-                                    bool from_ncp_host);
-
-  static uint16_t UpdateChecksum(uint16_t checksum, uint16_t val);
-  static uint16_t UpdateChecksum(uint16_t checksum, const void *buf, uint16_t length);
-  static uint16_t UpdateChecksum(uint16_t checksum, const Ip6Address *address);
-  static uint16_t ComputePseudoheaderChecksum(const Ip6Address *src, const Ip6Address *dst,
-                                              uint16_t length, uint8_t proto);
-
-  static ThreadError SetNcp(Ncp* ncp);
+enum IpProto
+{
+    kProtoHopOpts = 0,
+    kProtoUdp = 17,
+    kProtoIp6 = 41,
+    kProtoRouting = 43,
+    kProtoFragment = 44,
+    kProtoIcmp6 = 58,
+    kProtoNone = 59,
+    kProtoDstOpts = 60,
 };
 
-typedef struct {
-  union {
-    struct ip6_hdrctl {
-      uint32_t ip6_un1_flow;
-      uint16_t ip6_un1_plen;
-      uint8_t ip6_un1_nxt;
-      uint8_t ip6_un1_hlim;
-    } ip6_un1;
-    uint8_t ip6_un2_vfc;
-  } ip6_ctlun;
-  Ip6Address ip6_src;
-  Ip6Address ip6_dst;
-} Ip6Header;
+class Ip6Header
+{
+public:
+    void Init() { m_version_class_flow.d32[0] = 0; m_version_class_flow.d8[0] = kVersion6; }
+    bool IsVersion6() const { return (m_version_class_flow.d8[0] & kVersionMask) == kVersion6; }
 
-#define ip6_vfc         ip6_ctlun.ip6_un2_vfc
-#define ip6_flow        ip6_ctlun.ip6_un1.ip6_un1_flow
-#define ip6_plen        ip6_ctlun.ip6_un1.ip6_un1_plen
-#define ip6_nxt         ip6_ctlun.ip6_un1.ip6_un1_nxt
-#define ip6_hlim        ip6_ctlun.ip6_un1.ip6_un1_hlim
-#define ip6_hops        ip6_ctlun.ip6_un1.ip6_un1_hlim
+    uint16_t GetPayloadLength() { return HostSwap16(m_payload_length); }
+    void SetPayloadLength(uint16_t length) { m_payload_length = HostSwap16(length); }
 
-#define IPV6_VERSION            0x60
-#define IPV6_VERSION_MASK       0xf0
+    IpProto GetNextHeader() const { return static_cast<IpProto>(m_next_header); }
+    void SetNextHeader(IpProto next_header) { m_next_header = static_cast<uint8_t>(next_header); }
 
-#if BYTE_ORDER == BIG_ENDIAN
-#define IPV6_FLOWINFO_MASK      0x0fffffff      /* flow info (28 bits) */
-#define IPV6_FLOWLABEL_MASK     0x000fffff      /* flow label (20 bits) */
-#else /* BYTE_ORDER == LITTLE_ENDIAN */
-#define IPV6_FLOWINFO_MASK      0xffffff0f      /* flow info (28 bits) */
-#define IPV6_FLOWLABEL_MASK     0xffff0f00      /* flow label (20 bits) */
-#endif
+    uint8_t GetHopLimit() const { return m_hop_limit; }
+    void SetHopLimit(uint8_t hop_limit) { m_hop_limit = hop_limit; }
 
-#define IPPROTO_HOPOPTS         0               /* IP6 hop-by-hop options */
-#define IPPROTO_TCP             6               /* tcp */
-#define IPPROTO_UDP             17              /* user datagram protocol */
-#define IPPROTO_IPV6            41              /* IP6 header */
-#define IPPROTO_ROUTING         43              /* IP6 routing header */
-#define IPPROTO_FRAGMENT        44              /* IP6 fragmentation header */
-#define IPPROTO_ICMPV6          58              /* ICMP6 */
-#define IPPROTO_NONE            59              /* IP6 no next header */
-#define IPPROTO_DSTOPTS         60              /* IP6 destination option */
+    Ip6Address *GetSource() { return &m_source; }
+    void SetSource(const Ip6Address &source) { m_source = source; }
 
-/*
- * Extension Headers
- */
+    Ip6Address *GetDestination() { return &m_destination; }
+    void SetDestination(const Ip6Address &destination) { m_destination = destination; }
 
-typedef struct ip6_ext {
-  uint8_t ip6e_nxt;
-  uint8_t ip6e_len;
-} Ip6ExtensionHeader;
+    static uint8_t GetPayloadLengthOffset() { return offsetof(Ip6Header, m_payload_length); }
+    static uint8_t GetHopLimitOffset() { return offsetof(Ip6Header, m_hop_limit); }
+    static uint8_t GetHopLimitSize() { return sizeof(m_hop_limit); }
+    static uint8_t GetDestinationOffset() { return offsetof(Ip6Header, m_destination); }
 
-/* Hop-by-Hop options header */
-typedef struct ip6_hbh {
-  uint8_t ip6h_nxt;      /* next header */
-  uint8_t ip6h_len;      /* length in units of 8 octets */
-  /* followed by options */
-} Ip6HopByHopHeader;
+private:
+    enum
+    {
+        kVersion6 = 0x60,
+        kVersionMask = 0xf0,
+    };
 
-/* Destination options header */
-typedef struct ip6_dest {
-  uint8_t ip6d_nxt;      /* next header */
-  uint8_t ip6d_len;      /* length in units of 8 octets */
-  /* followed by options */
-} Ip6DestinationHeader;
+    union
+    {
+        uint32_t d32[1];
+        uint16_t d16[2];
+        uint8_t d8[4];
+    } m_version_class_flow;
+    uint16_t m_payload_length;
+    uint8_t m_next_header;
+    uint8_t m_hop_limit;
+    Ip6Address m_source;
+    Ip6Address m_destination;
+} __attribute__((packed));
 
-/* Option types and related macros */
-#define IP6OPT_PAD1             0x00    /* 00 0 00000 */
-#define IP6OPT_PADN             0x01    /* 00 0 00001 */
-#define IP6OPT_JUMBO            0xC2    /* 11 0 00010 = 194 */
-#define IP6OPT_NSAP_ADDR        0xC3    /* 11 0 00011 */
-#define IP6OPT_TUNNEL_LIMIT     0x04    /* 00 0 00100 */
-#define IP6OPT_RTALERT          0x05    /* 00 0 00101 (KAME definition) */
-#define IP6OPT_ROUTER_ALERT     0x05    /* 00 0 00101 (RFC3542, recommended) */
+class Ip6ExtensionHeader
+{
+public:
+    IpProto GetNextHeader() const { return static_cast<IpProto>(m_next_header); }
+    void SetNextHeader(IpProto next_header) { m_next_header = static_cast<uint8_t>(next_header); }
 
-#define IP6OPT_RTALERT_LEN      4
-#define IP6OPT_RTALERT_MLD      0       /* Datagram contains an MLD message */
-#define IP6OPT_RTALERT_RSVP     1       /* Datagram contains an RSVP message */
-#define IP6OPT_RTALERT_ACTNET   2       /* contains an Active Networks msg */
-#define IP6OPT_MINLEN           2
+    uint16_t GetLength() const { return m_length; }
+    void SetLength(uint16_t length) { m_length = length; }
 
-#define IP6OPT_EID              0x8a    /* 10 0 01010 */
+private:
+    uint8_t m_next_header;
+    uint8_t m_length;
+} __attribute__((packed));
 
-#define IP6OPT_TYPE(o)          ((o) & 0xC0)
-#define IP6OPT_TYPE_SKIP        0x00
-#define IP6OPT_TYPE_DISCARD     0x40
-#define IP6OPT_TYPE_FORCEICMP   0x80
-#define IP6OPT_TYPE_ICMP        0xC0
+class Ip6HopByHopHeader: public Ip6ExtensionHeader
+{
+} __attribute__((packed));
 
-#define IP6OPT_MUTABLE          0x20
+class Ip6OptionHeader
+{
+public:
+    uint8_t GetType() const { return m_type; }
+    void SetType(uint8_t type) { m_type = type; }
 
-/* IPv6 options: common part */
-typedef struct ip6_opt {
-  uint8_t ip6o_type;
-  uint8_t ip6o_len;
-} Ip6OptionHeader;
+    enum Action
+    {
+        kActionSkip = 0x00,
+        kActionDiscard = 0x40,
+        kActionForceIcmp = 0x80,
+        kActionIcmp = 0xc0,
+        kActionMask = 0xc0,
+    };
+    Action GetAction() const { return static_cast<Action>(m_type & kActionMask); }
 
-typedef struct ip6_frag {
-  uint8_t  ip6f_nxt;             /* next header */
-  uint8_t  ip6f_reserved;        /* reserved field */
-  uint16_t ip6f_offlg;           /* offset, reserved, and flag */
-  uint32_t ip6f_ident;           /* identification */
-} Ip6FragmentHeader;
+    uint8_t GetLength() const { return m_length; }
+    void SetLength(uint8_t length) { m_length = length; }
 
-#if BYTE_ORDER_BIG_ENDIAN
-#define IP6F_OFF_MASK           0xfff8  /* mask out offset from _offlg */
-#define IP6F_RESERVED_MASK      0x0006  /* reserved bits in ip6f_offlg */
-#define IP6F_MORE_FRAG          0x0001  /* more-fragments flag */
-#else /* BYTE_ORDER_LITTLE_ENDIAN */
-#define IP6F_OFF_MASK           0xf8ff  /* mask out offset from _offlg */
-#define IP6F_RESERVED_MASK      0x0600  /* reserved bits in ip6f_offlg */
-#define IP6F_MORE_FRAG          0x0100  /* more-fragments flag */
-#endif
+private:
+    uint8_t m_type;
+    uint8_t m_length;
+} __attribute__((packed));
+
+class Ip6FragmentHeader
+{
+public:
+    void Init() { m_reserved = 0; m_identification = 0; }
+
+    IpProto GetNextHeader() const { return static_cast<IpProto>(m_next_header); }
+    void SetNextHeader(IpProto next_header) { m_next_header = static_cast<uint8_t>(next_header); }
+
+    uint16_t GetOffset() { return (HostSwap16(m_offset_more) & kOffsetMask) >> kOffsetOffset; }
+    void SetOffset(uint16_t offset) {
+        m_offset_more = HostSwap16((HostSwap16(m_offset_more) & kOffsetMask) | (offset << kOffsetOffset));
+    }
+
+    bool IsMoreFlagSet() { return HostSwap16(m_offset_more) & kMoreFlag; }
+    void ClearMoreFlag() { m_offset_more = HostSwap16(HostSwap16(m_offset_more) & ~kMoreFlag); }
+    void SetMoreFlag() { m_offset_more = HostSwap16(HostSwap16(m_offset_more) | kMoreFlag); }
+
+private:
+    uint8_t m_next_header;
+    uint8_t m_reserved;
+
+    enum
+    {
+        kOffsetOffset = 3,
+        kOffsetMask = 0xfff8,
+        kMoreFlag = 1,
+    };
+    uint16_t m_offset_more;
+    uint32_t m_identification;
+} __attribute__((packed));
+
+class Ip6
+{
+public:
+    enum
+    {
+        kDefaultHopLimit = 64,
+        kMaxDatagramLength = 1500,
+    };
+
+    static Message *NewMessage(uint16_t reserved);
+    static ThreadError SendDatagram(Message &message, Ip6MessageInfo &message_info, IpProto ipproto);
+    static ThreadError HandleDatagram(Message &message, Netif *netif, uint8_t interface_id,
+                                      const void *link_message_info, bool from_ncp_host);
+
+    static uint16_t UpdateChecksum(uint16_t checksum, uint16_t val);
+    static uint16_t UpdateChecksum(uint16_t checksum, const void *buf, uint16_t length);
+    static uint16_t UpdateChecksum(uint16_t checksum, const Ip6Address &address);
+    static uint16_t ComputePseudoheaderChecksum(const Ip6Address &src, const Ip6Address &dst,
+                                                uint16_t length, IpProto proto);
+
+    typedef void (*NcpReceivedDatagramHandler)(void *context, Message &message);
+    static void SetNcpReceivedHandler(NcpReceivedDatagramHandler handler, void *context);
+};
 
 }  // namespace Thread
 

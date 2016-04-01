@@ -17,9 +17,12 @@
 #include <cli/cli_command.h>
 
 namespace Thread {
+namespace Cli {
 
-CliCommand::CliCommand(CliServer *cli_server) {
-  cli_server->Add(this);
+Command::Command(Server &server)
+{
+    server.Add(*this);
 }
 
+}  // namespace Cli
 }  // namespace Thread

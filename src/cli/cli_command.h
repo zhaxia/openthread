@@ -14,23 +14,30 @@
  *
  */
 
-#ifndef CLI_CLI_COMMAND_H_
-#define CLI_CLI_COMMAND_H_
+#ifndef CLI_COMMAND_H_
+#define CLI_COMMAND_H_
 
 #include <cli/cli_server.h>
 #include <common/thread_error.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliCommand {
- public:
-  explicit CliCommand(CliServer *cli_server);
-  virtual const char *GetName() = 0;
-  virtual void Run(int argc, char *argv[], class CliServer *server) = 0;
+class Command
+{
+public:
+    explicit Command(Server &server);
+    virtual const char *GetName() = 0;
+    virtual void Run(int argc, char *argv[], Server &server) = 0;
 
-  CliCommand *next_ = NULL;
+    Command *GetNext() const { return m_next; }
+    void SetNext(Command &command) { m_next = &command; }
+
+private:
+    Command *m_next = NULL;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_COMMAND_H_
+#endif  // CLI_COMMAND_H_

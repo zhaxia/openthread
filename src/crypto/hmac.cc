@@ -19,64 +19,84 @@
 #include <crypto/hmac.h>
 
 namespace Thread {
+namespace Crypto {
 
-Hmac::Hmac(Hash *hash) {
-  hash_ = hash;
+Hmac::Hmac(Hash &hash)
+{
+    m_hash = &hash;
 }
 
-ThreadError Hmac::SetKey(const void *key, uint16_t key_length) {
-  if (key_length > kMaxKeyLength) {
-    hash_->Init();
-    hash_->Input(key, key_length);
-    hash_->Finalize(key_);
-    key_length_ = hash_->GetSize();
-  } else {
-    memcpy(key_, key, key_length);
-    key_length_ = key_length;
-  }
+ThreadError Hmac::SetKey(const void *key, uint16_t key_length)
+{
+    if (key_length > kMaxKeyLength)
+    {
+        m_hash->Init();
+        m_hash->Input(key, key_length);
+        m_hash->Finalize(m_key);
+        m_key_length = m_hash->GetSize();
+    }
+    else
+    {
+        memcpy(m_key, key, key_length);
+        m_key_length = key_length;
+    }
 
-  return kThreadError_None;
+    return kThreadError_None;
 }
 
-ThreadError Hmac::Init() {
-  uint8_t pad[kMaxKeyLength];
-  int i;
+ThreadError Hmac::Init()
+{
+    uint8_t pad[kMaxKeyLength];
+    int i;
 
-  for (i = 0; i < key_length_; i++)
-    pad[i] = key_[i] ^ 0x36;
-  for (; i < 64; i++)
-    pad[i] = 0x36;
+    for (i = 0; i < m_key_length; i++)
+    {
+        pad[i] = m_key[i] ^ 0x36;
+    }
 
-  // start inner hash
-  hash_->Init();
-  hash_->Input(pad, sizeof(pad));
+    for (; i < 64; i++)
+    {
+        pad[i] = 0x36;
+    }
 
-  return kThreadError_None;
+    // start inner hash
+    m_hash->Init();
+    m_hash->Input(pad, sizeof(pad));
+
+    return kThreadError_None;
 }
 
-ThreadError Hmac::Input(const void *buf, uint16_t buf_length) {
-  return hash_->Input(buf, buf_length);
+ThreadError Hmac::Input(const void *buf, uint16_t buf_length)
+{
+    return m_hash->Input(buf, buf_length);
 }
 
-ThreadError Hmac::Finalize(uint8_t *hash) {
-  uint8_t pad[kMaxKeyLength];
-  int i;
+ThreadError Hmac::Finalize(uint8_t *hash)
+{
+    uint8_t pad[kMaxKeyLength];
+    int i;
 
-  // finish inner hash
-  hash_->Finalize(hash);
+    // finish inner hash
+    m_hash->Finalize(hash);
 
-  // perform outer hash
-  for (i = 0; i < key_length_; i++)
-    pad[i] = key_[i] ^ 0x5c;
-  for (; i < 64; i++)
-    pad[i] = 0x5c;
+    // perform outer hash
+    for (i = 0; i < m_key_length; i++)
+    {
+        pad[i] = m_key[i] ^ 0x5c;
+    }
 
-  hash_->Init();
-  hash_->Input(pad, kMaxKeyLength);
-  hash_->Input(hash, hash_->GetSize());
-  hash_->Finalize(hash);
+    for (; i < 64; i++)
+    {
+        pad[i] = 0x5c;
+    }
 
-  return kThreadError_None;
+    m_hash->Init();
+    m_hash->Input(pad, kMaxKeyLength);
+    m_hash->Input(hash, m_hash->GetSize());
+    m_hash->Finalize(hash);
+
+    return kThreadError_None;
 }
 
+}  // namespace Crypto
 }  // namespace Thread

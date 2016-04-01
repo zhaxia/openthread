@@ -14,19 +14,20 @@
  *
  */
 
-#ifndef COMMON_RANDOM_H_
-#define COMMON_RANDOM_H_
+#ifndef RANDOM_H_
+#define RANDOM_H_
 
 #include <stdint.h>
 
 namespace Thread {
 
-class Random {
- public:
-  static void Init(uint32_t seed);
-  static uint32_t Get();
+class Random
+{
+public:
+    static void Init(uint32_t seed);
+    static uint32_t Get();
 };
 
 }  // namespace Thread
 
-#endif  // COMMON_RANDOM_H_
+#endif  // RANDOM_H_

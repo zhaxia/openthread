@@ -14,42 +14,45 @@
  *
  */
 
-#ifndef PLATFORM_POSIX_CLI_POSIX_H_
-#define PLATFORM_POSIX_CLI_POSIX_H_
+#ifndef CLI_POSIX_H_
+#define CLI_POSIX_H_
 
 #include <cli/cli_server.h>
+#include <common/tasklet.h>
 #include <common/thread_error.h>
 #include <sys/socket.h>
 #include <pthread.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliCommand;
+class Command;
 
-class CliServerPosix: public CliServer {
- public:
-  CliServerPosix();
-  ThreadError Add(CliCommand *command) final;
-  ThreadError Start(uint16_t port) final;
-  ThreadError Output(const char *buf, uint16_t buf_length) final;
+class Socket: public Server
+{
+public:
+    Socket();
+    ThreadError Start() final;
+    ThreadError Output(const char *buf, uint16_t buf_length) final;
 
- private:
-  static void *ReceiveThread(void *arg);
-  void *ReceiveThread();
+private:
+    static void *ReceiveThread(void *arg);
+    void *ReceiveThread();
 
-  static void ReceivedTask(void *context);
-  void ReceivedTask();
+    static void ReceivedTask(void *context);
+    void ReceivedTask();
 
-  Tasklet received_task_;
+    Tasklet m_received_task;
 
-  pthread_t thread_;
-  pthread_mutex_t mutex_ = PTHREAD_MUTEX_INITIALIZER;
-  pthread_cond_t condition_variable_ = PTHREAD_COND_INITIALIZER;
-  int sockfd_;
-  struct sockaddr sockaddr_;
-  socklen_t socklen_;
+    pthread_t m_pthread;
+    pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
+    pthread_cond_t m_condition_variable = PTHREAD_COND_INITIALIZER;
+    int m_sockfd;
+    struct sockaddr m_sockaddr;
+    socklen_t m_socklen;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // PLATFORM_POSIX_CLI_POSIX_H_
+#endif  // CLI_POSIX_H_

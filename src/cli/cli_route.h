@@ -14,28 +14,31 @@
  *
  */
 
-#ifndef CLI_CLI_ROUTE_H_
-#define CLI_CLI_ROUTE_H_
+#ifndef CLI_ROUTE_H_
+#define CLI_ROUTE_H_
 
 #include <cli/cli_command.h>
 #include <net/ip6.h>
 #include <net/ip6_routes.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliRoute: public CliCommand {
- public:
-  explicit CliRoute(CliServer *server);
-  const char *GetName() final;
-  void Run(int argc, char *argv[], CliServer *server) final;
+class Route: public Command
+{
+public:
+    explicit Route(Server &server);
+    const char *GetName() final;
+    void Run(int argc, char *argv[], Server &server) final;
 
- private:
-  int PrintUsage(char *buf, uint16_t buf_length);
-  int AddRoute(int argc, char *argv[], char *buf, uint16_t buf_length);
+private:
+    int PrintUsage(char *buf, uint16_t buf_length);
+    int AddRoute(int argc, char *argv[], char *buf, uint16_t buf_length);
 
-  Ip6Route route_;
+    Ip6Route m_route;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_ROUTE_H_
+#endif  // CLI_ROUTE_H_

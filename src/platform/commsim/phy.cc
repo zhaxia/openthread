@@ -14,8 +14,8 @@
  *
  */
 
-#include <platform/posix/phy.h>
-//#include <platform/posix/cmdline.h>
+#include <platform/common/phy.h>
+#include <platform/posix/cmdline.h>
 #include <common/code_utils.h>
 #include <common/thread_error.h>
 #include <mac/mac.h>
@@ -32,372 +32,427 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-////extern struct gengetopt_args_info args_info;
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// COMMSIM DIFF extern struct gengetopt_args_info args_info;
 
 namespace Thread {
 
-uint8_t *PhyPacket::GetPsdu() {
-  return psdu_;
+extern void phy_handle_transmit_done(PhyPacket *packet, bool rx_pending, ThreadError error);
+extern void phy_handle_receive_done(PhyPacket *packet, ThreadError error);
+
+static void *phy_receive_thread(void *arg);
+static void phy_received_task(void *context);
+static void phy_sent_task(void *context);
+
+static PhyState s_state = kStateDisabled;
+static PhyPacket *s_receive_frame = NULL;
+static PhyPacket *s_transmit_frame = NULL;
+static PhyPacket m_ack_packet;
+static bool s_data_pending = false;
+
+static uint8_t s_extended_address[8];
+static uint16_t s_short_address;
+static uint16_t s_panid;
+
+static pthread_t s_pthread;
+static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t s_condition_variable = PTHREAD_COND_INITIALIZER;
+static int s_sockfd;
+
+static Tasklet s_received_task(&phy_received_task, NULL);
+static Tasklet s_sent_task(&phy_sent_task, NULL);
+
+ThreadError phy_set_pan_id(uint16_t panid)
+{
+    s_panid = panid;
+    return kThreadError_None;
 }
 
-uint8_t PhyPacket::GetPsduLength() const {
-  return psdu_length_;
+ThreadError phy_set_extended_address(uint8_t *address)
+{
+    for (int i = 0; i < sizeof(s_extended_address); i++)
+    {
+        s_extended_address[i] = address[7 - i];
+    }
+
+    return kThreadError_None;
 }
 
-void PhyPacket::SetPsduLength(uint8_t psdu_length) {
-  psdu_length_ = psdu_length;
+ThreadError phy_set_short_address(uint16_t address)
+{
+    s_short_address = address;
+    return kThreadError_None;
 }
 
-uint8_t PhyPacket::GetChannel() const {
-  return channel_;
+ThreadError phy_init()
+{
+    struct sockaddr_in sockaddr;
+    memset(&sockaddr, 0, sizeof(sockaddr));
+    sockaddr.sin_family = AF_INET;
+// COMMSIM DIFF    sockaddr.sin_port = htons(9000 + args_info.eui64_arg);
+    sockaddr.sin_addr.s_addr = INADDR_ANY;
+
+    s_sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    bind(s_sockfd, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
+
+    pthread_create(&s_pthread, NULL, &phy_receive_thread, NULL);
+
+    return kThreadError_None;
 }
 
-void PhyPacket::SetChannel(uint8_t channel) {
-  channel_ = channel;
-}
+ThreadError phy_start()
+{
+    ThreadError error = kThreadError_None;
 
-int8_t PhyPacket::GetPower() const {
-  return power_;
-}
-
-void PhyPacket::SetPower(int8_t power) {
-  power_ = power;
-}
-
-Phy::Phy(Callbacks *callbacks):
-    PhyInterface(callbacks),
-    received_task_(&ReceivedTask, this),
-    sent_task_(&SentTask, this) {
-  struct sockaddr_in sockaddr;
-  memset(&sockaddr, 0, sizeof(sockaddr));
-  sockaddr.sin_family = AF_INET;
-////  sockaddr.sin_port = htons(9000 + args_info.eui64_arg);
-  sockaddr.sin_port = htons(9000);
-  sockaddr.sin_addr.s_addr = INADDR_ANY;
-
-  sockfd_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  bind(sockfd_, (struct sockaddr*)&sockaddr, sizeof(sockaddr));
-
-  pthread_create(&thread_, NULL, ReceiveThread, this);
-}
-
-Phy::Error Phy::SetPanId(uint16_t panid) {
-  panid_ = panid;
-  return kErrorNone;
-}
-
-Phy::Error Phy::SetExtendedAddress(uint8_t *address) {
-  for (int i = 0; i < sizeof(extended_address_); i++)
-    extended_address_[i] = address[7-i];
-  return kErrorNone;
-}
-
-Phy::Error Phy::SetShortAddress(uint16_t address) {
-  printf("%x\n", address);
-  short_address_ = address;
-  return kErrorNone;
-}
-
-Phy::Error Phy::Start() {
-  Phy::Error error = kErrorNone;
-
-  pthread_mutex_lock(&mutex_);
-  VerifyOrExit(state_ == kStateDisabled, error = kErrorInvalidState);
-  state_ = kStateSleep;
-  pthread_cond_signal(&condition_variable_);
+    pthread_mutex_lock(&s_mutex);
+    VerifyOrExit(s_state == kStateDisabled, error = kThreadError_Busy);
+    s_state = kStateSleep;
+    pthread_cond_signal(&s_condition_variable);
 
 exit:
-  pthread_mutex_unlock(&mutex_);
-  return error;
+    pthread_mutex_unlock(&s_mutex);
+    return error;
 }
 
-Phy::Error Phy::Stop() {
-  pthread_mutex_lock(&mutex_);
-  state_ = kStateDisabled;
-  pthread_cond_signal(&condition_variable_);
-  pthread_mutex_unlock(&mutex_);
-  return kErrorNone;
+ThreadError phy_stop()
+{
+    pthread_mutex_lock(&s_mutex);
+    s_state = kStateDisabled;
+    pthread_cond_signal(&s_condition_variable);
+    pthread_mutex_unlock(&s_mutex);
+    return kThreadError_None;
 }
 
-Phy::Error Phy::Sleep() {
-  Phy::Error error = kErrorNone;
+ThreadError phy_sleep()
+{
+    ThreadError error = kThreadError_None;
 
-  pthread_mutex_lock(&mutex_);
-  VerifyOrExit(state_ == kStateIdle, error = kErrorInvalidState);
-  state_ = kStateSleep;
-  pthread_cond_signal(&condition_variable_);
+    pthread_mutex_lock(&s_mutex);
+    VerifyOrExit(s_state == kStateIdle, error = kThreadError_Busy);
+    s_state = kStateSleep;
+    pthread_cond_signal(&s_condition_variable);
 
 exit:
-  pthread_mutex_unlock(&mutex_);
-  return error;
+    pthread_mutex_unlock(&s_mutex);
+    return error;
 }
 
-Phy::Error Phy::Idle() {
-  Phy::Error error = kErrorNone;
+ThreadError phy_idle()
+{
+    ThreadError error = kThreadError_None;
 
-  pthread_mutex_lock(&mutex_);
-  switch (state_) {
+    pthread_mutex_lock(&s_mutex);
+
+    switch (s_state)
+    {
     case kStateSleep:
-      state_ = kStateIdle;
-      pthread_cond_signal(&condition_variable_);
-      break;
+        s_state = kStateIdle;
+        pthread_cond_signal(&s_condition_variable);
+        break;
+
     case kStateIdle:
-      break;
+        break;
+
     case kStateListen:
     case kStateTransmit:
-      state_ = kStateIdle;
-      pthread_cond_signal(&condition_variable_);
-      break;
+        s_state = kStateIdle;
+        pthread_cond_signal(&s_condition_variable);
+        break;
+
     case kStateDisabled:
     case kStateReceive:
-      ExitNow(error = kErrorInvalidState);
-      break;
-  }
-
-exit:
-  pthread_mutex_unlock(&mutex_);
-  return error;
-}
-
-Phy::Error Phy::Receive(PhyPacket *packet) {
-  Phy::Error error = kErrorNone;
-
-  pthread_mutex_lock(&mutex_);
-  VerifyOrExit(state_ == kStateIdle, error = kErrorInvalidState);
-  state_ = kStateListen;
-  pthread_cond_signal(&condition_variable_);
-
-  receive_packet_ = packet;
-
-exit:
-  pthread_mutex_unlock(&mutex_);
-  return error;
-}
-
-Phy::Error Phy::Transmit(PhyPacket *packet) {
-  Phy::Error error = kErrorNone;
-
-  pthread_mutex_lock(&mutex_);
-  VerifyOrExit(state_ == kStateIdle, error = kErrorInvalidState);
-  state_ = kStateTransmit;
-  pthread_cond_signal(&condition_variable_);
-
-  transmit_packet_ = packet;
-  data_pending_ = false;
-
-  struct sockaddr_in sockaddr;
-  memset(&sockaddr, 0, sizeof(sockaddr));
-  sockaddr.sin_family = AF_INET;
-  inet_pton(AF_INET, "127.0.0.1", &sockaddr.sin_addr);
-
-  for (int i = 1; i < 34; i++) {
-////    if (args_info.eui64_arg == i)
-////      continue;
-    sockaddr.sin_port = htons(9000 + i);
-    sendto(sockfd_, transmit_packet_->GetPsdu(), transmit_packet_->GetPsduLength(), 0,
-           (struct sockaddr*)&sockaddr, sizeof(sockaddr));
-  }
-
-  if (!reinterpret_cast<MacFrame*>(transmit_packet_)->GetAckRequest())
-    sent_task_.Post();
-
-exit:
-  pthread_mutex_unlock(&mutex_);
-  return error;
-}
-
-Phy::State Phy::GetState() {
-  Phy::State state;
-  pthread_mutex_lock(&mutex_);
-  state = state_;
-  pthread_mutex_unlock(&mutex_);
-  return state;
-}
-
-int8_t Phy::GetNoiseFloor() {
-  return 0;
-}
-
-void Phy::SentTask(void *context) {
-  Phy *obj = reinterpret_cast<Phy*>(context);
-  obj->SentTask();
-}
-
-void Phy::SentTask() {
-  State state;
-  pthread_mutex_lock(&mutex_);
-  state = state_;
-  if (state_ != kStateDisabled)
-    state_ = kStateIdle;
-  pthread_cond_signal(&condition_variable_);
-  pthread_mutex_unlock(&mutex_);
-
-  if (state != kStateDisabled) {
-    assert(state == kStateTransmit);
-    callbacks_->HandleTransmitDone(transmit_packet_, data_pending_, kErrorNone);
-  }
-}
-
-void *Phy::ReceiveThread(void *arg) {
-  Phy *driver = reinterpret_cast<Phy*>(arg);
-  driver->ReceiveThread();
-  return NULL;
-}
-
-void Phy::ReceiveThread() {
-  while (1) {
-    fd_set fds;
-    FD_ZERO(&fds);
-    FD_SET(sockfd_, &fds);
-
-    int rval = select(sockfd_ + 1, &fds, NULL, NULL, NULL);
-    if (rval >= 0 && FD_ISSET(sockfd_, &fds)) {
-      pthread_mutex_lock(&mutex_);
-
-#if 0
-      while (state_ != kStateDisabled &&
-             state_ != kStateSleep &&
-             state_ != kStateListen &&
-             state_ != kStateTransmit)
-        pthread_cond_wait(&condition_variable_, &mutex_);
-#else
-      while (state_ == kStateIdle)
-        pthread_cond_wait(&condition_variable_, &mutex_);
-#endif
-
-      switch (state_) {
-        case kStateDisabled:
-          recvfrom(sockfd_, NULL, 0, 0, NULL, NULL);
-          break;
-        case kStateIdle:
-          recvfrom(sockfd_, NULL, 0, 0, NULL, NULL);
-          dprintf("phy drop!\n");
-          break;
-        case kStateSleep:
-          recvfrom(sockfd_, NULL, 0, 0, NULL, NULL);
-          break;
-
-        case kStateTransmit: {
-          PhyPacket receive_packet;
-          int length;
-          length = recvfrom(sockfd_, receive_packet.GetPsdu(), MacFrame::kMTU, 0, NULL, NULL);
-          if (length < 0) {
-            dprintf("recvfrom error\n");
-            assert(false);
-          }
-
-          if (reinterpret_cast<MacFrame*>(&receive_packet)->GetType() == MacFrame::kFcfFrameAck) {
-            uint8_t tx_sequence, rx_sequence;
-            reinterpret_cast<MacFrame*>(transmit_packet_)->GetSequence(&tx_sequence);
-            reinterpret_cast<MacFrame*>(&receive_packet)->GetSequence(&rx_sequence);
-            if (tx_sequence == rx_sequence) {
-              if (reinterpret_cast<MacFrame*>(transmit_packet_)->GetType() == MacFrame::kFcfFrameMacCmd) {
-                uint8_t command_id;
-                reinterpret_cast<MacFrame*>(transmit_packet_)->GetCommandId(&command_id);
-                if (command_id == MacFrame::kMacCmdDataRequest)
-                  data_pending_ = true;
-              }
-              dprintf("Received ack %d\n", rx_sequence);
-              sent_task_.Post();
-            } else {
-              dprintf("phy drop!\n");
-            }
-          }
-          break;
-        }
-        case kStateListen:
-          state_ = kStateReceive;
-          received_task_.Post();
-          while (state_ == kStateReceive)
-            pthread_cond_wait(&condition_variable_, &mutex_);
-          break;
-
-        case kStateReceive:
-          assert(false);
-          break;
-      }
-
-      pthread_mutex_unlock(&mutex_);
+        ExitNow(error = kThreadError_Busy);
     }
-  }
+
+exit:
+    pthread_mutex_unlock(&s_mutex);
+    return error;
 }
 
-void Phy::ReceivedTask(void *context) {
-  Phy *obj = reinterpret_cast<Phy*>(context);
-  obj->ReceivedTask();
+ThreadError phy_receive(PhyPacket *packet)
+{
+    ThreadError error = kThreadError_None;
+
+    pthread_mutex_lock(&s_mutex);
+    VerifyOrExit(s_state == kStateIdle, error = kThreadError_Busy);
+    s_state = kStateListen;
+    pthread_cond_signal(&s_condition_variable);
+
+    s_receive_frame = packet;
+
+exit:
+    pthread_mutex_unlock(&s_mutex);
+    return error;
 }
 
-void Phy::ReceivedTask() {
-  Error error = kErrorNone;
-  MacFrame *receive_frame;
-  uint16_t dstpan;
-  MacAddress dstaddr;
-  int length;
-
-  length = recvfrom(sockfd_, receive_packet_->GetPsdu(), MacFrame::kMTU, 0, NULL, NULL);
-  receive_frame = reinterpret_cast<MacFrame*>(receive_packet_);
-
-  receive_frame->GetDstAddr(&dstaddr);
-  switch (dstaddr.length) {
-    case 0:
-      break;
-    case 2:
-      receive_frame->GetDstPanId(&dstpan);
-      VerifyOrExit((dstpan == MacFrame::kShortAddrBroadcast || dstpan == panid_) &&
-                   (dstaddr.address16 == MacFrame::kShortAddrBroadcast || dstaddr.address16 == short_address_),
-                   error = kErrorAbort);
-  break;
-    case 8:
-      receive_frame->GetDstPanId(&dstpan);
-      VerifyOrExit((dstpan == MacFrame::kShortAddrBroadcast || dstpan == panid_) &&
-                   memcmp(&dstaddr.address64, extended_address_, sizeof(dstaddr.address64)) == 0,
-                   error = kErrorAbort);
-      break;
-    default:
-      ExitNow(error = kErrorAbort);
-  }
-
-  receive_packet_->SetPsduLength(length);
-  receive_packet_->SetPower(-20);
-
-  // generate acknowledgment
-  if (reinterpret_cast<MacFrame*>(receive_packet_)->GetAckRequest()) {
-    uint8_t sequence;
-    reinterpret_cast<MacFrame*>(receive_packet_)->GetSequence(&sequence);
-
-    MacFrame *ack_frame = reinterpret_cast<MacFrame*>(&ack_packet_);
-    ack_frame->InitMacHeader(MacFrame::kFcfFrameAck, MacFrame::kSecNone);
-    ack_frame->SetSequence(sequence);
-
+ThreadError phy_transmit(PhyPacket *packet)
+{
+    ThreadError error = kThreadError_None;
     struct sockaddr_in sockaddr;
+
+    pthread_mutex_lock(&s_mutex);
+    VerifyOrExit(s_state == kStateIdle, error = kThreadError_Busy);
+    s_state = kStateTransmit;
+    pthread_cond_signal(&s_condition_variable);
+
+    s_transmit_frame = packet;
+    s_data_pending = false;
+
     memset(&sockaddr, 0, sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
     inet_pton(AF_INET, "127.0.0.1", &sockaddr.sin_addr);
 
-    for (int i = 1; i < 34; i++) {
-////      if (args_info.eui64_arg == i)
-////        continue;
-      sockaddr.sin_port = htons(9000 + i);
-      sendto(sockfd_, ack_packet_.GetPsdu(), ack_packet_.GetPsduLength(), 0,
-             (struct sockaddr*)&sockaddr, sizeof(sockaddr));
+    for (int i = 1; i < 34; i++)
+    {
+// COMMSIM DIFF        if (args_info.eui64_arg == i)
+//        {
+//            continue;
+//        }
+
+        sockaddr.sin_port = htons(9000 + i);
+        sendto(s_sockfd, s_transmit_frame->m_psdu, s_transmit_frame->m_length, 0,
+               (struct sockaddr *)&sockaddr, sizeof(sockaddr));
+    }
+
+    if (!reinterpret_cast<Mac::Frame *>(s_transmit_frame)->GetAckRequest())
+    {
+        s_sent_task.Post();
+    }
+
+exit:
+    pthread_mutex_unlock(&s_mutex);
+    return error;
+}
+
+PhyState phy_get_state()
+{
+    PhyState state;
+    pthread_mutex_lock(&s_mutex);
+    state = s_state;
+    pthread_mutex_unlock(&s_mutex);
+    return state;
+}
+
+int8_t phy_get_noise_floor()
+{
+    return 0;
+}
+
+void phy_sent_task(void *context)
+{
+    PhyState state;
+    pthread_mutex_lock(&s_mutex);
+    state = s_state;
+
+    if (s_state != kStateDisabled)
+    {
+        s_state = kStateIdle;
+    }
+
+    pthread_cond_signal(&s_condition_variable);
+    pthread_mutex_unlock(&s_mutex);
+
+    if (state != kStateDisabled)
+    {
+        assert(state == kStateTransmit);
+        phy_handle_transmit_done(s_transmit_frame, s_data_pending, kThreadError_None);
+    }
+}
+
+void *phy_receive_thread(void *arg)
+{
+    fd_set fds;
+    int rval;
+    PhyPacket receive_frame;
+    int length;
+    uint8_t tx_sequence, rx_sequence;
+    uint8_t command_id;
+
+    while (1)
+    {
+        FD_ZERO(&fds);
+        FD_SET(s_sockfd, &fds);
+
+        rval = select(s_sockfd + 1, &fds, NULL, NULL, NULL);
+
+        if (rval < 0 || !FD_ISSET(s_sockfd, &fds))
+        {
+            continue;
+        }
+
+        pthread_mutex_lock(&s_mutex);
+
+        while (s_state == kStateIdle)
+        {
+            pthread_cond_wait(&s_condition_variable, &s_mutex);
+        }
+
+        switch (s_state)
+        {
+        case kStateDisabled:
+        case kStateIdle:
+        case kStateSleep:
+            recvfrom(s_sockfd, NULL, 0, 0, NULL, NULL);
+            break;
+
+        case kStateTransmit:
+            length = recvfrom(s_sockfd, receive_frame.m_psdu, Mac::Frame::kMTU, 0, NULL, NULL);
+
+            if (length < 0)
+            {
+                dprintf("recvfrom error\n");
+                assert(false);
+            }
+
+            if (reinterpret_cast<Mac::Frame *>(&receive_frame)->GetType() != Mac::Frame::kFcfFrameAck)
+            {
+                break;
+            }
+
+            reinterpret_cast<Mac::Frame *>(s_transmit_frame)->GetSequence(tx_sequence);
+
+            reinterpret_cast<Mac::Frame *>(&receive_frame)->GetSequence(rx_sequence);
+
+            if (tx_sequence != rx_sequence)
+            {
+                break;
+            }
+
+            if (reinterpret_cast<Mac::Frame *>(s_transmit_frame)->GetType() == Mac::Frame::kFcfFrameMacCmd)
+            {
+                reinterpret_cast<Mac::Frame *>(s_transmit_frame)->GetCommandId(command_id);
+
+                if (command_id == Mac::Frame::kMacCmdDataRequest)
+                {
+                    s_data_pending = true;
+                }
+            }
+
+            dprintf("Received ack %d\n", rx_sequence);
+            s_sent_task.Post();
+            break;
+
+        case kStateListen:
+            s_state = kStateReceive;
+            s_received_task.Post();
+
+            while (s_state == kStateReceive)
+            {
+                pthread_cond_wait(&s_condition_variable, &s_mutex);
+            }
+
+            break;
+
+        case kStateReceive:
+            assert(false);
+            break;
+        }
+
+        pthread_mutex_unlock(&s_mutex);
+    }
+}
+
+void send_ack()
+{
+    Mac::Frame *ack_frame;
+    uint8_t sequence;
+    struct sockaddr_in sockaddr;
+
+    reinterpret_cast<Mac::Frame *>(s_receive_frame)->GetSequence(sequence);
+
+    ack_frame = reinterpret_cast<Mac::Frame *>(&m_ack_packet);
+    ack_frame->InitMacHeader(Mac::Frame::kFcfFrameAck, Mac::Frame::kSecNone);
+    ack_frame->SetSequence(sequence);
+
+    memset(&sockaddr, 0, sizeof(sockaddr));
+    sockaddr.sin_family = AF_INET;
+    inet_pton(AF_INET, "127.0.0.1", &sockaddr.sin_addr);
+
+    for (int i = 1; i < 34; i++)
+    {
+// COMMSIM DIFF        if (args_info.eui64_arg == i)
+//        {
+//            continue;
+//        }
+
+        sockaddr.sin_port = htons(9000 + i);
+        sendto(s_sockfd, m_ack_packet.m_psdu, m_ack_packet.m_length, 0,
+               (struct sockaddr *)&sockaddr, sizeof(sockaddr));
     }
 
     dprintf("Sent ack %d\n", sequence);
-  }
+}
+
+void phy_received_task(void *context)
+{
+    ThreadError error = kThreadError_None;
+    Mac::Frame *receive_frame;
+    uint16_t dstpan;
+    Mac::Address dstaddr;
+    int length;
+    PhyState state;
+
+    length = recvfrom(s_sockfd, s_receive_frame->m_psdu, Mac::Frame::kMTU, 0, NULL, NULL);
+    receive_frame = reinterpret_cast<Mac::Frame *>(s_receive_frame);
+
+    receive_frame->GetDstAddr(dstaddr);
+
+    switch (dstaddr.length)
+    {
+    case 0:
+        break;
+
+    case 2:
+        receive_frame->GetDstPanId(dstpan);
+        VerifyOrExit((dstpan == Mac::kShortAddrBroadcast || dstpan == s_panid) &&
+                     (dstaddr.address16 == Mac::kShortAddrBroadcast || dstaddr.address16 == s_short_address),
+                     error = kThreadError_Abort);
+        break;
+
+    case 8:
+        receive_frame->GetDstPanId(dstpan);
+        VerifyOrExit((dstpan == Mac::kShortAddrBroadcast || dstpan == s_panid) &&
+                     memcmp(&dstaddr.address64, s_extended_address, sizeof(dstaddr.address64)) == 0,
+                     error = kThreadError_Abort);
+        break;
+
+    default:
+        ExitNow(error = kThreadError_Abort);
+    }
+
+    s_receive_frame->m_length = length;
+    s_receive_frame->m_power = -20;
+
+    // generate acknowledgment
+    if (reinterpret_cast<Mac::Frame *>(s_receive_frame)->GetAckRequest())
+    {
+        send_ack();
+    }
 
 exit:
-  State state;
-  pthread_mutex_lock(&mutex_);
-  state = state_;
-  if (state_ != kStateDisabled)
-    state_ = kStateIdle;
-  pthread_cond_signal(&condition_variable_);
-  pthread_mutex_unlock(&mutex_);
+    pthread_mutex_lock(&s_mutex);
+    state = s_state;
 
-  if (state != kStateDisabled) {
-    assert(state == kStateReceive);
-    callbacks_->HandleReceiveDone(receive_packet_, error);
-  }
+    if (s_state != kStateDisabled)
+    {
+        s_state = kStateIdle;
+    }
+
+    pthread_cond_signal(&s_condition_variable);
+    pthread_mutex_unlock(&s_mutex);
+
+    if (state != kStateDisabled)
+    {
+        assert(state == kStateReceive);
+        phy_handle_receive_done(s_receive_frame, error);
+    }
 }
+
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif
 
 }  // namespace Thread

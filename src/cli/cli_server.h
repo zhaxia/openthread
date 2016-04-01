@@ -14,29 +14,33 @@
  *
  */
 
-#ifndef CLI_CLI_SERVER_H_
-#define CLI_CLI_SERVER_H_
+#ifndef CLI_SERVER_H_
+#define CLI_SERVER_H_
 
 #include <common/thread_error.h>
 #include <common/message.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliCommand;
+class Command;
 
-class CliServer {
- public:
-  virtual ThreadError Add(CliCommand *command) = 0;
-  virtual ThreadError Start(uint16_t port) = 0;
-  virtual ThreadError Output(const char *buf, uint16_t buf_length) = 0;
+class Server
+{
+public:
+    ThreadError Add(Command &command);
+    virtual ThreadError Start() = 0;
+    virtual ThreadError Output(const char *buf, uint16_t buf_length) = 0;
 
- protected:
-  enum {
-    kMaxArgs = 8,
-  };
-  CliCommand *commands_ = NULL;
+protected:
+    enum
+    {
+        kMaxArgs = 8,
+    };
+    Command *m_commands = NULL;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_SERVER_H_
+#endif  // CLI_SERVER_H_

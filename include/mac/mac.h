@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef MAC_MAC_H_
-#define MAC_MAC_H_
+#ifndef MAC_H_
+#define MAC_H_
 
 #include <common/tasklet.h>
 #include <common/timer.h>
@@ -24,171 +24,182 @@
 #include <mac/mac_whitelist.h>
 #include <platform/common/phy.h>
 #include <thread/key_manager.h>
+#include <thread/topology.h>
 
 namespace Thread {
 
-enum {
-  kMacAckTimeout = 16,  // milliseconds
-  kDataTimeout = 100,  // milliseconds
+namespace Mle { class MleRouter; }
 
-  kMacScanChannelMaskAllChannels = 0xffff,
-  kMacScanDefaultInterval = 128  // milliseconds
+namespace Mac {
+
+enum
+{
+    kMacAckTimeout = 16,  // milliseconds
+    kDataTimeout = 100,  // milliseconds
+
+    kMacScanChannelMaskAllChannels = 0xffff,
+    kMacScanDefaultInterval = 128  // milliseconds
 };
 
-class Mac: PhyInterface::Callbacks {
- public:
-  enum {
-    kMaxBeacons = 16,
-  };
-
-  struct ActiveScanResult {
+struct ActiveScanResult
+{
     uint8_t network_name[16];
     uint8_t ext_panid[8];
     uint8_t ext_addr[8];
     uint16_t panid;
     uint8_t channel;
     int8_t rssi;
-  };
-
-  class Receiver {
-    friend class Mac;
-
-   public:
-    typedef void (*HandleReceivedFrame)(void *context, MacFrame *frame, ThreadError error);
-    Receiver(HandleReceivedFrame handle_received_frame, void *context) {
-      handle_received_frame_ = handle_received_frame;
-      context_ = context;
-      next_ = NULL;
-    }
-
-   private:
-    HandleReceivedFrame handle_received_frame_;
-    void *context_;
-    Receiver *next_;
-  };
-
-  class Sender {
-    friend class Mac;
-
-   public:
-    typedef ThreadError (*HandleFrameRequest)(void *context, MacFrame *frame);
-    typedef void (*HandleSentFrame)(void *context, MacFrame *frame);
-    Sender(HandleFrameRequest handle_frame_request, HandleSentFrame handle_sent_frame, void *context) {
-      handle_frame_request_ = handle_frame_request;
-      handle_sent_frame_ = handle_sent_frame;
-      context_ = context;
-      next_ = NULL;
-    }
-
-   private:
-    HandleFrameRequest handle_frame_request_;
-    HandleSentFrame handle_sent_frame_;
-    void *context_;
-    Sender *next_;
-  };
-
-  Mac(KeyManager *key_manager, MleRouter *mle);
-
-  ThreadError Init();
-  ThreadError Start();
-  ThreadError Stop();
-
-  // Channel bit mask: bit0 (lsb) -> ch11, bit1 -> ch12, ... , bit15 (msb) -> ch26,
-  // value zero means all channels (same as 0xffff)
-  typedef void (*HandleActiveScanResult)(void *context, ActiveScanResult *result);
-  ThreadError ActiveScan(uint16_t interval_in_ms_per_channel, uint16_t channel_mask,
-                         HandleActiveScanResult callback, void *context);
-
-  bool GetRxOnWhenIdle() const;
-  ThreadError SetRxOnWhenIdle(bool rx_on_when_idle);
-
-  ThreadError RegisterReceiver(Receiver *receiver);
-  ThreadError SendFrameRequest(Sender *sender);
-
-  const MacAddr64 *GetAddress64() const;
-  MacAddr16 GetAddress16() const;
-  ThreadError SetAddress16(MacAddr16 address16);
-
-  uint8_t GetChannel() const;
-  ThreadError SetChannel(uint8_t channel);
-
-  const char *GetNetworkName() const;
-  ThreadError SetNetworkName(const char *name);
-
-  uint16_t GetPanId() const;
-  ThreadError SetPanId(uint16_t panid);
-
-  const uint8_t *GetExtendedPanId() const;
-  ThreadError SetExtendedPanId(const uint8_t *xpanid);
-
-  void HandleReceiveDone(PhyPacket *packet, Phy::Error error) final;
-  void HandleTransmitDone(PhyPacket *packet, bool rx_pending, Phy::Error error) final;
-
-  MacWhitelist *GetWhitelist();
-
-  Phy *GetPhy();
-
- private:
-  void GenerateNonce(const MacAddr64 *address, uint32_t frame_counter, uint8_t security_level, uint8_t *nonce);
-  void NextOperation();
-  void SentFrame(bool acked);
-  void SendBeaconRequest(MacFrame *frame);
-  void SendBeacon(MacFrame *frame);
-  void StartBackoff();
-  void HandleBeaconFrame(MacFrame *frame);
-
-  static void HandleAckTimer(void *context);
-  void HandleAckTimer();
-  static void HandleBackoffTimer(void *context);
-  void HandleBackoffTimer();
-  static void HandleReceiveTimer(void *context);
-  void HandleReceiveTimer();
-
-  Timer ack_timer_;
-  Timer backoff_timer_;
-  Timer receive_timer_;
-
-  KeyManager *key_manager_ = NULL;
-
-  MacAddr64 address64_;
-  MacAddr16 address16_ = MacFrame::kShortAddrInvalid;
-  uint16_t panid_ = MacFrame::kShortAddrInvalid;
-  uint8_t extended_panid_[8];
-  char network_name_[16];
-  uint8_t channel_ = 12;
-
-  MacFrame send_frame_;
-  MacFrame receive_frame_;
-  Sender *send_head_ = NULL, *send_tail_ = NULL;
-  Receiver *receive_head_ = NULL, *receive_tail_ = NULL;
-  MleRouter *mle_;
-  Phy phy_;
-
-  enum {
-    kStateDisabled = 0,
-    kStateIdle,
-    kStateActiveScan,
-    kStateTransmitBeacon,
-    kStateTransmitData,
-  };
-  uint8_t state_ = kStateDisabled;
-
-  uint8_t beacon_sequence_;
-  uint8_t data_sequence_;
-  bool rx_on_when_idle_ = true;
-  uint8_t attempts_ = 0;
-  bool transmit_beacon_ = false;
-
-  bool active_scan_request_ = false;
-  uint8_t scan_channel_ = 11;
-  uint16_t scan_channel_mask_ = 0xff;
-  uint16_t scan_interval_per_channel = 0;
-  HandleActiveScanResult active_scan_callback_ = NULL;
-  void *active_scan_context_ = NULL;
-
-  MacWhitelist whitelist_;
 };
 
+class Receiver
+{
+    friend class Mac;
+
+public:
+    typedef void (*ReceiveFrameHandler)(void *context, Frame &frame, ThreadError error);
+    Receiver(ReceiveFrameHandler receive_frame_handler, void *context) {
+        m_receive_frame_handler = receive_frame_handler;
+        m_context = context;
+        m_next = NULL;
+    }
+
+private:
+    void HandleReceivedFrame(Frame &frame, ThreadError error) { m_receive_frame_handler(m_context, frame, error); }
+
+    ReceiveFrameHandler m_receive_frame_handler;
+    void *m_context;
+    Receiver *m_next;
+};
+
+class Sender
+{
+    friend class Mac;
+
+public:
+    typedef ThreadError(*FrameRequestHandler)(void *context, Frame &frame);
+    typedef void (*SentFrameHandler)(void *context, Frame &frame);
+    Sender(FrameRequestHandler frame_request_handler, SentFrameHandler sent_frame_handler, void *context) {
+        m_frame_request_handler = frame_request_handler;
+        m_sent_frame_handler = sent_frame_handler;
+        m_context = context;
+        m_next = NULL;
+    }
+
+private:
+    ThreadError HandleFrameRequest(Frame &frame) { return m_frame_request_handler(m_context, frame); }
+    void HandleSentFrame(Frame &frame) { m_sent_frame_handler(m_context, frame); }
+
+    FrameRequestHandler m_frame_request_handler;
+    SentFrameHandler m_sent_frame_handler;
+    void *m_context;
+    Sender *m_next;
+};
+
+class Mac
+{
+public:
+    explicit Mac(ThreadNetif *netif);
+    ThreadError Init();
+    ThreadError Start();
+    ThreadError Stop();
+
+    typedef void (*ActiveScanHandler)(void *context, ActiveScanResult *result);
+    ThreadError ActiveScan(uint16_t interval_in_ms_per_channel, uint16_t channel_mask,
+                           ActiveScanHandler handler, void *context);
+
+    bool GetRxOnWhenIdle() const;
+    ThreadError SetRxOnWhenIdle(bool rx_on_when_idle);
+
+    ThreadError RegisterReceiver(Receiver &receiver);
+    ThreadError SendFrameRequest(Sender &sender);
+
+    const Address64 *GetAddress64() const;
+    Address16 GetAddress16() const;
+    ThreadError SetAddress16(Address16 address16);
+
+    uint8_t GetChannel() const;
+    ThreadError SetChannel(uint8_t channel);
+
+    const char *GetNetworkName() const;
+    ThreadError SetNetworkName(const char *name);
+
+    uint16_t GetPanId() const;
+    ThreadError SetPanId(uint16_t panid);
+
+    const uint8_t *GetExtendedPanId() const;
+    ThreadError SetExtendedPanId(const uint8_t *xpanid);
+
+    void HandleReceiveDone(PhyPacket *packet, ThreadError error);
+    void HandleTransmitDone(PhyPacket *packet, bool rx_pending, ThreadError error);
+
+    Whitelist *GetWhitelist();
+
+private:
+    void GenerateNonce(const Address64 &address, uint32_t frame_counter, uint8_t security_level, uint8_t *nonce);
+    void NextOperation();
+    void ProcessTransmitSecurity();
+    ThreadError ProcessReceiveSecurity(const Address &srcaddr, Neighbor &neighbor);
+    void ScheduleNextTransmission();
+    void SentFrame(bool acked);
+    void SendBeaconRequest(Frame *frame);
+    void SendBeacon(Frame *frame);
+    void StartBackoff();
+    void HandleBeaconFrame();
+    ThreadError HandleMacCommand();
+
+    static void HandleAckTimer(void *context);
+    void HandleAckTimer();
+    static void HandleBackoffTimer(void *context);
+    void HandleBackoffTimer();
+    static void HandleReceiveTimer(void *context);
+    void HandleReceiveTimer();
+
+    Timer m_ack_timer;
+    Timer m_backoff_timer;
+    Timer m_receive_timer;
+
+    KeyManager *m_key_manager = NULL;
+
+    Address64 m_address64;
+    Address16 m_address16 = kShortAddrInvalid;
+    uint16_t m_panid = kShortAddrInvalid;
+    uint8_t m_extended_panid[8];
+    char m_network_name[16];
+    uint8_t m_channel = 12;
+
+    Frame m_send_frame;
+    Frame m_receive_frame;
+    Sender *m_send_head = NULL, *m_send_tail = NULL;
+    Receiver *m_receive_head = NULL, *m_receive_tail = NULL;
+    Mle::MleRouter *m_mle;
+
+    enum
+    {
+        kStateDisabled = 0,
+        kStateIdle,
+        kStateActiveScan,
+        kStateTransmitBeacon,
+        kStateTransmitData,
+    };
+    uint8_t m_state = kStateDisabled;
+
+    uint8_t m_beacon_sequence;
+    uint8_t m_data_sequence;
+    bool m_rx_on_when_idle = true;
+    uint8_t m_attempts = 0;
+    bool m_transmit_beacon = false;
+
+    bool m_active_scan_request = false;
+    uint8_t m_scan_channel = 11;
+    uint16_t m_scan_channel_mask = 0xff;
+    uint16_t m_scan_interval_per_channel = 0;
+    ActiveScanHandler m_active_scan_handler = NULL;
+    void *m_active_scan_context = NULL;
+
+    Whitelist m_whitelist;
+};
+
+}  // namespace Mac
 }  // namespace Thread
 
 #endif  // MAC_MAC_H_

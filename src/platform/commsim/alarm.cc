@@ -14,104 +14,109 @@
  *
  */
 
+#include <platform/common/alarm.h>
 #include <platform/common/atomic.h>
-#include <platform/posix/alarm.h>
 #include <common/code_utils.h>
 #include <common/timer.h>
-#include <common/thread_error.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 
-namespace Thread {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-static timeval start_;
+extern void alarm_fired();
 
-ThreadError Alarm::Init() {
-  gettimeofday(&start_, NULL);
-  pthread_create(&thread_, NULL, AlarmThread, this);
-  return kThreadError_None;
+static void *alarm_thread(void *arg);
+
+static bool s_is_running = false;
+static uint32_t s_alarm = 0;
+static timeval s_start;
+
+static pthread_t s_thread;
+static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t s_cond = PTHREAD_COND_INITIALIZER;
+
+void alarm_init()
+{
+    gettimeofday(&s_start, NULL);
+    pthread_create(&s_thread, NULL, alarm_thread, NULL);
 }
 
-uint32_t Alarm::GetAlarm() const {
-  return alarm_;
+uint32_t alarm_get_now()
+{
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+    timersub(&tv, &s_start, &tv);
+
+    return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 }
 
-uint32_t Alarm::GetNow() {
-  struct timeval tv;
-
-  gettimeofday(&tv, NULL);
-  timersub(&tv, &start_, &tv);
-
-  return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+void alarm_start_at(uint32_t t0, uint32_t dt)
+{
+    pthread_mutex_lock(&s_mutex);
+    s_alarm = t0 + dt;
+    s_is_running = true;
+    pthread_mutex_unlock(&s_mutex);
+    pthread_cond_signal(&s_cond);
 }
 
-bool Alarm::IsRunning() const {
-  return is_running_;
+void alarm_stop()
+{
+    pthread_mutex_lock(&s_mutex);
+    s_is_running = false;
+    pthread_mutex_unlock(&s_mutex);
 }
 
-ThreadError Alarm::Start(uint32_t dt) {
-  return StartAt(GetNow(), dt);
-}
+void *alarm_thread(void *arg)
+{
+    int32_t remaining;
+    struct timeval tva;
+    struct timeval tvb;
+    struct timespec ts;
 
-ThreadError Alarm::StartAt(uint32_t t0, uint32_t dt) {
-  pthread_mutex_lock(&mutex_);
-  alarm_ = t0 + dt;
-  is_running_ = true;
-  pthread_mutex_unlock(&mutex_);
-  pthread_cond_signal(&cond_);
+    while (1)
+    {
+        pthread_mutex_lock(&s_mutex);
 
-  return kThreadError_None;
-}
+        if (!s_is_running)
+        {
+            // alarm is not running, wait indefinitely
+            pthread_cond_wait(&s_cond, &s_mutex);
+            pthread_mutex_unlock(&s_mutex);
+        }
+        else
+        {
+            // alarm is running
+            remaining = s_alarm - alarm_get_now();
 
-ThreadError Alarm::Stop() {
-  pthread_mutex_lock(&mutex_);
-  is_running_ = false;
-  pthread_mutex_unlock(&mutex_);
-  return kThreadError_None;
-}
+            if (remaining > 0)
+            {
+                // alarm has not passed, wait
+                gettimeofday(&tva, NULL);
+                tvb.tv_sec = remaining / 1000;
+                tvb.tv_usec = (remaining % 1000) * 1000;
+                timeradd(&tva, &tvb, &tva);
 
-void *Alarm::AlarmThread(void *arg) {
-  Alarm *alarm = reinterpret_cast<Alarm*>(arg);
-  alarm->AlarmThread();
-  return NULL;
-}
+                ts.tv_sec = tva.tv_sec;
+                ts.tv_nsec = tva.tv_usec * 1000;
 
-void Alarm::AlarmThread() {
-  while (1) {
-    pthread_mutex_lock(&mutex_);
-
-    if (!is_running_) {
-      // alarm is not running, wait indefinitely
-      pthread_cond_wait(&cond_, &mutex_);
-      pthread_mutex_unlock(&mutex_);
-    } else {
-      // alarm is running
-      int32_t remaining = alarm_ - GetNow();
-
-      if (remaining > 0) {
-        // alarm has not passed, wait
-        struct timeval tva;
-        struct timeval tvb;
-        struct timespec ts;
-
-        gettimeofday(&tva, NULL);
-        tvb.tv_sec = remaining / 1000;
-        tvb.tv_usec = (remaining % 1000) * 1000;
-        timeradd(&tva, &tvb, &tva);
-
-        ts.tv_sec = tva.tv_sec;
-        ts.tv_nsec = tva.tv_usec * 1000;
-
-        pthread_cond_timedwait(&cond_, &mutex_, &ts);
-        pthread_mutex_unlock(&mutex_);
-      } else {
-        // alarm has passed, signal
-        is_running_ = false;
-        pthread_mutex_unlock(&mutex_);
-        Timer::HandleAlarm();
-      }
+                pthread_cond_timedwait(&s_cond, &s_mutex, &ts);
+                pthread_mutex_unlock(&s_mutex);
+            }
+            else
+            {
+                // alarm has passed, signal
+                s_is_running = false;
+                pthread_mutex_unlock(&s_mutex);
+                alarm_fired();
+            }
+        }
     }
-  }
 }
 
-}  // namespace Thread
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif

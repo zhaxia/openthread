@@ -14,46 +14,56 @@
  *
  */
 
-#include <cli/cli.h>
 #include <cli/cli_shutdown.h>
 #include <common/code_utils.h>
 #include <stdlib.h>
 
 namespace Thread {
+namespace Cli {
 
 static const char kName[] = "shutdown";
 
-CliShutdown::CliShutdown(CliServer *server) : CliCommand(server) {
+Shutdown::Shutdown(Server &server):
+    Command(server)
+{
 }
 
-const char *CliShutdown::GetName() {
-  return kName;
+const char *Shutdown::GetName()
+{
+    return kName;
 }
 
-int CliShutdown::PrintUsage(char *buf, uint16_t buf_length) {
-  char *cur = buf;
-  char *end = cur + buf_length;
+int Shutdown::PrintUsage(char *buf, uint16_t buf_length)
+{
+    char *cur = buf;
+    char *end = cur + buf_length;
 
-  snprintf(cur, end - cur, "usage: shutdown\r\n");
-  cur += strlen(cur);
+    snprintf(cur, end - cur, "usage: shutdown\r\n");
+    cur += strlen(cur);
 
-  return cur - buf;
+    return cur - buf;
 }
 
-void CliShutdown::Run(int argc, char *argv[], CliServer *server) {
-  char buf[128];
-  char *cur = buf;
-  char *end = cur + sizeof(buf);
+void Shutdown::Run(int argc, char *argv[], Server &server)
+{
+    char buf[128];
+    char *cur = buf;
+    char *end = cur + sizeof(buf);
 
-  if (argc > 0)
-    cur += PrintUsage(cur, end - cur);
+    if (argc > 0)
+    {
+        cur += PrintUsage(cur, end - cur);
+    }
 
-  snprintf(cur, end - cur, "Done\r\n");
-  cur += strlen(cur);
-  server->Output(buf, cur - buf);
+    snprintf(cur, end - cur, "Done\r\n");
+    cur += strlen(cur);
+    server.Output(buf, cur - buf);
 
-  if (argc == 0)
-    exit(0);
+    if (argc == 0)
+    {
+        exit(0);
+    }
 }
 
+}  // namespace Cli
 }  // namespace Thread

@@ -14,23 +14,26 @@
  *
  */
 
-#ifndef CLI_CLI_SHUTDOWN_H_
-#define CLI_CLI_SHUTDOWN_H_
+#ifndef CLI_SHUTDOWN_H_
+#define CLI_SHUTDOWN_H_
 
 #include <cli/cli_command.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliShutdown: public CliCommand {
- public:
-  explicit CliShutdown(CliServer *server);
-  const char *GetName() final;
-  void Run(int argc, char *argv[], CliServer *server) final;
+class Shutdown: public Command
+{
+public:
+    explicit Shutdown(Server &server);
+    const char *GetName() final;
+    void Run(int argc, char *argv[], Server &server) final;
 
- private:
-  int PrintUsage(char *buf, uint16_t buf_length);
+private:
+    int PrintUsage(char *buf, uint16_t buf_length);
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_SHUTDOWN_H_
+#endif  // CLI_SHUTDOWN_H_

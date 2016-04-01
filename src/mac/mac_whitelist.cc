@@ -18,121 +18,150 @@
 #include <mac/mac_whitelist.h>
 
 namespace Thread {
+namespace Mac {
 
-MacWhitelist::MacWhitelist() {
-  for (int i = 0; i < kMaxEntries; i++)
-    whitelist_[i].valid = false;
+Whitelist::Whitelist()
+{
+    for (int i = 0; i < kMaxEntries; i++)
+    {
+        m_whitelist[i].valid = false;
+    }
 }
 
-ThreadError MacWhitelist::Enable() {
-  enabled_ = true;
-  return kThreadError_None;
+ThreadError Whitelist::Enable()
+{
+    m_enabled = true;
+    return kThreadError_None;
 }
 
-ThreadError MacWhitelist::Disable() {
-  enabled_ = false;
-  return kThreadError_None;
+ThreadError Whitelist::Disable()
+{
+    m_enabled = false;
+    return kThreadError_None;
 }
 
-bool MacWhitelist::IsEnabled() const {
-  return enabled_;
+bool Whitelist::IsEnabled() const
+{
+    return m_enabled;
 }
 
-int MacWhitelist::GetMaxEntries() const {
-  return kMaxEntries;
+int Whitelist::GetMaxEntries() const
+{
+    return kMaxEntries;
 }
 
-int MacWhitelist::Add(const MacAddr64 *address) {
-  int rval = -1;
+int Whitelist::Add(const Address64 &address)
+{
+    int rval = -1;
 
-  VerifyOrExit((rval = Find(address)) < 0, ;);
+    VerifyOrExit((rval = Find(address)) < 0, ;);
 
-  for (int i = 0; i < kMaxEntries; i++) {
-    if (whitelist_[i].valid)
-      continue;
-    memcpy(&whitelist_[i], address, sizeof(whitelist_[i]));
-    whitelist_[i].valid = true;
-    whitelist_[i].rssi_valid = false;
-    ExitNow(rval = i);
-  }
+    for (int i = 0; i < kMaxEntries; i++)
+    {
+        if (m_whitelist[i].valid)
+        {
+            continue;
+        }
+
+        memcpy(&m_whitelist[i], &address, sizeof(m_whitelist[i]));
+        m_whitelist[i].valid = true;
+        m_whitelist[i].rssi_valid = false;
+        ExitNow(rval = i);
+    }
 
 exit:
-  return rval;
+    return rval;
 }
 
-ThreadError MacWhitelist::Clear() {
-  for (int i = 0; i < kMaxEntries; i++)
-    whitelist_[i].valid = false;
-  return kThreadError_None;
+ThreadError Whitelist::Clear()
+{
+    for (int i = 0; i < kMaxEntries; i++)
+    {
+        m_whitelist[i].valid = false;
+    }
+
+    return kThreadError_None;
 }
 
-ThreadError MacWhitelist::Remove(const MacAddr64 *address) {
-  ThreadError error = kThreadError_None;
-  int i;
+ThreadError Whitelist::Remove(const Address64 &address)
+{
+    ThreadError error = kThreadError_None;
+    int i;
 
-  VerifyOrExit((i = Find(address)) >= 0, ;);
-  memset(&whitelist_[i], 0, sizeof(whitelist_[i]));
+    VerifyOrExit((i = Find(address)) >= 0, ;);
+    memset(&m_whitelist[i], 0, sizeof(m_whitelist[i]));
 
 exit:
-  return error;
+    return error;
 }
 
-int MacWhitelist::Find(const MacAddr64 *address) const {
-  int rval = -1;
+int Whitelist::Find(const Address64 &address) const
+{
+    int rval = -1;
 
-  for (int i = 0; i < kMaxEntries; i++) {
-    if (!whitelist_[i].valid)
-      continue;
-    if (memcmp(&whitelist_[i].addr64, address, sizeof(whitelist_[i].addr64)) == 0)
-      ExitNow(rval = i);
-  }
+    for (int i = 0; i < kMaxEntries; i++)
+    {
+        if (!m_whitelist[i].valid)
+        {
+            continue;
+        }
+
+        if (memcmp(&m_whitelist[i].addr64, &address, sizeof(m_whitelist[i].addr64)) == 0)
+        {
+            ExitNow(rval = i);
+        }
+    }
 
 exit:
-  return rval;
+    return rval;
 }
 
-const uint8_t *MacWhitelist::GetAddress(uint8_t entry) const {
-  const uint8_t *rval;
+const uint8_t *Whitelist::GetAddress(uint8_t entry) const
+{
+    const uint8_t *rval;
 
-  VerifyOrExit(entry < kMaxEntries, rval = NULL);
-  rval = whitelist_[entry].addr64.bytes;
+    VerifyOrExit(entry < kMaxEntries, rval = NULL);
+    rval = m_whitelist[entry].addr64.bytes;
 
 exit:
-  return rval;
+    return rval;
 }
 
-ThreadError MacWhitelist::ClearRssi(uint8_t entry) {
-  ThreadError error = kThreadError_None;
+ThreadError Whitelist::ClearRssi(uint8_t entry)
+{
+    ThreadError error = kThreadError_None;
 
-  VerifyOrExit(entry < kMaxEntries, error = kThreadError_Error);
-  whitelist_[entry].rssi_valid = false;
+    VerifyOrExit(entry < kMaxEntries, error = kThreadError_Error);
+    m_whitelist[entry].rssi_valid = false;
 
 exit:
-  return error;
+    return error;
 }
 
-ThreadError MacWhitelist::GetRssi(uint8_t entry, int8_t *rssi) const {
-  ThreadError error = kThreadError_None;
+ThreadError Whitelist::GetRssi(uint8_t entry, int8_t &rssi) const
+{
+    ThreadError error = kThreadError_None;
 
-  VerifyOrExit(entry < kMaxEntries && whitelist_[entry].valid && whitelist_[entry].rssi_valid,
-               error = kThreadError_Error);
+    VerifyOrExit(entry < kMaxEntries && m_whitelist[entry].valid && m_whitelist[entry].rssi_valid,
+                 error = kThreadError_Error);
 
-  if (rssi != NULL)
-    *rssi = whitelist_[entry].rssi;
+    rssi = m_whitelist[entry].rssi;
 
 exit:
-  return error;
+    return error;
 }
 
-ThreadError MacWhitelist::SetRssi(uint8_t entry, int8_t rssi) {
-  ThreadError error = kThreadError_None;
+ThreadError Whitelist::SetRssi(uint8_t entry, int8_t rssi)
+{
+    ThreadError error = kThreadError_None;
 
-  VerifyOrExit(entry < kMaxEntries, error = kThreadError_Error);
-  whitelist_[entry].rssi_valid = true;
-  whitelist_[entry].rssi = rssi;
+    VerifyOrExit(entry < kMaxEntries, error = kThreadError_Error);
+    m_whitelist[entry].rssi_valid = true;
+    m_whitelist[entry].rssi = rssi;
 
 exit:
-  return error;
+    return error;
 }
 
+}  // namespace Mac
 }  // namespace Thread

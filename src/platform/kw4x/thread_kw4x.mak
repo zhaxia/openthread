@@ -20,18 +20,21 @@ TARGET = thread_kw4x
 ARCHIVES = $(TARGET)
 
 VPATH = \
-        $(BuildRoot)/src/cpu/freescale/kw4x/chip/MacPhy/Phy/Source		 \
-        $(BuildRoot)/src/cpu/freescale/kw4x/chip/PLM/Source/Common/MC1324xDrv
+        $(BuildRoot)/src/lib/thread/src/platform/cortex-m
 
 # Define SOURCES, INCLUDES, DEFINES according to Nest make macro naming:
 # <module>_SOURCES, where <module> is one of
 # PROGRAMS, IMAGES, ARCHIVES, LIBRARIES
 
-$(TARGET)_SOURCES =								 \
-	$(wildcard *.cc)							 \
-	$(foreach dir,$(VPATH),$(patsubst $(dir)/%,%,$(wildcard $(dir)/*.c)))
+$(TARGET)_SOURCES = \
+	$(BuildRoot)/src/lib/thread/src/platform/cortex-m/alarm.cc \
+	$(BuildRoot)/src/lib/thread/src/platform/cortex-m/atomic.cc \
+	$(BuildRoot)/src/lib/thread/src/platform/cortex-m/sleep.cc \
+	phy.cc \
+	uart.cc
+
 
 $(TARGET)_INCLUDES =	 		  		\
-	$(BuildRoot)/src/lib/thread/src			\
+	$(BuildRoot)/src/lib/thread/src
 
 include post.mak

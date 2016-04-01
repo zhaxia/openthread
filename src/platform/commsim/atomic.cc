@@ -14,28 +14,30 @@
  *
  */
 
-#include <platform/posix/alarm.h>
-#include <platform/posix/atomic.h>
-#include <common/code_utils.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <platform/common/atomic.h>
+#include <common/code_utils.h>
 
-namespace Thread {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-static pthread_mutex_t mutex_ = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t cond_ = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t s_cond = PTHREAD_COND_INITIALIZER;
 
-void Atomic::Begin() {
-  pthread_mutex_lock(&mutex_);
+uint32_t atomic_begin()
+{
+    pthread_mutex_lock(&s_mutex);
+    return 0;
 }
 
-void Atomic::End() {
-  pthread_mutex_unlock(&mutex_);
-  pthread_cond_signal(&cond_);
+void atomic_end(uint32_t state)
+{
+    pthread_mutex_unlock(&s_mutex);
+    pthread_cond_signal(&s_cond);
 }
 
-void Atomic::TimedWait() {
-  pthread_cond_wait(&cond_, &mutex_);
-}
-
-}  // namespace Thread
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif

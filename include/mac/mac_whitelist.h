@@ -14,53 +14,58 @@
  *
  */
 
-#ifndef MAC_MAC_WHITELIST_H_
-#define MAC_MAC_WHITELIST_H_
+#ifndef MAC_WHITELIST_H_
+#define MAC_WHITELIST_H_
 
+#include <stdint.h>
 #include <common/thread_error.h>
 #include <mac/mac_frame.h>
-#include <stdint.h>
 
 namespace Thread {
+namespace Mac {
 
-class MacWhitelist {
- public:
-  MacWhitelist();
+class Whitelist
+{
+public:
+    Whitelist();
 
-  ThreadError Enable();
-  ThreadError Disable();
-  bool IsEnabled() const;
+    ThreadError Enable();
+    ThreadError Disable();
+    bool IsEnabled() const;
 
-  int GetMaxEntries() const;
+    int GetMaxEntries() const;
 
-  int Add(const MacAddr64 *address);
-  ThreadError Remove(const MacAddr64 *address);
-  ThreadError Clear();
+    int Add(const Address64 &address);
+    ThreadError Remove(const Address64 &address);
+    ThreadError Clear();
 
-  int Find(const MacAddr64 *address) const;
+    int Find(const Address64 &address) const;
 
-  const uint8_t *GetAddress(uint8_t entry) const;
+    const uint8_t *GetAddress(uint8_t entry) const;
 
-  ThreadError ClearRssi(uint8_t entry);
-  ThreadError GetRssi(uint8_t entry, int8_t *rssi) const;
-  ThreadError SetRssi(uint8_t entry, int8_t rssi);
+    ThreadError ClearRssi(uint8_t entry);
+    ThreadError GetRssi(uint8_t entry, int8_t &rssi) const;
+    ThreadError SetRssi(uint8_t entry, int8_t rssi);
 
- private:
-  enum {
-    kMaxEntries = 32,
-  };
+private:
+    enum
+    {
+        kMaxEntries = 32,
+    };
 
-  struct Entry {
-    MacAddr64 addr64;
-    int8_t rssi;
-    bool valid : 1;
-    bool rssi_valid : 1;
-  };
-  Entry whitelist_[kMaxEntries];
+    struct Entry
+    {
+        Address64 addr64;
+        int8_t rssi;
+        bool valid : 1;
+        bool rssi_valid : 1;
+    };
+    Entry m_whitelist[kMaxEntries];
 
-  bool enabled_ = false;
+    bool m_enabled = false;
 };
 
+}  // namespace Mac
 }  // namespace Thread
 
 #endif  // MAC_MAC_WHITELIST_H_

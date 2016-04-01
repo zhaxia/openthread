@@ -14,36 +14,40 @@
  *
  */
 
-#ifndef CRYPTO_SHA256_H_
-#define CRYPTO_SHA256_H_
+#ifndef SHA256_H_
+#define SHA256_H_
 
+#include <stdint.h>
 #include <common/thread_error.h>
 #include <crypto/hash.h>
-#include <stdint.h>
 
 namespace Thread {
+namespace Crypto {
 
-class Sha256: public Hash {
- public:
-  uint16_t GetSize() const final;
-  ThreadError Init() final;
-  ThreadError Input(const void *buf, uint16_t buf_length) final;
-  ThreadError Finalize(uint8_t *hash) final;
+class Sha256: public Hash
+{
+public:
+    uint16_t GetSize() const final;
+    ThreadError Init() final;
+    ThreadError Input(const void *buf, uint16_t buf_length) final;
+    ThreadError Finalize(uint8_t *hash) final;
 
- private:
-  void PadMessage();
-  void ProcessBlock();
+private:
+    void PadMessage();
+    void ProcessBlock();
 
-  enum {
-    kHashSize = 32,
-  };
-  uint32_t hash_[kHashSize / sizeof(uint32_t)];
-  uint32_t length_lo_;
-  uint32_t length_hi_;
-  uint8_t block_index_;
-  uint8_t block_[64];
+    enum
+    {
+        kHashSize = 32,
+    };
+    uint32_t m_hash[kHashSize / sizeof(uint32_t)];
+    uint32_t m_length_lo;
+    uint32_t m_length_hi;
+    uint8_t m_block_index;
+    uint8_t m_block[64];
 };
 
+}  // namespace Crypto
 }  // namespace Thread
 
 #endif  // CRYPTO_SHA256_H_

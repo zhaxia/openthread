@@ -14,39 +14,44 @@
  *
  */
 
-#ifndef THREAD_MLE_H_
-#define THREAD_MLE_H_
+#ifndef MLE_H_
+#define MLE_H_
 
+#include <common/encoding.h>
 #include <common/timer.h>
 #include <crypto/aes_ecb.h>
+#include <mac/mac.h>
 #include <net/udp6.h>
-#include <thread/address_resolver.h>
-#include <thread/key_manager.h>
-#include <thread/mesh_forwarder.h>
-#include <thread/network_data_leader.h>
+#include <thread/mle_tlvs.h>
 #include <thread/topology.h>
 
 namespace Thread {
 
-#define ADDR16_TO_ROUTER_ID(x) (static_cast<uint8_t>((x) >> kRouterIdOffset))
-#define ADDR16_TO_CHILD_ID(x) (static_cast<uint16_t>((x) & kChildIdMask))
-#define ROUTER_ID_TO_ADDR16(x) (static_cast<uint16_t>(x) << kRouterIdOffset)
-
 class ThreadNetif;
+class AddressResolver;
+class KeyManager;
+class MeshForwarder;
+namespace NetworkData { class Leader; }
 
-class Mle {
- public:
-  enum {
-    kVersion                       = 1,
-    kUdpPort                       = 19788,
-    kMaxChildren                   = 5,
-    kParentRequestRouterTimeout    = 1000,  // milliseconds
-    kParentRequestChildTimeout     = 2000,  // milliseconds
-    kReedAdvertiseInterval         = 10,  // seconds
-    kReedAdvertiseJitter           = 2,  // seconds
-  };
+namespace Mle {
 
-  enum {
+class MleRouter;
+
+enum
+{
+    kVersion                    = 1,
+    kUdpPort                    = 19788,
+    kMaxChildren                = 5,
+    kParentRequestRouterTimeout = 1000,  // milliseconds
+    kParentRequestChildTimeout  = 2000,  // milliseconds
+    kReedAdvertiseInterval      = 10,  // seconds
+    kReedAdvertiseJitter        = 2,  // seconds
+    kChildIdMask                = 0x1ff,
+    kRouterIdOffset             = 10,
+};
+
+enum
+{
     kAdvertiseIntervalMin       = 1,  // seconds
     kAdvertiseIntervalMax       = 32,  // seconds
     kRouterIdReuseDelay         = 100,  // seconds
@@ -62,359 +67,284 @@ class Mle {
     kRouterDowngradeThreshold   = 23,
     kRouterUpgradeThreadhold    = 16,
     kMaxLeaderToRouterTimeout   = 90,  // seconds
-  };
+};
 
-  enum {
+enum
+{
     kModeRxOnWhenIdle      = 1 << 3,
     kModeSecureDataRequest = 1 << 2,
     kModeFFD               = 1 << 1,
     kModeFullNetworkData   = 1 << 0,
-  };
+};
 
-  enum DeviceState {
+enum DeviceState
+{
     kDeviceStateDisabled = 0,
     kDeviceStateDetached = 1,
     kDeviceStateChild    = 2,
     kDeviceStateRouter   = 3,
     kDeviceStateLeader   = 4,
-  };
+};
 
-  enum JoinMode {
+enum JoinMode
+{
     kJoinAnyPartition    = 0,
     kJoinSamePartition   = 1,
     kJoinBetterPartition = 2,
-  };
-
-  struct LeaderData {
-    uint32_t partition_id;
-    uint8_t weighting;
-    uint8_t version;
-    uint8_t stable_version;
-    uint8_t leader_router_id;
-  } __attribute__((packed));
-
-  Mle(AddressResolver *address_resolver, KeyManager *key_manager, MeshForwarder *mesh, MleRouter *mle_router,
-      ThreadNetif *netif, NetworkDataLeader *network_data);
-  ThreadError Init();
-  ThreadError Start();
-  ThreadError Stop();
-
-  ThreadError BecomeDetached();
-  ThreadError BecomeChild(JoinMode mode);
-
-  DeviceState GetDeviceState() const;
-  ThreadError SetStateDetached();
-  ThreadError SetStateChild(uint16_t address16);
-
-  uint8_t GetDeviceMode() const;
-  ThreadError SetDeviceMode(uint8_t mode);
-
-  const uint8_t *GetMeshLocalPrefix() const;
-  ThreadError SetMeshLocalPrefix(const uint8_t *prefix);
-
-  const Ip6Address *GetLinkLocalAllThreadNodesAddress() const;
-  const Ip6Address *GetRealmLocalAllThreadNodesAddress() const;
-
-  Router *GetParent();
-
-  bool IsRoutingLocator(const Ip6Address *address);
-
-  uint32_t GetTimeout() const;
-  ThreadError SetTimeout(uint32_t timeout);
-
-  uint16_t GetAddress16() const;
-  const Ip6Address *GetMeshLocal16();
-  const Ip6Address *GetMeshLocal64();
-
-  ThreadError HandleNetworkDataUpdate();
-
-  uint8_t GetLeaderId() const;
-  ThreadError GetLeaderAddress(Ip6Address *address) const;
-  LeaderData *GetLeaderData();
-
-  ThreadError AppendSecureHeader(Message *message, uint8_t command);
-  ThreadError AppendSourceAddress(Message *message);
-  ThreadError AppendMode(Message *message, uint8_t mode);
-  ThreadError AppendTimeout(Message *message, uint32_t timeout);
-  ThreadError AppendChallenge(Message *message, uint8_t *challenge, uint8_t challenge_length);
-  ThreadError AppendResponse(Message *message, const uint8_t *response, uint8_t response_length);
-  ThreadError AppendLinkFrameCounter(Message *message);
-  ThreadError AppendMleFrameCounter(Message *message);
-  ThreadError AppendAddress16(Message *message, uint16_t address16);
-  ThreadError AppendNetworkData(Message *message, bool stable_only);
-  ThreadError AppendTlvRequest(Message *message, const uint8_t *tlvs, uint8_t tlvs_length);
-  ThreadError AppendLeaderData(Message *message);
-  ThreadError AppendScanMask(Message *message, uint8_t scan_mask);
-  ThreadError AppendStatus(Message *message, uint8_t status);
-  ThreadError AppendRssi(Message *message, int8_t rssi);
-  ThreadError AppendVersion(Message *message);
-  ThreadError AppendIp6Address(Message *message);
-  ThreadError AppendIp6Address(Message *message, Child *child);
-  ThreadError FindTlv(Message *message, uint8_t type, void *buf, uint16_t buf_length);
-  ThreadError SendMessage(Message *message, const Ip6Address *destination);
-
- protected:
-  struct Header {
-    enum {
-      kSecurityEnabled  = 0x00,
-      kSecurityDisabled = 0xff,
-    };
-    uint8_t security_suite;
-    uint8_t security_control;
-    uint32_t frame_counter;
-    uint8_t key_identifier[9];
-
-    enum {
-      kCommandLinkRequest          = 0,
-      kCommandLinkAccept           = 1,
-      kCommandLinkAcceptAndRequest = 2,
-      kCommandLinkReject           = 3,
-      kCommandAdvertisement        = 4,
-      kCommandUpdate               = 5,
-      kCommandUpdateRequest        = 6,
-      kCommandDataRequest          = 7,
-      kCommandDataResponse         = 8,
-      kCommandParentRequest        = 9,
-      kCommandParentResponse       = 10,
-      kCommandChildIdRequest       = 11,
-      kCommandChildIdResponse      = 12,
-      kCommandChildUpdateRequest   = 13,
-      kCommandChildUpdateResponse  = 14,
-    };
-  } __attribute__((packed));
-
-  struct Tlv {
-    enum {
-      kTypeSourceAddress    = 0,
-      kTypeMode             = 1,
-      kTypeTimeout          = 2,
-      kTypeChallenge        = 3,
-      kTypeResponse         = 4,
-      kTypeLinkFrameCounter = 5,
-      kTypeLinkQuality      = 6,
-      kTypeNetworkParameter = 7,
-      kTypeMleFrameCounter  = 8,
-      kTypeRoute            = 9,
-      kTypeAddress16        = 10,
-      kTypeLeaderData       = 11,
-      kTypeNetworkData      = 12,
-      kTypeTlvRequest       = 13,
-      kTypeScanMask         = 14,
-      kTypeConnectivity     = 15,
-      kTypeRssi             = 16,
-      kTypeStatus           = 17,
-      kTypeVersion          = 18,
-      kTypeIp6Address       = 19,
-      kTypeHoldTime         = 20,
-      kTypeInvalid          = 255,
-    };
-    uint8_t type;
-    uint8_t length;
-  } __attribute__((packed));
-
-  struct SourceAddressTlv {
-    Tlv header;
-    uint16_t address16;
-  } __attribute__((packed));
-
-  struct ModeTlv {
-    Tlv header;
-    uint8_t mode;
-  } __attribute__((packed));
-
-  struct TimeoutTlv {
-    Tlv header;
-    uint32_t timeout;
-  } __attribute__((packed));
-
-  struct ChallengeTlv {
-    Tlv header;
-    uint8_t challenge[8];
-  } __attribute__((packed));
-
-  struct ResponseTlv {
-    Tlv header;
-    uint8_t response[8];
-  } __attribute__((packed));
-
-  struct LinkFrameCounterTlv {
-    Tlv header;
-    uint32_t frame_counter;
-  } __attribute__((packed));
-
-  struct RouteTlv {
-    Tlv header;
-    uint8_t sequence;
-    uint8_t router_mask[(kMaxRouterId+7)/8];
-    uint8_t route_data[kMaxRouterId];
-  } __attribute__((packed));
-
-  struct MleFrameCounterTlv {
-    Tlv header;
-    uint32_t frame_counter;
-  } __attribute__((packed));
-
-  struct Address16Tlv {
-    Tlv header;
-    uint16_t address16;
-  } __attribute__((packed));
-
-  struct LeaderDataTlv {
-    Tlv header;
-    LeaderData leader_data;
-  } __attribute__((packed));
-
-  struct NetworkDataTlv {
-    Tlv header;
-    uint8_t network_data[255];
-  } __attribute__((packed));
-
-  struct TlvRequestTlv {
-    Tlv header;
-    uint8_t tlvs[8];
-  } __attribute__((packed));
-
-  struct ScanMaskTlv {
-    Tlv header;
-    enum {
-      kRouterScan = 1 << 7,
-      kChildScan = 1 << 6,
-    };
-    uint8_t scan_mask;
-  } __attribute__((packed));
-
-  struct ConnectivityTlv {
-    Tlv header;
-    uint8_t max_child_count;
-    uint8_t child_count;
-    uint8_t link_quality_3;
-    uint8_t link_quality_2;
-    uint8_t link_quality_1;
-    uint8_t leader_cost;
-    uint8_t id_sequence;
-  } __attribute__((packed));
-
-  struct RssiTlv {
-    Tlv header;
-    uint8_t rssi;
-  } __attribute__((packed));
-
-  struct StatusTlv {
-    Tlv header;
-    enum {
-      kError = 1,
-    };
-    uint8_t status;
-  } __attribute__((packed));
-
-  struct VersionTlv {
-    Tlv header;
-    uint16_t version;
-  } __attribute__((packed));
-
-  struct AddressRegistrationEntry {
-    enum {
-      kCompressed = 1 << 7,
-      kContextIdMask = 0xf,
-    };
-    uint8_t control;
-    union {
-      uint8_t iid[8];
-      Ip6Address ip6_address;
-    };
-  } __attribute__((packed));
-
-  struct Ip6AddressTlv {
-    Tlv header;
-    AddressRegistrationEntry address[Child::kMaxIp6AddressPerChild + 1];  // one more to account for Mesh Local
-  } __attribute__((packed));
-
-  ThreadError SetAddress16(uint16_t address16);
-
-  void GenerateNonce(const MacAddr64 *mac_addr, uint32_t frame_counter, uint8_t security_level, uint8_t *nonce);
-  ThreadError SendParentRequest();
-  ThreadError SendChildIdRequest();
-  ThreadError SendDataRequest(const Ip6MessageInfo *message_info, uint8_t *tlvs, uint8_t tlvs_length);
-  ThreadError SendDataResponse(const Ip6Address *destination, const uint8_t *tlvs, uint8_t tlvs_length);
-  ThreadError SendChildUpdateRequest();
-
-  static void RecvFrom(void *context, Message *message, const Ip6MessageInfo *message_info);
-  void RecvFrom(Message *message, const Ip6MessageInfo *message_info);
-  ThreadError HandleAdvertisement(Message *message, const Ip6MessageInfo *message_info);
-  ThreadError HandleDataRequest(Message *message, const Ip6MessageInfo *message_info);
-  ThreadError HandleDataResponse(Message *message, const Ip6MessageInfo *message_info);
-  ThreadError HandleParentResponse(Message *message, const Ip6MessageInfo *message_info, uint32_t key_sequence);
-  ThreadError HandleChildIdResponse(Message *message, const Ip6MessageInfo *message_info);
-  ThreadError HandleChildUpdateResponse(Message *message, const Ip6MessageInfo *message_info);
-
-  Child *GetChild(MacAddr16 address);
-  Child *GetChild(const MacAddr64 *address);
-  Child *GetChild(const MacAddress *address);
-  int GetChildIndex(const Child *child);
-  Child *GetChildren(uint8_t *num_children);
-  Neighbor *GetNeighbor(const MacAddress *address);
-  Neighbor *GetNeighbor(MacAddr16 address);
-  Neighbor *GetNeighbor(const MacAddr64 *address);
-  Neighbor *GetNeighbor(const Ip6Address *address);
-  MacAddr16 GetNextHop(MacAddr16 destination);
-  ThreadError CheckReachability(MacAddr16 meshsrc, MacAddr16 meshdst, const Ip6Header *ip6_header);
-  uint8_t LinkMarginToQuality(uint8_t link_margin);
-
-  static void HandleNetifCallback(void *context);
-  void HandleNetifCallback();
-
-  static void HandleParentRequestTimer(void *context);
-  void HandleParentRequestTimer();
-
-  NetifCallback netif_callback_;
-  Timer parent_request_timer_;
-
-  Udp6Socket socket_;
-  NetifAddress link_local_16_;
-  NetifAddress link_local_64_;
-  NetifAddress mesh_local_64_;
-  NetifAddress mesh_local_16_;
-  NetifMulticastAddress link_local_all_thread_nodes_;
-  NetifMulticastAddress realm_local_all_thread_nodes_;
-
-  AddressResolver *address_resolver_;
-  KeyManager *key_manager_;
-  Mac *mac_;
-  MeshForwarder *mesh_;
-  MleRouter *mle_router_;
-  NetworkDataLeader *network_data_;
-  ThreadNetif *netif_;
-
-  LeaderData leader_data_;
-  DeviceState device_state_ = kDeviceStateDisabled;
-  Router parent_;
-  uint8_t device_mode_ = kModeRxOnWhenIdle | kModeSecureDataRequest | kModeFFD | kModeFullNetworkData;
-  uint32_t timeout_ = kMaxNeighborAge;
-
-  enum {
-    kParentIdle,
-    kParentSynchronize,
-    kParentRequestStart,
-    kParentRequestRouter,
-    kParentRequestChild,
-    kChildIdRequest,
-  };
-  uint8_t parent_request_state_ = kParentIdle;
-  JoinMode parent_request_mode_ = kJoinAnyPartition;
-
-  struct {
-    uint8_t challenge[8];
-  } parent_request_;
-
-  struct {
-    uint8_t challenge[8];
-    uint8_t challenge_length;
-  } child_id_request_;
-
-  // used during the attach process
-  uint32_t parent_connectivity_;
 };
 
+class Header
+{
+public:
+    void Init() { m_security_suite = 0; m_security_control = Mac::Frame::kSecEncMic32; }
+    bool IsValid() const {
+        return m_security_suite == 0 &&
+               (m_security_control == (Mac::Frame::kKeyIdMode1 | Mac::Frame::kSecEncMic32) ||
+                m_security_control == (Mac::Frame::kKeyIdMode5 | Mac::Frame::kSecEncMic32));
+    }
+
+    uint8_t GetLength() const {
+        return sizeof(m_security_suite) + sizeof(m_security_control) + sizeof(m_frame_counter) +
+               (IsKeyIdMode1() ? 1 : 5) + sizeof(m_command);
+    }
+
+    uint8_t GetHeaderLength() const {
+        return sizeof(m_security_control) + sizeof(m_frame_counter) + (IsKeyIdMode1() ? 1 : 5);
+    }
+
+    const uint8_t *GetBytes() const {
+        return reinterpret_cast<const uint8_t *>(&m_security_suite);
+    }
+
+    uint8_t GetSecurityControl() const { return m_security_control; }
+
+    bool IsKeyIdMode1() const {
+        return (m_security_control & Mac::Frame::kKeyIdModeMask) == Mac::Frame::kKeyIdMode1;
+    }
+
+    void SetKeyIdMode1() {
+        m_security_control = (m_security_control & ~Mac::Frame::kKeyIdModeMask) | Mac::Frame::kKeyIdMode1;
+    }
+
+    void SetKeyIdMode2() {
+        m_security_control = (m_security_control & ~Mac::Frame::kKeyIdModeMask) | Mac::Frame::kKeyIdMode5;
+    }
+
+    uint32_t GetKeyId() const {
+        return IsKeyIdMode1() ? m_key_identifier[0] - 1 :
+               static_cast<uint32_t>(m_key_identifier[3]) << 0 |
+               static_cast<uint32_t>(m_key_identifier[2]) << 8 |
+               static_cast<uint32_t>(m_key_identifier[1]) << 16 |
+               static_cast<uint32_t>(m_key_identifier[0]) << 24;
+    }
+
+    void SetKeyId(uint32_t key_sequence) {
+        if (IsKeyIdMode1()) {
+            m_key_identifier[0] = (key_sequence & 0x7f) + 1;
+        }
+        else {
+            m_key_identifier[4] = (key_sequence & 0x7f) + 1;
+            m_key_identifier[3] = key_sequence >> 0;
+            m_key_identifier[2] = key_sequence >> 8;
+            m_key_identifier[1] = key_sequence >> 16;
+            m_key_identifier[0] = key_sequence >> 24;
+        }
+    }
+
+    uint32_t GetFrameCounter() const {
+        return Encoding::LittleEndian::HostSwap32(m_frame_counter);
+    }
+
+    void SetFrameCounter(uint32_t frame_counter) {
+        m_frame_counter = Encoding::LittleEndian::HostSwap32(frame_counter);
+    }
+
+    enum Command
+    {
+        kCommandLinkRequest          = 0,
+        kCommandLinkAccept           = 1,
+        kCommandLinkAcceptAndRequest = 2,
+        kCommandLinkReject           = 3,
+        kCommandAdvertisement        = 4,
+        kCommandUpdate               = 5,
+        kCommandUpdateRequest        = 6,
+        kCommandDataRequest          = 7,
+        kCommandDataResponse         = 8,
+        kCommandParentRequest        = 9,
+        kCommandParentResponse       = 10,
+        kCommandChildIdRequest       = 11,
+        kCommandChildIdResponse      = 12,
+        kCommandChildUpdateRequest   = 13,
+        kCommandChildUpdateResponse  = 14,
+    };
+    Command GetCommand() const {
+        const uint8_t *command = m_key_identifier + (IsKeyIdMode1() ? 1 : 5);
+        return static_cast<Command>(*command);
+    }
+
+    void SetCommand(Command command) {
+        uint8_t *command_field = m_key_identifier + (IsKeyIdMode1() ? 1 : 5);
+        *command_field = static_cast<uint8_t>(command);
+    }
+
+    enum SecuritySuite
+    {
+        kSecurityEnabled  = 0x00,
+        kSecurityDisabled = 0xff,
+    };
+
+private:
+    uint8_t m_security_suite;
+    uint8_t m_security_control;
+    uint32_t m_frame_counter;
+    uint8_t m_key_identifier[5];
+    uint8_t m_command;
+} __attribute__((packed));
+
+class Mle
+{
+public:
+    explicit Mle(ThreadNetif &netif);
+    ThreadError Init();
+    ThreadError Start();
+    ThreadError Stop();
+
+    ThreadError BecomeDetached();
+    ThreadError BecomeChild(JoinMode mode);
+
+    DeviceState GetDeviceState() const;
+
+    uint8_t GetDeviceMode() const;
+    ThreadError SetDeviceMode(uint8_t mode);
+
+    const uint8_t *GetMeshLocalPrefix() const;
+    ThreadError SetMeshLocalPrefix(const uint8_t *prefix);
+
+    const uint8_t GetChildId(uint16_t rloc16) const;
+    const uint8_t GetRouterId(uint16_t rloc16) const;
+    const uint16_t GetRloc16(uint8_t router_id) const;
+
+    const Ip6Address *GetLinkLocalAllThreadNodesAddress() const;
+    const Ip6Address *GetRealmLocalAllThreadNodesAddress() const;
+
+    Router *GetParent();
+
+    bool IsRoutingLocator(const Ip6Address &address) const;
+
+    uint32_t GetTimeout() const;
+    ThreadError SetTimeout(uint32_t timeout);
+
+    uint16_t GetRloc16() const;
+    const Ip6Address *GetMeshLocal16() const;
+    const Ip6Address *GetMeshLocal64() const;
+
+    ThreadError HandleNetworkDataUpdate();
+
+    uint8_t GetLeaderId() const;
+    ThreadError GetLeaderAddress(Ip6Address &address) const;
+    const LeaderDataTlv *GetLeaderDataTlv();
+
+protected:
+    ThreadError AppendSecureHeader(Message &message, Header::Command command);
+    ThreadError AppendSourceAddress(Message &message);
+    ThreadError AppendMode(Message &message, uint8_t mode);
+    ThreadError AppendTimeout(Message &message, uint32_t timeout);
+    ThreadError AppendChallenge(Message &message, const uint8_t *challenge, uint8_t challenge_length);
+    ThreadError AppendResponse(Message &message, const uint8_t *response, uint8_t response_length);
+    ThreadError AppendLinkFrameCounter(Message &message);
+    ThreadError AppendMleFrameCounter(Message &message);
+    ThreadError AppendAddress16(Message &message, uint16_t rloc16);
+    ThreadError AppendNetworkData(Message &message, bool stable_only);
+    ThreadError AppendTlvRequest(Message &message, const uint8_t *tlvs, uint8_t tlvs_length);
+    ThreadError AppendLeaderData(Message &message);
+    ThreadError AppendScanMask(Message &message, uint8_t scan_mask);
+    ThreadError AppendStatus(Message &message, StatusTlv::Status status);
+    ThreadError AppendLinkMargin(Message &message, uint8_t link_margin);
+    ThreadError AppendVersion(Message &message);
+    ThreadError AppendIp6Address(Message &message);
+    ThreadError CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6Header &ip6_header);
+    void GenerateNonce(const Mac::Address64 &mac_addr, uint32_t frame_counter, uint8_t security_level, uint8_t *nonce);
+    Neighbor *GetNeighbor(const Mac::Address &address);
+    Neighbor *GetNeighbor(Mac::Address16 address);
+    Neighbor *GetNeighbor(const Mac::Address64 &address);
+    Neighbor *GetNeighbor(const Ip6Address &address);
+    Mac::Address16 GetNextHop(Mac::Address16 destination) const;
+    static void HandleUnicastAddressesChanged(void *context);
+    void HandleUnicastAddressesChanged();
+    static void HandleParentRequestTimer(void *context);
+    void HandleParentRequestTimer();
+    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info);
+    void HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info);
+    ThreadError HandleAdvertisement(const Message &message, const Ip6MessageInfo &message_info);
+    ThreadError HandleDataRequest(const Message &message, const Ip6MessageInfo &message_info);
+    ThreadError HandleDataResponse(const Message &message, const Ip6MessageInfo &message_info);
+    ThreadError HandleParentResponse(const Message &message, const Ip6MessageInfo &message_info,
+                                     uint32_t key_sequence);
+    ThreadError HandleChildIdResponse(const Message &message, const Ip6MessageInfo &message_info);
+    ThreadError HandleChildUpdateResponse(const Message &message, const Ip6MessageInfo &message_info);
+    uint8_t LinkMarginToQuality(uint8_t link_margin);
+    ThreadError SendParentRequest();
+    ThreadError SendChildIdRequest();
+    ThreadError SendDataRequest(const Ip6Address &destination, const uint8_t *tlvs, uint8_t tlvs_length);
+    ThreadError SendDataResponse(const Ip6Address &destination, const uint8_t *tlvs, uint8_t tlvs_length);
+    ThreadError SendChildUpdateRequest();
+    ThreadError SendMessage(Message &message, const Ip6Address &destination);
+    ThreadError SetRloc16(uint16_t rloc16);
+    ThreadError SetStateDetached();
+    ThreadError SetStateChild(uint16_t rloc16);
+
+    NetifHandler m_netif_handler;
+    Timer m_parent_request_timer;
+
+    Udp6Socket m_socket;
+    NetifUnicastAddress m_link_local_16;
+    NetifUnicastAddress m_link_local_64;
+    NetifUnicastAddress m_mesh_local_64;
+    NetifUnicastAddress m_mesh_local_16;
+    NetifMulticastAddress m_link_local_all_thread_nodes;
+    NetifMulticastAddress m_realm_local_all_thread_nodes;
+
+    AddressResolver *m_address_resolver;
+    KeyManager *m_key_manager;
+    MeshForwarder *m_mesh;
+    MleRouter *m_mle_router;
+    NetworkData::Leader *m_network_data;
+    ThreadNetif *m_netif;
+
+    LeaderDataTlv m_leader_data;
+    DeviceState m_device_state = kDeviceStateDisabled;
+    Router m_parent;
+    uint8_t m_device_mode = kModeRxOnWhenIdle | kModeSecureDataRequest | kModeFFD | kModeFullNetworkData;
+    uint32_t m_timeout = kMaxNeighborAge;
+
+    enum ParentRequestState
+    {
+        kParentIdle,
+        kParentSynchronize,
+        kParentRequestStart,
+        kParentRequestRouter,
+        kParentRequestChild,
+        kChildIdRequest,
+    };
+    ParentRequestState m_parent_request_state = kParentIdle;
+    JoinMode m_parent_request_mode = kJoinAnyPartition;
+
+    struct
+    {
+        uint8_t challenge[8];
+    } m_parent_request;
+
+    struct
+    {
+        uint8_t challenge[8];
+        uint8_t challenge_length;
+    } m_child_id_request;
+
+    // used during the attach process
+    uint32_t m_parent_connectivity;
+};
+
+}  // namespace Mle
 }  // namespace Thread
 
-#endif  // THREAD_MLE_H_
+#endif  // MLE_H_

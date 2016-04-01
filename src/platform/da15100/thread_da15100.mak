@@ -20,14 +20,18 @@ TARGET = thread_da15100
 ARCHIVES = $(TARGET)
 
 VPATH = \
+        $(BuildRoot)/src/lib/thread/src/platform/cortex-m
 
 # Define SOURCES, INCLUDES, DEFINES according to Nest make macro naming:
 # <module>_SOURCES, where <module> is one of
 # PROGRAMS, IMAGES, ARCHIVES, LIBRARIES
 
-$(TARGET)_SOURCES =		 \
-	$(wildcard *.cc)	 \
-	$(foreach dir,$(VPATH),$(patsubst $(dir)/%,%,$(wildcard $(dir)/*.c)))
+$(TARGET)_SOURCES = \
+	$(BuildRoot)/src/lib/thread/src/platform/cortex-m/alarm.cc \
+	$(BuildRoot)/src/lib/thread/src/platform/cortex-m/atomic.cc \
+        $(BuildRoot)/src/lib/thread/src/platform/cortex-m/sleep.cc \
+	phy.cc \
+	uart.cc
 
 $(TARGET)_INCLUDES =	\
 	$(BuildRoot)/src/lib/thread/src

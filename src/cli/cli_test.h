@@ -14,31 +14,36 @@
  *
  */
 
-#ifndef CLI_CLI_TEST_H_
-#define CLI_CLI_TEST_H_
+#ifndef CLI_TEST_H_
+#define CLI_TEST_H_
 
 #include <cli/cli_command.h>
 #include <common/timer.h>
 
 namespace Thread {
+namespace Cli {
 
-class CliTest: public CliCommand {
- public:
-  explicit CliTest(CliServer *server);
-  const char *GetName() final;
-  void Run(int argc, char *argv[], CliServer *server) final;
+class Test: public Command
+{
+public:
+    explicit Test(Server &server);
+    const char *GetName() final;
+    void Run(int argc, char *argv[], Server &server) final;
 
- private:
-  int PrintUsage(char *buf, uint16_t buf_length);
+private:
+    int PrintUsage(char *buf, uint16_t buf_length);
 
-  int TestTimer(char *buf, uint16_t buf_length);
-  int TestPhyTx(char *buf, uint16_t buf_length);
+    int TestTimer(char *buf, uint16_t buf_length);
+    int TestPhyTx(char *buf, uint16_t buf_length);
 
-  static void HandleTimer(void *context);
-  void HandleTimer();
-  Timer timer_;
+    static void HandleTimer(void *context);
+    void HandleTimer();
+    Timer m_timer;
+
+    Server *m_server;
 };
 
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // CLI_CLI_TEST_H_
+#endif  // CLI_TEST_H_

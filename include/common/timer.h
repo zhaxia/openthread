@@ -14,51 +14,48 @@
  *
  */
 
-#ifndef COMMON_TIMER_H_
-#define COMMON_TIMER_H_
+#ifndef TIMER_H_
+#define TIMER_H_
 
 #include <common/tasklet.h>
 #include <common/thread_error.h>
-#include <platform/common/alarm.h>
+#include <stddef.h>
 #include <stdint.h>
 
 namespace Thread {
 
-class Timer {
- public:
-  typedef void (*Callback)(void *context);
-  Timer(Callback callback, void *context);
+class Timer
+{
+public:
+    typedef void (*Handler)(void *context);
+    Timer(Handler handler, void *context);
 
-  uint32_t Gett0() const;
-  uint32_t Getdt() const;
-  bool IsRunning() const;
-  ThreadError Start(uint32_t dt);
-  ThreadError StartAt(uint32_t t0, uint32_t dt);
-  ThreadError Stop();
+    uint32_t Gett0() const;
+    uint32_t Getdt() const;
+    bool IsRunning() const;
+    ThreadError Start(uint32_t dt);
+    ThreadError StartAt(uint32_t t0, uint32_t dt);
+    ThreadError Stop();
 
-  static ThreadError Init();
-  static uint32_t GetNow();
-  static void HandleAlarm();
+    static void Init();
+    static uint32_t GetNow();
+    static void FireTimers(void *context);
 
- private:
-  static ThreadError Add(Timer *timer);
-  static ThreadError Remove(Timer *timer);
-  static bool IsAdded(const Timer *timer);
-  static void SetAlarm();
-  static void FireTimers(void *context);
+private:
+    static ThreadError Add(Timer &timer);
+    static ThreadError Remove(Timer &timer);
+    static bool IsAdded(const Timer &timer);
+    static void SetAlarm();
 
-  static Tasklet task_;
-  static Timer *head_;
-  static Timer *tail_;
-  static Alarm alarm_;
+    void Fired() { m_handler(m_context); }
 
-  Callback callback_;
-  void *context_;
-  uint32_t t0_ = 0;
-  uint32_t dt_ = 0;
-  Timer *next_ = NULL;
+    Handler m_handler;
+    void *m_context;
+    uint32_t m_t0 = 0;
+    uint32_t m_dt = 0;
+    Timer *m_next = NULL;
 };
 
 }  // namespace Thread
 
-#endif  // COMMON_TIMER_H_
+#endif  // TIMER_H_

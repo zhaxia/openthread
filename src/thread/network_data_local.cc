@@ -15,151 +15,237 @@
  */
 
 #include <thread/network_data_local.h>
-#include <coap/coap_message.h>
+#include <coap/coap_header.h>
 #include <common/code_utils.h>
 #include <common/random.h>
-#include <thread/mle.h>
+#include <thread/thread_netif.h>
 #include <thread/thread_tlvs.h>
 
 namespace Thread {
+namespace NetworkData {
 
-NetworkDataLocal::NetworkDataLocal(Mle *mle):
-    socket_(&RecvFrom, this) {
-  mle_ = mle;
+Local::Local(ThreadNetif &netif):
+    m_socket(&HandleUdpReceive, this)
+{
+    m_mle = netif.GetMle();
 }
 
-ThreadError NetworkDataLocal::AddOnMeshPrefix(const uint8_t *prefix, uint8_t prefix_length,
-                                              uint8_t flags, bool stable) {
-  RemoveOnMeshPrefix(prefix, prefix_length);
+ThreadError Local::AddOnMeshPrefix(const uint8_t *prefix, uint8_t prefix_length, int8_t prf,
+                                   uint8_t flags, bool stable)
+{
+    PrefixTlv *prefix_tlv;
+    BorderRouterTlv *br_tlv;
 
-  PrefixTlv *prefix_tlv = reinterpret_cast<PrefixTlv*>(tlvs_ + length_);
-  Insert(reinterpret_cast<uint8_t*>(prefix_tlv),
-         sizeof(PrefixTlv) + (prefix_length+7)/8 + sizeof(BorderRouterTlv) + sizeof(BorderRouterEntry));
-  prefix_tlv->Init(0, prefix_length, prefix);
-  prefix_tlv->SetSubTlvsLength(sizeof(BorderRouterTlv) + sizeof(BorderRouterEntry));
-  BorderRouterTlv *br_tlv = reinterpret_cast<BorderRouterTlv*>(prefix_tlv->GetSubTlvs());
-  br_tlv->Init();
-  br_tlv->SetLength(br_tlv->GetLength() + sizeof(BorderRouterEntry));
-  br_tlv->GetEntry(0)->Init();
-  br_tlv->GetEntry(0)->SetFlags(flags);
+    RemoveOnMeshPrefix(prefix, prefix_length);
 
-  if (stable) {
-    prefix_tlv->SetStable();
-    br_tlv->SetStable();
-  }
+    prefix_tlv = reinterpret_cast<PrefixTlv *>(m_tlvs + m_length);
+    Insert(reinterpret_cast<uint8_t *>(prefix_tlv),
+           sizeof(PrefixTlv) + (prefix_length + 7) / 8 + sizeof(BorderRouterTlv) + sizeof(BorderRouterEntry));
+    prefix_tlv->Init(0, prefix_length, prefix);
+    prefix_tlv->SetSubTlvsLength(sizeof(BorderRouterTlv) + sizeof(BorderRouterEntry));
 
-  dump("add done", tlvs_, length_);
-  return kThreadError_None;
-}
+    br_tlv = reinterpret_cast<BorderRouterTlv *>(prefix_tlv->GetSubTlvs());
+    br_tlv->Init();
+    br_tlv->SetLength(br_tlv->GetLength() + sizeof(BorderRouterEntry));
+    br_tlv->GetEntry(0)->Init();
+    br_tlv->GetEntry(0)->SetPreference(prf);
+    br_tlv->GetEntry(0)->SetFlags(flags);
 
-ThreadError NetworkDataLocal::RemoveOnMeshPrefix(const uint8_t *prefix, uint8_t prefix_length) {
-  ThreadError error = kThreadError_None;
-  PrefixTlv *tlv;
-
-  VerifyOrExit((tlv = FindPrefix(prefix, prefix_length)) != NULL, error = kThreadError_Error);
-  VerifyOrExit(FindBorderRouter(tlv) != NULL, error = kThreadError_Error);
-  Remove(reinterpret_cast<uint8_t*>(tlv), sizeof(NetworkDataTlv) + tlv->GetLength());
-
- exit:
-  dump("remove done", tlvs_, length_);
-  return error;
-}
-
-ThreadError NetworkDataLocal::UpdateRloc() {
-  for (NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv*>(tlvs_);
-       cur < reinterpret_cast<NetworkDataTlv*>(tlvs_ + length_);
-       cur = cur->GetNext()) {
-    switch (cur->GetType()) {
-      case NetworkDataTlv::kTypePrefix:
-        UpdateRloc(reinterpret_cast<PrefixTlv*>(cur));
-        break;
-      default:
-        assert(false);
-        break;
+    if (stable)
+    {
+        prefix_tlv->SetStable();
+        br_tlv->SetStable();
     }
-  }
-  return kThreadError_None;
+
+    dump("add prefix done", m_tlvs, m_length);
+    return kThreadError_None;
 }
 
-ThreadError NetworkDataLocal::UpdateRloc(PrefixTlv *prefix) {
-  for (NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv*>(prefix->GetSubTlvs());
-       cur < reinterpret_cast<NetworkDataTlv*>(prefix->GetSubTlvs() + prefix->GetSubTlvsLength());
-       cur = cur->GetNext()) {
-    switch (cur->GetType()) {
-      case NetworkDataTlv::kTypeBorderRouter:
-        UpdateRloc(reinterpret_cast<BorderRouterTlv*>(cur));
-        break;
-      default:
-        assert(false);
-        break;
-    }
-  }
-  return kThreadError_None;
-}
+ThreadError Local::RemoveOnMeshPrefix(const uint8_t *prefix, uint8_t prefix_length)
+{
+    ThreadError error = kThreadError_None;
+    PrefixTlv *tlv;
 
-ThreadError NetworkDataLocal::UpdateRloc(BorderRouterTlv *border_router) {
-  BorderRouterEntry *entry = border_router->GetEntry(0);
-  entry->SetRloc(mle_->GetAddress16());
-  return kThreadError_None;
-}
-
-ThreadError NetworkDataLocal::Register(const Ip6Address *destination) {
-  ThreadError error = kThreadError_None;
-
-  UpdateRloc();
-  socket_.Bind(NULL);
-
-  for (int i = 0; i < sizeof(coap_token_); i++)
-    coap_token_[i] = Random::Get();
-
-  CoapMessage coap;
-  coap.SetVersion(1);
-  coap.SetType(CoapMessage::kTypeConfirmable);
-  coap.SetCode(CoapMessage::kCodePost);
-  coap.SetMessageId(++coap_message_id_);
-  coap.SetToken(coap_token_, sizeof(coap_token_));
-  coap.AppendUriPathOptions("n/sd");
-  coap.Finalize();
-
-  Message *message;
-  VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
-  SuccessOrExit(error = message->Append(coap.GetHeaderBytes(), coap.GetHeaderLength()));
-  SuccessOrExit(error = message->Append(tlvs_, length_));
-
-  Ip6MessageInfo message_info;
-  memset(&message_info, 0, sizeof(message_info));
-  memcpy(&message_info.peer_addr, destination, sizeof(message_info.peer_addr));
-  message_info.peer_port = kCoapUdpPort;
-  SuccessOrExit(error = socket_.SendTo(message, &message_info));
-
-  dprintf("Sent network data registration\n");
+    VerifyOrExit((tlv = FindPrefix(prefix, prefix_length)) != NULL, error = kThreadError_Error);
+    VerifyOrExit(FindBorderRouter(*tlv) != NULL, error = kThreadError_Error);
+    Remove(reinterpret_cast<uint8_t *>(tlv), sizeof(NetworkDataTlv) + tlv->GetLength());
 
 exit:
-  if (message != NULL && error != kThreadError_None)
-    Message::Free(message);
-  return error;
+    dump("remove done", m_tlvs, m_length);
+    return error;
 }
 
-void NetworkDataLocal::RecvFrom(void *context, Message *message, const Ip6MessageInfo *message_info) {
-  NetworkDataLocal *obj = reinterpret_cast<NetworkDataLocal*>(context);
-  obj->RecvFrom(message, message_info);
+ThreadError Local::AddHasRoutePrefix(const uint8_t *prefix, uint8_t prefix_length, int8_t prf, bool stable)
+{
+    PrefixTlv *prefix_tlv;
+    HasRouteTlv *has_route_tlv;
+
+    RemoveHasRoutePrefix(prefix, prefix_length);
+
+    prefix_tlv = reinterpret_cast<PrefixTlv *>(m_tlvs + m_length);
+    Insert(reinterpret_cast<uint8_t *>(prefix_tlv),
+           sizeof(PrefixTlv) + (prefix_length + 7) / 8 + sizeof(HasRouteTlv) + sizeof(HasRouteEntry));
+    prefix_tlv->Init(0, prefix_length, prefix);
+    prefix_tlv->SetSubTlvsLength(sizeof(HasRouteTlv) + sizeof(HasRouteEntry));
+
+    has_route_tlv = reinterpret_cast<HasRouteTlv *>(prefix_tlv->GetSubTlvs());
+    has_route_tlv->Init();
+    has_route_tlv->SetLength(has_route_tlv->GetLength() + sizeof(HasRouteEntry));
+    has_route_tlv->GetEntry(0)->Init();
+    has_route_tlv->GetEntry(0)->SetPreference(prf);
+
+    if (stable)
+    {
+        prefix_tlv->SetStable();
+        has_route_tlv->SetStable();
+    }
+
+    dump("add route done", m_tlvs, m_length);
+    return kThreadError_None;
 }
 
-void NetworkDataLocal::RecvFrom(Message *message, const Ip6MessageInfo *message_info) {
-  CoapMessage coap;
+ThreadError Local::RemoveHasRoutePrefix(const uint8_t *prefix, uint8_t prefix_length)
+{
+    ThreadError error = kThreadError_None;
+    PrefixTlv *tlv;
 
-  SuccessOrExit(coap.FromMessage(message));
-  VerifyOrExit(coap.GetType() == CoapMessage::kTypeAcknowledgment &&
-               coap.GetCode() == CoapMessage::kCodeChanged &&
-               coap.GetMessageId() == coap_message_id_ &&
-               coap.GetTokenLength() == sizeof(coap_token_) &&
-               memcmp(coap_token_, coap.GetToken(NULL), sizeof(coap_token_)) == 0, ;);
-
-  dprintf("Network data registration acknowledged\n");
+    VerifyOrExit((tlv = FindPrefix(prefix, prefix_length)) != NULL, error = kThreadError_Error);
+    VerifyOrExit(FindHasRoute(*tlv) != NULL, error = kThreadError_Error);
+    Remove(reinterpret_cast<uint8_t *>(tlv), sizeof(NetworkDataTlv) + tlv->GetLength());
 
 exit:
-  {}
+    dump("remove done", m_tlvs, m_length);
+    return error;
 }
 
+ThreadError Local::UpdateRloc()
+{
+    for (NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(m_tlvs);
+         cur < reinterpret_cast<NetworkDataTlv *>(m_tlvs + m_length);
+         cur = cur->GetNext())
+    {
+        switch (cur->GetType())
+        {
+        case NetworkDataTlv::kTypePrefix:
+            UpdateRloc(*reinterpret_cast<PrefixTlv *>(cur));
+            break;
+
+        default:
+            assert(false);
+            break;
+        }
+    }
+
+    return kThreadError_None;
+}
+
+ThreadError Local::UpdateRloc(PrefixTlv &prefix)
+{
+    for (NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
+         cur < reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs() + prefix.GetSubTlvsLength());
+         cur = cur->GetNext())
+    {
+        switch (cur->GetType())
+        {
+        case NetworkDataTlv::kTypeHasRoute:
+            UpdateRloc(*reinterpret_cast<HasRouteTlv *>(cur));
+            break;
+
+        case NetworkDataTlv::kTypeBorderRouter:
+            UpdateRloc(*reinterpret_cast<BorderRouterTlv *>(cur));
+            break;
+
+        default:
+            assert(false);
+            break;
+        }
+    }
+
+    return kThreadError_None;
+}
+
+ThreadError Local::UpdateRloc(HasRouteTlv &has_route)
+{
+    HasRouteEntry *entry = has_route.GetEntry(0);
+    entry->SetRloc(m_mle->GetRloc16());
+    return kThreadError_None;
+}
+
+ThreadError Local::UpdateRloc(BorderRouterTlv &border_router)
+{
+    BorderRouterEntry *entry = border_router.GetEntry(0);
+    entry->SetRloc(m_mle->GetRloc16());
+    return kThreadError_None;
+}
+
+ThreadError Local::Register(const Ip6Address &destination)
+{
+    ThreadError error = kThreadError_None;
+    Coap::Header header;
+    Message *message;
+    Ip6MessageInfo message_info;
+
+    UpdateRloc();
+    m_socket.Bind(NULL);
+
+    for (int i = 0; i < sizeof(m_coap_token); i++)
+    {
+        m_coap_token[i] = Random::Get();
+    }
+
+    header.SetVersion(1);
+    header.SetType(Coap::Header::kTypeConfirmable);
+    header.SetCode(Coap::Header::kCodePost);
+    header.SetMessageId(++m_coap_message_id);
+    header.SetToken(m_coap_token, sizeof(m_coap_token));
+    header.AppendUriPathOptions("n/sd");
+    header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
+    header.Finalize();
+
+    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
+    SuccessOrExit(error = message->Append(m_tlvs, m_length));
+
+    memset(&message_info, 0, sizeof(message_info));
+    memcpy(&message_info.peer_addr, &destination, sizeof(message_info.peer_addr));
+    message_info.peer_port = kCoapUdpPort;
+    SuccessOrExit(error = m_socket.SendTo(*message, message_info));
+
+    dprintf("Sent network data registration\n");
+
+exit:
+
+    if (error != kThreadError_None && message != NULL)
+    {
+        Message::Free(*message);
+    }
+
+    return error;
+}
+
+void Local::HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info)
+{
+    Local *obj = reinterpret_cast<Local *>(context);
+    obj->HandleUdpReceive(message, message_info);
+}
+
+void Local::HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info)
+{
+    Coap::Header header;
+
+    SuccessOrExit(header.FromMessage(message));
+    VerifyOrExit(header.GetType() == Coap::Header::kTypeAcknowledgment &&
+                 header.GetCode() == Coap::Header::kCodeChanged &&
+                 header.GetMessageId() == m_coap_message_id &&
+                 header.GetTokenLength() == sizeof(m_coap_token) &&
+                 memcmp(m_coap_token, header.GetToken(), sizeof(m_coap_token)) == 0, ;);
+
+    dprintf("Network data registration acknowledged\n");
+
+exit:
+    {}
+}
+
+}  // namespace NetworkData
 }  // namespace Thread
 

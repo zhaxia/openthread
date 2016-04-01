@@ -14,6 +14,7 @@
 #endif
 
 #include <stdio.h> /* for FILE */
+#include <stdlib.h>  /* for exit() */
 
 #ifdef __cplusplus
 extern "C" {
