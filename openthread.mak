@@ -19,6 +19,8 @@ OPENTHREAD_INCLUDES = \
     coap/coap_server.h \
     common/encoding.h \
     common/message.h \
+    common/random.h \
+    common/timer.h \
     common/thread_error.h \
     crypto/aes.h \
     crypto/aes_ecb.h \
