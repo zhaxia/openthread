@@ -14,7 +14,6 @@
 #
 
 OPENTHREAD_INCLUDES = \
-    app/app.h \
     coap/coap_header.h \
     coap/coap_server.h \
     common/encoding.h \
@@ -100,9 +99,9 @@ OPENTHREAD_SOURCES = \
 
 
 OPENTHREAD_SOURCES_VNCP = \
-    app/soc_app.cpp \
+    $(NULL)
 
 
 OPENTHREAD_SOURCES_NCP = \
-    app/ncp_app.cpp \
+    $(NULL)
 

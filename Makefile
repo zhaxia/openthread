@@ -25,7 +25,6 @@ VPATH                                          = \
     include                                      \
     include/common                               \
     src                                          \
-    src/app                                      \
     src/coap                                     \
     src/common                                   \
     src/crypto                                   \
