@@ -26,8 +26,8 @@ libthread_a_SOURCES = \
     ../../src/mac/mac_frame.cc \
     ../../src/mac/mac_whitelist.cc \
     ../../src/ncp/hdlc.cc \
-    ../../src/ncp/ncp_base.cc \
     ../../src/ncp/ncp.cc \
+    ../../src/ncp/ncp_base.cc \
     ../../src/ncp/ncp.pb-c.c \
     ../../src/net/icmp6.cc \
     ../../src/net/ip6.cc \

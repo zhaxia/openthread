@@ -48,7 +48,6 @@ OPENTHREAD_SOURCES = \
     mac/mac.cc                    \
     mac/mac_frame.cc              \
     mac/mac_whitelist.cc          \
-    meshcop/joiner_router.cc      \
     ncp/hdlc.cc                   \
     ncp/ncp.cc                    \
     ncp/ncp_base.cc               \
@@ -60,7 +59,6 @@ OPENTHREAD_SOURCES = \
     net/ip6_routes.cc             \
     net/netif.cc                  \
     net/udp6.cc                   \
-    protobuf/protobuf-c.c         \
     thread/address_resolver.cc    \
     thread/key_manager.cc         \
     thread/lowpan.cc              \
@@ -75,7 +73,7 @@ OPENTHREAD_SOURCES = \
     thread/thread_tlvs.cc         \
     $(NULL)
 
-OPENTHREAD_CLI_SOURCES =          \
+OPENTHREAD_LIB_CLI_SOURCES =      \
     cli/cli_command.cc            \
     cli/cli_ifconfig.cc           \
     cli/cli_ip.cc                 \
@@ -90,7 +88,7 @@ OPENTHREAD_CLI_SOURCES =          \
     cli/cli_udp.cc                \
     $(NULL)
 
-OPENTHREAD_PROTOBUF_SOURCES =     \
+OPENTHREAD_LIB_PROTOBUF_SOURCES = \
     protobuf/protobuf-c.c         \
     $(NULL)
 
