@@ -1516,7 +1516,7 @@ ThreadError MleRouter::UpdateChildAddresses(const AddressRegistrationTlv &tlv, C
 
     memset(child.ip6_address, 0, sizeof(child.ip6_address));
 
-    for (int count = 0; count < sizeof(child.ip6_address) / sizeof(child.ip6_address[0]); count++)
+    for (size_t count = 0; count < sizeof(child.ip6_address) / sizeof(child.ip6_address[0]); count++)
     {
         if ((entry = tlv.GetAddressEntry(count)) == NULL)
         {
@@ -2255,7 +2255,7 @@ ThreadError MleRouter::SendAddressSolicit()
 
     m_socket.Bind(NULL);
 
-    for (int i = 0; i < sizeof(m_coap_token); i++)
+    for (size_t i = 0; i < sizeof(m_coap_token); i++)
     {
         m_coap_token[i] = Random::Get();
     }
@@ -2305,7 +2305,7 @@ ThreadError MleRouter::SendAddressRelease()
 
     m_socket.Bind(NULL);
 
-    for (int i = 0; i < sizeof(m_coap_token); i++)
+    for (size_t i = 0; i < sizeof(m_coap_token); i++)
     {
         m_coap_token[i] = Random::Get();
     }
@@ -2740,7 +2740,7 @@ ThreadError MleRouter::AppendChildAddresses(Message &message, Child &child)
     tlv.SetType(Tlv::kAddressRegistration);
 
     // compute size of TLV
-    for (int i = 0; i < sizeof(child.ip6_address) / sizeof(child.ip6_address[0]); i++)
+    for (size_t i = 0; i < sizeof(child.ip6_address) / sizeof(child.ip6_address[0]); i++)
     {
         if (m_network_data->GetContext(child.ip6_address[i], context) == kThreadError_None)
         {
@@ -2757,7 +2757,7 @@ ThreadError MleRouter::AppendChildAddresses(Message &message, Child &child)
     tlv.SetLength(length);
     SuccessOrExit(error = message.Append(&tlv, sizeof(tlv)));
 
-    for (int i = 0; i < sizeof(child.ip6_address) / sizeof(child.ip6_address[0]); i++)
+    for (size_t i = 0; i < sizeof(child.ip6_address) / sizeof(child.ip6_address[0]); i++)
     {
         if (m_network_data->GetContext(child.ip6_address[i], context) == kThreadError_None)
         {

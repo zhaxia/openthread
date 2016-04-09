@@ -46,7 +46,7 @@ Mac::Mac(ThreadNetif *netif):
 
 ThreadError Mac::Init()
 {
-    for (int i = 0; i < sizeof(m_address64); i++)
+    for (size_t i = 0; i < sizeof(m_address64); i++)
     {
         m_address64.bytes[i] = Random::Get();
     }
@@ -73,7 +73,7 @@ ThreadError Mac::Start()
     {
         uint8_t buf[8];
 
-        for (int i = 0; i < sizeof(buf); i++)
+        for (size_t i = 0; i < sizeof(buf); i++)
         {
             buf[i] = m_address64.bytes[7 - i];
         }

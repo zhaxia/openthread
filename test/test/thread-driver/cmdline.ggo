@@ -1,0 +1,6 @@
+package "thread-driver"
+version "0.1"
+purpose "The Nest Labs Thread driver."
+
+option "tty" t "Serial device for NCP"
+  string required

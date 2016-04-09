@@ -144,7 +144,7 @@ void AesCcm::Header(const void *header, uint32_t header_length)
     assert(m_header_cur + header_length <= m_header_length);
 
     // process header
-    for (int i = 0; i < header_length; i++)
+    for (unsigned i = 0; i < header_length; i++)
     {
         if (m_block_length == sizeof(m_block))
         {
@@ -177,7 +177,7 @@ void AesCcm::Payload(void *plaintext, void *ciphertext, uint32_t len, bool encry
 
     assert(m_plaintext_cur + len <= m_plaintext_length);
 
-    for (int i = 0; i < len; i++)
+    for (unsigned i = 0; i < len; i++)
     {
         if (m_ctr_length == 16)
         {

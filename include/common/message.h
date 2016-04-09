@@ -111,9 +111,10 @@ class Message: private Buffer
 public:
     enum
     {
-        kTypeIp6 = 0,
-        kTypeMesh = 1,
-        kTypePoll = 2,
+        kTypeIp6 = 0,   ///< A full uncompress IPv6 packet
+        kType6lo = 1,   ///< A 6lo frame: mesh, fragment, or other
+        kTypeMac = 2,   ///< A MAC frame: data poll, or other
+        kTypeMisc = 3,  ///< A MAC frame: data poll, or other
     };
 
     uint16_t GetLength() const;

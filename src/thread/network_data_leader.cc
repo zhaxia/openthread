@@ -181,7 +181,7 @@ ThreadError Leader::ConfigureAddresses()
     PrefixTlv *prefix;
 
     // clear out addresses that are not on-mesh
-    for (int i = 0; i < sizeof(addresses_) / sizeof(addresses_[0]); i++)
+    for (size_t i = 0; i < sizeof(addresses_) / sizeof(addresses_[0]); i++)
     {
         if (addresses_[i].valid_lifetime == 0 ||
             IsOnMesh(addresses_[i].address))
@@ -229,7 +229,7 @@ ThreadError Leader::ConfigureAddress(PrefixTlv &prefix)
     }
 
     // check if address is already added for this prefix
-    for (int i = 0; i < sizeof(addresses_) / sizeof(addresses_[0]); i++)
+    for (size_t i = 0; i < sizeof(addresses_) / sizeof(addresses_[0]); i++)
     {
         if (addresses_[i].valid_lifetime != 0 &&
             addresses_[i].prefix_length == prefix.GetPrefixLength() &&
@@ -241,7 +241,7 @@ ThreadError Leader::ConfigureAddress(PrefixTlv &prefix)
     }
 
     // configure address for this prefix
-    for (int i = 0; i < sizeof(addresses_) / sizeof(addresses_[0]); i++)
+    for (size_t i = 0; i < sizeof(addresses_) / sizeof(addresses_[0]); i++)
     {
         if (addresses_[i].valid_lifetime != 0)
         {
@@ -251,7 +251,7 @@ ThreadError Leader::ConfigureAddress(PrefixTlv &prefix)
         memset(&addresses_[i], 0, sizeof(addresses_[i]));
         memcpy(addresses_[i].address.s6_addr, prefix.GetPrefix(), (prefix.GetPrefixLength() + 7) / 8);
 
-        for (int j = 8; j < sizeof(addresses_[i].address); j++)
+        for (size_t j = 8; j < sizeof(addresses_[i].address); j++)
         {
             addresses_[i].address.s6_addr[j] = Random::Get();
         }
@@ -373,8 +373,9 @@ ThreadError Leader::ExternalRouteLookup(uint8_t domain_id, const Ip6Address &des
     HasRouteEntry *rval_route = NULL;
     int8_t rval_plen = 0;
     int8_t plen;
+    NetworkDataTlv *cur;
 
-    for (NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(m_tlvs);
+    for (cur = reinterpret_cast<NetworkDataTlv *>(m_tlvs);
          cur < reinterpret_cast<NetworkDataTlv *>(m_tlvs + m_length);
          cur = cur->GetNext())
     {
@@ -395,7 +396,7 @@ ThreadError Leader::ExternalRouteLookup(uint8_t domain_id, const Ip6Address &des
         if (plen > rval_plen)
         {
             // select border router
-            for (NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix->GetSubTlvs());
+            for (cur = reinterpret_cast<NetworkDataTlv *>(prefix->GetSubTlvs());
                  cur < reinterpret_cast<NetworkDataTlv *>(prefix->GetSubTlvs() + prefix->GetSubTlvsLength());
                  cur = cur->GetNext())
             {

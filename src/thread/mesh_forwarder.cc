@@ -167,7 +167,7 @@ void MeshForwarder::ScheduleTransmissionTask()
     }
 
 exit:
-    {}
+    (void) error;
 }
 
 ThreadError MeshForwarder::SendMessage(Message &message)
@@ -216,7 +216,7 @@ ThreadError MeshForwarder::SendMessage(Message &message)
 
         break;
 
-    case Message::kTypeMesh:
+    case Message::kType6lo:
         message.Read(0, sizeof(mesh_header), &mesh_header);
 
         if ((neighbor = m_mle->GetNeighbor(mesh_header.GetDestination())) != NULL &&
@@ -233,7 +233,7 @@ ThreadError MeshForwarder::SendMessage(Message &message)
 
         break;
 
-    case Message::kTypePoll:
+    case Message::kTypeMac:
         message.SetDirectTransmission();
         break;
     }
@@ -273,7 +273,7 @@ void MeshForwarder::MoveToResolving(const Ip6Address &destination)
 Message *MeshForwarder::GetDirectTransmission()
 {
     Message *cur_message, *next_message;
-    ThreadError error;
+    ThreadError error = kThreadError_None;
     Ip6Address ip6_dst;
 
     for (cur_message = m_send_queue.GetHead(); cur_message; cur_message = next_message)
@@ -291,11 +291,11 @@ Message *MeshForwarder::GetDirectTransmission()
             error = UpdateIp6Route(*cur_message);
             break;
 
-        case Message::kTypeMesh:
+        case Message::kType6lo:
             error = UpdateMeshRoute(*cur_message);
             break;
 
-        case Message::kTypePoll:
+        case Message::kTypeMac:
             ExitNow();
         }
 
@@ -363,7 +363,7 @@ Message *MeshForwarder::GetIndirectTransmission(const Child &child)
 
         break;
 
-    case Message::kTypeMesh:
+    case Message::kType6lo:
         message->Read(0, sizeof(mesh_header), &mesh_header);
 
         m_add_mesh_header = true;
@@ -548,7 +548,7 @@ void MeshForwarder::HandlePollTimer()
 {
     Message *message;
 
-    if ((message = Message::New(Message::kTypePoll, 0)) != NULL)
+    if ((message = Message::New(Message::kTypeMac, 0)) != NULL)
     {
         SendMessage(*message);
         dprintf("Sent poll\n");
@@ -625,11 +625,11 @@ ThreadError MeshForwarder::HandleFrameRequest(Mac::Frame &frame)
         assert(frame.GetLength() != 7);
         break;
 
-    case Message::kTypeMesh:
+    case Message::kType6lo:
         SendMesh(*m_send_message, frame);
         break;
 
-    case Message::kTypePoll:
+    case Message::kTypeMac:
         SendPoll(*m_send_message, frame);
         break;
     }
@@ -1089,7 +1089,7 @@ void MeshForwarder::HandleMesh(uint8_t *frame, uint8_t frame_length,
 
         mesh_header->SetHopsLeft(mesh_header->GetHopsLeft() - 1);
 
-        VerifyOrExit((message = Message::New(Message::kTypeMesh, 0)) != NULL, error = kThreadError_Drop);
+        VerifyOrExit((message = Message::New(Message::kType6lo, 0)) != NULL, error = kThreadError_Drop);
         SuccessOrExit(error = message->SetLength(frame_length));
         message->Write(0, frame_length, frame);
 

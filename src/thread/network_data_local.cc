@@ -188,7 +188,7 @@ ThreadError Local::Register(const Ip6Address &destination)
     UpdateRloc();
     m_socket.Bind(NULL);
 
-    for (int i = 0; i < sizeof(m_coap_token); i++)
+    for (size_t i = 0; i < sizeof(m_coap_token); i++)
     {
         m_coap_token[i] = Random::Get();
     }

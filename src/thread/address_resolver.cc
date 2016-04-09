@@ -132,7 +132,7 @@ ThreadError AddressResolver::SendAddressQuery(const Ip6Address &eid)
     sockaddr.sin6_port = kCoapUdpPort;
     m_socket.Bind(&sockaddr);
 
-    for (int i = 0; i < sizeof(m_coap_token); i++)
+    for (size_t i = 0; i < sizeof(m_coap_token); i++)
     {
         m_coap_token[i] = Random::Get();
     }
@@ -281,7 +281,7 @@ ThreadError AddressResolver::SendAddressError(const ThreadTargetTlv &target, con
     sockaddr.sin6_port = kCoapUdpPort;
     m_socket.Bind(&sockaddr);
 
-    for (int i = 0; i < sizeof(m_coap_token); i++)
+    for (size_t i = 0; i < sizeof(m_coap_token); i++)
     {
         m_coap_token[i] = Random::Get();
     }

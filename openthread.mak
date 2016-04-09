@@ -1,17 +1,3 @@
-#
-#    Copyright (c) 2016 Nest Labs, Inc.
-#    All rights reserved.
-#
-#    This document is the property of Nest Labs. It is considered
-#    confidential and proprietary information.
-#
-#    This document may not be reproduced or transmitted in any form,
-#    in whole or in part, without the express written permission of
-#    Nest Labs.
-#
-#    Description:
-#      This is a make file for OpenThread library.
-#
 
 OPENTHREAD_INCLUDES = \
     coap/coap_header.h \
@@ -46,62 +32,65 @@ OPENTHREAD_INCLUDES = \
     thread/thread_netif.h \
     thread/thread_tlvs.h \
     thread/topology.h \
-    platform/common/alarm.h \
-    platform/common/alarm_interface.h \
-    platform/common/phy.h \
-    platform/common/phy_interface.h \
-    platform/common/sleep.h \
-    platform/common/uart.h \
-    platform/common/uart_interface.h \
-
-
-# The minimum set of files needed for open thread
+    $(NULL)
 
 OPENTHREAD_SOURCES = \
-    coap/coap_header.cc \
-    coap/coap_server.cc \
-    common/message.cc \
-    common/random.cc \
-    common/tasklet.cc \
-    common/timer.cc \
-    crypto/aes_ccm.cc \
-    crypto/aes_ecb.cc \
-    crypto/hmac.cc \
-    crypto/sha256.cc \
-    mac/mac.cc \
-    mac/mac_frame.cc \
-    mac/mac_whitelist.cc \
-    net/icmp6.cc \
-    net/ip6.cc \
-    net/ip6_address.cc \
-    net/ip6_mpl.cc \
-    net/ip6_routes.cc \
-    net/netif.cc \
-    net/udp6.cc \
-    ncp/hdlc.cc \
-    ncp/ncp.cc \
-    ncp/ncp.pb-c.c \
-    protobuf/protobuf-c.c \
-    thread/address_resolver.cc \
-    thread/key_manager.cc \
-    thread/lowpan.cc \
-    thread/mesh_forwarder.cc \
-    thread/mle.cc \
-    thread/mle_tlvs.cc \
-    thread/mle_router.cc \
-    thread/network_data.cc \
-    thread/network_data_local.cc \
+    coap/coap_header.cc           \
+    coap/coap_server.cc           \
+    common/message.cc             \
+    common/random.cc              \
+    common/tasklet.cc             \
+    common/timer.cc               \
+    crypto/aes_ccm.cc             \
+    crypto/aes_ecb.cc             \
+    crypto/hmac.cc                \
+    crypto/sha256.cc              \
+    mac/mac.cc                    \
+    mac/mac_frame.cc              \
+    mac/mac_whitelist.cc          \
+    meshcop/joiner_router.cc      \
+    ncp/hdlc.cc                   \
+    ncp/ncp.cc                    \
+    ncp/ncp_base.cc               \
+    ncp/ncp.pb-c.c                \
+    net/icmp6.cc                  \
+    net/ip6.cc                    \
+    net/ip6_address.cc            \
+    net/ip6_mpl.cc                \
+    net/ip6_routes.cc             \
+    net/netif.cc                  \
+    net/udp6.cc                   \
+    protobuf/protobuf-c.c         \
+    thread/address_resolver.cc    \
+    thread/key_manager.cc         \
+    thread/lowpan.cc              \
+    thread/mesh_forwarder.cc      \
+    thread/mle.cc                 \
+    thread/mle_router.cc          \
+    thread/mle_tlvs.cc            \
+    thread/network_data.cc        \
+    thread/network_data_local.cc  \
     thread/network_data_leader.cc \
-    thread/thread_netif.cc \
-    thread/thread_tlvs.cc \
-    tun/tun_netif.cc \
+    thread/thread_netif.cc        \
+    thread/thread_tlvs.cc         \
     $(NULL)
 
-
-OPENTHREAD_SOURCES_VNCP = \
+OPENTHREAD_CLI_SOURCES =          \
+    cli/cli_command.cc            \
+    cli/cli_ifconfig.cc           \
+    cli/cli_ip.cc                 \
+    cli/cli_mac.cc                \
+    cli/cli_netdata.cc            \
+    cli/cli_ping.cc               \
+    cli/cli_route.cc              \
+    cli/cli_serial.cc             \
+    cli/cli_server.cc             \
+    cli/cli_shutdown.cc           \
+    cli/cli_thread.cc             \
+    cli/cli_udp.cc                \
     $(NULL)
 
-
-OPENTHREAD_SOURCES_NCP = \
+OPENTHREAD_PROTOBUF_SOURCES =     \
+    protobuf/protobuf-c.c         \
     $(NULL)
 

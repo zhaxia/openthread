@@ -1,0 +1,61 @@
+package "thread-ctl"
+version "0.1"
+purpose "A command-line interface for the Nest Labs Thread driver."
+
+option "interface" I "Network Interface" required
+  string
+
+section "Thread Options"
+
+option "key" - "Get/Set the Thread Master Key" optional
+  string argoptional
+
+option "key-sequence" - "Get/Set the Thread Key Sequence" optional
+  int argoptional
+
+option "mode" - "Get/Set the Thread device mode\nr: rx-on-when-idle\ns: secure data request\nd: full function device\nn: full network data" optional
+  string argoptional
+
+option "prefix" - "Get/Set the Thread Mesh Local Prefix" optional
+  string argoptional
+
+option "state" - "Get/Set the Thread state" optional
+  enum values="detached","child","router","leader","unspec" argoptional default="unspec"
+
+option "status" - "Get/Set the Thread status" optional
+  enum values="up","down","unspec" argoptional default="unspec"
+
+option "timeout" - "Get/Set the Thread timeout" optional
+  int argoptional
+
+section "IEEE 802.15.4 Options"
+
+option "channel" - "Get/Set the IEEE 802.15.4 Channel" optional
+  int argoptional
+
+option "panid" - "Get/Set the IEEE 802.15.4 PAN ID" optional
+  int argoptional
+
+option "xpanid" - "Get/Set the IEEE 802.15.4 Extended PAN ID" optional
+  string argoptional
+
+option "netname" - "Get/Set the IEEE 802.15.4 Network Name" optional
+  string argoptional
+
+option "shortaddr" - "Get the IEEE 802.15.4 Short Address"
+  flag off
+
+option "extaddr" - "Get the IEEE 802.15.4 Extended Address"
+  flag off
+
+option "whitelist-status" - "Get/Set the IEEE 802.15.4 whitelist status" optional
+  enum values="enable","disable","unspec" argoptional default="unspec"
+
+option "whitelist-add" - "Add an IEEE 802.15.4 Extended Address to the whitelist" optional
+  string
+
+option "whitelist-delete" - "Delete an IEEE 802.15.4 Extended Address from the whitelist" optional
+  string
+
+option "whitelist-show" - "Show the IEEE 802.15.4 Extended Addresses in the whitelist"
+  flag off

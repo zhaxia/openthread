@@ -158,7 +158,6 @@ void Timer::SetAlarm()
 {
     uint32_t now = alarm_get_now();
     int32_t min_remaining = (1UL << 31) - 1;
-    Timer *min_timer = NULL;
     uint32_t elapsed;
     int32_t remaining;
 
@@ -176,7 +175,6 @@ void Timer::SetAlarm()
         if (remaining < min_remaining)
         {
             min_remaining = remaining;
-            min_timer = timer;
         }
     }
 
