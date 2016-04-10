@@ -23,8 +23,6 @@ include $(OpenThreadSrcPath)/openthread.mak
 
 ARCHIVES = openthread
 
-LIB_DIR = $(OpenThreadLibraryPaths)
-
 VPATH                                                              = \
     $(OpenThreadSrcPath)                                             \
     $(OpenThreadSrcPath)/include                                     \
@@ -66,7 +64,6 @@ openthread_SOURCES                                                += \
     $(OPENTHREAD_SOURCES_VNCP)                                       \
 
 openthread_SOURCES                                                += \
-    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/alarm.cc       \
     $(BuildRoot)/$(ProductFpsDir)/openthread/platform/alarm.cc       \
     $(BuildRoot)/$(ProductFpsDir)/openthread/platform/atomic.cc      \
     $(BuildRoot)/$(ProductFpsDir)/openthread/platform/phy.cc         \
