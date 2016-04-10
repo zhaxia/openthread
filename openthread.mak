@@ -1,39 +1,4 @@
 
-OPENTHREAD_INCLUDES = \
-    coap/coap_header.h \
-    coap/coap_server.h \
-    common/encoding.h \
-    common/message.h \
-    common/random.h \
-    common/timer.h \
-    common/thread_error.h \
-    crypto/aes.h \
-    crypto/aes_ecb.h \
-    mac/mac.h \
-    mac/mac_frame.h \
-    mac/mac_whitelist.h \
-    net/icmp6.h \
-    net/ip6.h \
-    net/ip6_address.h \
-    net/netif.h \
-    net/socket.h \
-    net/udp6.h \
-    thread/address_resolver.h \
-    thread/key_manager.h \
-    thread/lowpan.h \
-    thread/mesh_forwarder.h \
-    thread/mle.h \
-    thread/mle_tlvs.h \
-    thread/mle_router.h \
-    thread/network_data.h \
-    thread/network_data_leader.h \
-    thread/network_data_local.h \
-    thread/network_data_tlvs.h \
-    thread/thread_netif.h \
-    thread/thread_tlvs.h \
-    thread/topology.h \
-    $(NULL)
-
 OPENTHREAD_SOURCES = \
     coap/coap_header.cc           \
     coap/coap_server.cc           \

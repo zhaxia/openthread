@@ -17,83 +17,63 @@ include pre.mak
 
 ifeq ($(BUILD_FEATURE_OPENTHREAD),1)
 
-include openthread.mak
+include $(OpenThreadSrcPath)/openthread.mak
 
 .DEFAULT_GOAL = all
 
-VPATH                                          = \
-    include                                      \
-    include/common                               \
-    lib                                          \
-    src                                          \
-    src/coap                                     \
-    src/common                                   \
-    src/crypto                                   \
-    src/mac                                      \
-    src/net                                      \
-    src/ncp                                      \
-    src/platform                                 \
-    src/platform/common                          \
-    src/protobuf                                 \
-    src/thread                                   \
-    third_party                                  \
-
 ARCHIVES = openthread
 
-IncludeFiles                                  := \
-    $(OPENTHREAD_INCLUDES)                       \
+LIB_DIR = $(OpenThreadLibraryPaths)
 
-openthread_SOURCES                             = \
-    $(OPENTHREAD_SOURCES)                        \
+VPATH                                                              = \
+    $(OpenThreadSrcPath)                                             \
+    $(OpenThreadSrcPath)/include                                     \
+    $(OpenThreadSrcPath)/lib                                         \
+    $(OpenThreadSrcPath)/src                                         \
+    $(OpenThreadSrcPath)/src/coap                                    \
+    $(OpenThreadSrcPath)/src/common                                  \
+    $(OpenThreadSrcPath)/src/crypto                                  \
+    $(OpenThreadSrcPath)/src/mac                                     \
+    $(OpenThreadSrcPath)/src/meshcop                                 \
+    $(OpenThreadSrcPath)/src/ncp                                     \
+    $(OpenThreadSrcPath)/src/net                                     \
+    $(OpenThreadSrcPath)/src/thread                                  \
+    $(OpenThreadSrcPath)/third_party                                 \
 
-ifeq ($(BUILD_FEATURE_COMMSIM),1)
+openthread_SOURCES                                                 = \
+    $(OPENTHREAD_SOURCES)                                            \
 
-VPATH                                         += \
-    $(BuildRoot)/$(ProductFpsDir)/openthread/platform    \
+openthread_INCLUDES =                                                \
+    $(OpenThreadIncludePaths)                                        \
+    $(OpenThreadSrcPath)/lib                                         \
+    $(OpenThreadSrcPath)/src                                         \
+    $(OpenThreadSrcPath)/third_party                                 \
+#    $(NLERIncludePaths)                                             \
+#    $(LwIPIncludePaths)                                             \
+#    $(NlLwipIncludePath)                                            \
+#    $(NlPlatformIncludePaths)                                       \
+#    $(FreeRTOSIncludePaths)                                         \
+#    $(NlAssertIncludePaths)                                         \
+#    $(NlUtilitiesIncludePath)                                       \
+#    $(NlSystemIncludePath)                                          \
 
-openthread_SOURCES                            += \
-    $(OPENTHREAD_SOURCES_VNCP)                   \
+### Platform Specific Source Files
 
-openthread_SOURCES                            += \
-    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/alarm.cc     \
-    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/alarm.cc                    \
-    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/atomic.cc                   \
-    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/phy.cc                      \
-    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/sleep.cc                    \
-    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/uart.cc                     \
+VPATH                                                             += \
+    $(BuildRoot)/$(ProductFpsDir)/openthread/platform                \
 
-endif
+openthread_SOURCES                                                += \
+    $(OPENTHREAD_SOURCES_VNCP)                                       \
 
-openthread_INCLUDES =                            \
-    $(OpenThreadIncludePaths)                    \
-    $(OpenThreadSrcPath)/lib                     \
-    $(OpenThreadSrcPath)/src                     \
-    $(OpenThreadSrcPath)/third_party             \
-#    $(AppsIncludePaths)                          \
-#    $(NLERIncludePaths)                          \
-#    $(LwIPIncludePaths)                          \
-#    $(WicedIncludePaths)                         \
-#    $(NlLwipIncludePath)                         \
-#    $(NlPlatformIncludePaths)                    \
-#    $(FreeRTOSIncludePaths)                      \
-#    $(NlIoIncludePaths)                          \
-#    $(NlAssertIncludePaths)                      \
-#    $(NlUtilitiesIncludePath)                    \
-#    $(NlSystemIncludePath)                       \
-#    $(NlEnvIncludePaths)                         \
-#    $(NlNetworkManagerIncludePaths)              \
+openthread_SOURCES                                                += \
+    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/alarm.cc       \
+    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/alarm.cc       \
+    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/atomic.cc      \
+    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/phy.cc         \
+    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/sleep.cc       \
+    $(BuildRoot)/$(ProductFpsDir)/openthread/platform/uart.cc        \
 
-openthread_DEFINES =                             \
-
-IncludeDirName          := include
-ResultIncDir            := $(call GenerateResultPaths,,$(IncludeDirName))
-ResultIncPaths          := $(call GenerateResultPaths,$(OpenThreadDir)/$(IncludeDirName),$(IncludeFiles))
-CleanPaths              += $(ResultIncPaths)
-TARGETS                 += $(ResultIncPaths)
-$(ResultIncPaths): $(ResultIncDir)/%: %
-
-$(ResultIncPaths): $(ResultIncDir)/%: %
-	$(install-result)
+openthread_DEFINES =                                                 \
 
 endif # ifeq ($(BUILD_FEATURE_OPENTHREAD),1)
 
