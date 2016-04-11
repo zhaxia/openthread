@@ -24,7 +24,7 @@ third_party | Non OpenThread code used by application examples, e.g, protobuf.
 
 # Contributing
 
-See the [CONTRIBUTING](CONTRIBUTING) file for more information.
+See the [CONTRIBUTING.md](CONTRIBUTING.md) file for more information.
 
 
 # License
