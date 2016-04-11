@@ -5,7 +5,7 @@ The Thread stack defines IPv6-based reliable, secured and low-power
 wireless device-to-device communication protocol for home applications.
 OpenThread implements all Thread standard network protocol layers, including
 application, transportation, networking, IPv6 on 6LoWPAN and IEEE 802.15.4
-MAC with link-layer secutiry.
+MAC with link-layer security.
 
 More information about the Thread standard can be found
 at [Thread Group homepage](http://www.threadgroup.org/).
