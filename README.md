@@ -30,7 +30,7 @@ See the [CONTRIBUTING](CONTRIBUTING) file for more information.
 # License
 
 OpenThread is released under the [Apache 2.0 license](LICENSE).
-See the [Apache 2.0 license](LICENSE) file for more information.
+See the [LICENSE](LICENSE) file for more information.
 
 # Contact Info
 
