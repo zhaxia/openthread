@@ -59,7 +59,7 @@ uint16_t Ip6::UpdateChecksum(uint16_t checksum, const void *buf, uint16_t len)
 
 uint16_t Ip6::UpdateChecksum(uint16_t checksum, const Ip6Address &address)
 {
-    return Ip6::UpdateChecksum(checksum, address.s6_addr, sizeof(address));
+    return Ip6::UpdateChecksum(checksum, address.addr8, sizeof(address));
 }
 
 uint16_t Ip6::ComputePseudoheaderChecksum(const Ip6Address &src, const Ip6Address &dst, uint16_t length, IpProto proto)
@@ -88,7 +88,7 @@ ThreadError AddMplOption(Message &message, Ip6Header &ip6_header, IpProto next_h
 
     hbh_header.SetNextHeader(next_header);
     hbh_header.SetLength(0);
-    s_ip6_mpl.InitOption(mpl_option, HostSwap16(ip6_header.GetSource()->s6_addr16[7]));
+    s_ip6_mpl.InitOption(mpl_option, HostSwap16(ip6_header.GetSource()->addr16[7]));
     SuccessOrExit(error = message.Prepend(&mpl_option, sizeof(mpl_option)));
     SuccessOrExit(error = message.Prepend(&hbh_header, sizeof(hbh_header)));
     ip6_header.SetPayloadLength(sizeof(hbh_header) + sizeof(mpl_option) + payload_length);

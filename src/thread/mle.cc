@@ -64,9 +64,9 @@ ThreadError Mle::Init()
 
     // link-local 64
     memset(&m_link_local_64, 0, sizeof(m_link_local_64));
-    m_link_local_64.address.s6_addr16[0] = HostSwap16(0xfe80);
-    memcpy(m_link_local_64.address.s6_addr + 8, m_mesh->GetAddress64(), 8);
-    m_link_local_64.address.s6_addr[8] ^= 2;
+    m_link_local_64.address.addr16[0] = HostSwap16(0xfe80);
+    memcpy(m_link_local_64.address.addr8 + 8, m_mesh->GetAddress64(), 8);
+    m_link_local_64.address.addr8[8] ^= 2;
     m_link_local_64.prefix_length = 64;
     m_link_local_64.preferred_lifetime = 0xffffffff;
     m_link_local_64.valid_lifetime = 0xffffffff;
@@ -74,9 +74,9 @@ ThreadError Mle::Init()
 
     // link-local 16
     memset(&m_link_local_16, 0, sizeof(m_link_local_16));
-    m_link_local_16.address.s6_addr16[0] = HostSwap16(0xfe80);
-    m_link_local_16.address.s6_addr16[5] = HostSwap16(0x00ff);
-    m_link_local_16.address.s6_addr16[6] = HostSwap16(0xfe00);
+    m_link_local_16.address.addr16[0] = HostSwap16(0xfe80);
+    m_link_local_16.address.addr16[5] = HostSwap16(0x00ff);
+    m_link_local_16.address.addr16[6] = HostSwap16(0xfe00);
     m_link_local_16.prefix_length = 64;
     m_link_local_16.preferred_lifetime = 0xffffffff;
     m_link_local_16.valid_lifetime = 0xffffffff;
@@ -84,7 +84,7 @@ ThreadError Mle::Init()
     // mesh-local 64
     for (int i = 8; i < 16; i++)
     {
-        m_mesh_local_64.address.s6_addr[i] = Random::Get();
+        m_mesh_local_64.address.addr8[i] = Random::Get();
     }
 
     m_mesh_local_64.prefix_length = 64;
@@ -93,23 +93,23 @@ ThreadError Mle::Init()
     m_netif->AddUnicastAddress(m_mesh_local_64);
 
     // mesh-local 16
-    m_mesh_local_16.address.s6_addr16[4] = HostSwap16(0x0000);
-    m_mesh_local_16.address.s6_addr16[5] = HostSwap16(0x00ff);
-    m_mesh_local_16.address.s6_addr16[6] = HostSwap16(0xfe00);
+    m_mesh_local_16.address.addr16[4] = HostSwap16(0x0000);
+    m_mesh_local_16.address.addr16[5] = HostSwap16(0x00ff);
+    m_mesh_local_16.address.addr16[6] = HostSwap16(0xfe00);
     m_mesh_local_16.prefix_length = 64;
     m_mesh_local_16.preferred_lifetime = 0xffffffff;
     m_mesh_local_16.valid_lifetime = 0xffffffff;
 
     // link-local all thread nodes
-    m_link_local_all_thread_nodes.address.s6_addr16[0] = HostSwap16(0xff32);
-    m_link_local_all_thread_nodes.address.s6_addr16[6] = HostSwap16(0x0000);
-    m_link_local_all_thread_nodes.address.s6_addr16[7] = HostSwap16(0x0001);
+    m_link_local_all_thread_nodes.address.addr16[0] = HostSwap16(0xff32);
+    m_link_local_all_thread_nodes.address.addr16[6] = HostSwap16(0x0000);
+    m_link_local_all_thread_nodes.address.addr16[7] = HostSwap16(0x0001);
     m_netif->SubscribeMulticast(m_link_local_all_thread_nodes);
 
     // realm-local all thread nodes
-    m_realm_local_all_thread_nodes.address.s6_addr16[0] = HostSwap16(0xff33);
-    m_realm_local_all_thread_nodes.address.s6_addr16[6] = HostSwap16(0x0000);
-    m_realm_local_all_thread_nodes.address.s6_addr16[7] = HostSwap16(0x0001);
+    m_realm_local_all_thread_nodes.address.addr16[0] = HostSwap16(0xff33);
+    m_realm_local_all_thread_nodes.address.addr16[6] = HostSwap16(0x0000);
+    m_realm_local_all_thread_nodes.address.addr16[7] = HostSwap16(0x0001);
     m_netif->SubscribeMulticast(m_realm_local_all_thread_nodes);
 
     m_netif->RegisterHandler(m_netif_handler);
@@ -308,23 +308,23 @@ exit:
 
 const uint8_t *Mle::GetMeshLocalPrefix() const
 {
-    return m_mesh_local_16.address.s6_addr;
+    return m_mesh_local_16.address.addr8;
 }
 
 ThreadError Mle::SetMeshLocalPrefix(const uint8_t *xpanid)
 {
-    m_mesh_local_64.address.s6_addr[0] = 0xfd;
-    memcpy(m_mesh_local_64.address.s6_addr + 1, xpanid, 5);
-    m_mesh_local_64.address.s6_addr[6] = 0x00;
-    m_mesh_local_64.address.s6_addr[7] = 0x00;
+    m_mesh_local_64.address.addr8[0] = 0xfd;
+    memcpy(m_mesh_local_64.address.addr8 + 1, xpanid, 5);
+    m_mesh_local_64.address.addr8[6] = 0x00;
+    m_mesh_local_64.address.addr8[7] = 0x00;
 
     memcpy(&m_mesh_local_16.address, &m_mesh_local_64.address, 8);
 
-    m_link_local_all_thread_nodes.address.s6_addr[3] = 64;
-    memcpy(m_link_local_all_thread_nodes.address.s6_addr + 4, &m_mesh_local_64.address, 8);
+    m_link_local_all_thread_nodes.address.addr8[3] = 64;
+    memcpy(m_link_local_all_thread_nodes.address.addr8 + 4, &m_mesh_local_64.address, 8);
 
-    m_realm_local_all_thread_nodes.address.s6_addr[3] = 64;
-    memcpy(m_realm_local_all_thread_nodes.address.s6_addr + 4, &m_mesh_local_64.address, 8);
+    m_realm_local_all_thread_nodes.address.addr8[3] = 64;
+    memcpy(m_realm_local_all_thread_nodes.address.addr8 + 4, &m_mesh_local_64.address, 8);
 
     return kThreadError_None;
 }
@@ -364,11 +364,11 @@ ThreadError Mle::SetRloc16(uint16_t rloc16)
     if (rloc16 != Mac::kShortAddrInvalid)
     {
         // link-local 16
-        m_link_local_16.address.s6_addr16[7] = HostSwap16(rloc16);
+        m_link_local_16.address.addr16[7] = HostSwap16(rloc16);
         m_netif->AddUnicastAddress(m_link_local_16);
 
         // mesh-local 16
-        m_mesh_local_16.address.s6_addr16[7] = HostSwap16(rloc16);
+        m_mesh_local_16.address.addr16[7] = HostSwap16(rloc16);
         m_netif->AddUnicastAddress(m_mesh_local_16);
     }
     else
@@ -404,10 +404,10 @@ ThreadError Mle::GetLeaderAddress(Ip6Address &address) const
     VerifyOrExit(GetRloc16() != Mac::kShortAddrInvalid, error = kThreadError_Error);
 
     memcpy(&address, &m_mesh_local_16.address, 8);
-    address.s6_addr16[4] = HostSwap16(0x0000);
-    address.s6_addr16[5] = HostSwap16(0x00ff);
-    address.s6_addr16[6] = HostSwap16(0xfe00);
-    address.s6_addr16[7] = HostSwap16(GetRloc16(m_leader_data.GetRouterId()));
+    address.addr16[4] = HostSwap16(0x0000);
+    address.addr16[5] = HostSwap16(0x00ff);
+    address.addr16[6] = HostSwap16(0xfe00);
+    address.addr16[7] = HostSwap16(GetRloc16(m_leader_data.GetRouterId()));
 
 exit:
     return error;
@@ -683,7 +683,7 @@ ThreadError Mle::AppendIp6Address(Message &message)
         {
             // compressed entry
             entry.SetContextId(context.context_id);
-            entry.SetIid(addr->address.s6_addr + 8);
+            entry.SetIid(addr->address.addr8 + 8);
             length = 9;
         }
         else
@@ -714,7 +714,7 @@ void Mle::HandleUnicastAddressesChanged()
         // Mesh Local EID was removed, choose a new one and add it back
         for (int i = 8; i < 16; i++)
         {
-            m_mesh_local_64.address.s6_addr[i] = Random::Get();
+            m_mesh_local_64.address.addr8[i] = Random::Get();
         }
 
         m_netif->AddUnicastAddress(m_mesh_local_64);
@@ -872,8 +872,8 @@ ThreadError Mle::SendParentRequest()
     SuccessOrExit(error = AppendVersion(*message));
 
     memset(&destination, 0, sizeof(destination));
-    destination.s6_addr16[0] = HostSwap16(0xff02);
-    destination.s6_addr16[7] = HostSwap16(0x0002);
+    destination.addr16[0] = HostSwap16(0xff02);
+    destination.addr16[7] = HostSwap16(0x0002);
     SuccessOrExit(error = SendMessage(*message, destination));
 
     switch (m_parent_request_state)
@@ -925,9 +925,9 @@ ThreadError Mle::SendChildIdRequest()
     SuccessOrExit(error = AppendTlvRequest(*message, tlvs, sizeof(tlvs)));
 
     memset(&destination, 0, sizeof(destination));
-    destination.s6_addr16[0] = HostSwap16(0xfe80);
-    memcpy(destination.s6_addr + 8, &m_parent.mac_addr, sizeof(m_parent.mac_addr));
-    destination.s6_addr[8] ^= 0x2;
+    destination.addr16[0] = HostSwap16(0xfe80);
+    memcpy(destination.addr8 + 8, &m_parent.mac_addr, sizeof(m_parent.mac_addr));
+    destination.addr8[8] ^= 0x2;
     SuccessOrExit(error = SendMessage(*message, destination));
     dprintf("Sent Child ID Request\n");
 
@@ -1052,9 +1052,9 @@ ThreadError Mle::SendChildUpdateRequest()
     }
 
     memset(&destination, 0, sizeof(destination));
-    destination.s6_addr16[0] = HostSwap16(0xfe80);
-    memcpy(destination.s6_addr + 8, &m_parent.mac_addr, sizeof(m_parent.mac_addr));
-    destination.s6_addr[8] ^= 0x2;
+    destination.addr16[0] = HostSwap16(0xfe80);
+    memcpy(destination.addr8 + 8, &m_parent.mac_addr, sizeof(m_parent.mac_addr));
+    destination.addr8[8] ^= 0x2;
     SuccessOrExit(error = SendMessage(*message, destination));
 
     dprintf("Sent Child Update Request\n");
@@ -1219,7 +1219,7 @@ void Mle::HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info)
     VerifyOrExit(message_tag_length == sizeof(message_tag), ;);
     SuccessOrExit(message.SetLength(message.GetLength() - sizeof(message_tag)));
 
-    memcpy(&mac_addr, message_info.peer_addr.s6_addr + 8, sizeof(mac_addr));
+    memcpy(&mac_addr, message_info.peer_addr.addr8 + 8, sizeof(mac_addr));
     mac_addr.bytes[0] ^= 0x2;
     GenerateNonce(mac_addr, frame_counter, Mac::Frame::kSecEncMic32, nonce);
 
@@ -1379,7 +1379,7 @@ ThreadError Mle::HandleAdvertisement(const Message &message, const Ip6MessageInf
         SuccessOrExit(error = m_mle_router->HandleAdvertisement(message, message_info));
     }
 
-    memcpy(&mac_addr, message_info.peer_addr.s6_addr + 8, sizeof(mac_addr));
+    memcpy(&mac_addr, message_info.peer_addr.addr8 + 8, sizeof(mac_addr));
     mac_addr.bytes[0] ^= 0x2;
 
     is_neighbor = false;
@@ -1618,7 +1618,7 @@ ThreadError Mle::HandleParentResponse(const Message &message, const Ip6MessageIn
     memcpy(m_child_id_request.challenge, challenge.GetChallenge(), challenge.GetLength());
     m_child_id_request.challenge_length = challenge.GetLength();
 
-    memcpy(&m_parent.mac_addr, message_info.peer_addr.s6_addr + 8, sizeof(m_parent.mac_addr));
+    memcpy(&m_parent.mac_addr, message_info.peer_addr.addr8 + 8, sizeof(m_parent.mac_addr));
     m_parent.mac_addr.bytes[0] ^= 0x2;
     m_parent.valid.rloc16 = source_address.GetRloc16();
     m_parent.valid.link_frame_counter = link_frame_counter.GetFrameCounter();
@@ -1857,7 +1857,7 @@ ThreadError Mle::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshds
     }
 
     memcpy(&dst, GetMeshLocal16(), 14);
-    dst.s6_addr16[7] = HostSwap16(meshsrc);
+    dst.addr16[7] = HostSwap16(meshsrc);
     Icmp6::SendError(dst, Icmp6Header::kTypeDstUnreach, Icmp6Header::kCodeDstUnreachNoRoute, ip6_header);
 
 exit:

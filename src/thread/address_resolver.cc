@@ -154,8 +154,8 @@ ThreadError AddressResolver::SendAddressQuery(const Ip6Address &eid)
     SuccessOrExit(error = message->Append(&target_tlv, sizeof(target_tlv)));
 
     memset(&message_info, 0, sizeof(message_info));
-    message_info.peer_addr.s6_addr16[0] = HostSwap16(0xff03);
-    message_info.peer_addr.s6_addr16[7] = HostSwap16(0x0002);
+    message_info.peer_addr.addr16[0] = HostSwap16(0xff03);
+    message_info.peer_addr.addr16[7] = HostSwap16(0x0002);
     message_info.peer_port = kCoapUdpPort;
     message_info.interface_id = m_netif->GetInterfaceId();
 
@@ -194,7 +194,7 @@ void AddressResolver::HandleAddressNotification(Coap::Header &header, Message &m
     VerifyOrExit(header.GetType() == Coap::Header::kTypeConfirmable &&
                  header.GetCode() == Coap::Header::kCodePost, ;);
 
-    dprintf("Received address notification from %04x\n", HostSwap16(message_info.peer_addr.s6_addr16[7]));
+    dprintf("Received address notification from %04x\n", HostSwap16(message_info.peer_addr.addr16[7]));
 
     SuccessOrExit(ThreadTlv::GetTlv(message, ThreadTlv::kTarget, sizeof(target_tlv), target_tlv));
     VerifyOrExit(target_tlv.IsValid(), ;);
@@ -304,8 +304,8 @@ ThreadError AddressResolver::SendAddressError(const ThreadTargetTlv &target, con
 
     if (destination == NULL)
     {
-        message_info.peer_addr.s6_addr16[0] = HostSwap16(0xff03);
-        message_info.peer_addr.s6_addr16[7] = HostSwap16(0x0002);
+        message_info.peer_addr.addr16[0] = HostSwap16(0xff03);
+        message_info.peer_addr.addr16[7] = HostSwap16(0x0002);
     }
     else
     {
@@ -360,7 +360,7 @@ void AddressResolver::HandleAddressError(Coap::Header &header, Message &message,
     for (const NetifUnicastAddress *address = m_netif->GetUnicastAddresses(); address; address = address->GetNext())
     {
         if (memcmp(&address->address, target_tlv.GetTarget(), sizeof(address->address)) == 0 &&
-            memcmp(m_mle->GetMeshLocal64()->s6_addr + 8, ml_iid_tlv.GetIid(), 8))
+            memcmp(m_mle->GetMeshLocal64()->addr8 + 8, ml_iid_tlv.GetIid(), 8))
         {
             // Target EID matches address and Mesh Local EID differs
             m_netif->RemoveUnicastAddress(*address);
@@ -389,9 +389,9 @@ void AddressResolver::HandleAddressError(Coap::Header &header, Message &message,
                 memset(&children[i].ip6_address[j], 0, sizeof(children[i].ip6_address[j]));
 
                 memset(&destination, 0, sizeof(destination));
-                destination.s6_addr16[0] = HostSwap16(0xfe80);
-                memcpy(destination.s6_addr + 8, &children[i].mac_addr, 8);
-                destination.s6_addr[8] ^= 0x2;
+                destination.addr16[0] = HostSwap16(0xfe80);
+                memcpy(destination.addr8 + 8, &children[i].mac_addr, 8);
+                destination.addr8[8] ^= 0x2;
 
                 SendAddressError(target_tlv, ml_iid_tlv, &destination);
                 ExitNow();
@@ -422,7 +422,7 @@ void AddressResolver::HandleAddressQuery(Coap::Header &header, Message &message,
     VerifyOrExit(header.GetType() == Coap::Header::kTypeNonConfirmable &&
                  header.GetCode() == Coap::Header::kCodePost, ;);
 
-    dprintf("Received address query from %04x\n", HostSwap16(message_info.peer_addr.s6_addr16[7]));
+    dprintf("Received address query from %04x\n", HostSwap16(message_info.peer_addr.addr16[7]));
 
     SuccessOrExit(ThreadTlv::GetTlv(message, ThreadTlv::kTarget, sizeof(target_tlv), target_tlv));
     VerifyOrExit(target_tlv.IsValid(), ;);
@@ -433,7 +433,7 @@ void AddressResolver::HandleAddressQuery(Coap::Header &header, Message &message,
 
     if (m_netif->IsUnicastAddress(*target_tlv.GetTarget()))
     {
-        ml_iid_tlv.SetIid(m_mle->GetMeshLocal64()->s6_addr + 8);
+        ml_iid_tlv.SetIid(m_mle->GetMeshLocal64()->addr8 + 8);
         SendAddressQueryResponse(target_tlv, ml_iid_tlv, NULL, message_info.peer_addr);
         ExitNow();
     }

@@ -426,8 +426,8 @@ ThreadError MleRouter::SendAdvertisement()
     }
 
     memset(&destination, 0, sizeof(destination));
-    destination.s6_addr16[0] = HostSwap16(0xff02);
-    destination.s6_addr16[7] = HostSwap16(0x0001);
+    destination.addr16[0] = HostSwap16(0xff02);
+    destination.addr16[7] = HostSwap16(0x0001);
     SuccessOrExit(error = SendMessage(*message, destination));
 
     dprintf("Sent advertisement\n");
@@ -486,9 +486,9 @@ ThreadError MleRouter::SendLinkRequest(Neighbor *neighbor)
         }
 
         SuccessOrExit(error = AppendChallenge(*message, m_challenge, sizeof(m_challenge)));
-        destination.s6_addr[0] = 0xff;
-        destination.s6_addr[1] = 0x02;
-        destination.s6_addr[15] = 2;
+        destination.addr8[0] = 0xff;
+        destination.addr8[1] = 0x02;
+        destination.addr8[15] = 2;
     }
     else
     {
@@ -498,9 +498,9 @@ ThreadError MleRouter::SendLinkRequest(Neighbor *neighbor)
         }
 
         SuccessOrExit(error = AppendChallenge(*message, m_challenge, sizeof(m_challenge)));
-        destination.s6_addr16[0] = HostSwap16(0xfe80);
-        memcpy(destination.s6_addr + 8, &neighbor->mac_addr, sizeof(neighbor->mac_addr));
-        destination.s6_addr[8] ^= 0x2;
+        destination.addr16[0] = HostSwap16(0xfe80);
+        memcpy(destination.addr8 + 8, &neighbor->mac_addr, sizeof(neighbor->mac_addr));
+        destination.addr8[8] ^= 0x2;
     }
 
     SuccessOrExit(error = SendMessage(*message, destination));
@@ -536,7 +536,7 @@ ThreadError MleRouter::HandleLinkRequest(const Message &message, const Ip6Messag
 
     VerifyOrExit(m_parent_request_state == kParentIdle, ;);
 
-    memcpy(&mac_addr, message_info.peer_addr.s6_addr + 8, sizeof(mac_addr));
+    memcpy(&mac_addr, message_info.peer_addr.addr8 + 8, sizeof(mac_addr));
     mac_addr.bytes[0] ^= 0x2;
 
     // Challenge
@@ -717,7 +717,7 @@ ThreadError MleRouter::HandleLinkAccept(const Message &message, const Ip6Message
     ChallengeTlv challenge;
     TlvRequestTlv tlv_request;
 
-    memcpy(&mac_addr, message_info.peer_addr.s6_addr + 8, sizeof(mac_addr));
+    memcpy(&mac_addr, message_info.peer_addr.addr8 + 8, sizeof(mac_addr));
     mac_addr.bytes[0] ^= 0x2;
 
     // Version
@@ -906,7 +906,7 @@ ThreadError MleRouter::HandleLinkReject(const Message &message, const Ip6Message
 
     dprintf("Received link reject\n");
 
-    memcpy(&mac_addr, message_info.peer_addr.s6_addr + 8, sizeof(mac_addr));
+    memcpy(&mac_addr, message_info.peer_addr.addr8 + 8, sizeof(mac_addr));
     mac_addr.bytes[0] ^= 0x2;
 
     return kThreadError_None;
@@ -1015,7 +1015,7 @@ ThreadError MleRouter::HandleAdvertisement(const Message &message, const Ip6Mess
     uint8_t router_id;
     uint8_t router_count;
 
-    memcpy(&mac_addr, message_info.peer_addr.s6_addr + 8, sizeof(mac_addr));
+    memcpy(&mac_addr, message_info.peer_addr.addr8 + 8, sizeof(mac_addr));
     mac_addr.bytes[0] ^= 0x2;
 
     // Source Address
@@ -1319,7 +1319,7 @@ ThreadError MleRouter::HandleParentRequest(const Message &message, const Ip6Mess
     // 3. Its current routing path cost to the Leader is infinite.
     VerifyOrExit(m_routers[GetLeaderId()].nexthop != kMaxRouterId, error = kThreadError_Drop);
 
-    memcpy(&mac_addr, message_info.peer_addr.s6_addr + 8, sizeof(mac_addr));
+    memcpy(&mac_addr, message_info.peer_addr.addr8 + 8, sizeof(mac_addr));
     mac_addr.bytes[0] ^= 0x2;
 
     // Version
@@ -1493,9 +1493,9 @@ ThreadError MleRouter::SendParentResponse(Child *child, const ChallengeTlv &chal
     SuccessOrExit(error = AppendVersion(*message));
 
     memset(&destination, 0, sizeof(destination));
-    destination.s6_addr16[0] = HostSwap16(0xfe80);
-    memcpy(destination.s6_addr + 8, &child->mac_addr, sizeof(child->mac_addr));
-    destination.s6_addr[8] ^= 0x2;
+    destination.addr16[0] = HostSwap16(0xfe80);
+    memcpy(destination.addr8 + 8, &child->mac_addr, sizeof(child->mac_addr));
+    destination.addr8[8] ^= 0x2;
     SuccessOrExit(error = SendMessage(*message, destination));
 
     dprintf("Sent Parent Response\n");
@@ -1529,7 +1529,7 @@ ThreadError MleRouter::UpdateChildAddresses(const AddressRegistrationTlv &tlv, C
             // xxx check if context id exists
             m_network_data->GetContext(entry->GetContextId(), context);
             memcpy(&child.ip6_address[count], context.prefix, (context.prefix_length + 7) / 8);
-            memcpy(child.ip6_address[count].s6_addr + 8, entry->GetIid(), 8);
+            memcpy(child.ip6_address[count].addr8 + 8, entry->GetIid(), 8);
         }
         else
         {
@@ -1557,7 +1557,7 @@ ThreadError MleRouter::HandleChildIdRequest(const Message &message, const Ip6Mes
     dprintf("Received Child ID Request\n");
 
     // Find Child
-    memcpy(&mac_addr, message_info.peer_addr.s6_addr + 8, sizeof(mac_addr));
+    memcpy(&mac_addr, message_info.peer_addr.addr8 + 8, sizeof(mac_addr));
     mac_addr.bytes[0] ^= 0x2;
 
     VerifyOrExit((child = FindChild(mac_addr)) != NULL, ;);
@@ -1684,7 +1684,7 @@ ThreadError MleRouter::HandleChildUpdateRequest(const Message &message, const Ip
     dprintf("Received Child Update Request\n");
 
     // Find Child
-    memcpy(&mac_addr, message_info.peer_addr.s6_addr + 8, sizeof(mac_addr));
+    memcpy(&mac_addr, message_info.peer_addr.addr8 + 8, sizeof(mac_addr));
     mac_addr.bytes[0] ^= 0x2;
 
     child = FindChild(mac_addr);
@@ -1759,8 +1759,8 @@ ThreadError MleRouter::HandleNetworkDataUpdateRouter()
     VerifyOrExit(m_device_state == kDeviceStateRouter || m_device_state == kDeviceStateLeader, ;);
 
     memset(&destination, 0, sizeof(destination));
-    destination.s6_addr16[0] = HostSwap16(0xff02);
-    destination.s6_addr16[7] = HostSwap16(0x0001);
+    destination.addr16[0] = HostSwap16(0xff02);
+    destination.addr16[7] = HostSwap16(0x0001);
 
     SendDataResponse(destination, tlvs, sizeof(tlvs));
 
@@ -1812,9 +1812,9 @@ ThreadError MleRouter::SendChildIdResponse(Child *child)
     child->state = Neighbor::kStateValid;
 
     memset(&destination, 0, sizeof(destination));
-    destination.s6_addr16[0] = HostSwap16(0xfe80);
-    memcpy(destination.s6_addr + 8, &child->mac_addr, sizeof(child->mac_addr));
-    destination.s6_addr[8] ^= 0x2;
+    destination.addr16[0] = HostSwap16(0xfe80);
+    memcpy(destination.addr8 + 8, &child->mac_addr, sizeof(child->mac_addr));
+    destination.addr8[8] ^= 0x2;
     SuccessOrExit(error = SendMessage(*message, destination));
 
     dprintf("Sent Child ID Response\n");
@@ -2039,17 +2039,17 @@ Neighbor *MleRouter::GetNeighbor(const Ip6Address &address)
 
     if (address.IsLinkLocal())
     {
-        if (address.s6_addr16[4] == HostSwap16(0x0000) &&
-            address.s6_addr16[5] == HostSwap16(0x00ff) &&
-            address.s6_addr16[6] == HostSwap16(0xfe00))
+        if (address.addr16[4] == HostSwap16(0x0000) &&
+            address.addr16[5] == HostSwap16(0x00ff) &&
+            address.addr16[6] == HostSwap16(0xfe00))
         {
             macaddr.length = 2;
-            macaddr.address16 = HostSwap16(address.s6_addr16[7]);
+            macaddr.address16 = HostSwap16(address.addr16[7]);
         }
         else
         {
             macaddr.length = 8;
-            memcpy(macaddr.address64.bytes, address.s6_addr + 8, sizeof(macaddr.address64));
+            memcpy(macaddr.address64.bytes, address.addr8 + 8, sizeof(macaddr.address64));
             macaddr.address64.bytes[0] ^= 0x02;
         }
 
@@ -2071,17 +2071,17 @@ Neighbor *MleRouter::GetNeighbor(const Ip6Address &address)
         }
 
         if (context.context_id == 0 &&
-            address.s6_addr16[4] == HostSwap16(0x0000) &&
-            address.s6_addr16[5] == HostSwap16(0x00ff) &&
-            address.s6_addr16[6] == HostSwap16(0xfe00) &&
-            address.s6_addr16[7] == HostSwap16(child->valid.rloc16))
+            address.addr16[4] == HostSwap16(0x0000) &&
+            address.addr16[5] == HostSwap16(0x00ff) &&
+            address.addr16[6] == HostSwap16(0xfe00) &&
+            address.addr16[7] == HostSwap16(child->valid.rloc16))
         {
             ExitNow(rval = child);
         }
 
         for (int j = 0; j < Child::kMaxIp6AddressPerChild; j++)
         {
-            if (memcmp(&child->ip6_address[j], address.s6_addr, sizeof(child->ip6_address[j])) == 0)
+            if (memcmp(&child->ip6_address[j], address.addr8, sizeof(child->ip6_address[j])) == 0)
             {
                 ExitNow(rval = child);
             }
@@ -2099,10 +2099,10 @@ Neighbor *MleRouter::GetNeighbor(const Ip6Address &address)
             continue;
         }
 
-        if (address.s6_addr16[4] == HostSwap16(0x0000) &&
-            address.s6_addr16[5] == HostSwap16(0x00ff) &&
-            address.s6_addr16[6] == HostSwap16(0xfe00) &&
-            address.s6_addr16[7] == HostSwap16(router->valid.rloc16))
+        if (address.addr16[4] == HostSwap16(0x0000) &&
+            address.addr16[5] == HostSwap16(0x00ff) &&
+            address.addr16[6] == HostSwap16(0xfe00) &&
+            address.addr16[7] == HostSwap16(router->valid.rloc16))
         {
             ExitNow(rval = router);
         }
@@ -2168,9 +2168,9 @@ ThreadError MleRouter::HandleMacDataRequest(const Child &child)
     VerifyOrExit(child.state == Neighbor::kStateValid && (child.mode & kModeRxOnWhenIdle) == 0, ;);
 
     memset(&destination, 0, sizeof(destination));
-    destination.s6_addr16[0] = HostSwap16(0xfe80);
-    memcpy(destination.s6_addr + 8, &child.mac_addr, sizeof(child.mac_addr));
-    destination.s6_addr[8] ^= 0x2;
+    destination.addr16[0] = HostSwap16(0xfe80);
+    memcpy(destination.addr8 + 8, &child.mac_addr, sizeof(child.mac_addr));
+    destination.addr8[8] ^= 0x2;
 
     if (child.mode & kModeFullNetworkData)
     {
@@ -2239,7 +2239,7 @@ ThreadError MleRouter::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 
     }
 
     memcpy(&destination, GetMeshLocal16(), 14);
-    destination.s6_addr16[7] = HostSwap16(meshsrc);
+    destination.addr16[7] = HostSwap16(meshsrc);
     Icmp6::SendError(destination, Icmp6Header::kTypeDstUnreach, Icmp6Header::kCodeDstUnreachNoRoute, ip6_header);
 
     return kThreadError_Drop;
@@ -2289,7 +2289,7 @@ ThreadError MleRouter::SendAddressSolicit()
     message_info.peer_port = kCoapUdpPort;
     SuccessOrExit(error = m_socket.SendTo(*message, message_info));
 
-    dprintf("Sent address solicit to %04x\n", HostSwap16(message_info.peer_addr.s6_addr16[7]));
+    dprintf("Sent address solicit to %04x\n", HostSwap16(message_info.peer_addr.addr16[7]));
 
 exit:
     return error;
@@ -2764,7 +2764,7 @@ ThreadError MleRouter::AppendChildAddresses(Message &message, Child &child)
         {
             // compressed entry
             entry.SetContextId(context.context_id);
-            entry.SetIid(child.ip6_address[i].s6_addr + 8);
+            entry.SetIid(child.ip6_address[i].addr8 + 8);
             length = 9;
         }
         else

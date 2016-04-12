@@ -60,9 +60,9 @@ public:
 
     union
     {
-        uint8_t  s6_addr[16];
-        uint16_t s6_addr16[8];
-        uint32_t s6_addr32[4];
+        uint8_t  addr8[16];
+        uint16_t addr16[8];
+        uint32_t addr32[4];
     };
 };
 
