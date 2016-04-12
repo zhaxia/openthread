@@ -1438,6 +1438,7 @@ void MleRouter::HandleStateUpdateTimer()
                 m_routers[i].nexthop = kMaxRouterId;
                 m_routers[i].link_quality_in = 0;
                 m_routers[i].link_quality_out = 0;
+                m_routers[i].last_heard = Timer::GetNow();
             }
         }
 
@@ -1453,7 +1454,7 @@ void MleRouter::HandleStateUpdateTimer()
             }
             else if (m_routers[i].reclaim_delay)
             {
-                if ((Timer::GetNow() - m_routers[i].last_heard) >= ((kMaxNeighborAge + kRouterIdReuseDelay) * 1000U))
+                if ((Timer::GetNow() - m_routers[i].last_heard) >= ((kMaxLeaderToRouterTimeout + kRouterIdReuseDelay) * 1000U))
                 {
                     m_routers[i].reclaim_delay = false;
                 }
