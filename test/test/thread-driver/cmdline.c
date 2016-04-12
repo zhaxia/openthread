@@ -25,7 +25,7 @@
 
 #include "cmdline.h"
 
-const char *gengetopt_args_info_purpose = "The Nest Labs Thread driver.";
+const char *gengetopt_args_info_purpose = "The OpenThread driver.";
 
 const char *gengetopt_args_info_usage = "Usage: thread-driver [OPTIONS]...";
 
