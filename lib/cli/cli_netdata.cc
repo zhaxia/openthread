@@ -188,7 +188,7 @@ int NetData::AddHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t buf_l
         }
     }
 
-    SuccessOrExit(error = m_network_data_local->AddHasRoutePrefix(prefix.s6_addr, prefix_length, prf, stable));
+    SuccessOrExit(error = m_network_data_local->AddHasRoutePrefix(prefix.addr8, prefix_length, prf, stable));
 
 exit:
 
@@ -232,7 +232,7 @@ int NetData::RemoveHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t bu
         ExitNow();
     }
 
-    SuccessOrExit(error = m_network_data_local->RemoveHasRoutePrefix(prefix.s6_addr, prefix_length));
+    SuccessOrExit(error = m_network_data_local->RemoveHasRoutePrefix(prefix.addr8, prefix_length));
 
 exit:
 
@@ -335,7 +335,7 @@ int NetData::AddOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_len
         }
     }
 
-    SuccessOrExit(error = m_network_data_local->AddOnMeshPrefix(prefix.s6_addr, prefix_length, prf, flags, stable));
+    SuccessOrExit(error = m_network_data_local->AddOnMeshPrefix(prefix.addr8, prefix_length, prf, flags, stable));
 
 exit:
 
@@ -379,7 +379,7 @@ int NetData::RemoveOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_
         ExitNow();
     }
 
-    SuccessOrExit(error = m_network_data_local->RemoveOnMeshPrefix(prefix.s6_addr, prefix_length));
+    SuccessOrExit(error = m_network_data_local->RemoveOnMeshPrefix(prefix.addr8, prefix_length));
 
 exit:
 
