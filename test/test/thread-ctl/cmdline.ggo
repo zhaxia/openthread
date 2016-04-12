@@ -1,6 +1,6 @@
 package "thread-ctl"
 version "0.1"
-purpose "A command-line interface for the Nest Labs Thread driver."
+purpose "A command-line interface for the OpenThread driver."
 
 option "interface" I "Network Interface" required
   string

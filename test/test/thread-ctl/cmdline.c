@@ -25,7 +25,7 @@
 
 #include "cmdline.h"
 
-const char *gengetopt_args_info_purpose = "A command-line interface for the Nest Labs Thread driver.";
+const char *gengetopt_args_info_purpose = "A command-line interface for the OpenThread driver.";
 
 const char *gengetopt_args_info_usage = "Usage: thread-ctl [OPTIONS]...";
 
