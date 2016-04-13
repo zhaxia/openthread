@@ -1,7 +1,7 @@
 OPENTHREAD_DIR=../../..
 
 bin_PROGRAMS = soc
-soc_SOURCES = main.cc
+soc_SOURCES = main.cpp
 soc_CPPFLAGS = \
     -I$(OPENTHREAD_DIR)/include     \
     -I$(OPENTHREAD_DIR)/lib         \

@@ -1,7 +1,7 @@
 OPENTHREAD_DIR=../../..
 
 bin_PROGRAMS = ncp
-ncp_SOURCES = main.cc
+ncp_SOURCES = main.cpp
 ncp_CPPFLAGS = \
     -I$(OPENTHREAD_DIR)/include     \
     -I$(OPENTHREAD_DIR)/lib         \

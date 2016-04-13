@@ -1,7 +1,7 @@
 OPENTHREAD_DIR=../../..
 
 bin_PROGRAMS = thread-ctl
-thread_ctl_SOURCES = main.cc cmdline.c
+thread_ctl_SOURCES = main.cpp cmdline.c
 thread_ctl_CPPFLAGS = \
     -I$(OPENTHREAD_DIR)/include     \
     -I$(OPENTHREAD_DIR)/lib         \

@@ -23,4 +23,4 @@ MAINTAINERCLEANFILES =   \
   m4/ltoptions.m4
 
 pretty:
-	astyle --style="allman" --max-code-length=120 --max-instatement-indent=100 --attach-namespaces --attach-inlines --attach-extern-c --min-conditional-indent=0 --break-blocks --pad-oper --pad-header --unpad-paren --align-pointer=name --add-brackets --keep-one-line-blocks --convert-tabs --break-after-logical `find . \( -name "*.cc" -o -name "*.h" \) -and ! \( -name "config.h" -o -name "cmdline.h" -o -name "ncp.pb-c.h" -o -name "protobuf-c.h" \)`
+	astyle --style="allman" --max-code-length=120 --max-instatement-indent=100 --attach-namespaces --attach-inlines --attach-extern-c --min-conditional-indent=0 --break-blocks --pad-oper --pad-header --unpad-paren --align-pointer=name --add-brackets --keep-one-line-blocks --convert-tabs --break-after-logical `find . \( -name "*.cpp" -o -name "*.h" \) -and ! \( -name "config.h" -o -name "cmdline.h" -o -name "ncp.pb-c.h" -o -name "protobuf-c.h" \)`
