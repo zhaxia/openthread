@@ -1584,7 +1584,6 @@ ThreadError Mle::HandleParentResponse(const Message &message, const Ip6MessageIn
         VerifyOrExit(diff > 0 || (diff == 0 && m_mle_router->GetLeaderAge() < m_mle_router->GetNetworkIdTimeout()), ;);
     }
 
-    // XXX: how does Leader Cost factor into this?
     connectivity_metric =
         (static_cast<uint32_t>(link_quality) << 24) |
         (static_cast<uint32_t>(connectivity.GetLinkQuality3()) << 16) |

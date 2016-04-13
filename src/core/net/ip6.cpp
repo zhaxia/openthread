@@ -198,11 +198,11 @@ ThreadError HandleOptions(Message &message)
                 ExitNow(error = kThreadError_Drop);
 
             case Ip6OptionHeader::kActionForceIcmp:
-                // XXX: send icmp error
+                // TODO: send icmp error
                 ExitNow(error = kThreadError_Drop);
 
             case Ip6OptionHeader::kActionIcmp:
-                // XXX: send icmp error
+                // TODO: send icmp error
                 ExitNow(error = kThreadError_Drop);
 
             }
