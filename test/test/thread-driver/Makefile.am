@@ -13,8 +13,8 @@ endif
 
 thread_driver_CPPFLAGS = \
     -I$(OPENTHREAD_DIR)/include     \
-    -I$(OPENTHREAD_DIR)/lib         \
     -I$(OPENTHREAD_DIR)/src         \
+    -I$(OPENTHREAD_DIR)/src/core    \
     -I$(OPENTHREAD_DIR)/test/src    \
     -I$(OPENTHREAD_DIR)/third_party
 thread_driver_LDADD = ../../src/libthread.a -lpthread

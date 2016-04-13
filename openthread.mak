@@ -14,61 +14,63 @@
 #    limitations under the License.
 #
 
-OPENTHREAD_SOURCES               = \
-    coap/coap_header.cpp           \
-    coap/coap_server.cpp           \
-    common/message.cpp             \
-    common/random.cpp              \
-    common/tasklet.cpp             \
-    common/timer.cpp               \
-    crypto/aes_ccm.cpp             \
-    crypto/aes_ecb.cpp             \
-    crypto/hmac.cpp                \
-    crypto/sha256.cpp              \
-    mac/mac.cpp                    \
-    mac/mac_frame.cpp              \
-    mac/mac_whitelist.cpp          \
-    ncp/hdlc.cpp                   \
-    ncp/ncp.cpp                    \
-    ncp/ncp_base.cpp               \
-    ncp/ncp.pb-c.c                 \
-    net/icmp6.cpp                  \
-    net/ip6.cpp                    \
-    net/ip6_address.cpp            \
-    net/ip6_mpl.cpp                \
-    net/ip6_routes.cpp             \
-    net/netif.cpp                  \
-    net/udp6.cpp                   \
-    thread/address_resolver.cpp    \
-    thread/key_manager.cpp         \
-    thread/lowpan.cpp              \
-    thread/mesh_forwarder.cpp      \
-    thread/mle.cpp                 \
-    thread/mle_router.cpp          \
-    thread/mle_tlvs.cpp            \
-    thread/network_data.cpp        \
-    thread/network_data_local.cpp  \
-    thread/network_data_leader.cpp \
-    thread/thread_netif.cpp        \
-    thread/thread_tlvs.cpp         \
+OPENTHREAD_CORE_SOURCES                   = \
+    src/core/coap/coap_header.cpp           \
+    src/core/coap/coap_server.cpp           \
+    src/core/common/message.cpp             \
+    src/core/common/random.cpp              \
+    src/core/common/tasklet.cpp             \
+    src/core/common/timer.cpp               \
+    src/core/crypto/aes_ccm.cpp             \
+    src/core/crypto/aes_ecb.cpp             \
+    src/core/crypto/hmac.cpp                \
+    src/core/crypto/sha256.cpp              \
+    src/core/mac/mac.cpp                    \
+    src/core/mac/mac_frame.cpp              \
+    src/core/mac/mac_whitelist.cpp          \
+    src/core/net/icmp6.cpp                  \
+    src/core/net/ip6.cpp                    \
+    src/core/net/ip6_address.cpp            \
+    src/core/net/ip6_mpl.cpp                \
+    src/core/net/ip6_routes.cpp             \
+    src/core/net/netif.cpp                  \
+    src/core/net/udp6.cpp                   \
+    src/core/thread/address_resolver.cpp    \
+    src/core/thread/key_manager.cpp         \
+    src/core/thread/lowpan.cpp              \
+    src/core/thread/mesh_forwarder.cpp      \
+    src/core/thread/mle.cpp                 \
+    src/core/thread/mle_router.cpp          \
+    src/core/thread/mle_tlvs.cpp            \
+    src/core/thread/network_data.cpp        \
+    src/core/thread/network_data_local.cpp  \
+    src/core/thread/network_data_leader.cpp \
+    src/core/thread/thread_netif.cpp        \
+    src/core/thread/thread_tlvs.cpp         \
     $(NULL)
 
-OPENTHREAD_LIB_CLI_SOURCES       = \
-    cli/cli_command.cpp            \
-    cli/cli_ifconfig.cpp           \
-    cli/cli_ip.cpp                 \
-    cli/cli_mac.cpp                \
-    cli/cli_netdata.cpp            \
-    cli/cli_ping.cpp               \
-    cli/cli_route.cpp              \
-    cli/cli_serial.cpp             \
-    cli/cli_server.cpp             \
-    cli/cli_shutdown.cpp           \
-    cli/cli_thread.cpp             \
-    cli/cli_udp.cpp                \
+OPENTHREAD_NCP_SOURCES                    = \
+    src/ncp/hdlc.cpp                        \
+    src/ncp/ncp.cpp                         \
+    src/ncp/ncp_base.cpp                    \
+    src/ncp/ncp.pb-c.c                      \
     $(NULL)
 
-OPENTHREAD_LIB_PROTOBUF_SOURCES = \
-    protobuf/protobuf-c.c         \
+OPENTHREAD_CLI_SOURCES                    = \
+    src/cli/cli_command.cpp                 \
+    src/cli/cli_ifconfig.cpp                \
+    src/cli/cli_ip.cpp                      \
+    src/cli/cli_mac.cpp                     \
+    src/cli/cli_netdata.cpp                 \
+    src/cli/cli_ping.cpp                    \
+    src/cli/cli_route.cpp                   \
+    src/cli/cli_serial.cpp                  \
+    src/cli/cli_server.cpp                  \
+    src/cli/cli_shutdown.cpp                \
+    src/cli/cli_thread.cpp                  \
+    src/cli/cli_udp.cpp                     \
     $(NULL)
 
+OPENTHREAD_PROTOBUF_SOURCES               = \
+    third_party/protobuf/protobuf-c.c       \
+    $(NULL)
