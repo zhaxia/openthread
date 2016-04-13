@@ -1,14 +1,14 @@
 OPENTHREAD_DIR=../../..
 
 bin_PROGRAMS = thread-driver
-thread_driver_SOURCES = main.cc cmdline.c serial_port.cc thread_driver.cc
+thread_driver_SOURCES = main.cpp cmdline.c serial_port.cpp thread_driver.cpp
 
 if DARWIN
-thread_driver_SOURCES += darwin/tun_netif.cc
+thread_driver_SOURCES += darwin/tun_netif.cpp
 endif
 
 if LINUX
-thread_driver_SOURCES += linux/tun_netif.cc
+thread_driver_SOURCES += linux/tun_netif.cpp
 endif
 
 thread_driver_CPPFLAGS = \
