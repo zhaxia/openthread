@@ -659,8 +659,8 @@ void NcpBase::RunUpdateAddressesTask()
 //     Serial channel message callbacks
 // ============================================================
 
-void NcpBase::HandleReceive(void *context, uint8_t protocol, 
-			    uint8_t *buf, uint16_t buf_length)
+void NcpBase::HandleReceive(void *context, uint8_t protocol,
+                            uint8_t *buf, uint16_t buf_length)
 {
     NcpBase *obj = reinterpret_cast<NcpBase *>(context);
     obj->HandleReceive(protocol, buf, buf_length);
