@@ -116,6 +116,7 @@ void *alarm_thread(void *arg)
             }
         }
     }
+
     return NULL;
 }
 

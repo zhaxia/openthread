@@ -19,7 +19,7 @@
 
 namespace Thread {
 
-Ncp::Ncp(): 
+Ncp::Ncp():
     NcpBase()
 {
 }
@@ -27,10 +27,10 @@ Ncp::Ncp():
 ThreadError Ncp::Init()
 {
     super_t::Init();
-    Hdlc::Init(this, 
-	       &super_t::HandleReceive, 
-	       &super_t::HandleSendDone, 
-	       &super_t::HandleSendMessageDone);
+    Hdlc::Init(this,
+               &super_t::HandleReceive,
+               &super_t::HandleSendDone,
+               &super_t::HandleSendMessageDone);
     return kThreadError_None;
 }
 
@@ -46,15 +46,16 @@ ThreadError Ncp::Stop()
     return m_hdlc.Stop();
 }
 
-ThreadError Ncp::Send(uint8_t protocol, uint8_t *frame, 
-		       uint16_t frame_length) 
+ThreadError Ncp::Send(uint8_t protocol, uint8_t *frame,
+                      uint16_t frame_length)
 {
-  return m_hdlc.Send(protocol, frame, frame_length);
+    return m_hdlc.Send(protocol, frame, frame_length);
 }
 
 /// TODO: queue
-ThreadError Ncp::SendMessage(uint8_t protocol, Message &message) {
-  return m_hdlc.SendMessage(protocol, message);
+ThreadError Ncp::SendMessage(uint8_t protocol, Message &message)
+{
+    return m_hdlc.SendMessage(protocol, message);
 }
 
 

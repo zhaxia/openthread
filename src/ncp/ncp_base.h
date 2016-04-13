@@ -23,11 +23,12 @@
 #include <platform/common/uart.h>
 #include <thread/thread_netif.h>
 
-enum {
-  kNcpChannel_ThreadControl = 0,    ///< Host initiated Thread control
-  kNcpChannel_ThreadInterface = 1,  ///< Unsolicited Thread interface events
-  kNcpChannel_ThreadData = 2,       ///< IPv6 data 
-  kNcpChannel_ThreadBle = 3         ///< BLE HCI 
+enum
+{
+    kNcpChannel_ThreadControl = 0,    ///< Host initiated Thread control
+    kNcpChannel_ThreadInterface = 1,  ///< Unsolicited Thread interface events
+    kNcpChannel_ThreadData = 2,       ///< IPv6 data
+    kNcpChannel_ThreadBle = 3         ///< BLE HCI
 };
 
 namespace Thread {
@@ -42,8 +43,8 @@ public:
     virtual ThreadError Stop();
 
     virtual ThreadError SendMessage(uint8_t protocol, Message &message) = 0;
-    virtual ThreadError Send(uint8_t protocol, uint8_t *frame, 
-			     uint16_t frame_length) = 0;
+    virtual ThreadError Send(uint8_t protocol, uint8_t *frame,
+                             uint16_t frame_length) = 0;
 
     static void HandleReceivedDatagram(void *context, Message &message);
     void HandleReceivedDatagram(Message &message);
@@ -93,7 +94,7 @@ private:
 
     void RunSendScanResultsTask();
 
- protected:
+protected:
     MessageQueue m_send_queue;
 };
 

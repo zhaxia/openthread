@@ -76,7 +76,7 @@ inline void dump_line(const char *id, const void *addr, const int len)
     {
         if (i < len)
         {
-            printf(" %02X", ((uint8_t*)(addr))[i]);
+            printf(" %02X", ((uint8_t *)(addr))[i]);
         }
         else
         {
@@ -93,7 +93,7 @@ inline void dump_line(const char *id, const void *addr, const int len)
 
     for (int i = 0; i < 16; i++)
     {
-        char c = 0x7f & ((char*)(addr))[i];
+        char c = 0x7f & ((char *)(addr))[i];
 
         if (i < len && isprint(c))
         {
@@ -129,7 +129,7 @@ inline void dump(const char *id, const void *addr, const int len)
 
     for (int i = 0; i < len; i += 16)
     {
-        dump_line(id, (uint8_t*)(addr) + i, (len - i) < 16 ? (len - i) : 16);
+        dump_line(id, (uint8_t *)(addr) + i, (len - i) < 16 ? (len - i) : 16);
         printf("\n");
     }
 

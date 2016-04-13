@@ -34,8 +34,8 @@ public:
     ThreadError Stop() final;
 
     ThreadError SendMessage(uint8_t protocol, Message &message) final;
-    ThreadError Send(uint8_t protocol, uint8_t *frame, 
-		     uint16_t frame_length) final;
+    ThreadError Send(uint8_t protocol, uint8_t *frame,
+                     uint16_t frame_length) final;
 
 private:
     Hdlc m_hdlc;
