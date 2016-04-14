@@ -373,8 +373,6 @@ int Message::CopyTo(uint16_t src_offset, uint16_t dst_offset, uint16_t length, M
     uint16_t bytes_to_copy;
     uint8_t buf[16];
 
-    // XXX: The current implementation requires two copies.  We can
-    // optimize to perform a single copy if needed.
     while (length > 0)
     {
         bytes_to_copy = (length < sizeof(buf)) ? length : sizeof(buf);

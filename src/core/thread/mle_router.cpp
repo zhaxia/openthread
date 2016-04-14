@@ -1059,8 +1059,6 @@ ThreadError MleRouter::HandleAdvertisement(const Message &message, const Ip6Mess
         ExitNow(error = kThreadError_Drop);
     }
 
-    // XXX: what to do if partition id is the same for two different partitions?
-
     VerifyOrExit(GetChildId(source_address.GetRloc16()) == 0, ;);
 
     // Route Data
@@ -2637,7 +2635,6 @@ ThreadError MleRouter::AppendConnectivity(Message &message)
     uint8_t cost;
     uint8_t lqi;
 
-    // XXX: what if device is end-device?  it doesn't have bi-directional LQ to compute cost to leader
     tlv.Init();
     tlv.SetMaxChildCount(kMaxChildren);
 
