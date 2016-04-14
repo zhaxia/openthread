@@ -34,14 +34,14 @@ class Test_MacScan(unittest.TestCase):
         self.nodes[LEADER].add_whitelist(self.nodes[ROUTER].get_addr64())
         self.nodes[LEADER].enable_whitelist()
         self.nodes[LEADER].set_channel(12)
-        self.nodes[LEADER].set_network_name('JonathanHui')
+        self.nodes[LEADER].set_network_name('OpenThread')
 
         self.nodes[ROUTER].set_panid(0xface)
         self.nodes[ROUTER].set_mode('rsdn')
         self.nodes[ROUTER].add_whitelist(self.nodes[LEADER].get_addr64())
         self.nodes[ROUTER].enable_whitelist()
         self.nodes[ROUTER].set_channel(12)
-        self.nodes[ROUTER].set_network_name('JonathanHui')
+        self.nodes[ROUTER].set_network_name('OpenThread')
 
     def tearDown(self):
         for node in self.nodes.itervalues():

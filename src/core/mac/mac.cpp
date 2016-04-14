@@ -26,9 +26,9 @@
 namespace Thread {
 namespace Mac {
 
-static const uint8_t extended_panid_init_[] = {0xde, 0xad, 0x00, 0xbe, 0xef, 0x00, 0xca, 0xfe};
-static const char network_name_init_[] = "JonathanHui";
-static Mac *mac_;
+static const uint8_t s_extended_panid_init[] = {0xde, 0xad, 0x00, 0xbe, 0xef, 0x00, 0xca, 0xfe};
+static const char s_network_name_init[] = "OpenThread";
+static Mac *s_mac;
 
 Mac::Mac(ThreadNetif *netif):
     m_ack_timer(&HandleAckTimer, this),
@@ -38,10 +38,10 @@ Mac::Mac(ThreadNetif *netif):
     m_key_manager = netif->GetKeyManager();
     m_mle = netif->GetMle();
 
-    memcpy(m_extended_panid, extended_panid_init_, sizeof(m_extended_panid));
-    memcpy(m_network_name, network_name_init_, sizeof(m_network_name));
+    memcpy(m_extended_panid, s_extended_panid_init, sizeof(m_extended_panid));
+    memcpy(m_network_name, s_network_name_init, sizeof(m_network_name));
 
-    mac_ = this;
+    s_mac = this;
 }
 
 ThreadError Mac::Init()
@@ -505,7 +505,7 @@ exit:
 
 extern "C" void phy_handle_transmit_done(PhyPacket *packet, bool rx_pending, ThreadError error)
 {
-    mac_->HandleTransmitDone(packet, rx_pending, error);
+    s_mac->HandleTransmitDone(packet, rx_pending, error);
 }
 
 void Mac::HandleTransmitDone(PhyPacket *packet, bool rx_pending, ThreadError error)
@@ -761,7 +761,7 @@ exit:
 
 extern "C" void phy_handle_receive_done(PhyPacket *packet, ThreadError error)
 {
-    mac_->HandleReceiveDone(packet, error);
+    s_mac->HandleReceiveDone(packet, error);
 }
 
 void Mac::HandleReceiveDone(PhyPacket *packet, ThreadError error)
