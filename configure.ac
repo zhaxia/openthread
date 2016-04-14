@@ -2,19 +2,19 @@
 # Process this file with autoconf to produce a configure script.
 
 #
-#    Copyright (c) 2016 Nest Labs, Inc.
-#    All rights reserved.
+#    Copyright 2016 Nest Labs Inc. All Rights Reserved.
 #
-#    This document is the property of Nest. It is considered
-#    confidential and proprietary information.
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
 #
-#    This document may not be reproduced or transmitted in any form,
-#    in whole or in part, without the express written permission of
-#    Nest.
+#    http://www.apache.org/licenses/LICENSE-2.0
 #
-#    Description:
-#      This file is the GNU autoconf input source file for
-#      OpenThread.
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
 #
 
 #
@@ -56,7 +56,7 @@ AC_SUBST(LIBOPENTHREAD_VERSION_INFO,     [${LIBOPENTHREAD_VERSION_CURRENT}:${LIB
 # Check the sanity of the source directory by checking for the
 # presence of a key watch file
 #
-AC_CONFIG_SRCDIR([include/openthread.h])
+AC_CONFIG_SRCDIR([include/thread/thread_netif.hpp])
 
 #
 # Tell autoconf where to find auxilliary build tools (e.g. config.guess,
@@ -118,6 +118,32 @@ AM_SILENT_RULES([yes])
 # Use the included 'bootstrap' script instead when necessary.
 #
 AM_MAINTAINER_MODE
+
+#
+# Check for target
+#
+
+case ${target_os} in
+
+    *darwin*)
+        OPENTHREAD_TARGET=darwin
+        OPENTHREAD_TARGET_DEFINES="-DOPENTHREAD_TARGET_DARWIN"
+        ;;
+
+    *linux*)
+        OPENTHREAD_TARGET=linux
+        OPENTHREAD_TARGET_DEFINES="-DOPENTHREAD_TARGET_LINUX"
+        ;;
+
+esac
+
+AC_SUBST(OPENTHREAD_TARGET_DARWIN)
+AM_CONDITIONAL([OPENTHREAD_TARGET_DARWIN], [test "${OPENTHREAD_TARGET}" = "darwin"])
+
+AC_SUBST(OPENTHREAD_TARGET_LINUX)
+AM_CONDITIONAL([OPENTHREAD_TARGET_LINUX], [test "${OPENTHREAD_TARGET}" = "linux"])
+
+AC_SUBST(OPENTHREAD_TARGET_DEFINES)
 
 #
 # Checks for build host programs
@@ -313,10 +339,21 @@ NL_RESTORE_WERROR
 #
 AC_CONFIG_FILES([
 Makefile
-fps/Makefile
 src/Makefile
+src/cli/Makefile
+src/core/Makefile
+src/ncp/Makefile
 tests/Makefile
-doc/Makefile
+tests/platform/Makefile
+tests/platform/posix/Makefile
+tests/ncp/Makefile
+tests/ncp/src/Makefile
+tests/ncp/tools/Makefile
+tests/ncp/tools/ncp-ctl/Makefile
+tests/ncp/tools/ncp-driver/Makefile
+tests/soc/Makefile
+tests/soc/src/Makefile
+tests/unit/Makefile
 ])
 
 #

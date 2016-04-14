@@ -84,7 +84,7 @@ build=x86_64-apple-darwin13.4.0
 build_os=darwin13.4.0
 
 # A sed program that does not truncate output.
-SED="/usr/gnu/bin/sed"
+SED="/usr/bin/sed"
 
 # Sed that helps us avoid accidentally triggering echo(1) options like -n.
 Xsed="$SED -e 1s/^X//"

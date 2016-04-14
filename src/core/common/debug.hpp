@@ -29,18 +29,7 @@
 #include <time.h>
 #endif
 
-#if !defined(AUTOMAKE) && !defined(CPU_POSIX)
-
-#define assert(cond)                            \
-  do {                                          \
-    if (!(cond)) {                              \
-      while (1) {}                              \
-    }                                           \
-  } while (0)
-
-#define dprintf(...)
-
-#else
+#if defined(OPENTHREAD_TARGET_DARWIN) || defined(OPENTHREAD_TARGET_LINUX)
 
 #include <assert.h>
 
@@ -62,6 +51,17 @@ inline void dprintf(const char *fmt, ...)
     vprintf(fmt, args);
     va_end(args);
 }
+
+#else
+
+#define assert(cond)                            \
+  do {                                          \
+    if (!(cond)) {                              \
+      while (1) {}                              \
+    }                                           \
+  } while (0)
+
+#define dprintf(...)
 
 #endif
 
