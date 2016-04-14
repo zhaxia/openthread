@@ -14,10 +14,10 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/debug.h>
-#include <common/message.h>
-#include <net/netif.h>
+#include <common/code_utils.hpp>
+#include <common/debug.hpp>
+#include <common/message.hpp>
+#include <net/netif.hpp>
 
 namespace Thread {
 

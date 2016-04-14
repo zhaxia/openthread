@@ -18,10 +18,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <platform/common/alarm.h>
-#include <platform/common/atomic.h>
-#include <common/code_utils.h>
-#include <common/timer.h>
+#include <platform/alarm.hpp>
+#include <platform/atomic.hpp>
+#include <common/code_utils.hpp>
+#include <common/timer.hpp>
 
 #ifdef __cplusplus
 extern "C" {

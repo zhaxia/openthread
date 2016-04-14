@@ -14,16 +14,16 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/message.h>
-#include <common/thread_error.h>
-#include <net/icmp6.h>
-#include <net/ip6.h>
-#include <net/ip6_address.h>
-#include <net/ip6_mpl.h>
-#include <net/ip6_routes.h>
-#include <net/netif.h>
-#include <net/udp6.h>
+#include <common/code_utils.hpp>
+#include <common/message.hpp>
+#include <common/thread_error.hpp>
+#include <net/icmp6.hpp>
+#include <net/ip6.hpp>
+#include <net/ip6_address.hpp>
+#include <net/ip6_mpl.hpp>
+#include <net/ip6_routes.hpp>
+#include <net/netif.hpp>
+#include <net/udp6.hpp>
 
 namespace Thread {
 

@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-#include <common/random.h>
+#include <common/random.hpp>
 
 namespace Thread {
 

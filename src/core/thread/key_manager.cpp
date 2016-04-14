@@ -14,13 +14,13 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/thread_error.h>
-#include <crypto/hmac.h>
-#include <crypto/sha256.h>
-#include <thread/key_manager.h>
-#include <thread/mle_router.h>
-#include <thread/thread_netif.h>
+#include <common/code_utils.hpp>
+#include <common/thread_error.hpp>
+#include <crypto/hmac.hpp>
+#include <crypto/sha256.hpp>
+#include <thread/key_manager.hpp>
+#include <thread/mle_router.hpp>
+#include <thread/thread_netif.hpp>
 
 namespace Thread {
 

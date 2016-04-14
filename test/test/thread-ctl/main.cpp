@@ -14,11 +14,6 @@
  *    limitations under the License.
  */
 
-#include <cmdline.h>
-#include <common/code_utils.h>
-#include <common/thread_error.h>
-#include <ncp/ncp.pb-c.h>
-
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdint.h>
@@ -27,6 +22,12 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+
+#include <cmdline.h>
+#include <ncp/ncp.pb-c.h>
+
+#include <common/code_utils.hpp>
+#include <common/thread_error.hpp>
 
 namespace Thread {
 

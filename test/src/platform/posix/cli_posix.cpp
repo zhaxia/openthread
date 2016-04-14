@@ -18,10 +18,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <platform/posix/cli_posix.h>
 #include <platform/posix/cmdline.h>
-#include <cli/cli_command.h>
-#include <common/code_utils.h>
+
+#include <platform/posix/cli_posix.hpp>
+#include <cli/cli_command.hpp>
+#include <common/code_utils.hpp>
 
 extern struct gengetopt_args_info args_info;
 

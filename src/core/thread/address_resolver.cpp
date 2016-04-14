@@ -14,17 +14,17 @@
  *    limitations under the License.
  */
 
-#include <coap/coap_header.h>
-#include <common/code_utils.h>
-#include <common/encoding.h>
-#include <common/random.h>
-#include <common/thread_error.h>
-#include <mac/mac_frame.h>
-#include <thread/address_resolver.h>
-#include <thread/mesh_forwarder.h>
-#include <thread/mle_router.h>
-#include <thread/thread_netif.h>
-#include <thread/thread_tlvs.h>
+#include <coap/coap_header.hpp>
+#include <common/code_utils.hpp>
+#include <common/encoding.hpp>
+#include <common/random.hpp>
+#include <common/thread_error.hpp>
+#include <mac/mac_frame.hpp>
+#include <thread/address_resolver.hpp>
+#include <thread/mesh_forwarder.hpp>
+#include <thread/mle_router.hpp>
+#include <thread/thread_netif.hpp>
+#include <thread/thread_tlvs.hpp>
 
 using Thread::Encoding::BigEndian::HostSwap16;
 

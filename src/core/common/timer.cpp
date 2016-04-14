@@ -14,10 +14,10 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/thread_error.h>
-#include <common/timer.h>
-#include <platform/common/alarm.h>
+#include <common/code_utils.hpp>
+#include <common/thread_error.hpp>
+#include <common/timer.hpp>
+#include <platform/alarm.hpp>
 
 namespace Thread {
 

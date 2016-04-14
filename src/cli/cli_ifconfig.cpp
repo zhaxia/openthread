@@ -14,10 +14,10 @@
  *    limitations under the License.
  */
 
-#include <cli/cli_ifconfig.h>
-#include <common/code_utils.h>
-#include <net/ip6_address.h>
-#include <net/netif.h>
+#include <cli/cli_ifconfig.hpp>
+#include <common/code_utils.hpp>
+#include <net/ip6_address.hpp>
+#include <net/netif.hpp>
 
 namespace Thread {
 namespace Cli {

@@ -14,14 +14,14 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/random.h>
-#include <common/thread_error.h>
-#include <crypto/aes_ccm.h>
-#include <mac/mac.h>
-#include <mac/mac_frame.h>
-#include <thread/mle_router.h>
-#include <thread/thread_netif.h>
+#include <common/code_utils.hpp>
+#include <common/random.hpp>
+#include <common/thread_error.hpp>
+#include <crypto/aes_ccm.hpp>
+#include <mac/mac.hpp>
+#include <mac/mac_frame.hpp>
+#include <thread/mle_router.hpp>
+#include <thread/thread_netif.hpp>
 
 namespace Thread {
 namespace Mac {

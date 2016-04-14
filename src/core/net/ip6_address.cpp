@@ -17,10 +17,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <common/code_utils.h>
-#include <common/encoding.h>
-#include <common/thread_error.h>
-#include <net/ip6_address.h>
+#include <common/code_utils.hpp>
+#include <common/encoding.hpp>
+#include <common/thread_error.hpp>
+#include <net/ip6_address.hpp>
 
 using Thread::Encoding::BigEndian::HostSwap16;
 using Thread::Encoding::BigEndian::HostSwap32;

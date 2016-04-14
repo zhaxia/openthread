@@ -18,7 +18,8 @@
 #include <string.h>
 
 #include <cmdline.h>
-#include <thread_driver.h>
+
+#include <thread_driver.hpp>
 
 struct gengetopt_args_info args_info;
 

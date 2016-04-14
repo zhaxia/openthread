@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/thread_error.h>
-#include <crypto/sha256.h>
+#include <common/code_utils.hpp>
+#include <common/thread_error.hpp>
+#include <crypto/sha256.hpp>
 
 namespace Thread {
 namespace Crypto {

@@ -14,11 +14,11 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/tasklet.h>
-#include <common/thread_error.h>
-#include <platform/common/atomic.h>
-#include <platform/common/sleep.h>
+#include <common/code_utils.hpp>
+#include <common/tasklet.hpp>
+#include <common/thread_error.hpp>
+#include <platform/atomic.hpp>
+#include <platform/sleep.hpp>
 
 namespace Thread {
 

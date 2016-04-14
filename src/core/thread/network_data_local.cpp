@@ -14,12 +14,12 @@
  *    limitations under the License.
  */
 
-#include <coap/coap_header.h>
-#include <common/code_utils.h>
-#include <common/random.h>
-#include <thread/network_data_local.h>
-#include <thread/thread_netif.h>
-#include <thread/thread_tlvs.h>
+#include <coap/coap_header.hpp>
+#include <common/code_utils.hpp>
+#include <common/random.hpp>
+#include <thread/network_data_local.hpp>
+#include <thread/thread_netif.hpp>
+#include <thread/thread_tlvs.hpp>
 
 namespace Thread {
 namespace NetworkData {

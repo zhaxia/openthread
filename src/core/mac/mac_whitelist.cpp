@@ -14,8 +14,8 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <mac/mac_whitelist.h>
+#include <common/code_utils.hpp>
+#include <mac/mac_whitelist.hpp>
 
 namespace Thread {
 namespace Mac {

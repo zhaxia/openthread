@@ -14,16 +14,16 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/encoding.h>
-#include <common/message.h>
-#include <common/thread_error.h>
-#include <net/ip6.h>
-#include <net/netif.h>
-#include <net/udp6.h>
-#include <thread/mle.h>
-#include <thread/thread_netif.h>
-#include <thread/thread_tlvs.h>
+#include <common/code_utils.hpp>
+#include <common/encoding.hpp>
+#include <common/message.hpp>
+#include <common/thread_error.hpp>
+#include <net/ip6.hpp>
+#include <net/netif.hpp>
+#include <net/udp6.hpp>
+#include <thread/mle.hpp>
+#include <thread/thread_netif.hpp>
+#include <thread/thread_tlvs.hpp>
 
 using Thread::Encoding::BigEndian::HostSwap16;
 

@@ -22,10 +22,11 @@
 #include <stdlib.h>
 #include <fcntl.h>
 
-#include <platform/common/uart.h>
 #include <platform/posix/cmdline.h>
-#include <common/code_utils.h>
-#include <common/tasklet.h>
+
+#include <platform/uart.hpp>
+#include <common/code_utils.hpp>
+#include <common/tasklet.hpp>
 
 #ifdef __cplusplus
 extern "C" {

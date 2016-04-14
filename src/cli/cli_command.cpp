@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-#include <cli/cli_command.h>
+#include <cli/cli_command.hpp>
 
 namespace Thread {
 namespace Cli {

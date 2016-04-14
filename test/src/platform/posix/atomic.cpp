@@ -17,8 +17,8 @@
 #include <pthread.h>
 #include <stdio.h>
 
-#include <platform/common/atomic.h>
-#include <common/code_utils.h>
+#include <platform/atomic.hpp>
+#include <common/code_utils.hpp>
 
 #ifdef __cplusplus
 extern "C" {

@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
 
-#include <thread/mle_tlvs.h>
-#include <common/code_utils.h>
-#include <common/message.h>
+#include <common/code_utils.hpp>
+#include <common/message.hpp>
+#include <thread/mle_tlvs.hpp>
 
 namespace Thread {
 namespace Mle {

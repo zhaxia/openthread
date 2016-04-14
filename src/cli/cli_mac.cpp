@@ -16,9 +16,9 @@
 
 #include <stdlib.h>
 
-#include <cli/cli.h>
-#include <cli/cli_mac.h>
-#include <common/code_utils.h>
+#include <cli/cli.hpp>
+#include <cli/cli_mac.hpp>
+#include <common/code_utils.hpp>
 
 namespace Thread {
 namespace Cli {
