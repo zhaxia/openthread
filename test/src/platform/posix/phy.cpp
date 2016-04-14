@@ -92,7 +92,7 @@ ThreadError phy_init()
     struct sockaddr_in sockaddr;
     memset(&sockaddr, 0, sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
-    sockaddr.sin_port = htons(9000 + args_info.eui64_arg);
+    sockaddr.sin_port = htons(9000 + args_info.nodeid_arg);
     sockaddr.sin_addr.s_addr = INADDR_ANY;
 
     s_sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -207,7 +207,7 @@ ThreadError phy_transmit(PhyPacket *packet)
 
     for (int i = 1; i < 34; i++)
     {
-        if (args_info.eui64_arg == i)
+        if (args_info.nodeid_arg == i)
         {
             continue;
         }
@@ -373,7 +373,7 @@ void send_ack()
 
     for (int i = 1; i < 34; i++)
     {
-        if (args_info.eui64_arg == i)
+        if (args_info.nodeid_arg == i)
         {
             continue;
         }

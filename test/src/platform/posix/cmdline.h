@@ -30,7 +30,6 @@
 #endif
 
 #include <stdio.h> /* for FILE */
-#include <stdlib.h>  /* for exit() */
 
 #ifdef __cplusplus
 extern "C" {
@@ -56,13 +55,13 @@ struct gengetopt_args_info
 {
   const char *help_help; /**< @brief Print help and exit help description.  */
   const char *version_help; /**< @brief Print version and exit help description.  */
-  int eui64_arg;	/**< @brief IEEE EUI-64.  */
-  char * eui64_orig;	/**< @brief IEEE EUI-64 original value given at command line.  */
-  const char *eui64_help; /**< @brief IEEE EUI-64 help description.  */
+  int nodeid_arg;	/**< @brief Node ID.  */
+  char * nodeid_orig;	/**< @brief Node ID original value given at command line.  */
+  const char *nodeid_help; /**< @brief Node ID help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
-  unsigned int eui64_given ;	/**< @brief Whether eui64 was given.  */
+  unsigned int nodeid_given ;	/**< @brief Whether nodeid was given.  */
 
 } ;
 

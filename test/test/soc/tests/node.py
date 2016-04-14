@@ -45,7 +45,7 @@ class Node:
 
     def __init_sim(self, nodeid):
         """ Initialize a simulation node. """
-        cmd = './soc --eui64=%d' % nodeid
+        cmd = './soc --nodeid=%d' % nodeid
         FNULL = open(os.devnull, 'w')
         self.node_process = subprocess.Popen(cmd.split(), stdout = FNULL)
 	

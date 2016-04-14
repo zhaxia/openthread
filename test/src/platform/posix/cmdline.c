@@ -50,9 +50,9 @@ const char *gengetopt_args_info_versiontext = "";
 const char *gengetopt_args_info_description = "";
 
 const char *gengetopt_args_info_help[] = {
-  "  -h, --help       Print help and exit",
-  "  -V, --version    Print version and exit",
-  "      --eui64=INT  IEEE EUI-64",
+  "  -h, --help        Print help and exit",
+  "  -V, --version     Print version and exit",
+  "      --nodeid=INT  Node ID",
     0
 };
 
@@ -80,14 +80,14 @@ void clear_given (struct gengetopt_args_info *args_info)
 {
   args_info->help_given = 0 ;
   args_info->version_given = 0 ;
-  args_info->eui64_given = 0 ;
+  args_info->nodeid_given = 0 ;
 }
 
 static
 void clear_args (struct gengetopt_args_info *args_info)
 {
   FIX_UNUSED (args_info);
-  args_info->eui64_orig = NULL;
+  args_info->nodeid_orig = NULL;
   
 }
 
@@ -98,7 +98,7 @@ void init_args_info(struct gengetopt_args_info *args_info)
 
   args_info->help_help = gengetopt_args_info_help[0] ;
   args_info->version_help = gengetopt_args_info_help[1] ;
-  args_info->eui64_help = gengetopt_args_info_help[2] ;
+  args_info->nodeid_help = gengetopt_args_info_help[2] ;
   
 }
 
@@ -182,7 +182,7 @@ static void
 cmdline_parser_release (struct gengetopt_args_info *args_info)
 {
 
-  free_string_field (&(args_info->eui64_orig));
+  free_string_field (&(args_info->nodeid_orig));
   
   
 
@@ -217,8 +217,8 @@ cmdline_parser_dump(FILE *outfile, struct gengetopt_args_info *args_info)
     write_into_file(outfile, "help", 0, 0 );
   if (args_info->version_given)
     write_into_file(outfile, "version", 0, 0 );
-  if (args_info->eui64_given)
-    write_into_file(outfile, "eui64", args_info->eui64_orig, 0);
+  if (args_info->nodeid_given)
+    write_into_file(outfile, "nodeid", args_info->nodeid_orig, 0);
   
 
   i = EXIT_SUCCESS;
@@ -335,9 +335,9 @@ cmdline_parser_required2 (struct gengetopt_args_info *args_info, const char *pro
   FIX_UNUSED (additional_error);
 
   /* checks for required options */
-  if (! args_info->eui64_given)
+  if (! args_info->nodeid_given)
     {
-      fprintf (stderr, "%s: '--eui64' option required%s\n", prog_name, (additional_error ? additional_error : ""));
+      fprintf (stderr, "%s: '--nodeid' option required%s\n", prog_name, (additional_error ? additional_error : ""));
       error_occurred = 1;
     }
   
@@ -490,7 +490,7 @@ cmdline_parser_internal (
       static struct option long_options[] = {
         { "help",	0, NULL, 'h' },
         { "version",	0, NULL, 'V' },
-        { "eui64",	1, NULL, 0 },
+        { "nodeid",	1, NULL, 0 },
         { 0,  0, 0, 0 }
       };
 
@@ -512,16 +512,16 @@ cmdline_parser_internal (
 
 
         case 0:	/* Long option with no short option */
-          /* IEEE EUI-64.  */
-          if (strcmp (long_options[option_index].name, "eui64") == 0)
+          /* Node ID.  */
+          if (strcmp (long_options[option_index].name, "nodeid") == 0)
           {
           
           
-            if (update_arg( (void *)&(args_info->eui64_arg), 
-                 &(args_info->eui64_orig), &(args_info->eui64_given),
-                &(local_args_info.eui64_given), optarg, 0, 0, ARG_INT,
+            if (update_arg( (void *)&(args_info->nodeid_arg), 
+                 &(args_info->nodeid_orig), &(args_info->nodeid_given),
+                &(local_args_info.nodeid_given), optarg, 0, 0, ARG_INT,
                 check_ambiguity, override, 0, 0,
-                "eui64", '-',
+                "nodeid", '-',
                 additional_error))
               goto failure;
           

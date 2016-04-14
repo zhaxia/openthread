@@ -18,4 +18,4 @@ package "thread"
 version "0.1"
 purpose ""
 
-option  "eui64" - "IEEE EUI-64" int yes
+option  "nodeid" - "Node ID" int yes
