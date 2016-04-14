@@ -1,0 +1,36 @@
+#
+#    Copyright (c) 2010-2014 Nest Labs, Inc.
+#    All rights reserved.
+#
+#    This document is the property of Nest. It is
+#    considered confidential and proprietary information.
+#
+#    This document may not be reproduced or transmitted in any form,
+#    in whole or in part, without the express written permission of
+#    Nest.
+#
+#    Description:
+#      This file defines automake macros for manipulating and querying
+#      paths.
+#
+
+# Deslashify <path> ...
+#
+# Ensure that there is NO trailing directory delimiter at the end of
+# the specified path.
+
+Deslashify          = $(patsubst %$(Slash),%,$(1))
+
+# Slashify <path> ...
+#
+# Ensure that there is a single trailing directory delimiter at the
+# end of the specified path.
+
+Slashify            = $(addsuffix $(Slash),$(call Deslashify,$(1)))
+
+#
+# IsRealPath <path>
+#
+# If the path is a real rather than symbolic link path, the path is returned. 
+
+IsRealPath          = $(if $(patsubst $(realpath $(1)),,$(abspath $(1))),,$(1))
