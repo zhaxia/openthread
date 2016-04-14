@@ -16,7 +16,7 @@
 
 #include <pthread.h>
 
-#include <platform/common/sleep.h>
+#include <platform/sleep.hpp>
 
 #ifdef __cplusplus
 extern "C" {

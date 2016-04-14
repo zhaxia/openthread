@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/thread_error.h>
-#include <crypto/aes_ccm.h>
+#include <common/code_utils.hpp>
+#include <common/thread_error.hpp>
+#include <crypto/aes_ccm.hpp>
 
 namespace Thread {
 namespace Crypto {

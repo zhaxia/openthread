@@ -17,9 +17,9 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <cli/cli_command.h>
-#include <cli/cli_udp.h>
-#include <common/code_utils.h>
+#include <cli/cli_command.hpp>
+#include <cli/cli_udp.hpp>
+#include <common/code_utils.hpp>
 
 namespace Thread {
 namespace Cli {

@@ -16,13 +16,14 @@
 
 #include <stdlib.h>
 
-#include <common/code_utils.h>
-#include <common/message.h>
-#include <common/random.h>
-#include <common/tasklet.h>
-#include <common/timer.h>
-#include <ncp/ncp.h>
 #include <platform/posix/cmdline.h>
+
+#include <common/code_utils.hpp>
+#include <common/message.hpp>
+#include <common/random.hpp>
+#include <common/tasklet.hpp>
+#include <common/timer.hpp>
+#include <ncp/ncp.hpp>
 
 struct gengetopt_args_info args_info;
 

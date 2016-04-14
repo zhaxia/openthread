@@ -14,15 +14,17 @@
  *    limitations under the License.
  */
 
-#include <cmdline.h>
-#include <serial_port.h>
-#include <common/code_utils.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
+
+#include <cmdline.h>
+
+#include <serial_port.hpp>
+#include <common/code_utils.hpp>
 
 #ifdef __cplusplus
 extern "C" {

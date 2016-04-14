@@ -14,9 +14,10 @@
  *    limitations under the License.
  */
 
-#include <cli/cli_netdata.h>
-#include <common/code_utils.h>
 #include <stdlib.h>
+
+#include <cli/cli_netdata.hpp>
+#include <common/code_utils.hpp>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>

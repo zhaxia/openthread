@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <ncp/hdlc.h>
-#include <platform/common/uart.h>
+#include <common/code_utils.hpp>
+#include <ncp/hdlc.hpp>
+#include <platform/uart.hpp>
 
 namespace Thread {
 

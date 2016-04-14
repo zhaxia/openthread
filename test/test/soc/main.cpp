@@ -16,21 +16,22 @@
 
 #include <stdlib.h>
 
-#include <cli/cli_ifconfig.h>
-#include <cli/cli_ip.h>
-#include <cli/cli_mac.h>
-#include <cli/cli_ping.h>
-#include <cli/cli_netdata.h>
-#include <cli/cli_route.h>
-#include <cli/cli_shutdown.h>
-#include <cli/cli_thread.h>
-#include <common/random.h>
-#include <common/message.h>
-#include <common/tasklet.h>
-#include <common/timer.h>
-#include <platform/posix/cli_posix.h>
 #include <platform/posix/cmdline.h>
-#include <thread/thread_netif.h>
+
+#include <cli/cli_ifconfig.hpp>
+#include <cli/cli_ip.hpp>
+#include <cli/cli_mac.hpp>
+#include <cli/cli_ping.hpp>
+#include <cli/cli_netdata.hpp>
+#include <cli/cli_route.hpp>
+#include <cli/cli_shutdown.hpp>
+#include <cli/cli_thread.hpp>
+#include <common/random.hpp>
+#include <common/message.hpp>
+#include <common/tasklet.hpp>
+#include <common/timer.hpp>
+#include <platform/posix/cli_posix.hpp>
+#include <thread/thread_netif.hpp>
 
 struct gengetopt_args_info args_info;
 

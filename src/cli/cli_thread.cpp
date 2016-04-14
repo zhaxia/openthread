@@ -16,9 +16,9 @@
 
 #include <stdlib.h>
 
-#include <cli/cli.h>
-#include <cli/cli_thread.h>
-#include <common/code_utils.h>
+#include <cli/cli.hpp>
+#include <cli/cli_thread.hpp>
+#include <common/code_utils.hpp>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>

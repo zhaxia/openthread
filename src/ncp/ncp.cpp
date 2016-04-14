@@ -14,8 +14,8 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <ncp/ncp.h>
+#include <common/code_utils.hpp>
+#include <ncp/ncp.hpp>
 
 namespace Thread {
 

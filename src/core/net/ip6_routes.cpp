@@ -14,10 +14,10 @@
  *    limitations under the License.
  */
 
-#include <net/ip6_routes.h>
-#include <net/netif.h>
-#include <common/code_utils.h>
-#include <common/message.h>
+#include <net/ip6_routes.hpp>
+#include <net/netif.hpp>
+#include <common/code_utils.hpp>
+#include <common/message.hpp>
 
 namespace Thread {
 

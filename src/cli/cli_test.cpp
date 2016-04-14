@@ -14,10 +14,11 @@
  *    limitations under the License.
  */
 
-#include <cli/cli_test.h>
-#include <common/code_utils.h>
-#include <common/encoding.h>
 #include <stdlib.h>
+
+#include <cli/cli_test.hpp>
+#include <common/code_utils.hpp>
+#include <common/encoding.hpp>
 
 #define __STDC_FORMAT_MACROS
 #include <inttypes.h>

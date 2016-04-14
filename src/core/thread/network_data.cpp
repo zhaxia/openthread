@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
 
-#include <thread/network_data.h>
-#include <common/code_utils.h>
-#include <common/debug.h>
+#include <common/code_utils.hpp>
+#include <common/debug.hpp>
+#include <thread/network_data.hpp>
 
 namespace Thread {
 namespace NetworkData {

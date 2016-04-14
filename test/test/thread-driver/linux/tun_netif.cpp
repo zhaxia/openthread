@@ -14,7 +14,6 @@
  *    limitations under the License.
  */
 
-#include <tun_netif.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
 #include <ifaddrs.h>
@@ -24,6 +23,8 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <unistd.h>
+
+#include <tun_netif.hpp>
 
 namespace Thread {
 

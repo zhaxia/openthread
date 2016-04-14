@@ -16,8 +16,8 @@
 
 #include <stdlib.h>
 
-#include <cli/cli_route.h>
-#include <common/code_utils.h>
+#include <cli/cli_route.hpp>
+#include <common/code_utils.hpp>
 
 namespace Thread {
 namespace Cli {

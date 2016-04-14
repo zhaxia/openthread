@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <mac/mac_frame.h>
-#include <platform/common/phy.h>
+#include <common/code_utils.hpp>
+#include <mac/mac_frame.hpp>
+#include <platform/phy.hpp>
 
 namespace Thread {
 namespace Mac {

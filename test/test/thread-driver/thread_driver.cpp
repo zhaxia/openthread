@@ -14,10 +14,6 @@
  *    limitations under the License.
  */
 
-#include <thread_driver.h>
-#include <serial_port.h>
-#include <cmdline.h>
-
 #include <arpa/inet.h>
 #include <errno.h>
 #include <stdio.h>
@@ -25,6 +21,11 @@
 #include <sys/socket.h>
 #include <sys/un.h>
 #include <unistd.h>
+
+#include <cmdline.h>
+
+#include <thread_driver.hpp>
+#include <serial_port.hpp>
 
 namespace Thread {
 

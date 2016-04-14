@@ -14,19 +14,20 @@
  *    limitations under the License.
  */
 
-#include <thread/mle.h>
-#include <common/code_utils.h>
-#include <common/encoding.h>
-#include <common/random.h>
-#include <crypto/aes_ccm.h>
-#include <mac/mac_frame.h>
-#include <net/netif.h>
-#include <net/udp6.h>
-#include <thread/address_resolver.h>
-#include <thread/key_manager.h>
-#include <thread/mle_router.h>
-#include <thread/thread_netif.h>
 #include <assert.h>
+
+#include <thread/mle.hpp>
+#include <common/code_utils.hpp>
+#include <common/encoding.hpp>
+#include <common/random.hpp>
+#include <crypto/aes_ccm.hpp>
+#include <mac/mac_frame.hpp>
+#include <net/netif.hpp>
+#include <net/udp6.hpp>
+#include <thread/address_resolver.hpp>
+#include <thread/key_manager.hpp>
+#include <thread/mle_router.hpp>
+#include <thread/thread_netif.hpp>
 
 using Thread::Encoding::BigEndian::HostSwap16;
 

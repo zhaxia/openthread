@@ -16,9 +16,9 @@
 
 #include <stdlib.h>
 
-#include <cli/cli_ping.h>
-#include <common/code_utils.h>
-#include <net/ip6_address.h>
+#include <cli/cli_ping.hpp>
+#include <common/code_utils.hpp>
+#include <net/ip6_address.hpp>
 
 namespace Thread {
 namespace Cli {

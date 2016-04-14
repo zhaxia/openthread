@@ -16,8 +16,8 @@
 
 #include <stdlib.h>
 
-#include <cli/cli_ip.h>
-#include <common/code_utils.h>
+#include <cli/cli_ip.hpp>
+#include <common/code_utils.hpp>
 
 namespace Thread {
 namespace Cli {

@@ -14,10 +14,10 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/message.h>
-#include <common/thread_error.h>
-#include <net/ip6.h>
+#include <common/code_utils.hpp>
+#include <common/message.hpp>
+#include <common/thread_error.hpp>
+#include <net/ip6.hpp>
 
 namespace Thread {
 

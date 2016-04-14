@@ -14,15 +14,16 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/encoding.h>
-#include <common/random.h>
-#include <mac/mac_frame.h>
-#include <net/icmp6.h>
-#include <thread/mle_router.h>
-#include <thread/thread_netif.h>
-#include <thread/thread_tlvs.h>
 #include <assert.h>
+
+#include <common/code_utils.hpp>
+#include <common/encoding.hpp>
+#include <common/random.hpp>
+#include <mac/mac_frame.hpp>
+#include <net/icmp6.hpp>
+#include <thread/mle_router.hpp>
+#include <thread/thread_netif.hpp>
+#include <thread/thread_tlvs.hpp>
 
 using Thread::Encoding::BigEndian::HostSwap16;
 

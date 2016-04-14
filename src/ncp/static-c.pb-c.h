@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-#ifndef NCP_STATIC_C_PB_C_H_
-#define NCP_STATIC_C_PB_C_H_
+#ifndef NCP_STATIC_C_PB_C_HPP_
+#define NCP_STATIC_C_PB_C_HPP_
 
-#endif  // NCP_STATIC_C_PB_C_H_
+#endif  // NCP_STATIC_C_PB_C_HPP_

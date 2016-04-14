@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
 
-#include <coap/coap_server.h>
-#include <common/code_utils.h>
-#include <common/thread_error.h>
+#include <coap/coap_server.hpp>
+#include <common/code_utils.hpp>
+#include <common/thread_error.hpp>
 
 namespace Thread {
 namespace Coap {

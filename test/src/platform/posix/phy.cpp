@@ -26,11 +26,12 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <common/code_utils.h>
-#include <common/thread_error.h>
-#include <mac/mac.h>
-#include <platform/common/phy.h>
 #include <platform/posix/cmdline.h>
+
+#include <common/code_utils.hpp>
+#include <common/thread_error.hpp>
+#include <mac/mac.hpp>
+#include <platform/phy.hpp>
 
 #ifdef __cplusplus
 extern "C" {

@@ -17,11 +17,12 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <cli/cli_command.h>
-#include <cli/cli_serial.h>
-#include <common/code_utils.h>
-#include <common/encoding.h>
-#include <platform/common/uart.h>
+#include <cli/cli_command.hpp>
+#include <cli/cli_serial.hpp>
+#include <common/code_utils.hpp>
+#include <common/encoding.hpp>
+#include <platform/uart.hpp>
+
 namespace Thread {
 namespace Cli {
 

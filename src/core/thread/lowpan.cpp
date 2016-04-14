@@ -14,13 +14,13 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/encoding.h>
-#include <common/thread_error.h>
-#include <net/ip6.h>
-#include <net/udp6.h>
-#include <thread/lowpan.h>
-#include <thread/thread_netif.h>
+#include <common/code_utils.hpp>
+#include <common/encoding.hpp>
+#include <common/thread_error.hpp>
+#include <net/ip6.hpp>
+#include <net/udp6.hpp>
+#include <thread/lowpan.hpp>
+#include <thread/thread_netif.hpp>
 
 using Thread::Encoding::BigEndian::HostSwap16;
 

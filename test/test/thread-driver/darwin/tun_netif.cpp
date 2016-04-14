@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-#include <tun_netif.h>
+#include <tun_netif.hpp>
 
 struct prf_ra
 {

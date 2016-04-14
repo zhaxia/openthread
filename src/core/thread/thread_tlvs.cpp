@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
 
-#include <thread/thread_tlvs.h>
-#include <common/code_utils.h>
-#include <common/message.h>
+#include <common/code_utils.hpp>
+#include <common/message.hpp>
+#include <thread/thread_tlvs.hpp>
 
 namespace Thread {
 

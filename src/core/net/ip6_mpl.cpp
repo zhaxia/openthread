@@ -14,9 +14,9 @@
  *    limitations under the License.
  */
 
-#include <common/code_utils.h>
-#include <common/message.h>
-#include <net/ip6_mpl.h>
+#include <common/code_utils.hpp>
+#include <common/message.hpp>
+#include <net/ip6_mpl.hpp>
 
 namespace Thread {
 
