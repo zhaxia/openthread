@@ -38,7 +38,7 @@ int main(int argc, char *argv[])
     }
 
     Thread::Message::Init();
-    Thread::Random::Init(args_info.eui64_arg);
+    Thread::Random::Init(args_info.nodeid_arg);
     Thread::Timer::Init();
 
     ncp.Start();

@@ -55,12 +55,12 @@ ThreadError uart_start()
     // open file
 #if __APPLE__
 
-    asprintf(&path, "/dev/ptyp%d", args_info.eui64_arg);
+    asprintf(&path, "/dev/ptyp%d", args_info.nodeid_arg);
     VerifyOrExit((s_fd = open(path, O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
     free(path);
 
     // print pty path
-    printf("/dev/ttyp%d\n", args_info.eui64_arg);
+    printf("/dev/ttyp%d\n", args_info.nodeid_arg);
 
 #else
 
@@ -106,7 +106,7 @@ ThreadError uart_start()
     // set configuration
     VerifyOrExit(tcsetattr(s_fd, TCSAFLUSH, &termios) == 0, perror("tcsetattr"); error = kThreadError_Error);
 
-    snprintf(cmd, sizeof(cmd), "thread_uart_semaphore_%d", args_info.eui64_arg);
+    snprintf(cmd, sizeof(cmd), "thread_uart_semaphore_%d", args_info.nodeid_arg);
     s_semaphore = sem_open(cmd, O_CREAT, 0644, 0);
     pthread_create(&s_pthread, NULL, &uart_receive_thread, NULL);
 

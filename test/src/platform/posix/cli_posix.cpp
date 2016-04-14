@@ -39,7 +39,7 @@ ThreadError Socket::Start()
 
     memset(&sockaddr, 0, sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
-    sockaddr.sin_port = htons(8000 + args_info.eui64_arg);
+    sockaddr.sin_port = htons(8000 + args_info.nodeid_arg);
     sockaddr.sin_addr.s_addr = INADDR_ANY;
 
     m_sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
