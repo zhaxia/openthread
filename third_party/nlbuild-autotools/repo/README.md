@@ -23,10 +23,10 @@ git, perform the following in your project repository:
     > 2. % git fetch nlbuild-autotools
 
 You can place the nlbuild-autotools package anywhere in your project;
-however, by convention, "build/nlbuild-autotools/repo" is recommended:
+however, by convention, "third_party/nlbuild-autotools/repo" is recommended:
 
     > 3. % mkdir build
-    > 4. % git subtree add --prefix=build/nlbuild-autotools/repo --squash --message="Add subtree mirror of repository 'ssh://git@stash.nestlabs.com:7999/platform/nlbuild-autotools.git' branch 'master' at commit 'HEAD'." nlbuild-autotools HEAD
+    > 4. % git subtree add --prefix=third_party/nlbuild-autotools/repo --squash --message="Add subtree mirror of repository 'ssh://git@stash.nestlabs.com:7999/platform/nlbuild-autotools.git' branch 'master' at commit 'HEAD'." nlbuild-autotools HEAD
 
 At this point, you now have the nlbuild-autotools package integrated
 into your project. The next step is using the
@@ -35,7 +35,7 @@ convenience script has been provided that will get you started. You
 can tune and customize the results, as needed, for your project. From
 the top level of your project tree:
 
-    > 5. % build/nlbuild-autotools/repo/scripts/mkskeleton -I build/nlbuild-autotools/repo --package-description "My Fantastic Package" --package-name "mfp"
+    > 5. % third_party/nlbuild-autotools/repo/scripts/mkskeleton -I third_party/nlbuild-autotools/repo --package-description "My Fantastic Package" --package-name "mfp"
 
 Supported Build Host Systems
 ----------------------------

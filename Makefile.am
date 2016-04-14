@@ -27,7 +27,7 @@ EXTRA_DIST                          = \
     .default-version                  \
     bootstrap                         \
     bootstrap-configure               \
-    $(srcdir)/build/nlbuild-autotools \
+    $(srcdir)/third_party/nlbuild-autotools \
     $(NULL)
 
 BUILT_SOURCES                       = \
