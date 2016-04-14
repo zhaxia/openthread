@@ -1,0 +1,36 @@
+#
+#    Copyright (c) @PACKAGE_YEAR@ Nest Labs, Inc.
+#    All rights reserved.
+#
+#    This document is the property of Nest. It is considered
+#    confidential and proprietary information.
+#
+#    This document may not be reproduced or transmitted in any form,
+#    in whole or in part, without the express written permission of
+#    Nest.
+#
+#    Description:
+#      This file is the GNU automake template for the @PACKAGE_DESCRIPTION@.
+#
+
+include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
+
+lib_LIBRARIES                       = lib@PACKAGE_SHORT_LOWER@.a
+
+lib@PACKAGE_SHORT_LOWER@_a_CPPFLAGS = \
+    -I$(top_srcdir)/include           \
+    $(NULL)
+
+lib@PACKAGE_SHORT_LOWER@_a_SOURCES  = @PACKAGE_SHORT_LOWER@.c
+
+include_HEADERS                     = \
+    @PACKAGE_SHORT_LOWER@.h           \
+    $(NULL)
+
+install-headers: install-includeHEADERS
+
+if @PACKAGE_SHORT_UPPER@_BUILD_COVERAGE
+CLEANFILES                          = $(wildcard *.gcda *.gcno)
+endif # @PACKAGE_SHORT_UPPER@_BUILD_COVERAGE
+
+include $(abs_top_nlbuild_autotools_dir)/automake/post.am

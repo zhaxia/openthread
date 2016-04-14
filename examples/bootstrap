@@ -1,0 +1,30 @@
+#!/bin/sh
+
+#
+#    Copyright (c) @PACKAGE_YEAR@ Nest Labs, Inc.
+#    All rights reserved.
+#
+#    This document is the property of Nest. It is considered
+#    confidential and proprietary information.
+#
+#    This document may not be reproduced or transmitted in any form,
+#    in whole or in part, without the express written permission of
+#    Nest.
+#
+#    Description:
+#      This file is a trampoline script to the nlbuild-autotools
+#      bootstrap script and augments it by providing the path to the
+#      nlbuild-autotools repository for this project.
+#
+
+# Set this to the relative location of nlbuild-autotools to this script
+
+nlbuild_autotools_stem="build/nlbuild-autotools/repo"
+
+# Establish some key directories
+
+srcdir=`dirname ${0}`
+abs_srcdir=`pwd`
+abs_top_srcdir="${abs_srcdir}"
+
+exec ${srcdir}/${nlbuild_autotools_stem}/scripts/bootstrap -I "${abs_top_srcdir}/${nlbuild_autotools_stem}" $*

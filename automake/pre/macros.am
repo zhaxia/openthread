@@ -1,0 +1,78 @@
+#
+#    Copyright (c) 2014-2015 Nest Labs, Inc.
+#    All rights reserved.
+#
+#    This document is the property of Nest. It is considered
+#    confidential and proprietary information.
+#
+#    This document may not be reproduced or transmitted in any form,
+#    in whole or in part, without the express written permission of
+#    Nest.
+#
+#    Description:
+#      This file defines automake macros common to all other automake
+#      headers and files.
+#
+
+include $(abs_top_nlbuild_autotools_dir)/automake/pre/macros/constants.am
+include $(abs_top_nlbuild_autotools_dir)/automake/pre/macros/paths.am
+include $(abs_top_nlbuild_autotools_dir)/automake/pre/macros/verbosity.am
+include $(abs_top_nlbuild_autotools_dir)/automake/pre/macros/coverage.am
+include $(abs_top_nlbuild_autotools_dir)/automake/pre/macros/subdirs.am
+
+#
+# create-directory
+#
+# Create the directory with the name of the $(@) variable.
+#
+define create-directory
+$(AM_V_MKDIR_P)$(MKDIR_P) $(@)
+endef # create-directory
+
+#
+# create-link
+#
+# Create the symbolic link with the source of the $(<) variable and
+# the destination of the $(@) variable.
+#
+define create-link
+$(AM_V_LN_S)$(LN_S) $(<) $(@)
+endef # create-link
+
+#
+# check-file <macro suffix>
+#
+# Check whether a file, referenced by the $(@) variable, should be
+# updated / regenerated based on its dependencies, referenced by the
+# $(<) variable by running the make macro check-file-<macro suffix>.
+#
+# The $(<) is passed as the first argument if the macro wants to process
+# it and the prospective new output file, which the macro MUST
+# generate, as the second.
+#
+# This macro will ensure that any required parent directories are created
+# prior to invoking check-file-<macro suffix>.
+#
+# This macro is similar to and inspired by that from Linux Kbuild and
+# elsewhere.
+#
+#   <macro suffix> - The name, suffixed to "check-file-", which indicates
+#                    the make macro to invoke.
+#
+#
+define check-file
+$(AM_V_at)set -e;                                   \
+echo '  CHECK    $(@)';                             \
+$(MKDIR_P) $(dir $(@));                             \
+$(call check-file-$(1),$(<),$(@).N);                \
+if [ -r "$(@)" ] && $(CMP) -s "$(@)" "$(@).N"; then \
+    rm -f "$(@).N";                                 \
+else                                                \
+    echo '  GEN      $(@)';                         \
+    mv -f "$(@).N" "$(@)";                          \
+fi
+endef # check-file
+
+
+
+

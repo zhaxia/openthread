@@ -1,0 +1,113 @@
+#!/bin/sh
+
+#
+#    Copyright (c) 2014 Nest Labs, Inc.
+#    All rights reserved.
+#
+#    This document is the property of Nest. It is considered
+#    confidential and proprietary information.
+#
+#    This document may not be reproduced or transmitted in any form,
+#    in whole or in part, without the express written permission of
+#    Nest.
+#
+#    Description:
+#      This file is a convenience script for building, for the current
+#      build host system, the minimal, core set of GNU autotools on
+#      which the Nest Weave SDK build system depends.
+#
+
+#
+# usage
+#
+# Display program usage.
+#
+usage() {
+    name=`basename ${0}`
+
+    echo "Usage: ${name} [ options ] [ -- <package> ... ]"
+
+    if [ $1 -ne 0 ]; then
+        echo "Try '${name} -h' for more information."
+    fi
+
+    if [ $1 -ne 1 ]; then
+        echo ""
+        echo "  -h, --help       Print this help, then exit."
+        echo ""
+    fi
+
+    exit $1
+}
+
+# Parse out any command line options
+
+while [ ${#} -gt 0 ]; do
+    if [ ${1} == "-h" ] || [ ${1} == "--help" ]; then
+        usage 0
+
+    elif [ ${1} == "--" ]; then
+        shift 1
+        break
+
+    else
+        usage 1
+
+    fi
+done
+
+# Determine what packages to build
+
+if [ ${#} -gt 0 ]; then
+    SUBDIRS="${*}"
+
+else
+    SUBDIRS="`cat packages`"
+
+fi
+
+stem=tools/packages
+abs_srcdir=`pwd`
+abs_top_srcdir=`echo ${abs_srcdir} | sed -e s,/${stem},,g`
+
+abs_top_hostdir="${abs_top_srcdir}/tools/host"
+
+# Figure out what sort of build host we are running on, stripping off
+# any trailing version number information typically included on Darwin
+# / Mac OS X.
+
+host=`../../autoconf/config.guess | sed -e 's,[[:digit:].]*$,,g'`
+
+echo "================================================================================"
+echo "Building GNU autotools for ${host}..."
+
+for subdir in ${SUBDIRS}; do
+  echo "--------------------------------------------------------------------------------"
+  version=`cat ${subdir}/${subdir}.version`
+  package="${subdir}-${version}"
+
+  cd ${subdir} || exit ${?}
+
+  if [ ! -d "${package}" ]; then
+      echo "Expanding ${subdir}..."
+      tar -xf ${subdir}.tar.?z || exit ${?}
+  fi
+
+  echo "Setting up ${subdir}..."
+  mkdir -p build/${host} || exit ${?}
+  cd build/${host} || exit ${?}
+
+  echo "Configuring ${package}..."
+  PATH=${abs_top_hostdir}/bin:${abs_top_hostdir}/${host}:${PATH} ${abs_srcdir}/${subdir}/${package}/configure --prefix=/ --exec-prefix=/${host} || exit ${?}
+  cd ../.. || exit ${?}
+
+  echo "Building ${package}..."
+  make -C build/${host} all || exit ${?}
+
+  echo "Installing ${package}..."
+  make -C build/${host} DESTDIR=${abs_top_hostdir} install || exit ${?}
+  echo "Done."
+  cd ${abs_srcdir} || exit ${?}
+done
+
+echo "================================================================================"

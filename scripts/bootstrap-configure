@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+#    Copyright (c) 2014 Nest Labs, Inc.
+#    All rights reserved.
+#
+#    This document is the property of Nest. It is considered
+#    confidential and proprietary information.
+#
+#    This document may not be reproduced or transmitted in any form,
+#    in whole or in part, without the express written permission of
+#    Nest.
+#
+#    Description:
+#      This file implements a script which, when run from the Weave
+#      build directory (either disparate or colocated with the
+#      source), will attempt to clean the build directory, rebootstrap
+#      the package, and then rerun the configuration script for the
+#      package with the provided arguments.
+#
+#      This script is particularly useful when you are changing the
+#      configuration script and testing those changes.
+#
+
+srcdir=`dirname ${0}`
+builddir=.
+
+# Bring the package build back to a pristine state.
+
+if [ -f config.status ]; then
+	make maintainer-clean
+fi
+
+# Change directories to the package source and rebootstrap the package.
+
+pushd ${srcdir}
+
+./bootstrap
+bootstrap_status=$?
+
+popd
+
+# If the package was successfully bootstrapped, configure it.
+
+if [ ${bootstrap_status} -eq 0 ]; then
+    ${srcdir}/configure $*
+else
+   exit ${bootstrap_status}
+fi
