@@ -40,8 +40,8 @@ ncp_driver_CXXFLAGS                            = \
     $(NULL)
 
 ncp_driver_LDADD                               = \
-    $(top_srcdir)/src/core/libopenthread.a       \
     $(top_srcdir)/src/ncp/libopenthread-ncp.a    \
+    $(top_srcdir)/src/core/libopenthread.a       \
     $(top_srcdir)/tests/platform/posix/libopenthread-posix.a     \
     -lpthread                                    \
     $(NULL)
