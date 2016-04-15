@@ -24,44 +24,44 @@ using Thread::Encoding::BigEndian::HostSwap16;
 
 namespace Thread {
 
-uint16_t Icmp6Echo::s_next_id = 1;
-Icmp6Echo *Icmp6Echo::s_echo_clients = NULL;
-Icmp6Handler *Icmp6Handler::s_handlers = NULL;
+uint16_t Icmp6Echo::sNextId = 1;
+Icmp6Echo *Icmp6Echo::sEchoClients = NULL;
+Icmp6Handler *Icmp6Handler::sHandlers = NULL;
 
 Icmp6Echo::Icmp6Echo(EchoReplyHandler handler, void *context)
 {
-    m_handler = handler;
-    m_context = context;
-    m_id = s_next_id++;
-    m_seq = 0;
-    m_next = s_echo_clients;
-    s_echo_clients = this;
+    mHandler = handler;
+    mContext = context;
+    mId = sNextId++;
+    mSeq = 0;
+    mNext = sEchoClients;
+    sEchoClients = this;
 }
 
 ThreadError Icmp6Echo::SendEchoRequest(const struct sockaddr_in6 &sockaddr,
-                                       const void *payload, uint16_t payload_length)
+                                       const void *payload, uint16_t payloadLength)
 {
     ThreadError error = kThreadError_None;
-    Ip6MessageInfo message_info;
+    Ip6MessageInfo messageInfo;
     Message *message;
-    Icmp6Header icmp6_header;
+    Icmp6Header icmp6Header;
 
     VerifyOrExit((message = Ip6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
-    SuccessOrExit(error = message->SetLength(sizeof(icmp6_header) + payload_length));
+    SuccessOrExit(error = message->SetLength(sizeof(icmp6Header) + payloadLength));
 
-    message->Write(sizeof(icmp6_header), payload_length, payload);
+    message->Write(sizeof(icmp6Header), payloadLength, payload);
 
-    icmp6_header.Init();
-    icmp6_header.SetType(Icmp6Header::kTypeEchoRequest);
-    icmp6_header.SetId(m_id);
-    icmp6_header.SetSequence(m_seq++);
-    message->Write(0, sizeof(icmp6_header), &icmp6_header);
+    icmp6Header.Init();
+    icmp6Header.SetType(Icmp6Header::kTypeEchoRequest);
+    icmp6Header.SetId(mId);
+    icmp6Header.SetSequence(mSeq++);
+    message->Write(0, sizeof(icmp6Header), &icmp6Header);
 
-    memset(&message_info, 0, sizeof(message_info));
-    message_info.peer_addr = sockaddr.sin6_addr;
-    message_info.interface_id = sockaddr.sin6_scope_id;
+    memset(&messageInfo, 0, sizeof(messageInfo));
+    messageInfo.mPeerAddr = sockaddr.mAddr;
+    messageInfo.mInterfaceId = sockaddr.mScopeId;
 
-    SuccessOrExit(error = Ip6::SendDatagram(*message, message_info, kProtoIcmp6));
+    SuccessOrExit(error = Ip6::SendDatagram(*message, messageInfo, kProtoIcmp6));
     dprintf("Sent echo request\n");
 
 exit:
@@ -72,7 +72,7 @@ ThreadError Icmp6::RegisterCallbacks(Icmp6Handler &handler)
 {
     ThreadError error = kThreadError_None;
 
-    for (Icmp6Handler *cur = Icmp6Handler::s_handlers; cur; cur = cur->m_next)
+    for (Icmp6Handler *cur = Icmp6Handler::sHandlers; cur; cur = cur->mNext)
     {
         if (cur == &handler)
         {
@@ -80,35 +80,35 @@ ThreadError Icmp6::RegisterCallbacks(Icmp6Handler &handler)
         }
     }
 
-    handler.m_next = Icmp6Handler::s_handlers;
-    Icmp6Handler::s_handlers = &handler;
+    handler.mNext = Icmp6Handler::sHandlers;
+    Icmp6Handler::sHandlers = &handler;
 
 exit:
     return error;
 }
 
 ThreadError Icmp6::SendError(const Ip6Address &dst, Icmp6Header::Type type, Icmp6Header::Code code,
-                             const Ip6Header &ip6_header)
+                             const Ip6Header &ip6Header)
 {
     ThreadError error = kThreadError_None;
-    Ip6MessageInfo message_info;
+    Ip6MessageInfo messageInfo;
     Message *message;
-    Icmp6Header icmp6_header;
+    Icmp6Header icmp6Header;
 
     VerifyOrExit((message = Ip6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
-    SuccessOrExit(error = message->SetLength(sizeof(icmp6_header) + sizeof(ip6_header)));
+    SuccessOrExit(error = message->SetLength(sizeof(icmp6Header) + sizeof(ip6Header)));
 
-    message->Write(sizeof(icmp6_header), sizeof(ip6_header), &ip6_header);
+    message->Write(sizeof(icmp6Header), sizeof(ip6Header), &ip6Header);
 
-    icmp6_header.Init();
-    icmp6_header.SetType(type);
-    icmp6_header.SetCode(code);
-    message->Write(0, sizeof(icmp6_header), &icmp6_header);
+    icmp6Header.Init();
+    icmp6Header.SetType(type);
+    icmp6Header.SetCode(code);
+    message->Write(0, sizeof(icmp6Header), &icmp6Header);
 
-    memset(&message_info, 0, sizeof(message_info));
-    message_info.peer_addr = dst;
+    memset(&messageInfo, 0, sizeof(messageInfo));
+    messageInfo.mPeerAddr = dst;
 
-    SuccessOrExit(error = Ip6::SendDatagram(*message, message_info, kProtoIcmp6));
+    SuccessOrExit(error = Ip6::SendDatagram(*message, messageInfo, kProtoIcmp6));
 
     dprintf("Sent ICMPv6 Error\n");
 
@@ -116,87 +116,87 @@ exit:
     return error;
 }
 
-ThreadError Icmp6::HandleMessage(Message &message, Ip6MessageInfo &message_info)
+ThreadError Icmp6::HandleMessage(Message &message, Ip6MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
-    uint16_t payload_length;
-    Icmp6Header icmp6_header;
+    uint16_t payloadLength;
+    Icmp6Header icmp6Header;
     uint16_t checksum;
 
-    payload_length = message.GetLength() - message.GetOffset();
+    payloadLength = message.GetLength() - message.GetOffset();
 
     // check length
-    VerifyOrExit(payload_length >= Icmp6Header::GetDataOffset(),  error = kThreadError_Drop);
-    message.Read(message.GetOffset(), sizeof(icmp6_header), &icmp6_header);
+    VerifyOrExit(payloadLength >= Icmp6Header::GetDataOffset(),  error = kThreadError_Drop);
+    message.Read(message.GetOffset(), sizeof(icmp6Header), &icmp6Header);
 
     // verify checksum
-    checksum = Ip6::ComputePseudoheaderChecksum(message_info.peer_addr, message_info.sock_addr,
-                                                payload_length, kProtoIcmp6);
-    checksum = message.UpdateChecksum(checksum, message.GetOffset(), payload_length);
+    checksum = Ip6::ComputePseudoheaderChecksum(messageInfo.mPeerAddr, messageInfo.mSockAddr,
+                                                payloadLength, kProtoIcmp6);
+    checksum = message.UpdateChecksum(checksum, message.GetOffset(), payloadLength);
     VerifyOrExit(checksum == 0xffff, ;);
 
-    switch (icmp6_header.GetType())
+    switch (icmp6Header.GetType())
     {
     case Icmp6Header::kTypeEchoRequest:
-        return HandleEchoRequest(message, message_info);
+        return HandleEchoRequest(message, messageInfo);
 
     case Icmp6Header::kTypeEchoReply:
-        return HandleEchoReply(message, message_info, icmp6_header);
+        return HandleEchoReply(message, messageInfo, icmp6Header);
 
     case Icmp6Header::kTypeDstUnreach:
-        return HandleDstUnreach(message, message_info, icmp6_header);
+        return HandleDstUnreach(message, messageInfo, icmp6Header);
     }
 
 exit:
     return error;
 }
 
-ThreadError Icmp6::HandleDstUnreach(Message &message, const Ip6MessageInfo &message_info,
-                                    const Icmp6Header &icmp6_header)
+ThreadError Icmp6::HandleDstUnreach(Message &message, const Ip6MessageInfo &messageInfo,
+                                    const Icmp6Header &icmp6Header)
 {
-    message.MoveOffset(sizeof(icmp6_header));
+    message.MoveOffset(sizeof(icmp6Header));
 
-    for (Icmp6Handler *handler = Icmp6Handler::s_handlers; handler; handler = handler->m_next)
+    for (Icmp6Handler *handler = Icmp6Handler::sHandlers; handler; handler = handler->mNext)
     {
-        handler->HandleDstUnreach(message, message_info, icmp6_header);
+        handler->HandleDstUnreach(message, messageInfo, icmp6Header);
     }
 
     return kThreadError_None;
 }
 
-ThreadError Icmp6::HandleEchoRequest(Message &request_message, const Ip6MessageInfo &message_info)
+ThreadError Icmp6::HandleEchoRequest(Message &requestMessage, const Ip6MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
-    Icmp6Header icmp6_header;
-    Message *reply_message;
-    Ip6MessageInfo reply_message_info;
-    uint16_t payload_length;
+    Icmp6Header icmp6Header;
+    Message *replyMessage;
+    Ip6MessageInfo replyMessageInfo;
+    uint16_t payloadLength;
 
-    payload_length = request_message.GetLength() - request_message.GetOffset() - Icmp6Header::GetDataOffset();
+    payloadLength = requestMessage.GetLength() - requestMessage.GetOffset() - Icmp6Header::GetDataOffset();
 
     dprintf("Received Echo Request\n");
 
-    icmp6_header.Init();
-    icmp6_header.SetType(Icmp6Header::kTypeEchoReply);
+    icmp6Header.Init();
+    icmp6Header.SetType(Icmp6Header::kTypeEchoReply);
 
-    VerifyOrExit((reply_message = Ip6::NewMessage(0)) != NULL, dprintf("icmp fail\n"));
-    SuccessOrExit(reply_message->SetLength(Icmp6Header::GetDataOffset() + payload_length));
+    VerifyOrExit((replyMessage = Ip6::NewMessage(0)) != NULL, dprintf("icmp fail\n"));
+    SuccessOrExit(replyMessage->SetLength(Icmp6Header::GetDataOffset() + payloadLength));
 
-    reply_message->Write(0, Icmp6Header::GetDataOffset(), &icmp6_header);
-    request_message.CopyTo(request_message.GetOffset() + Icmp6Header::GetDataOffset(),
-                           Icmp6Header::GetDataOffset(), payload_length, *reply_message);
+    replyMessage->Write(0, Icmp6Header::GetDataOffset(), &icmp6Header);
+    requestMessage.CopyTo(requestMessage.GetOffset() + Icmp6Header::GetDataOffset(),
+                          Icmp6Header::GetDataOffset(), payloadLength, *replyMessage);
 
-    memset(&reply_message_info, 0, sizeof(reply_message_info));
-    reply_message_info.peer_addr = message_info.peer_addr;
+    memset(&replyMessageInfo, 0, sizeof(replyMessageInfo));
+    replyMessageInfo.mPeerAddr = messageInfo.mPeerAddr;
 
-    if (!message_info.sock_addr.IsMulticast())
+    if (!messageInfo.mSockAddr.IsMulticast())
     {
-        reply_message_info.sock_addr = message_info.sock_addr;
+        replyMessageInfo.mSockAddr = messageInfo.mSockAddr;
     }
 
-    reply_message_info.interface_id = message_info.interface_id;
+    replyMessageInfo.mInterfaceId = messageInfo.mInterfaceId;
 
-    SuccessOrExit(error = Ip6::SendDatagram(*reply_message, reply_message_info, kProtoIcmp6));
+    SuccessOrExit(error = Ip6::SendDatagram(*replyMessage, replyMessageInfo, kProtoIcmp6));
 
     dprintf("Sent Echo Reply\n");
 
@@ -204,16 +204,16 @@ exit:
     return error;
 }
 
-ThreadError Icmp6::HandleEchoReply(Message &message, const Ip6MessageInfo &message_info,
-                                   const Icmp6Header &icmp6_header)
+ThreadError Icmp6::HandleEchoReply(Message &message, const Ip6MessageInfo &messageInfo,
+                                   const Icmp6Header &icmp6Header)
 {
-    uint16_t id = icmp6_header.GetId();
+    uint16_t id = icmp6Header.GetId();
 
-    for (Icmp6Echo *client = Icmp6Echo::s_echo_clients; client; client = client->m_next)
+    for (Icmp6Echo *client = Icmp6Echo::sEchoClients; client; client = client->mNext)
     {
-        if (client->m_id == id)
+        if (client->mId == id)
         {
-            client->HandleEchoReply(message, message_info);
+            client->HandleEchoReply(message, messageInfo);
         }
     }
 

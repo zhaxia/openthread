@@ -30,7 +30,7 @@ namespace NetworkData {
 class NetworkDataTlv
 {
 public:
-    void Init() { m_type = 0; m_length = 0; }
+    void Init() { mTyle = 0; mLength = 0; }
 
     enum Type
     {
@@ -40,21 +40,21 @@ public:
         kTypeContext = 3,
         kTypeCommissioningData = 4,
     };
-    Type GetType() const { return static_cast<Type>(m_type >> kTypeOffset); }
-    void SetType(Type type) { m_type = (m_type & ~kTypeMask) | (static_cast<uint8_t>(type) << kTypeOffset); }
+    Type GetType() const { return static_cast<Type>(mTyle >> kTypeOffset); }
+    void SetType(Type type) { mTyle = (mTyle & ~kTypeMask) | (static_cast<uint8_t>(type) << kTypeOffset); }
 
-    uint8_t GetLength() const { return m_length; }
-    void SetLength(uint8_t length) { m_length = length; }
-    void AdjustLength(int diff) { m_length += diff; }
+    uint8_t GetLength() const { return mLength; }
+    void SetLength(uint8_t length) { mLength = length; }
+    void AdjustLength(int diff) { mLength += diff; }
 
     uint8_t *GetValue() { return reinterpret_cast<uint8_t *>(this) + sizeof(NetworkDataTlv); }
     NetworkDataTlv *GetNext() {
-        return reinterpret_cast<NetworkDataTlv *>(reinterpret_cast<uint8_t *>(this) + sizeof(*this) + m_length);
+        return reinterpret_cast<NetworkDataTlv *>(reinterpret_cast<uint8_t *>(this) + sizeof(*this) + mLength);
     }
 
-    void ClearStable() { m_type &= ~kStableMask; }
-    bool IsStable() const { return (m_type & kStableMask); }
-    void SetStable() { m_type |= kStableMask; }
+    void ClearStable() { mTyle &= ~kStableMask; }
+    bool IsStable() const { return (mTyle & kStableMask); }
+    void SetStable() { mTyle |= kStableMask; }
 
 private:
     enum
@@ -63,8 +63,8 @@ private:
         kTypeMask = 0x7f << kTypeOffset,
         kStableMask = 1 << 0,
     };
-    uint8_t m_type;
-    uint8_t m_length;
+    uint8_t mTyle;
+    uint8_t mLength;
 } __attribute__((packed));
 
 class HasRouteEntry
@@ -76,17 +76,17 @@ public:
         kPreferenceMask = 3 << kPreferenceOffset,
     };
 
-    void Init() { SetRloc(0xfffe); m_flags = 0; }
+    void Init() { SetRloc(0xfffe); mFlags = 0; }
 
-    uint16_t GetRloc() const { return HostSwap16(m_rloc); }
-    void SetRloc(uint16_t rloc) { m_rloc = HostSwap16(rloc); }
+    uint16_t GetRloc() const { return HostSwap16(mRloc); }
+    void SetRloc(uint16_t rloc) { mRloc = HostSwap16(rloc); }
 
-    int8_t GetPreference() const { return static_cast<int8_t>(m_flags) >> kPreferenceOffset; }
-    void SetPreference(int8_t prf) { m_flags = (m_flags & ~kPreferenceMask) | (prf << kPreferenceOffset); }
+    int8_t GetPreference() const { return static_cast<int8_t>(mFlags) >> kPreferenceOffset; }
+    void SetPreference(int8_t prf) { mFlags = (mFlags & ~kPreferenceMask) | (prf << kPreferenceOffset); }
 
 private:
-    uint16_t m_rloc;
-    uint8_t m_flags;
+    uint16_t mRloc;
+    uint8_t mFlags;
 } __attribute__((packed));
 
 class HasRouteTlv: public NetworkDataTlv
@@ -104,30 +104,30 @@ public:
 class PrefixTlv: public NetworkDataTlv
 {
 public:
-    void Init(uint8_t domain_id, uint8_t prefix_length, const uint8_t *prefix) {
+    void Init(uint8_t domain_id, uint8_t prefixLength, const uint8_t *prefix) {
         NetworkDataTlv::Init();
         SetType(kTypePrefix);
-        m_domain_id = domain_id;
-        m_prefix_length = prefix_length;
-        memcpy(GetPrefix(), prefix, (prefix_length + 7) / 8);
+        mDomainId = domain_id;
+        mPrefixLength = prefixLength;
+        memcpy(GetPrefix(), prefix, (prefixLength + 7) / 8);
         SetSubTlvsLength(0);
     }
 
-    uint8_t GetDomainId() const { return m_domain_id; }
-    uint8_t GetPrefixLength() const { return m_prefix_length; }
+    uint8_t GetDomainId() const { return mDomainId; }
+    uint8_t GetPrefixLength() const { return mPrefixLength; }
     uint8_t *GetPrefix() { return reinterpret_cast<uint8_t *>(this) + sizeof(*this); }
 
-    uint8_t *GetSubTlvs() { return GetPrefix() + (m_prefix_length + 7) / 8; }
+    uint8_t *GetSubTlvs() { return GetPrefix() + (mPrefixLength + 7) / 8; }
     uint8_t GetSubTlvsLength() const {
-        return GetLength() - (sizeof(*this) - sizeof(NetworkDataTlv) + (m_prefix_length + 7) / 8);
+        return GetLength() - (sizeof(*this) - sizeof(NetworkDataTlv) + (mPrefixLength + 7) / 8);
     }
     void SetSubTlvsLength(int length) {
-        SetLength(sizeof(*this) - sizeof(NetworkDataTlv) + (m_prefix_length + 7) / 8 + length);
+        SetLength(sizeof(*this) - sizeof(NetworkDataTlv) + (mPrefixLength + 7) / 8 + length);
     }
 
 private:
-    uint8_t m_domain_id;
-    uint8_t m_prefix_length;
+    uint8_t mDomainId;
+    uint8_t mPrefixLength;
 } __attribute__((packed));
 
 class BorderRouterEntry
@@ -144,41 +144,41 @@ public:
         kDefaultRouteFlag = 1 << 1,
     };
 
-    void Init() { SetRloc(0xfffe); m_flags = 0; m_reserved = 0; }
+    void Init() { SetRloc(0xfffe); mFlags = 0; mReserved = 0; }
 
-    uint16_t GetRloc() const { return HostSwap16(m_rloc); }
-    void SetRloc(uint16_t rloc) { m_rloc = HostSwap16(rloc); }
+    uint16_t GetRloc() const { return HostSwap16(mRloc); }
+    void SetRloc(uint16_t rloc) { mRloc = HostSwap16(rloc); }
 
-    uint8_t GetFlags() const { return m_flags & ~kPreferenceMask; }
-    void SetFlags(uint8_t flags) { m_flags = (m_flags & kPreferenceMask) | (flags & ~kPreferenceMask); }
+    uint8_t GetFlags() const { return mFlags & ~kPreferenceMask; }
+    void SetFlags(uint8_t flags) { mFlags = (mFlags & kPreferenceMask) | (flags & ~kPreferenceMask); }
 
-    int8_t GetPreference() const { return static_cast<int8_t>(m_flags) >> kPreferenceOffset; }
-    void SetPreference(int8_t prf) { m_flags = (m_flags & ~kPreferenceMask) | (prf << kPreferenceOffset); }
+    int8_t GetPreference() const { return static_cast<int8_t>(mFlags) >> kPreferenceOffset; }
+    void SetPreference(int8_t prf) { mFlags = (mFlags & ~kPreferenceMask) | (prf << kPreferenceOffset); }
 
-    bool IsPreferred() const { return (m_flags & kPreferredFlag) != 0; }
-    void ClearPreferred() { m_flags &= ~kPreferredFlag; }
-    void SetPreferred() { m_flags |= kPreferredFlag; }
+    bool IsPreferred() const { return (mFlags & kPreferredFlag) != 0; }
+    void ClearPreferred() { mFlags &= ~kPreferredFlag; }
+    void SetPreferred() { mFlags |= kPreferredFlag; }
 
-    bool IsValid() const { return (m_flags & kValidFlag) != 0; }
-    void ClearValid() { m_flags &= ~kValidFlag; }
-    void SetValid() { m_flags |= kValidFlag; }
+    bool IsValid() const { return (mFlags & kValidFlag) != 0; }
+    void ClearValid() { mFlags &= ~kValidFlag; }
+    void SetValid() { mFlags |= kValidFlag; }
 
-    bool IsDhcp() const { return (m_flags & kDhcpFlag) != 0; }
-    void ClearDhcp() { m_flags &= ~kDhcpFlag; }
-    void SetDhcp() { m_flags |= kDhcpFlag; }
+    bool IsDhcp() const { return (mFlags & kDhcpFlag) != 0; }
+    void ClearDhcp() { mFlags &= ~kDhcpFlag; }
+    void SetDhcp() { mFlags |= kDhcpFlag; }
 
-    bool IsConfigure() const { return (m_flags & kConfigureFlag) != 0; }
-    void ClearConfigure() { m_flags &= ~kConfigureFlag; }
-    void SetConfigure() { m_flags |= kConfigureFlag; }
+    bool IsConfigure() const { return (mFlags & kConfigureFlag) != 0; }
+    void ClearConfigure() { mFlags &= ~kConfigureFlag; }
+    void SetConfigure() { mFlags |= kConfigureFlag; }
 
-    bool IsDefaultRoute() const { return (m_flags & kDefaultRouteFlag) != 0; }
-    void ClearDefaultRoute() { m_flags &= ~kDefaultRouteFlag; }
-    void SetDefaultRoute() { m_flags |= kDefaultRouteFlag; }
+    bool IsDefaultRoute() const { return (mFlags & kDefaultRouteFlag) != 0; }
+    void ClearDefaultRoute() { mFlags &= ~kDefaultRouteFlag; }
+    void SetDefaultRoute() { mFlags |= kDefaultRouteFlag; }
 
 private:
-    uint16_t m_rloc;
-    uint8_t m_flags;
-    uint8_t m_reserved;
+    uint16_t mRloc;
+    uint8_t mFlags;
+    uint8_t mReserved;
 } __attribute__((packed));
 
 class BorderRouterTlv: public NetworkDataTlv
@@ -196,17 +196,17 @@ public:
 class ContextTlv: public NetworkDataTlv
 {
 public:
-    void Init() { NetworkDataTlv::Init(); SetType(kTypeContext); SetLength(2); m_flags = 0; m_context_length = 0; }
+    void Init() { NetworkDataTlv::Init(); SetType(kTypeContext); SetLength(2); mFlags = 0; mContextLength = 0; }
 
-    bool IsCompress() const { return (m_flags & kCompressFlag) != 0; }
-    void ClearCompress() { m_flags &= ~kCompressFlag; }
-    void SetCompress() { m_flags |= kCompressFlag; }
+    bool IsCompress() const { return (mFlags & kCompressFlag) != 0; }
+    void ClearCompress() { mFlags &= ~kCompressFlag; }
+    void SetCompress() { mFlags |= kCompressFlag; }
 
-    uint8_t GetContextId() const { return m_flags & kContextIdMask; }
-    void SetContextId(uint8_t cid) { m_flags = (m_flags & ~kContextIdMask) | (cid << kContextIdOffset); }
+    uint8_t GetContextId() const { return mFlags & kContextIdMask; }
+    void SetContextId(uint8_t cid) { mFlags = (mFlags & ~kContextIdMask) | (cid << kContextIdOffset); }
 
-    uint8_t GetContextLength() const { return m_context_length; }
-    void SetContextLength(uint8_t length) { m_context_length = length; }
+    uint8_t GetContextLength() const { return mContextLength; }
+    void SetContextLength(uint8_t length) { mContextLength = length; }
 
 private:
     enum
@@ -215,8 +215,8 @@ private:
         kContextIdOffset = 0,
         kContextIdMask = 0xf << kContextIdOffset,
     };
-    uint8_t m_flags;
-    uint8_t m_context_length;
+    uint8_t mFlags;
+    uint8_t mContextLength;
 } __attribute__((packed));
 
 }  // namespace NetworkData

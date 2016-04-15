@@ -35,10 +35,10 @@ public:
 
     ThreadError SendMessage(uint8_t protocol, Message &message) final;
     ThreadError Send(uint8_t protocol, uint8_t *frame,
-                     uint16_t frame_length) final;
+                     uint16_t frameLength) final;
 
 private:
-    Hdlc m_hdlc;
+    Hdlc mHdlc;
 };
 
 }  // namespace Thread

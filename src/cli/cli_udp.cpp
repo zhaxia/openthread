@@ -25,7 +25,7 @@ namespace Thread {
 namespace Cli {
 
 Udp::Udp():
-    m_socket(&HandleUdpReceive, this)
+    mSocket(&HandleUdpReceive, this)
 {
 }
 
@@ -34,42 +34,42 @@ ThreadError Udp::Start()
     struct sockaddr_in6 sockaddr;
 
     memset(&sockaddr, 0, sizeof(sockaddr));
-    sockaddr.sin6_port = 7335;
+    sockaddr.mPort = 7335;
 
-    return m_socket.Bind(&sockaddr);
+    return mSocket.Bind(&sockaddr);
 }
 
-void Udp::HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info)
+void Udp::HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo)
 {
     Udp *obj = reinterpret_cast<Udp *>(context);
-    obj->HandleUdpReceive(message, message_info);
+    obj->HandleUdpReceive(message, messageInfo);
 }
 
-void Udp::HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info)
+void Udp::HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
-    uint16_t payload_length = message.GetLength() - message.GetOffset();
+    uint16_t payloadLength = message.GetLength() - message.GetOffset();
     Message *reply;
     char buf[512];
     char *cmd;
     char *last;
 
-    VerifyOrExit(payload_length <= sizeof(buf), ;);
-    message.Read(message.GetOffset(), payload_length, buf);
+    VerifyOrExit(payloadLength <= sizeof(buf), ;);
+    message.Read(message.GetOffset(), payloadLength, buf);
 
-    if (buf[payload_length - 1] == '\n')
+    if (buf[payloadLength - 1] == '\n')
     {
-        buf[--payload_length] = '\0';
+        buf[--payloadLength] = '\0';
     }
 
-    if (buf[payload_length - 1] == '\r')
+    if (buf[payloadLength - 1] == '\r')
     {
-        buf[--payload_length] = '\0';
+        buf[--payloadLength] = '\0';
     }
 
     VerifyOrExit((cmd = strtok_r(buf, " ", &last)) != NULL, ;);
 
-    m_peer = message_info;
+    mPeer = messageInfo;
 
     if (strncmp(cmd, "?", 1) == 0)
     {
@@ -79,7 +79,7 @@ void Udp::HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info)
         snprintf(cur, end - cur, "%s", "Commands:\r\n");
         cur += strlen(cur);
 
-        for (Command *command = m_commands; command; command = command->GetNext())
+        for (Command *command = mCommands; command; command = command->GetNext())
         {
             snprintf(cur, end - cur, "%s\r\n", command->GetName());
             cur += strlen(cur);
@@ -88,7 +88,7 @@ void Udp::HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info)
         VerifyOrExit((reply = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
         reply->Append(buf, cur - buf);
 
-        SuccessOrExit(error = m_socket.SendTo(*reply, m_peer));
+        SuccessOrExit(error = mSocket.SendTo(*reply, mPeer));
     }
     else
     {
@@ -103,7 +103,7 @@ void Udp::HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info)
             }
         }
 
-        for (Command *command = m_commands; command; command = command->GetNext())
+        for (Command *command = mCommands; command; command = command->GetNext())
         {
             if (strcmp(cmd, command->GetName()) == 0)
             {
@@ -121,15 +121,15 @@ exit:
     }
 }
 
-ThreadError Udp::Output(const char *buf, uint16_t buf_length)
+ThreadError Udp::Output(const char *buf, uint16_t bufLength)
 {
     ThreadError error = kThreadError_None;
     Message *message;
 
     VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
-    SuccessOrExit(error = message->SetLength(buf_length));
-    message->Write(0, buf_length, buf);
-    SuccessOrExit(error = m_socket.SendTo(*message, m_peer));
+    SuccessOrExit(error = message->SetLength(bufLength));
+    message->Write(0, bufLength, buf);
+    SuccessOrExit(error = mSocket.SendTo(*message, mPeer));
 
 exit:
 

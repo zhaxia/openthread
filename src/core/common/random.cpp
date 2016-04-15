@@ -18,11 +18,11 @@
 
 namespace Thread {
 
-static uint32_t s_state = 1;
+static uint32_t sState = 1;
 
 void Random::Init(uint32_t seed)
 {
-    s_state = seed;
+    sState = seed;
 }
 
 uint32_t Random::Get()
@@ -30,7 +30,7 @@ uint32_t Random::Get()
     uint32_t mlcg, p, q;
     uint64_t tmpstate;
 
-    tmpstate = static_cast<uint64_t>(33614) * static_cast<uint64_t>(s_state);
+    tmpstate = static_cast<uint64_t>(33614) * static_cast<uint64_t>(sState);
     q = tmpstate & 0xffffffff;
     q = q >> 1;
     p = tmpstate >> 32;
@@ -42,7 +42,7 @@ uint32_t Random::Get()
         mlcg++;
     }
 
-    s_state = mlcg;
+    sState = mlcg;
 
     return mlcg;
 }

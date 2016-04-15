@@ -30,11 +30,11 @@ public:
     virtual const char *GetName() = 0;
     virtual void Run(int argc, char *argv[], Server &server) = 0;
 
-    Command *GetNext() const { return m_next; }
-    void SetNext(Command &command) { m_next = &command; }
+    Command *GetNext() const { return mNext; }
+    void SetNext(Command &command) { mNext = &command; }
 
 private:
-    Command *m_next = NULL;
+    Command *mNext = NULL;
 };
 
 }  // namespace Cli

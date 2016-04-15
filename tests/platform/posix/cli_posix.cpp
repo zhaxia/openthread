@@ -120,7 +120,7 @@ void Socket::ReceivedTask()
         snprintf(cur, end - cur, "%s", "Commands:\r\n");
         cur += strlen(cur);
 
-        for (Command *command = m_commands; command; command = command->GetNext())
+        for (Command *command = mCommands; command; command = command->GetNext())
         {
             snprintf(cur, end - cur, "%s\r\n", command->GetName());
             cur += strlen(cur);
@@ -141,7 +141,7 @@ void Socket::ReceivedTask()
             }
         }
 
-        for (Command *command = m_commands; command; command = command->GetNext())
+        for (Command *command = mCommands; command; command = command->GetNext())
         {
             if (strcmp(cmd, command->GetName()) == 0)
             {
@@ -155,10 +155,10 @@ exit:
     pthread_cond_signal(&m_condition_variable);
 }
 
-ThreadError Socket::Output(const char *buf, uint16_t buf_length)
+ThreadError Socket::Output(const char *buf, uint16_t bufLength)
 {
     pthread_mutex_lock(&m_mutex);
-    sendto(m_sockfd, buf, buf_length, 0, (struct sockaddr *)&m_sockaddr, sizeof(m_sockaddr));
+    sendto(m_sockfd, buf, bufLength, 0, (struct sockaddr *)&m_sockaddr, sizeof(m_sockaddr));
     pthread_mutex_unlock(&m_mutex);
     return kThreadError_None;
 }

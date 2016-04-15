@@ -27,7 +27,7 @@
 
 struct gengetopt_args_info args_info;
 
-Thread::Ncp ncp;
+Thread::Ncp sNcp;
 
 int main(int argc, char *argv[])
 {
@@ -42,7 +42,7 @@ int main(int argc, char *argv[])
     Thread::Random::Init(args_info.nodeid_arg);
     Thread::Timer::Init();
 
-    ncp.Start();
+    sNcp.Start();
 
     Thread::TaskletScheduler::Run();
     return 0;

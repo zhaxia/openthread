@@ -214,7 +214,7 @@ ThreadError phy_transmit(PhyPacket *packet)
         }
 
         sockaddr.sin_port = htons(9000 + i);
-        sendto(s_sockfd, s_transmit_frame->m_psdu, s_transmit_frame->m_length, 0,
+        sendto(s_sockfd, s_transmit_frame->mPsdu, s_transmit_frame->mLength, 0,
                (struct sockaddr *)&sockaddr, sizeof(sockaddr));
     }
 
@@ -300,7 +300,7 @@ void *phy_receive_thread(void *arg)
             break;
 
         case kStateTransmit:
-            length = recvfrom(s_sockfd, receive_frame.m_psdu, Mac::Frame::kMTU, 0, NULL, NULL);
+            length = recvfrom(s_sockfd, receive_frame.mPsdu, Mac::Frame::kMTU, 0, NULL, NULL);
 
             if (length < 0)
             {
@@ -380,7 +380,7 @@ void send_ack()
         }
 
         sockaddr.sin_port = htons(9000 + i);
-        sendto(s_sockfd, m_ack_packet.m_psdu, m_ack_packet.m_length, 0,
+        sendto(s_sockfd, m_ack_packet.mPsdu, m_ack_packet.mLength, 0,
                (struct sockaddr *)&sockaddr, sizeof(sockaddr));
     }
 
@@ -396,12 +396,12 @@ void phy_received_task(void *context)
     int length;
     PhyState state;
 
-    length = recvfrom(s_sockfd, s_receive_frame->m_psdu, Mac::Frame::kMTU, 0, NULL, NULL);
+    length = recvfrom(s_sockfd, s_receive_frame->mPsdu, Mac::Frame::kMTU, 0, NULL, NULL);
     receive_frame = reinterpret_cast<Mac::Frame *>(s_receive_frame);
 
     receive_frame->GetDstAddr(dstaddr);
 
-    switch (dstaddr.length)
+    switch (dstaddr.mLength)
     {
     case 0:
         break;
@@ -409,14 +409,14 @@ void phy_received_task(void *context)
     case 2:
         receive_frame->GetDstPanId(dstpan);
         VerifyOrExit((dstpan == Mac::kShortAddrBroadcast || dstpan == s_panid) &&
-                     (dstaddr.address16 == Mac::kShortAddrBroadcast || dstaddr.address16 == s_short_address),
+                     (dstaddr.mAddress16 == Mac::kShortAddrBroadcast || dstaddr.mAddress16 == s_short_address),
                      error = kThreadError_Abort);
         break;
 
     case 8:
         receive_frame->GetDstPanId(dstpan);
         VerifyOrExit((dstpan == Mac::kShortAddrBroadcast || dstpan == s_panid) &&
-                     memcmp(&dstaddr.address64, s_extended_address, sizeof(dstaddr.address64)) == 0,
+                     memcmp(&dstaddr.mAddress64, s_extended_address, sizeof(dstaddr.mAddress64)) == 0,
                      error = kThreadError_Abort);
         break;
 
@@ -424,8 +424,8 @@ void phy_received_task(void *context)
         ExitNow(error = kThreadError_Abort);
     }
 
-    s_receive_frame->m_length = length;
-    s_receive_frame->m_power = -20;
+    s_receive_frame->mLength = length;
+    s_receive_frame->mPower = -20;
 
     // generate acknowledgment
     if (reinterpret_cast<Mac::Frame *>(s_receive_frame)->GetAckRequest())

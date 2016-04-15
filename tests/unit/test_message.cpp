@@ -22,25 +22,25 @@
 void TestMessage()
 {
     Thread::Message *message;
-    uint8_t write_buffer[1024];
-    uint8_t read_buffer[1024];
+    uint8_t writeBuffer[1024];
+    uint8_t readBuffer[1024];
 
     Thread::Message::Init();
 
-    for (int i = 0; i < sizeof(write_buffer); i++)
+    for (int i = 0; i < sizeof(writeBuffer); i++)
     {
-        write_buffer[i] = random();
+        writeBuffer[i] = random();
     }
 
     VerifyOrQuit((message = Thread::Message::New(Thread::Message::kTypeIp6, 0)) != NULL,
                  "Message::New failed\n");
-    SuccessOrQuit(message->SetLength(sizeof(write_buffer)),
+    SuccessOrQuit(message->SetLength(sizeof(writeBuffer)),
                   "Message::SetLength failed\n");
-    VerifyOrQuit(message->Write(0, sizeof(write_buffer), write_buffer) == sizeof(write_buffer),
+    VerifyOrQuit(message->Write(0, sizeof(writeBuffer), writeBuffer) == sizeof(writeBuffer),
                  "Message::Write failed\n");
-    VerifyOrQuit(message->Read(0, sizeof(read_buffer), read_buffer) == sizeof(read_buffer),
+    VerifyOrQuit(message->Read(0, sizeof(readBuffer), readBuffer) == sizeof(readBuffer),
                  "Message::Read failed\n");
-    VerifyOrQuit(memcmp(write_buffer, read_buffer, sizeof(write_buffer)) == 0,
+    VerifyOrQuit(memcmp(writeBuffer, readBuffer, sizeof(writeBuffer)) == 0,
                  "Message compare failed\n");
     VerifyOrQuit(message->GetLength() == 1024,
                  "Message::GetLength failed\n");

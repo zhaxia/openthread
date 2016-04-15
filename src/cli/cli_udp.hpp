@@ -33,14 +33,14 @@ class Udp: public Server
 public:
     Udp();
     ThreadError Start() final;
-    ThreadError Output(const char *buf, uint16_t buf_length) final;
+    ThreadError Output(const char *buf, uint16_t bufLength) final;
 
 private:
-    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info);
-    void HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info);
+    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
 
-    Udp6Socket m_socket;
-    Ip6MessageInfo m_peer;
+    Udp6Socket mSocket;
+    Ip6MessageInfo mPeer;
 };
 
 }  // namespace Cli

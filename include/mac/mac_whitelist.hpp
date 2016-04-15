@@ -56,14 +56,14 @@ private:
 
     struct Entry
     {
-        Address64 addr64;
-        int8_t rssi;
-        bool valid : 1;
-        bool rssi_valid : 1;
+        Address64 mAddr64;
+        int8_t mRssi;
+        bool mValid : 1;
+        bool mRssiValid : 1;
     };
-    Entry m_whitelist[kMaxEntries];
+    Entry mWhitelist[kMaxEntries];
 
-    bool m_enabled = false;
+    bool mEnabled = false;
 };
 
 }  // namespace Mac

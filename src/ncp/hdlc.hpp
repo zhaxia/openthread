@@ -25,16 +25,16 @@ namespace Thread {
 class Hdlc
 {
 public:
-    typedef void (*ReceiveHandler)(void *context, uint8_t protocol, uint8_t *frame, uint16_t frame_length);
+    typedef void (*ReceiveHandler)(void *context, uint8_t protocol, uint8_t *frame, uint16_t frameLength);
     typedef void (*SendDoneHandler)(void *context);
     typedef void (*SendMessageDoneHandler)(void *context);
 
-    static ThreadError Init(void *context, ReceiveHandler receive_handler, SendDoneHandler send_done_handler,
-                            SendMessageDoneHandler send_message_done_handler);
+    static ThreadError Init(void *context, ReceiveHandler receiveHandler, SendDoneHandler sendDoneHandler,
+                            SendMessageDoneHandler sendMessageDoneHandler);
     static ThreadError Start();
     static ThreadError Stop();
 
-    static ThreadError Send(uint8_t protocol, uint8_t *frame, uint16_t frame_length);
+    static ThreadError Send(uint8_t protocol, uint8_t *frame, uint16_t frameLength);
     static ThreadError SendMessage(uint8_t protocol, Message &message);
 };
 

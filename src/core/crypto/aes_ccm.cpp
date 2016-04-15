@@ -21,28 +21,28 @@
 namespace Thread {
 namespace Crypto {
 
-void AesCcm::Init(const AesEcb &ecb, uint32_t header_length, uint32_t plaintext_length, uint8_t tag_length,
-                  const void *nonce, uint8_t nonce_length)
+void AesCcm::Init(const AesEcb &ecb, uint32_t headerLength, uint32_t plaintextLength, uint8_t tagLength,
+                  const void *nonce, uint8_t nonceLength)
 {
-    const uint8_t *nonce_bytes = reinterpret_cast<const uint8_t *>(nonce);
-    uint8_t block_length = 0;
+    const uint8_t *nonceBytes = reinterpret_cast<const uint8_t *>(nonce);
+    uint8_t blockLength = 0;
     uint32_t len;
     uint8_t L;
     uint8_t i;
 
-    m_ecb = &ecb;
+    mEcb = &ecb;
 
-    // tag_length must be even
-    tag_length &= ~1;
+    // tagLength must be even
+    tagLength &= ~1;
 
-    if (tag_length > sizeof(m_block))
+    if (tagLength > sizeof(mBlock))
     {
-        tag_length = sizeof(m_block);
+        tagLength = sizeof(mBlock);
     }
 
     L = 0;
 
-    for (len = plaintext_length; len; len >>= 8)
+    for (len = plaintextLength; len; len >>= 8)
     {
         L++;
     }
@@ -52,203 +52,203 @@ void AesCcm::Init(const AesEcb &ecb, uint32_t header_length, uint32_t plaintext_
         L = 2;
     }
 
-    if (nonce_length > 13)
+    if (nonceLength > 13)
     {
-        nonce_length = 13;
+        nonceLength = 13;
     }
 
     // increase L to match nonce len
-    if (L < (15 - nonce_length))
+    if (L < (15 - nonceLength))
     {
-        L = 15 - nonce_length;
+        L = 15 - nonceLength;
     }
 
-    // decrease nonce_length to match L
-    if (nonce_length > (15 - L))
+    // decrease nonceLength to match L
+    if (nonceLength > (15 - L))
     {
-        nonce_length = 15 - L;
+        nonceLength = 15 - L;
     }
 
     // setup initial block
 
     // write flags
-    m_block[0] = (static_cast<uint8_t>((header_length != 0) << 6) |
-                  static_cast<uint8_t>(((tag_length - 2) >> 1) << 3) |
-                  static_cast<uint8_t>(L - 1));
+    mBlock[0] = (static_cast<uint8_t>((headerLength != 0) << 6) |
+                 static_cast<uint8_t>(((tagLength - 2) >> 1) << 3) |
+                 static_cast<uint8_t>(L - 1));
 
     // write nonce
-    for (i = 0; i < nonce_length; i++)
+    for (i = 0; i < nonceLength; i++)
     {
-        m_block[1 + i] = nonce_bytes[i];
+        mBlock[1 + i] = nonceBytes[i];
     }
 
     // write len
-    len = plaintext_length;
+    len = plaintextLength;
 
-    for (i = sizeof(m_block) - 1; i > nonce_length; i--)
+    for (i = sizeof(mBlock) - 1; i > nonceLength; i--)
     {
-        m_block[i] = len;
+        mBlock[i] = len;
         len >>= 8;
     }
 
     // encrypt initial block
-    m_ecb->Encrypt(m_block, m_block);
+    mEcb->Encrypt(mBlock, mBlock);
 
     // process header
-    if (header_length > 0)
+    if (headerLength > 0)
     {
         // process length
-        if (header_length < (65536U - 256U))
+        if (headerLength < (65536U - 256U))
         {
-            m_block[block_length++] ^= header_length >> 8;
-            m_block[block_length++] ^= header_length >> 0;
+            mBlock[blockLength++] ^= headerLength >> 8;
+            mBlock[blockLength++] ^= headerLength >> 0;
         }
         else
         {
-            m_block[block_length++] ^= 0xff;
-            m_block[block_length++] ^= 0xfe;
-            m_block[block_length++] ^= header_length >> 24;
-            m_block[block_length++] ^= header_length >> 16;
-            m_block[block_length++] ^= header_length >> 8;
-            m_block[block_length++] ^= header_length >> 0;
+            mBlock[blockLength++] ^= 0xff;
+            mBlock[blockLength++] ^= 0xfe;
+            mBlock[blockLength++] ^= headerLength >> 24;
+            mBlock[blockLength++] ^= headerLength >> 16;
+            mBlock[blockLength++] ^= headerLength >> 8;
+            mBlock[blockLength++] ^= headerLength >> 0;
         }
     }
 
     // init counter
-    m_ctr[0] = L - 1;
+    mCtr[0] = L - 1;
 
-    for (i = 0; i < nonce_length; i++)
+    for (i = 0; i < nonceLength; i++)
     {
-        m_ctr[1 + i] = nonce_bytes[i];
+        mCtr[1 + i] = nonceBytes[i];
     }
 
-    for (i = i + 1; i < sizeof(m_ctr); i++)
+    for (i = i + 1; i < sizeof(mCtr); i++)
     {
-        m_ctr[i] = 0;
+        mCtr[i] = 0;
     }
 
-    m_nonce_length = nonce_length;
-    m_header_length = header_length;
-    m_header_cur = 0;
-    m_plaintext_length = plaintext_length;
-    m_plaintext_cur = 0;
-    m_block_length = block_length;
-    m_ctr_length = sizeof(m_ctrpad);
-    m_tag_length = tag_length;
+    mNonceLength = nonceLength;
+    mHeaderLength = headerLength;
+    mHeaderCur = 0;
+    mPlaintextLength = plaintextLength;
+    mPlaintextCur = 0;
+    mBlockLength = blockLength;
+    mCtrLength = sizeof(mCtrPad);
+    mTagLength = tagLength;
 }
 
-void AesCcm::Header(const void *header, uint32_t header_length)
+void AesCcm::Header(const void *header, uint32_t headerLength)
 {
-    const uint8_t *header_bytes = reinterpret_cast<const uint8_t *>(header);
+    const uint8_t *headerBytes = reinterpret_cast<const uint8_t *>(header);
 
-    assert(m_header_cur + header_length <= m_header_length);
+    assert(mHeaderCur + headerLength <= mHeaderLength);
 
     // process header
-    for (unsigned i = 0; i < header_length; i++)
+    for (unsigned i = 0; i < headerLength; i++)
     {
-        if (m_block_length == sizeof(m_block))
+        if (mBlockLength == sizeof(mBlock))
         {
-            m_ecb->Encrypt(m_block, m_block);
-            m_block_length = 0;
+            mEcb->Encrypt(mBlock, mBlock);
+            mBlockLength = 0;
         }
 
-        m_block[m_block_length++] ^= header_bytes[i];
+        mBlock[mBlockLength++] ^= headerBytes[i];
     }
 
-    m_header_cur += header_length;
+    mHeaderCur += headerLength;
 
-    if (m_header_cur == m_header_length)
+    if (mHeaderCur == mHeaderLength)
     {
         // process remainder
-        if (m_block_length != 0)
+        if (mBlockLength != 0)
         {
-            m_ecb->Encrypt(m_block, m_block);
+            mEcb->Encrypt(mBlock, mBlock);
         }
 
-        m_block_length = 0;
+        mBlockLength = 0;
     }
 }
 
 void AesCcm::Payload(void *plaintext, void *ciphertext, uint32_t len, bool encrypt)
 {
-    uint8_t *plaintext_bytes = reinterpret_cast<uint8_t *>(plaintext);
-    uint8_t *ciphertext_bytes = reinterpret_cast<uint8_t *>(ciphertext);
+    uint8_t *plaintextBytes = reinterpret_cast<uint8_t *>(plaintext);
+    uint8_t *ciphertextBytes = reinterpret_cast<uint8_t *>(ciphertext);
     uint8_t byte;
 
-    assert(m_plaintext_cur + len <= m_plaintext_length);
+    assert(mPlaintextCur + len <= mPlaintextLength);
 
     for (unsigned i = 0; i < len; i++)
     {
-        if (m_ctr_length == 16)
+        if (mCtrLength == 16)
         {
-            for (int j = sizeof(m_ctr) - 1; j > m_nonce_length; j--)
+            for (int j = sizeof(mCtr) - 1; j > mNonceLength; j--)
             {
-                if (++m_ctr[j])
+                if (++mCtr[j])
                 {
                     break;
                 }
             }
 
-            m_ecb->Encrypt(m_ctr, m_ctrpad);
-            m_ctr_length = 0;
+            mEcb->Encrypt(mCtr, mCtrPad);
+            mCtrLength = 0;
         }
 
         if (encrypt)
         {
-            byte = plaintext_bytes[i];
-            ciphertext_bytes[i] = byte ^ m_ctrpad[m_ctr_length++];
+            byte = plaintextBytes[i];
+            ciphertextBytes[i] = byte ^ mCtrPad[mCtrLength++];
         }
         else
         {
-            byte = ciphertext_bytes[i] ^ m_ctrpad[m_ctr_length++];
-            plaintext_bytes[i] = byte;
+            byte = ciphertextBytes[i] ^ mCtrPad[mCtrLength++];
+            plaintextBytes[i] = byte;
         }
 
-        if (m_block_length == sizeof(m_block))
+        if (mBlockLength == sizeof(mBlock))
         {
-            m_ecb->Encrypt(m_block, m_block);
-            m_block_length = 0;
+            mEcb->Encrypt(mBlock, mBlock);
+            mBlockLength = 0;
         }
 
-        m_block[m_block_length++] ^= byte;
+        mBlock[mBlockLength++] ^= byte;
     }
 
-    m_plaintext_cur += len;
+    mPlaintextCur += len;
 
-    if (m_plaintext_cur >= m_plaintext_length)
+    if (mPlaintextCur >= mPlaintextLength)
     {
-        if (m_block_length != 0)
+        if (mBlockLength != 0)
         {
-            m_ecb->Encrypt(m_block, m_block);
+            mEcb->Encrypt(mBlock, mBlock);
         }
 
         // reset counter
-        for (uint8_t i = m_nonce_length + 1; i < sizeof(m_ctr); i++)
+        for (uint8_t i = mNonceLength + 1; i < sizeof(mCtr); i++)
         {
-            m_ctr[i] = 0;
+            mCtr[i] = 0;
         }
     }
 }
 
-void AesCcm::Finalize(void *tag, uint8_t *tag_length)
+void AesCcm::Finalize(void *tag, uint8_t *tagLength)
 {
-    uint8_t *tag_bytes = reinterpret_cast<uint8_t *>(tag);
+    uint8_t *tagBytes = reinterpret_cast<uint8_t *>(tag);
 
-    assert(m_plaintext_cur == m_plaintext_length);
+    assert(mPlaintextCur == mPlaintextLength);
 
-    if (m_tag_length > 0)
+    if (mTagLength > 0)
     {
-        m_ecb->Encrypt(m_ctr, m_ctrpad);
+        mEcb->Encrypt(mCtr, mCtrPad);
 
-        for (int i = 0; i < m_tag_length; i++)
+        for (int i = 0; i < mTagLength; i++)
         {
-            tag_bytes[i] = m_block[i] ^ m_ctrpad[i];
+            tagBytes[i] = mBlock[i] ^ mCtrPad[i];
         }
     }
 
-    if (tag_length)
+    if (tagLength)
     {
-        *tag_length = m_tag_length;
+        *tagLength = mTagLength;
     }
 }
 

@@ -36,16 +36,16 @@ typedef uint16_t Address16;
 
 struct Address64
 {
-    uint8_t bytes[8];
+    uint8_t mBytes[8];
 };
 
 struct Address
 {
-    uint8_t length;
+    uint8_t mLength;
     union
     {
-        Address16 address16;
-        Address64 address64;
+        Address16 mAddress16;
+        Address64 mAddress64;
     };
 };
 
@@ -103,16 +103,16 @@ public:
         kMacCmdGtsRequest                  = 9,
     };
 
-    ThreadError InitMacHeader(uint16_t fcf, uint8_t sec_ctl);
+    ThreadError InitMacHeader(uint16_t fcf, uint8_t secCtl);
     uint8_t GetType();
 
     bool GetSecurityEnabled();
 
     bool GetFramePending();
-    ThreadError SetFramePending(bool frame_pending);
+    ThreadError SetFramePending(bool framePending);
 
     bool GetAckRequest();
-    ThreadError SetAckRequest(bool ack_request);
+    ThreadError SetAckRequest(bool ackRequest);
 
     ThreadError GetSequence(uint8_t &sequence);
     ThreadError SetSequence(uint8_t sequence);
@@ -131,16 +131,16 @@ public:
     ThreadError SetSrcAddr(Address16 address16);
     ThreadError SetSrcAddr(const Address64 &address64);
 
-    ThreadError GetSecurityLevel(uint8_t &sec_level);
+    ThreadError GetSecurityLevel(uint8_t &secLevel);
 
-    ThreadError GetFrameCounter(uint32_t &frame_counter);
-    ThreadError SetFrameCounter(uint32_t frame_counter);
+    ThreadError GetFrameCounter(uint32_t &frameCounter);
+    ThreadError SetFrameCounter(uint32_t frameCounter);
 
     ThreadError GetKeyId(uint8_t &id);
     ThreadError SetKeyId(uint8_t id);
 
-    ThreadError GetCommandId(uint8_t &command_id);
-    ThreadError SetCommandId(uint8_t command_id);
+    ThreadError GetCommandId(uint8_t &commandId);
+    ThreadError SetCommandId(uint8_t commandId);
 
     uint8_t GetLength() const;
     ThreadError SetLength(uint8_t length);
@@ -152,16 +152,16 @@ public:
     uint8_t GetMaxPayloadLength();
     ThreadError SetPayloadLength(uint8_t length);
 
-    uint8_t GetChannel() const { return m_channel; }
-    void SetChannel(uint8_t channel) { m_channel = channel; }
+    uint8_t GetChannel() const { return mChannel; }
+    void SetChannel(uint8_t channel) { mChannel = channel; }
 
-    int8_t GetPower() const { return m_power; }
-    void SetPower(int8_t power) { m_power = power; }
+    int8_t GetPower() const { return mPower; }
+    void SetPower(int8_t power) { mPower = power; }
 
-    uint8_t GetPsduLength() const { return m_length; }
-    void SetPsduLength(uint8_t length) { m_length = length; }
+    uint8_t GetPsduLength() const { return mLength; }
+    void SetPsduLength(uint8_t length) { mLength = length; }
 
-    uint8_t *GetPsdu() { return m_psdu; }
+    uint8_t *GetPsdu() { return mPsdu; }
     uint8_t *GetHeader();
     uint8_t *GetPayload();
     uint8_t *GetFooter();

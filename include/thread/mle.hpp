@@ -96,67 +96,67 @@ enum JoinMode
 class Header
 {
 public:
-    void Init() { m_security_suite = 0; m_security_control = Mac::Frame::kSecEncMic32; }
+    void Init() { mSecuritySuite = 0; mSecurityControl = Mac::Frame::kSecEncMic32; }
     bool IsValid() const {
-        return m_security_suite == 0 &&
-               (m_security_control == (Mac::Frame::kKeyIdMode1 | Mac::Frame::kSecEncMic32) ||
-                m_security_control == (Mac::Frame::kKeyIdMode5 | Mac::Frame::kSecEncMic32));
+        return mSecuritySuite == 0 &&
+               (mSecurityControl == (Mac::Frame::kKeyIdMode1 | Mac::Frame::kSecEncMic32) ||
+                mSecurityControl == (Mac::Frame::kKeyIdMode5 | Mac::Frame::kSecEncMic32));
     }
 
     uint8_t GetLength() const {
-        return sizeof(m_security_suite) + sizeof(m_security_control) + sizeof(m_frame_counter) +
-               (IsKeyIdMode1() ? 1 : 5) + sizeof(m_command);
+        return sizeof(mSecuritySuite) + sizeof(mSecurityControl) + sizeof(mFrameCounter) +
+               (IsKeyIdMode1() ? 1 : 5) + sizeof(mCommand);
     }
 
     uint8_t GetHeaderLength() const {
-        return sizeof(m_security_control) + sizeof(m_frame_counter) + (IsKeyIdMode1() ? 1 : 5);
+        return sizeof(mSecurityControl) + sizeof(mFrameCounter) + (IsKeyIdMode1() ? 1 : 5);
     }
 
     const uint8_t *GetBytes() const {
-        return reinterpret_cast<const uint8_t *>(&m_security_suite);
+        return reinterpret_cast<const uint8_t *>(&mSecuritySuite);
     }
 
-    uint8_t GetSecurityControl() const { return m_security_control; }
+    uint8_t GetSecurityControl() const { return mSecurityControl; }
 
     bool IsKeyIdMode1() const {
-        return (m_security_control & Mac::Frame::kKeyIdModeMask) == Mac::Frame::kKeyIdMode1;
+        return (mSecurityControl & Mac::Frame::kKeyIdModeMask) == Mac::Frame::kKeyIdMode1;
     }
 
     void SetKeyIdMode1() {
-        m_security_control = (m_security_control & ~Mac::Frame::kKeyIdModeMask) | Mac::Frame::kKeyIdMode1;
+        mSecurityControl = (mSecurityControl & ~Mac::Frame::kKeyIdModeMask) | Mac::Frame::kKeyIdMode1;
     }
 
     void SetKeyIdMode2() {
-        m_security_control = (m_security_control & ~Mac::Frame::kKeyIdModeMask) | Mac::Frame::kKeyIdMode5;
+        mSecurityControl = (mSecurityControl & ~Mac::Frame::kKeyIdModeMask) | Mac::Frame::kKeyIdMode5;
     }
 
     uint32_t GetKeyId() const {
-        return IsKeyIdMode1() ? m_key_identifier[0] - 1 :
-               static_cast<uint32_t>(m_key_identifier[3]) << 0 |
-               static_cast<uint32_t>(m_key_identifier[2]) << 8 |
-               static_cast<uint32_t>(m_key_identifier[1]) << 16 |
-               static_cast<uint32_t>(m_key_identifier[0]) << 24;
+        return IsKeyIdMode1() ? mKeyIdentifier[0] - 1 :
+               static_cast<uint32_t>(mKeyIdentifier[3]) << 0 |
+               static_cast<uint32_t>(mKeyIdentifier[2]) << 8 |
+               static_cast<uint32_t>(mKeyIdentifier[1]) << 16 |
+               static_cast<uint32_t>(mKeyIdentifier[0]) << 24;
     }
 
-    void SetKeyId(uint32_t key_sequence) {
+    void SetKeyId(uint32_t keySequence) {
         if (IsKeyIdMode1()) {
-            m_key_identifier[0] = (key_sequence & 0x7f) + 1;
+            mKeyIdentifier[0] = (keySequence & 0x7f) + 1;
         }
         else {
-            m_key_identifier[4] = (key_sequence & 0x7f) + 1;
-            m_key_identifier[3] = key_sequence >> 0;
-            m_key_identifier[2] = key_sequence >> 8;
-            m_key_identifier[1] = key_sequence >> 16;
-            m_key_identifier[0] = key_sequence >> 24;
+            mKeyIdentifier[4] = (keySequence & 0x7f) + 1;
+            mKeyIdentifier[3] = keySequence >> 0;
+            mKeyIdentifier[2] = keySequence >> 8;
+            mKeyIdentifier[1] = keySequence >> 16;
+            mKeyIdentifier[0] = keySequence >> 24;
         }
     }
 
     uint32_t GetFrameCounter() const {
-        return Encoding::LittleEndian::HostSwap32(m_frame_counter);
+        return Encoding::LittleEndian::HostSwap32(mFrameCounter);
     }
 
-    void SetFrameCounter(uint32_t frame_counter) {
-        m_frame_counter = Encoding::LittleEndian::HostSwap32(frame_counter);
+    void SetFrameCounter(uint32_t frameCounter) {
+        mFrameCounter = Encoding::LittleEndian::HostSwap32(frameCounter);
     }
 
     enum Command
@@ -178,13 +178,13 @@ public:
         kCommandChildUpdateResponse  = 14,
     };
     Command GetCommand() const {
-        const uint8_t *command = m_key_identifier + (IsKeyIdMode1() ? 1 : 5);
+        const uint8_t *command = mKeyIdentifier + (IsKeyIdMode1() ? 1 : 5);
         return static_cast<Command>(*command);
     }
 
     void SetCommand(Command command) {
-        uint8_t *command_field = m_key_identifier + (IsKeyIdMode1() ? 1 : 5);
-        *command_field = static_cast<uint8_t>(command);
+        uint8_t *commandField = mKeyIdentifier + (IsKeyIdMode1() ? 1 : 5);
+        *commandField = static_cast<uint8_t>(command);
     }
 
     enum SecuritySuite
@@ -194,11 +194,11 @@ public:
     };
 
 private:
-    uint8_t m_security_suite;
-    uint8_t m_security_control;
-    uint32_t m_frame_counter;
-    uint8_t m_key_identifier[5];
-    uint8_t m_command;
+    uint8_t mSecuritySuite;
+    uint8_t mSecurityControl;
+    uint32_t mFrameCounter;
+    uint8_t mKeyIdentifier[5];
+    uint8_t mCommand;
 } __attribute__((packed));
 
 class Mle
@@ -222,7 +222,7 @@ public:
 
     const uint8_t GetChildId(uint16_t rloc16) const;
     const uint8_t GetRouterId(uint16_t rloc16) const;
-    const uint16_t GetRloc16(uint8_t router_id) const;
+    const uint16_t GetRloc16(uint8_t routerId) const;
 
     const Ip6Address *GetLinkLocalAllThreadNodesAddress() const;
     const Ip6Address *GetRealmLocalAllThreadNodesAddress() const;
@@ -249,21 +249,21 @@ protected:
     ThreadError AppendSourceAddress(Message &message);
     ThreadError AppendMode(Message &message, uint8_t mode);
     ThreadError AppendTimeout(Message &message, uint32_t timeout);
-    ThreadError AppendChallenge(Message &message, const uint8_t *challenge, uint8_t challenge_length);
-    ThreadError AppendResponse(Message &message, const uint8_t *response, uint8_t response_length);
+    ThreadError AppendChallenge(Message &message, const uint8_t *challenge, uint8_t challengeLength);
+    ThreadError AppendResponse(Message &message, const uint8_t *response, uint8_t responseLength);
     ThreadError AppendLinkFrameCounter(Message &message);
     ThreadError AppendMleFrameCounter(Message &message);
     ThreadError AppendAddress16(Message &message, uint16_t rloc16);
     ThreadError AppendNetworkData(Message &message, bool stable_only);
-    ThreadError AppendTlvRequest(Message &message, const uint8_t *tlvs, uint8_t tlvs_length);
+    ThreadError AppendTlvRequest(Message &message, const uint8_t *tlvs, uint8_t tlvsLength);
     ThreadError AppendLeaderData(Message &message);
-    ThreadError AppendScanMask(Message &message, uint8_t scan_mask);
+    ThreadError AppendScanMask(Message &message, uint8_t scanMask);
     ThreadError AppendStatus(Message &message, StatusTlv::Status status);
-    ThreadError AppendLinkMargin(Message &message, uint8_t link_margin);
+    ThreadError AppendLinkMargin(Message &message, uint8_t linkMargin);
     ThreadError AppendVersion(Message &message);
     ThreadError AppendIp6Address(Message &message);
-    ThreadError CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6Header &ip6_header);
-    void GenerateNonce(const Mac::Address64 &mac_addr, uint32_t frame_counter, uint8_t security_level, uint8_t *nonce);
+    ThreadError CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6Header &ip6Header);
+    void GenerateNonce(const Mac::Address64 &macAddr, uint32_t frameCounter, uint8_t securityLevel, uint8_t *nonce);
     Neighbor *GetNeighbor(const Mac::Address &address);
     Neighbor *GetNeighbor(Mac::Address16 address);
     Neighbor *GetNeighbor(const Mac::Address64 &address);
@@ -273,49 +273,49 @@ protected:
     void HandleUnicastAddressesChanged();
     static void HandleParentRequestTimer(void *context);
     void HandleParentRequestTimer();
-    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info);
-    void HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info);
-    ThreadError HandleAdvertisement(const Message &message, const Ip6MessageInfo &message_info);
-    ThreadError HandleDataRequest(const Message &message, const Ip6MessageInfo &message_info);
-    ThreadError HandleDataResponse(const Message &message, const Ip6MessageInfo &message_info);
-    ThreadError HandleParentResponse(const Message &message, const Ip6MessageInfo &message_info,
-                                     uint32_t key_sequence);
-    ThreadError HandleChildIdResponse(const Message &message, const Ip6MessageInfo &message_info);
-    ThreadError HandleChildUpdateResponse(const Message &message, const Ip6MessageInfo &message_info);
-    uint8_t LinkMarginToQuality(uint8_t link_margin);
+    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
+    ThreadError HandleAdvertisement(const Message &message, const Ip6MessageInfo &messageInfo);
+    ThreadError HandleDataRequest(const Message &message, const Ip6MessageInfo &messageInfo);
+    ThreadError HandleDataResponse(const Message &message, const Ip6MessageInfo &messageInfo);
+    ThreadError HandleParentResponse(const Message &message, const Ip6MessageInfo &messageInfo,
+                                     uint32_t keySequence);
+    ThreadError HandleChildIdResponse(const Message &message, const Ip6MessageInfo &messageInfo);
+    ThreadError HandleChildUpdateResponse(const Message &message, const Ip6MessageInfo &messageInfo);
+    uint8_t LinkMarginToQuality(uint8_t linkMargin);
     ThreadError SendParentRequest();
     ThreadError SendChildIdRequest();
-    ThreadError SendDataRequest(const Ip6Address &destination, const uint8_t *tlvs, uint8_t tlvs_length);
-    ThreadError SendDataResponse(const Ip6Address &destination, const uint8_t *tlvs, uint8_t tlvs_length);
+    ThreadError SendDataRequest(const Ip6Address &destination, const uint8_t *tlvs, uint8_t tlvsLength);
+    ThreadError SendDataResponse(const Ip6Address &destination, const uint8_t *tlvs, uint8_t tlvsLength);
     ThreadError SendChildUpdateRequest();
     ThreadError SendMessage(Message &message, const Ip6Address &destination);
     ThreadError SetRloc16(uint16_t rloc16);
     ThreadError SetStateDetached();
     ThreadError SetStateChild(uint16_t rloc16);
 
-    NetifHandler m_netif_handler;
-    Timer m_parent_request_timer;
+    NetifHandler mNetifHandler;
+    Timer mParentRequestTimer;
 
-    Udp6Socket m_socket;
-    NetifUnicastAddress m_link_local_16;
-    NetifUnicastAddress m_link_local_64;
-    NetifUnicastAddress m_mesh_local_64;
-    NetifUnicastAddress m_mesh_local_16;
-    NetifMulticastAddress m_link_local_all_thread_nodes;
-    NetifMulticastAddress m_realm_local_all_thread_nodes;
+    Udp6Socket mSocket;
+    NetifUnicastAddress mLinkLocal16;
+    NetifUnicastAddress mLinkLocal64;
+    NetifUnicastAddress mMeshLocal64;
+    NetifUnicastAddress mMeshLocal16;
+    NetifMulticastAddress mLinkLocalAllThreadNodes;
+    NetifMulticastAddress mRealmLocalAllThreadNodes;
 
-    AddressResolver *m_address_resolver;
-    KeyManager *m_key_manager;
-    MeshForwarder *m_mesh;
-    MleRouter *m_mle_router;
-    NetworkData::Leader *m_network_data;
-    ThreadNetif *m_netif;
+    AddressResolver *mAddressResolver;
+    KeyManager *mKeyManager;
+    MeshForwarder *mMesh;
+    MleRouter *mMleRouter;
+    NetworkData::Leader *mNetworkData;
+    ThreadNetif *mNetif;
 
-    LeaderDataTlv m_leader_data;
-    DeviceState m_device_state = kDeviceStateDisabled;
-    Router m_parent;
-    uint8_t m_device_mode = kModeRxOnWhenIdle | kModeSecureDataRequest | kModeFFD | kModeFullNetworkData;
-    uint32_t m_timeout = kMaxNeighborAge;
+    LeaderDataTlv mLeaderData;
+    DeviceState mDeviceState = kDeviceStateDisabled;
+    Router mParent;
+    uint8_t mDeviceMode = kModeRxOnWhenIdle | kModeSecureDataRequest | kModeFFD | kModeFullNetworkData;
+    uint32_t mTimeout = kMaxNeighborAge;
 
     enum ParentRequestState
     {
@@ -326,22 +326,22 @@ protected:
         kParentRequestChild,
         kChildIdRequest,
     };
-    ParentRequestState m_parent_request_state = kParentIdle;
-    JoinMode m_parent_request_mode = kJoinAnyPartition;
+    ParentRequestState mParentRequestState = kParentIdle;
+    JoinMode mParentRequestMode = kJoinAnyPartition;
 
     struct
     {
-        uint8_t challenge[8];
-    } m_parent_request;
+        uint8_t mChallenge[8];
+    } mParentRequest;
 
     struct
     {
-        uint8_t challenge[8];
-        uint8_t challenge_length;
-    } m_child_id_request;
+        uint8_t mChallenge[8];
+        uint8_t mChallengeLength;
+    } mChildIdRequest;
 
-    // used during the attach process
-    uint32_t m_parent_connectivity;
+// used during the attach process
+    uint32_t mParentConnectivity;
 };
 
 }  // namespace Mle

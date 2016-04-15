@@ -31,16 +31,16 @@ public:
     void Run(int argc, char *argv[], Server &server) final;
 
 private:
-    static void HandleEchoResponse(void *context, Message &message, const Ip6MessageInfo &message_info);
-    void HandleEchoResponse(Message &message, const Ip6MessageInfo &message_info);
+    static void HandleEchoResponse(void *context, Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleEchoResponse(Message &message, const Ip6MessageInfo &messageInfo);
 
-    int PrintUsage(char *buf, uint16_t buf_length);
+    int PrintUsage(char *buf, uint16_t bufLength);
     void EchoRequest();
 
-    sockaddr_in6 m_sockaddr;
-    Server *m_server;
-    Icmp6Echo m_icmp6_echo;
-    uint16_t m_length = 0;
+    sockaddr_in6 mSockAddr;
+    Server *mServer;
+    Icmp6Echo mIcmp6Echo;
+    uint16_t mLength = 0;
 };
 
 }  // namespace Cli

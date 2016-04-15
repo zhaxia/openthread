@@ -24,11 +24,11 @@ namespace Coap {
 
 ThreadError Header::Init()
 {
-    m_header_length = 4;
-    m_option_last = 0;
-    m_next_option_offset = 0;
-    m_option = {0, 0, NULL};
-    memset(m_header, 0, sizeof(m_header));
+    mHeaderLength = 4;
+    mOptionLast = 0;
+    mNextOptionOffset = 0;
+    mOption = {0, 0, NULL};
+    memset(mHeader, 0, sizeof(mHeader));
     return kThreadError_None;
 }
 
@@ -37,58 +37,58 @@ ThreadError Header::FromMessage(const Message &message)
     ThreadError error = kThreadError_Parse;
     uint16_t offset = message.GetOffset();
     uint16_t length = message.GetLength() - message.GetOffset();
-    uint8_t token_length;
-    bool first_option = true;
-    uint16_t option_delta;
-    uint16_t option_length;
+    uint8_t tokenLength;
+    bool firstOption = true;
+    uint16_t optionDelta;
+    uint16_t optionLength;
 
     VerifyOrExit(length >= kTokenOffset, error = kThreadError_Parse);
-    message.Read(offset, kTokenOffset, m_header);
-    m_header_length = kTokenOffset;
+    message.Read(offset, kTokenOffset, mHeader);
+    mHeaderLength = kTokenOffset;
     offset += kTokenOffset;
     length -= kTokenOffset;
 
     VerifyOrExit(GetVersion() == 1, error = kThreadError_Parse);
 
-    token_length = GetTokenLength();
-    VerifyOrExit(token_length <= kMaxTokenLength && token_length < length, error = kThreadError_Parse);
-    message.Read(offset, token_length, m_header + m_header_length);
-    m_header_length += token_length;
-    offset += token_length;
-    length -= token_length;
+    tokenLength = GetTokenLength();
+    VerifyOrExit(tokenLength <= kMaxTokenLength && tokenLength < length, error = kThreadError_Parse);
+    message.Read(offset, tokenLength, mHeader + mHeaderLength);
+    mHeaderLength += tokenLength;
+    offset += tokenLength;
+    length -= tokenLength;
 
     while (length > 0)
     {
-        message.Read(offset, 5, m_header + m_header_length);
+        message.Read(offset, 5, mHeader + mHeaderLength);
 
-        if (m_header[m_header_length] == 0xff)
+        if (mHeader[mHeaderLength] == 0xff)
         {
-            m_header_length++;
+            mHeaderLength++;
             ExitNow(error = kThreadError_None);
         }
 
-        option_delta = m_header[m_header_length] >> 4;
-        option_length = m_header[m_header_length] & 0xf;
-        m_header_length++;
+        optionDelta = mHeader[mHeaderLength] >> 4;
+        optionLength = mHeader[mHeaderLength] & 0xf;
+        mHeaderLength++;
         offset++;
         length--;
 
-        if (option_delta < 13)
+        if (optionDelta < 13)
         {
             // do nothing
         }
-        else if (option_delta == 13)
+        else if (optionDelta == 13)
         {
-            option_delta = 13 + m_header[m_header_length];
-            m_header_length++;
+            optionDelta = 13 + mHeader[mHeaderLength];
+            mHeaderLength++;
             offset++;
             length--;
         }
-        else if (option_delta == 14)
+        else if (optionDelta == 14)
         {
-            option_delta = 269 + ((static_cast<uint16_t>(m_header[m_header_length]) << 8) |
-                                  m_header[m_header_length + 1]);
-            m_header_length += 2;
+            optionDelta = 269 + ((static_cast<uint16_t>(mHeader[mHeaderLength]) << 8) |
+                                 mHeader[mHeaderLength + 1]);
+            mHeaderLength += 2;
             offset += 2;
             length -= 2;
         }
@@ -97,22 +97,22 @@ ThreadError Header::FromMessage(const Message &message)
             ExitNow(error = kThreadError_Parse);
         }
 
-        if (option_length < 13)
+        if (optionLength < 13)
         {
             // do nothing
         }
-        else if (option_length == 13)
+        else if (optionLength == 13)
         {
-            option_length = 13 + m_header[m_header_length];
-            m_header_length++;
+            optionLength = 13 + mHeader[mHeaderLength];
+            mHeaderLength++;
             offset++;
             length--;
         }
-        else if (option_length == 14)
+        else if (optionLength == 14)
         {
-            option_length = 269 + ((static_cast<uint16_t>(m_header[m_header_length]) << 8) |
-                                   m_header[m_header_length + 1]);
-            m_header_length += 2;
+            optionLength = 269 + ((static_cast<uint16_t>(mHeader[mHeaderLength]) << 8) |
+                                  mHeader[mHeaderLength + 1]);
+            mHeaderLength += 2;
             offset += 2;
             length -= 2;
         }
@@ -121,20 +121,20 @@ ThreadError Header::FromMessage(const Message &message)
             ExitNow(error = kThreadError_Parse);
         }
 
-        if (first_option)
+        if (firstOption)
         {
-            m_option.number = option_delta;
-            m_option.length = option_length;
-            m_option.value = m_header + m_header_length;
-            m_next_option_offset = m_header_length + option_length;
-            first_option = false;
+            mOption.mNumber = optionDelta;
+            mOption.mLength = optionLength;
+            mOption.mValue = mHeader + mHeaderLength;
+            mNextOptionOffset = mHeaderLength + optionLength;
+            firstOption = false;
         }
 
-        VerifyOrExit(option_length <= length, error = kThreadError_Parse);
-        message.Read(offset, option_length, m_header + m_header_length);
-        m_header_length += option_length;
-        offset += option_length;
-        length -= option_length;
+        VerifyOrExit(optionLength <= length, error = kThreadError_Parse);
+        message.Read(offset, optionLength, mHeader + mHeaderLength);
+        mHeaderLength += optionLength;
+        offset += optionLength;
+        length -= optionLength;
     }
 
 exit:
@@ -143,116 +143,116 @@ exit:
 
 uint8_t Header::GetVersion() const
 {
-    return (m_header[0] & kVersionMask) >> kVersionOffset;
+    return (mHeader[0] & kVersionMask) >> kVersionOffset;
 }
 
 ThreadError Header::SetVersion(uint8_t version)
 {
-    m_header[0] &= ~kVersionMask;
-    m_header[0] |= version << kVersionOffset;
+    mHeader[0] &= ~kVersionMask;
+    mHeader[0] |= version << kVersionOffset;
     return kThreadError_None;
 }
 
 Header::Type Header::GetType() const
 {
-    return static_cast<Header::Type>(m_header[0] & kTypeMask);
+    return static_cast<Header::Type>(mHeader[0] & kTypeMask);
 }
 
 ThreadError Header::SetType(Header::Type type)
 {
-    m_header[0] &= ~kTypeMask;
-    m_header[0] |= type;
+    mHeader[0] &= ~kTypeMask;
+    mHeader[0] |= type;
     return kThreadError_None;
 }
 
 Header::Code Header::GetCode() const
 {
-    return static_cast<Header::Code>(m_header[1]);
+    return static_cast<Header::Code>(mHeader[1]);
 }
 
 ThreadError Header::SetCode(Header::Code code)
 {
-    m_header[1] = code;
+    mHeader[1] = code;
     return kThreadError_None;
 }
 
 uint16_t Header::GetMessageId() const
 {
-    return (static_cast<uint16_t>(m_header[2]) << 8) | m_header[3];
+    return (static_cast<uint16_t>(mHeader[2]) << 8) | mHeader[3];
 }
 
 ThreadError Header::SetMessageId(uint16_t message_id)
 {
-    m_header[2] = message_id >> 8;
-    m_header[3] = message_id;
+    mHeader[2] = message_id >> 8;
+    mHeader[3] = message_id;
     return kThreadError_None;
 }
 
 const uint8_t *Header::GetToken() const
 {
-    return m_header + kTokenOffset;
+    return mHeader + kTokenOffset;
 }
 
 uint8_t Header::GetTokenLength() const
 {
-    return (m_header[0] & kTokenLengthMask) >> kTokenLengthOffset;
+    return (mHeader[0] & kTokenLengthMask) >> kTokenLengthOffset;
 }
 
-ThreadError Header::SetToken(const uint8_t *token, uint8_t token_length)
+ThreadError Header::SetToken(const uint8_t *token, uint8_t tokenLength)
 {
-    m_header[0] &= ~kTokenLengthMask;
-    m_header[0] |= token_length << kTokenLengthOffset;
-    memcpy(m_header + kTokenOffset, token, token_length);
-    m_header_length += token_length;
+    mHeader[0] &= ~kTokenLengthMask;
+    mHeader[0] |= tokenLength << kTokenLengthOffset;
+    memcpy(mHeader + kTokenOffset, token, tokenLength);
+    mHeaderLength += tokenLength;
     return kThreadError_None;
 }
 
 ThreadError Header::AppendOption(const Option &option)
 {
-    uint8_t *buf = m_header + m_header_length;
+    uint8_t *buf = mHeader + mHeaderLength;
     uint8_t *cur = buf + 1;
-    uint16_t option_delta = option.number - m_option_last;
-    uint16_t option_length;
+    uint16_t optionDelta = option.mNumber - mOptionLast;
+    uint16_t optionLength;
 
-    if (option_delta < 13)
+    if (optionDelta < 13)
     {
-        *buf = option_delta << Option::kOptionDeltaOffset;
+        *buf = optionDelta << Option::kOptionDeltaOffset;
     }
-    else if (option_delta < 269)
+    else if (optionDelta < 269)
     {
         *buf |= 13 << Option::kOptionDeltaOffset;
-        *cur++ = option_delta - 13;
+        *cur++ = optionDelta - 13;
     }
     else
     {
         *buf |= 14 << Option::kOptionDeltaOffset;
-        option_delta -= 269;
-        *cur++ = option_delta >> 8;
-        *cur++ = option_delta;
+        optionDelta -= 269;
+        *cur++ = optionDelta >> 8;
+        *cur++ = optionDelta;
     }
 
-    if (option.length < 13)
+    if (option.mLength < 13)
     {
-        *buf |= option.length;
+        *buf |= option.mLength;
     }
-    else if (option.length < 269)
+    else if (option.mLength < 269)
     {
         *buf |= 13;
-        *cur++ = option.length - 13;
+        *cur++ = option.mLength - 13;
     }
     else
     {
         *buf |= 14;
-        option_length = option.length - 269;
-        *cur++ = option_length >> 8;
-        *cur++ = option_length;
+        optionLength = option.mLength - 269;
+        *cur++ = optionLength >> 8;
+        *cur++ = optionLength;
     }
 
-    memcpy(cur, option.value, option.length);
-    cur += option.length;
+    memcpy(cur, option.mValue, option.mLength);
+    cur += option.mLength;
 
-    m_header_length += cur - buf;
-    m_option_last = option.number;
+    mHeaderLength += cur - buf;
+    mOptionLast = option.mNumber;
 
     return kThreadError_None;
 }
@@ -261,99 +261,99 @@ ThreadError Header::AppendUriPathOptions(const char *uri_path)
 {
     const char *cur = uri_path;
     const char *end;
-    Header::Option coap_option;
+    Header::Option coapOption;
 
-    coap_option.number = Option::kOptionUriPath;
+    coapOption.mNumber = Option::kOptionUriPath;
 
     while ((end = strchr(cur, '/')) != NULL)
     {
-        coap_option.length = end - cur;
-        coap_option.value = reinterpret_cast<const uint8_t *>(cur);
-        AppendOption(coap_option);
+        coapOption.mLength = end - cur;
+        coapOption.mValue = reinterpret_cast<const uint8_t *>(cur);
+        AppendOption(coapOption);
         cur = end + 1;
     }
 
-    coap_option.length = strlen(cur);
-    coap_option.value = reinterpret_cast<const uint8_t *>(cur);
-    AppendOption(coap_option);
+    coapOption.mLength = strlen(cur);
+    coapOption.mValue = reinterpret_cast<const uint8_t *>(cur);
+    AppendOption(coapOption);
 
     return kThreadError_None;
 }
 
 ThreadError Header::AppendContentFormatOption(uint8_t type)
 {
-    Option coap_option;
+    Option coapOption;
 
-    coap_option.number = Option::kOptionContentFormat;
-    coap_option.length = 1;
-    coap_option.value = &type;
-    AppendOption(coap_option);
+    coapOption.mNumber = Option::kOptionContentFormat;
+    coapOption.mLength = 1;
+    coapOption.mValue = &type;
+    AppendOption(coapOption);
 
     return kThreadError_None;
 }
 
 const Header::Option *Header::GetCurrentOption() const
 {
-    return &m_option;
+    return &mOption;
 }
 
 const Header::Option *Header::GetNextOption()
 {
     Option *rval = NULL;
-    uint16_t option_delta;
-    uint16_t option_length;
+    uint16_t optionDelta;
+    uint16_t optionLength;
 
-    VerifyOrExit(m_next_option_offset < m_header_length, ;);
+    VerifyOrExit(mNextOptionOffset < mHeaderLength, ;);
 
-    option_delta = m_header[m_next_option_offset] >> 4;
-    option_length = m_header[m_next_option_offset] & 0xf;
-    m_next_option_offset++;
+    optionDelta = mHeader[mNextOptionOffset] >> 4;
+    optionLength = mHeader[mNextOptionOffset] & 0xf;
+    mNextOptionOffset++;
 
-    if (option_delta < 13)
+    if (optionDelta < 13)
     {
         // do nothing
     }
-    else if (option_delta == 13)
+    else if (optionDelta == 13)
     {
-        option_delta = 13 + m_header[m_next_option_offset];
-        m_next_option_offset++;
+        optionDelta = 13 + mHeader[mNextOptionOffset];
+        mNextOptionOffset++;
     }
-    else if (option_delta == 14)
+    else if (optionDelta == 14)
     {
-        option_delta = 269 + ((static_cast<uint16_t>(m_header[m_next_option_offset]) << 8) |
-                              m_header[m_next_option_offset + 1]);
-        m_next_option_offset += 2;
+        optionDelta = 269 + ((static_cast<uint16_t>(mHeader[mNextOptionOffset]) << 8) |
+                             mHeader[mNextOptionOffset + 1]);
+        mNextOptionOffset += 2;
     }
     else
     {
         ExitNow();
     }
 
-    if (option_length < 13)
+    if (optionLength < 13)
     {
         // do nothing
     }
-    else if (option_length == 13)
+    else if (optionLength == 13)
     {
-        option_length = 13 + m_header[m_next_option_offset];
-        m_next_option_offset++;
+        optionLength = 13 + mHeader[mNextOptionOffset];
+        mNextOptionOffset++;
     }
-    else if (option_length == 14)
+    else if (optionLength == 14)
     {
-        option_length = 269 + ((static_cast<uint16_t>(m_header[m_next_option_offset]) << 8) |
-                               m_header[m_next_option_offset + 1]);
-        m_next_option_offset += 2;
+        optionLength = 269 + ((static_cast<uint16_t>(mHeader[mNextOptionOffset]) << 8) |
+                              mHeader[mNextOptionOffset + 1]);
+        mNextOptionOffset += 2;
     }
     else
     {
         ExitNow();
     }
 
-    m_option.number += option_delta;
-    m_option.length = option_length;
-    m_option.value = m_header + m_next_option_offset;
-    m_next_option_offset += option_length;
-    rval = &m_option;
+    mOption.mNumber += optionDelta;
+    mOption.mLength = optionLength;
+    mOption.mValue = mHeader + mNextOptionOffset;
+    mNextOptionOffset += optionLength;
+    rval = &mOption;
 
 exit:
     return rval;
@@ -361,18 +361,18 @@ exit:
 
 ThreadError Header::Finalize()
 {
-    m_header[m_header_length++] = 0xff;
+    mHeader[mHeaderLength++] = 0xff;
     return kThreadError_None;
 }
 
 const uint8_t *Header::GetBytes() const
 {
-    return m_header;
+    return mHeader;
 }
 
 uint8_t Header::GetLength() const
 {
-    return m_header_length;
+    return mHeaderLength;
 }
 
 }  // namespace Coap

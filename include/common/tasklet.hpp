@@ -31,11 +31,11 @@ public:
     ThreadError Post();
 
 private:
-    void RunTask() { m_handler(m_context); }
+    void RunTask() { mHandler(mContext); }
 
-    Handler m_handler;
-    void *m_context;
-    Tasklet *m_next;
+    Handler mHandler;
+    void *mContext;
+    Tasklet *mNext;
 };
 
 class TaskletScheduler

@@ -37,25 +37,25 @@ ThreadError Ncp::Init()
 ThreadError Ncp::Start()
 {
     super_t::Start();
-    return m_hdlc.Start();
+    return mHdlc.Start();
 }
 
 ThreadError Ncp::Stop()
 {
     super_t::Stop();
-    return m_hdlc.Stop();
+    return mHdlc.Stop();
 }
 
 ThreadError Ncp::Send(uint8_t protocol, uint8_t *frame,
-                      uint16_t frame_length)
+                      uint16_t frameLength)
 {
-    return m_hdlc.Send(protocol, frame, frame_length);
+    return mHdlc.Send(protocol, frame, frameLength);
 }
 
 /// TODO: queue
 ThreadError Ncp::SendMessage(uint8_t protocol, Message &message)
 {
-    return m_hdlc.SendMessage(protocol, message);
+    return mHdlc.SendMessage(protocol, message);
 }
 
 

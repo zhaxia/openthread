@@ -41,7 +41,7 @@ public:
     const char *GetName() const final;
     ThreadError GetLinkAddress(LinkAddress &address) const final;
     ThreadError SendMessage(Message &message) final;
-    ThreadError RouteLookup(const Ip6Address &source, const Ip6Address &destination, uint8_t *prefix_match) final;
+    ThreadError RouteLookup(const Ip6Address &source, const Ip6Address &destination, uint8_t *prefixMatch) final;
 
     AddressResolver *GetAddressResolver();
     Coap::Server *GetCoapServer();
@@ -54,21 +54,21 @@ public:
     NetworkData::Leader *GetNetworkDataLeader();
 
 private:
-    Coap::Server m_coap_server;
-    AddressResolver m_address_resolver;
-    KeyManager m_key_manager;
-    Lowpan m_lowpan;
-    Mac::Mac m_mac;
-    MeshForwarder m_mesh_forwarder;
-    Mle::MleRouter m_mle_router;
-    NetworkData::Local m_network_data_local;
-    NetworkData::Leader m_network_data_leader;
-    bool m_is_up;
+    Coap::Server mCoapServer;
+    AddressResolver mAddressResolver;
+    KeyManager mKeyManager;
+    Lowpan mLowpan;
+    Mac::Mac mMac;
+    MeshForwarder mMeshForwarder;
+    Mle::MleRouter mMleRouter;
+    NetworkData::Local mNetworkDataLocal;
+    NetworkData::Leader mNetworkDataLeader;
+    bool mIsUp;
 };
 
 struct ThreadMessageInfo
 {
-    uint8_t link_margin;
+    uint8_t mLinkMargin;
 };
 
 }  // namespace Thread

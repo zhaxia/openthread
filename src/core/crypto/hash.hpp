@@ -29,7 +29,7 @@ class Hash
 public:
     virtual uint16_t GetSize() const = 0;
     virtual ThreadError Init() = 0;
-    virtual ThreadError Input(const void *buf, uint16_t buf_length) = 0;
+    virtual ThreadError Input(const void *buf, uint16_t bufLength) = 0;
     virtual ThreadError Finalize(uint8_t *hash) = 0;
 };
 

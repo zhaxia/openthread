@@ -30,7 +30,7 @@ static const char kName[] = "test";
 
 Test::Test(Server &server):
     Command(server),
-    m_timer(&HandleTimer, this)
+    mTimer(&HandleTimer, this)
 {
 }
 
@@ -39,10 +39,10 @@ const char *Test::GetName()
     return kName;
 }
 
-int Test::PrintUsage(char *buf, uint16_t buf_length)
+int Test::PrintUsage(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
     snprintf(cur, end - cur,
              "usage: test\r\n"
@@ -71,18 +71,18 @@ void Test::HandleTimer()
 
     snprintf(cur, end - cur, "Test timer: fired!\r\n");
     cur += strlen(cur);
-    m_server->Output(buf, cur - buf);
+    mServer->Output(buf, cur - buf);
 }
 
-int Test::TestTimer(char *buf, uint16_t buf_length)
+int Test::TestTimer(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
     snprintf(cur, end - cur, "Test timer: start 1 sec\r\n");
     cur += strlen(cur);
 
-    m_timer.Start(1000);
+    mTimer.Start(1000);
 
     return cur - buf;
 }
@@ -94,7 +94,7 @@ void Test::Run(int argc, char *argv[], Server &server)
     char *cur = buf;
     char *end = cur + sizeof(buf);
 
-    m_server = &server;
+    mServer = &server;
 
     for (int i = 0; i < argc; i++)
     {

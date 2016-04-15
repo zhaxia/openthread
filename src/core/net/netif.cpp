@@ -21,11 +21,11 @@
 
 namespace Thread {
 
-Netif *Netif::s_netif_list_head = NULL;
-int Netif::s_next_interface_id = 1;
+Netif *Netif::sNetifListHead = NULL;
+int Netif::sNextInterfaceId = 1;
 
 Netif::Netif() :
-    m_unicast_changed_task(&HandleUnicastChangedTask, this)
+    mUnicastChangedTask(&HandleUnicastChangedTask, this)
 {
 }
 
@@ -33,7 +33,7 @@ ThreadError Netif::RegisterHandler(NetifHandler &handler)
 {
     ThreadError error = kThreadError_None;
 
-    for (NetifHandler *cur = m_handlers; cur; cur = cur->m_next)
+    for (NetifHandler *cur = mHandlers; cur; cur = cur->mNext)
     {
         if (cur == &handler)
         {
@@ -41,8 +41,8 @@ ThreadError Netif::RegisterHandler(NetifHandler &handler)
         }
     }
 
-    handler.m_next = m_handlers;
-    m_handlers = &handler;
+    handler.mNext = mHandlers;
+    mHandlers = &handler;
 
 exit:
     return error;
@@ -53,13 +53,13 @@ ThreadError Netif::AddNetif()
     ThreadError error = kThreadError_None;
     Netif *netif;
 
-    if (s_netif_list_head == NULL)
+    if (sNetifListHead == NULL)
     {
-        s_netif_list_head = this;
+        sNetifListHead = this;
     }
     else
     {
-        netif = s_netif_list_head;
+        netif = sNetifListHead;
 
         do
         {
@@ -68,16 +68,16 @@ ThreadError Netif::AddNetif()
                 ExitNow(error = kThreadError_Busy);
             }
         }
-        while (netif->m_next);
+        while (netif->mNext);
 
-        netif->m_next = this;
+        netif->mNext = this;
     }
 
-    m_next = NULL;
+    mNext = NULL;
 
-    if (m_interface_id < 0)
+    if (mInterfaceId < 0)
     {
-        m_interface_id = s_next_interface_id++;
+        mInterfaceId = sNextInterfaceId++;
     }
 
 exit:
@@ -88,27 +88,27 @@ ThreadError Netif::RemoveNetif()
 {
     ThreadError error = kThreadError_None;
 
-    VerifyOrExit(s_netif_list_head != NULL, error = kThreadError_Busy);
+    VerifyOrExit(sNetifListHead != NULL, error = kThreadError_Busy);
 
-    if (s_netif_list_head == this)
+    if (sNetifListHead == this)
     {
-        s_netif_list_head = m_next;
+        sNetifListHead = mNext;
     }
     else
     {
-        for (Netif *netif = s_netif_list_head; netif->m_next; netif = netif->m_next)
+        for (Netif *netif = sNetifListHead; netif->mNext; netif = netif->mNext)
         {
-            if (netif->m_next != this)
+            if (netif->mNext != this)
             {
                 continue;
             }
 
-            netif->m_next = m_next;
+            netif->mNext = mNext;
             break;
         }
     }
 
-    m_next = NULL;
+    mNext = NULL;
 
 exit:
     return error;
@@ -116,16 +116,16 @@ exit:
 
 Netif *Netif::GetNext() const
 {
-    return m_next;
+    return mNext;
 }
 
-Netif *Netif::GetNetifById(uint8_t interface_id)
+Netif *Netif::GetNetifById(uint8_t interfaceId)
 {
     Netif *netif;
 
-    for (netif = s_netif_list_head; netif; netif = netif->m_next)
+    for (netif = sNetifListHead; netif; netif = netif->mNext)
     {
-        if (netif->m_interface_id == interface_id)
+        if (netif->mInterfaceId == interfaceId)
         {
             ExitNow();
         }
@@ -139,7 +139,7 @@ Netif *Netif::GetNetifByName(char *name)
 {
     Netif *netif;
 
-    for (netif = s_netif_list_head; netif; netif = netif->m_next)
+    for (netif = sNetifListHead; netif; netif = netif->mNext)
     {
         if (strcmp(netif->GetName(), name) == 0)
         {
@@ -153,7 +153,7 @@ exit:
 
 int Netif::GetInterfaceId() const
 {
-    return m_interface_id;
+    return mInterfaceId;
 }
 
 bool Netif::IsMulticastSubscribed(const Ip6Address &address) const
@@ -166,12 +166,12 @@ bool Netif::IsMulticastSubscribed(const Ip6Address &address) const
     }
     else if (address.IsLinkLocalAllRoutersMulticast() || address.IsRealmLocalAllRoutersMulticast())
     {
-        ExitNow(rval = m_all_routers_subscribed);
+        ExitNow(rval = mAllRoutersSubscribed);
     }
 
-    for (NetifMulticastAddress *cur = m_multicast_addresses; cur; cur = cur->m_next)
+    for (NetifMulticastAddress *cur = mMulticastAddresses; cur; cur = cur->mNext)
     {
-        if (memcmp(&cur->address, &address, sizeof(cur->address)) == 0)
+        if (memcmp(&cur->mAddress, &address, sizeof(cur->mAddress)) == 0)
         {
             ExitNow(rval = true);
         }
@@ -183,13 +183,13 @@ exit:
 
 ThreadError Netif::SubscribeAllRoutersMulticast()
 {
-    m_all_routers_subscribed = true;
+    mAllRoutersSubscribed = true;
     return kThreadError_None;
 }
 
 ThreadError Netif::UnsubscribeAllRoutersMulticast()
 {
-    m_all_routers_subscribed = false;
+    mAllRoutersSubscribed = false;
     return kThreadError_None;
 }
 
@@ -197,7 +197,7 @@ ThreadError Netif::SubscribeMulticast(NetifMulticastAddress &address)
 {
     ThreadError error = kThreadError_None;
 
-    for (NetifMulticastAddress *cur = m_multicast_addresses; cur; cur = cur->m_next)
+    for (NetifMulticastAddress *cur = mMulticastAddresses; cur; cur = cur->mNext)
     {
         if (cur == &address)
         {
@@ -205,8 +205,8 @@ ThreadError Netif::SubscribeMulticast(NetifMulticastAddress &address)
         }
     }
 
-    address.m_next = m_multicast_addresses;
-    m_multicast_addresses = &address;
+    address.mNext = mMulticastAddresses;
+    mMulticastAddresses = &address;
 
 exit:
     return error;
@@ -216,18 +216,18 @@ ThreadError Netif::UnsubscribeMulticast(const NetifMulticastAddress &address)
 {
     ThreadError error = kThreadError_None;
 
-    if (m_multicast_addresses == &address)
+    if (mMulticastAddresses == &address)
     {
-        m_multicast_addresses = m_multicast_addresses->m_next;
+        mMulticastAddresses = mMulticastAddresses->mNext;
         ExitNow();
     }
-    else if (m_multicast_addresses != NULL)
+    else if (mMulticastAddresses != NULL)
     {
-        for (NetifMulticastAddress *cur = m_multicast_addresses; cur->m_next; cur = cur->m_next)
+        for (NetifMulticastAddress *cur = mMulticastAddresses; cur->mNext; cur = cur->mNext)
         {
-            if (cur->m_next == &address)
+            if (cur->mNext == &address)
             {
-                cur->m_next = address.m_next;
+                cur->mNext = address.mNext;
                 ExitNow();
             }
         }
@@ -241,14 +241,14 @@ exit:
 
 const NetifUnicastAddress *Netif::GetUnicastAddresses() const
 {
-    return m_unicast_addresses;
+    return mUnicastAddresses;
 }
 
 ThreadError Netif::AddUnicastAddress(NetifUnicastAddress &address)
 {
     ThreadError error = kThreadError_None;
 
-    for (NetifUnicastAddress *cur = m_unicast_addresses; cur; cur = cur->m_next)
+    for (NetifUnicastAddress *cur = mUnicastAddresses; cur; cur = cur->mNext)
     {
         if (cur == &address)
         {
@@ -256,10 +256,10 @@ ThreadError Netif::AddUnicastAddress(NetifUnicastAddress &address)
         }
     }
 
-    address.m_next = m_unicast_addresses;
-    m_unicast_addresses = &address;
+    address.mNext = mUnicastAddresses;
+    mUnicastAddresses = &address;
 
-    m_unicast_changed_task.Post();
+    mUnicastChangedTask.Post();
 
 exit:
     return error;
@@ -269,18 +269,18 @@ ThreadError Netif::RemoveUnicastAddress(const NetifUnicastAddress &address)
 {
     ThreadError error = kThreadError_None;
 
-    if (m_unicast_addresses == &address)
+    if (mUnicastAddresses == &address)
     {
-        m_unicast_addresses = m_unicast_addresses->m_next;
+        mUnicastAddresses = mUnicastAddresses->mNext;
         ExitNow();
     }
-    else if (m_unicast_addresses != NULL)
+    else if (mUnicastAddresses != NULL)
     {
-        for (NetifUnicastAddress *cur = m_unicast_addresses; cur->m_next; cur = cur->m_next)
+        for (NetifUnicastAddress *cur = mUnicastAddresses; cur->mNext; cur = cur->mNext)
         {
-            if (cur->m_next == &address)
+            if (cur->mNext == &address)
             {
-                cur->m_next = address.m_next;
+                cur->mNext = address.mNext;
                 ExitNow();
             }
         }
@@ -289,24 +289,24 @@ ThreadError Netif::RemoveUnicastAddress(const NetifUnicastAddress &address)
     ExitNow(error = kThreadError_Error);
 
 exit:
-    m_unicast_changed_task.Post();
+    mUnicastChangedTask.Post();
     return error;
 }
 
 Netif *Netif::GetNetifList()
 {
-    return s_netif_list_head;
+    return sNetifListHead;
 }
 
 bool Netif::IsUnicastAddress(const Ip6Address &address)
 {
     bool rval = false;
 
-    for (Netif *netif = s_netif_list_head; netif; netif = netif->m_next)
+    for (Netif *netif = sNetifListHead; netif; netif = netif->mNext)
     {
-        for (NetifUnicastAddress *cur = netif->m_unicast_addresses; cur; cur = cur->m_next)
+        for (NetifUnicastAddress *cur = netif->mUnicastAddresses; cur; cur = cur->mNext)
         {
-            if (cur->address == address)
+            if (cur->mAddress == address)
             {
                 ExitNow(rval = true);
             }
@@ -317,102 +317,102 @@ exit:
     return rval;
 }
 
-const NetifUnicastAddress *Netif::SelectSourceAddress(Ip6MessageInfo &message_info)
+const NetifUnicastAddress *Netif::SelectSourceAddress(Ip6MessageInfo &messageInfo)
 {
-    Ip6Address *destination = &message_info.peer_addr;
-    int interface_id = message_info.interface_id;
-    const NetifUnicastAddress *rval_addr = NULL;
-    const Ip6Address *candidate_addr;
-    uint8_t candidate_id;
-    uint8_t rval_iface = 0;
+    Ip6Address *destination = &messageInfo.mPeerAddr;
+    int interfaceId = messageInfo.mInterfaceId;
+    const NetifUnicastAddress *rvalAddr = NULL;
+    const Ip6Address *candidateAddr;
+    uint8_t candidateId;
+    uint8_t rvalIface = 0;
 
-    for (Netif *netif = GetNetifList(); netif; netif = netif->m_next)
+    for (Netif *netif = GetNetifList(); netif; netif = netif->mNext)
     {
-        candidate_id = netif->GetInterfaceId();
+        candidateId = netif->GetInterfaceId();
 
-        for (const NetifUnicastAddress *addr = netif->GetUnicastAddresses(); addr; addr = addr->m_next)
+        for (const NetifUnicastAddress *addr = netif->GetUnicastAddresses(); addr; addr = addr->mNext)
         {
-            candidate_addr = &addr->address;
+            candidateAddr = &addr->mAddress;
 
             if (destination->IsLinkLocal() || destination->IsMulticast())
             {
-                if (interface_id != candidate_id)
+                if (interfaceId != candidateId)
                 {
                     continue;
                 }
             }
 
-            if (rval_addr == NULL)
+            if (rvalAddr == NULL)
             {
                 // Rule 0: Prefer any address
-                rval_addr = addr;
-                rval_iface = candidate_id;
+                rvalAddr = addr;
+                rvalIface = candidateId;
             }
-            else if (*candidate_addr == *destination)
+            else if (*candidateAddr == *destination)
             {
                 // Rule 1: Prefer same address
-                rval_addr = addr;
-                rval_iface = candidate_id;
+                rvalAddr = addr;
+                rvalIface = candidateId;
                 goto exit;
             }
-            else if (candidate_addr->GetScope() < rval_addr->address.GetScope())
+            else if (candidateAddr->GetScope() < rvalAddr->mAddress.GetScope())
             {
                 // Rule 2: Prefer appropriate scope
-                if (candidate_addr->GetScope() >= destination->GetScope())
+                if (candidateAddr->GetScope() >= destination->GetScope())
                 {
-                    rval_addr = addr;
-                    rval_iface = candidate_id;
+                    rvalAddr = addr;
+                    rvalIface = candidateId;
                 }
             }
-            else if (candidate_addr->GetScope() > rval_addr->address.GetScope())
+            else if (candidateAddr->GetScope() > rvalAddr->mAddress.GetScope())
             {
-                if (rval_addr->address.GetScope() < destination->GetScope())
+                if (rvalAddr->mAddress.GetScope() < destination->GetScope())
                 {
-                    rval_addr = addr;
-                    rval_iface = candidate_id;
+                    rvalAddr = addr;
+                    rvalIface = candidateId;
                 }
             }
-            else if (addr->preferred_lifetime != 0 && rval_addr->preferred_lifetime == 0)
+            else if (addr->mPreferredLifetime != 0 && rvalAddr->mPreferredLifetime == 0)
             {
                 // Rule 3: Avoid deprecated addresses
-                rval_addr = addr;
-                rval_iface = candidate_id;
+                rvalAddr = addr;
+                rvalIface = candidateId;
             }
-            else if (message_info.interface_id != 0 && message_info.interface_id == candidate_id &&
-                     rval_iface != candidate_id)
+            else if (messageInfo.mInterfaceId != 0 && messageInfo.mInterfaceId == candidateId &&
+                     rvalIface != candidateId)
             {
                 // Rule 4: Prefer home address
                 // Rule 5: Prefer outgoing interface
-                rval_addr = addr;
-                rval_iface = candidate_id;
+                rvalAddr = addr;
+                rvalIface = candidateId;
             }
-            else if (destination->PrefixMatch(*candidate_addr) > destination->PrefixMatch(rval_addr->address))
+            else if (destination->PrefixMatch(*candidateAddr) > destination->PrefixMatch(rvalAddr->mAddress))
             {
                 // Rule 6: Prefer matching label
                 // Rule 7: Prefer public address
                 // Rule 8: Use longest prefix matching
-                rval_addr = addr;
-                rval_iface = candidate_id;
+                rvalAddr = addr;
+                rvalIface = candidateId;
             }
         }
     }
 
 exit:
-    message_info.interface_id = rval_iface;
-    return rval_addr;
+    messageInfo.mInterfaceId = rvalIface;
+    return rvalAddr;
 }
 
 int Netif::GetOnLinkNetif(const Ip6Address &address)
 {
     int rval = -1;
 
-    for (Netif *netif = s_netif_list_head; netif; netif = netif->m_next)
+    for (Netif *netif = sNetifListHead; netif; netif = netif->mNext)
     {
-        for (NetifUnicastAddress *cur = netif->m_unicast_addresses; cur; cur = cur->m_next)
+        for (NetifUnicastAddress *cur = netif->mUnicastAddresses; cur; cur = cur->mNext)
         {
-            if (cur->address.PrefixMatch(address) >= cur->prefix_length)
+            if (cur->mAddress.PrefixMatch(address) >= cur->mPrefixLength)
             {
-                ExitNow(rval = netif->m_interface_id);
+                ExitNow(rval = netif->mInterfaceId);
             }
         }
     }
@@ -429,7 +429,7 @@ void Netif::HandleUnicastChangedTask(void *context)
 
 void Netif::HandleUnicastChangedTask()
 {
-    for (NetifHandler *handler = m_handlers; handler; handler = handler->m_next)
+    for (NetifHandler *handler = mHandlers; handler; handler = handler->mNext)
     {
         handler->HandleUnicastAddressesChanged();
     }

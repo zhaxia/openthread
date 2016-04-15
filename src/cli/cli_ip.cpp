@@ -34,10 +34,10 @@ const char *Ip::GetName()
     return kName;
 }
 
-int Ip::PrintUsage(char *buf, uint16_t buf_length)
+int Ip::PrintUsage(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
     snprintf(cur, end - cur,
              "usage: ip\r\n"
@@ -53,7 +53,7 @@ ThreadError Ip::AddAddress(int argc, char *argv[])
     ThreadError error = kThreadError_Error;
     int argcur = 0;
 
-    SuccessOrExit(error = m_address.address.FromString(argv[argcur]));
+    SuccessOrExit(error = mAddress.mAddress.FromString(argv[argcur]));
     VerifyOrExit(++argcur < argc, error = kThreadError_Parse);
 
     VerifyOrExit(strcmp(argv[argcur], "dev") == 0, error = kThreadError_Parse);
@@ -63,10 +63,10 @@ ThreadError Ip::AddAddress(int argc, char *argv[])
     {
         if (strcmp(netif->GetName(), argv[argcur]) == 0)
         {
-            m_address.prefix_length = 64;
-            m_address.preferred_lifetime = 0xffffffff;
-            m_address.valid_lifetime = 0xffffffff;
-            netif->AddUnicastAddress(m_address);
+            mAddress.mPrefixLength = 64;
+            mAddress.mPreferredLifetime = 0xffffffff;
+            mAddress.mValidLifetime = 0xffffffff;
+            netif->AddUnicastAddress(mAddress);
             ExitNow(error = kThreadError_None);
         }
     }
@@ -84,7 +84,7 @@ ThreadError Ip::DeleteAddress(int argc, char *argv[])
 
     SuccessOrExit(error = address.FromString(argv[argcur]));
     VerifyOrExit(++argcur < argc, error = kThreadError_Parse);
-    VerifyOrExit(address == m_address.address, error = kThreadError_Error);
+    VerifyOrExit(address == mAddress.mAddress, error = kThreadError_Error);
 
     VerifyOrExit(strcmp(argv[argcur], "dev") == 0, error = kThreadError_Parse);
     VerifyOrExit(++argcur < argc, error = kThreadError_Parse);
@@ -93,7 +93,7 @@ ThreadError Ip::DeleteAddress(int argc, char *argv[])
     {
         if (strcmp(netif->GetName(), argv[argcur]) == 0)
         {
-            SuccessOrExit(error = netif->RemoveUnicastAddress(m_address));
+            SuccessOrExit(error = netif->RemoveUnicastAddress(mAddress));
             ExitNow(error = kThreadError_None);
         }
     }

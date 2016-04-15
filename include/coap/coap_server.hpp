@@ -30,18 +30,18 @@ class Resource
 
 public:
     typedef void (*CoapMessageHandler)(void *context, Header &header, Message &message,
-                                       const Ip6MessageInfo &message_info);
-    Resource(const char *uri_path, CoapMessageHandler handler, void *context) {
-        m_uri_path = uri_path;
-        m_handler = handler;
-        m_context = context;
+                                       const Ip6MessageInfo &messageInfo);
+    Resource(const char *uriPath, CoapMessageHandler handler, void *context) {
+        mUriPath = uriPath;
+        mHandler = handler;
+        mContext = context;
     }
 
 private:
-    const char *m_uri_path;
-    CoapMessageHandler m_handler;
-    void *m_context;
-    Resource *m_next;
+    const char *mUriPath;
+    CoapMessageHandler mHandler;
+    void *mContext;
+    Resource *mNext;
 };
 
 class Server
@@ -51,15 +51,15 @@ public:
     ThreadError Start();
     ThreadError Stop();
     ThreadError AddResource(Resource &resource);
-    ThreadError SendMessage(Message &message, const Ip6MessageInfo &message_info);
+    ThreadError SendMessage(Message &message, const Ip6MessageInfo &messageInfo);
 
 private:
-    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info);
-    void HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info);
+    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
 
-    Udp6Socket m_socket;
-    uint16_t m_port;
-    Resource *m_resources = NULL;
+    Udp6Socket mSocket;
+    uint16_t mPort;
+    Resource *mResources = NULL;
 };
 
 }  // namespace Coap

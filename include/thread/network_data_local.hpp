@@ -31,28 +31,28 @@ class Local: public NetworkData
 {
 public:
     explicit Local(ThreadNetif &netif);
-    ThreadError AddOnMeshPrefix(const uint8_t *prefix, uint8_t prefix_length, int8_t prf, uint8_t flags, bool stable);
-    ThreadError RemoveOnMeshPrefix(const uint8_t *prefix, uint8_t prefix_length);
+    ThreadError AddOnMeshPrefix(const uint8_t *prefix, uint8_t prefixLength, int8_t prf, uint8_t flags, bool stable);
+    ThreadError RemoveOnMeshPrefix(const uint8_t *prefix, uint8_t prefixLength);
 
-    ThreadError AddHasRoutePrefix(const uint8_t *prefix, uint8_t prefix_length, int8_t prf, bool stable);
-    ThreadError RemoveHasRoutePrefix(const uint8_t *prefix, uint8_t prefix_length);
+    ThreadError AddHasRoutePrefix(const uint8_t *prefix, uint8_t prefixLength, int8_t prf, bool stable);
+    ThreadError RemoveHasRoutePrefix(const uint8_t *prefix, uint8_t prefixLength);
 
     ThreadError Register(const Ip6Address &destination);
 
 private:
-    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info);
-    void HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info);
+    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
 
     ThreadError UpdateRloc();
     ThreadError UpdateRloc(PrefixTlv &prefix);
-    ThreadError UpdateRloc(HasRouteTlv &has_route);
-    ThreadError UpdateRloc(BorderRouterTlv &border_router);
+    ThreadError UpdateRloc(HasRouteTlv &hasRoute);
+    ThreadError UpdateRloc(BorderRouterTlv &borderRouter);
 
-    Udp6Socket m_socket;
-    uint8_t m_coap_token[2];
-    uint16_t m_coap_message_id;
+    Udp6Socket mSocket;
+    uint8_t mCoapToken[2];
+    uint16_t mCoapMessageId;
 
-    Mle::MleRouter *m_mle;
+    Mle::MleRouter *mMle;
 };
 
 }  // namespace NetworkData

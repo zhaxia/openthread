@@ -32,10 +32,10 @@ public:
     void Run(int argc, char *argv[], Server &server) final;
 
 private:
-    int PrintUsage(char *buf, uint16_t buf_length);
-    int AddRoute(int argc, char *argv[], char *buf, uint16_t buf_length);
+    int PrintUsage(char *buf, uint16_t bufLength);
+    int AddRoute(int argc, char *argv[], char *buf, uint16_t bufLength);
 
-    Ip6Route m_route;
+    Ip6Route mRoute;
 };
 
 }  // namespace Cli

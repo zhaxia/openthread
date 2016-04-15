@@ -27,7 +27,7 @@ static const char kName[] = "route";
 Route::Route(Server &server):
     Command(server)
 {
-    memset(&m_route, 0, sizeof(m_route));
+    memset(&mRoute, 0, sizeof(mRoute));
 }
 
 const char *Route::GetName()
@@ -35,10 +35,10 @@ const char *Route::GetName()
     return kName;
 }
 
-int Route::PrintUsage(char *buf, uint16_t buf_length)
+int Route::PrintUsage(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
     snprintf(cur, end - cur,
              "usage: route\r\n"
@@ -48,14 +48,14 @@ int Route::PrintUsage(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int Route::AddRoute(int argc, char *argv[], char *buf, uint16_t buf_length)
+int Route::AddRoute(int argc, char *argv[], char *buf, uint16_t bufLength)
 {
     ThreadError error = kThreadError_InvalidArgs;
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
     int argcur = 0;
 
-    char *prefix_length;
+    char *prefixLength;
     char *endptr;
 
     if (argcur >= argc)
@@ -64,19 +64,19 @@ int Route::AddRoute(int argc, char *argv[], char *buf, uint16_t buf_length)
     }
 
 
-    if ((prefix_length = strchr(argv[argcur], '/')) == NULL)
+    if ((prefixLength = strchr(argv[argcur], '/')) == NULL)
     {
         ExitNow();
     }
 
-    *prefix_length++ = '\0';
+    *prefixLength++ = '\0';
 
-    if (m_route.prefix.FromString(argv[argcur]) != kThreadError_None)
+    if (mRoute.prefix.FromString(argv[argcur]) != kThreadError_None)
     {
         ExitNow();
     }
 
-    m_route.prefix_length = strtol(prefix_length, &endptr, 0);
+    mRoute.prefixLength = strtol(prefixLength, &endptr, 0);
 
     if (*endptr != '\0')
     {
@@ -92,8 +92,8 @@ int Route::AddRoute(int argc, char *argv[], char *buf, uint16_t buf_length)
     {
         if (strcmp(netif->GetName(), argv[argcur]) == 0)
         {
-            m_route.interface_id = netif->GetInterfaceId();
-            Ip6Routes::Add(m_route);
+            mRoute.interfaceId = netif->GetInterfaceId();
+            Ip6Routes::Add(mRoute);
             ExitNow(error = kThreadError_None);
         }
     }

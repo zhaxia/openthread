@@ -22,19 +22,19 @@
 namespace Thread {
 
 static Tasklet s_task(&Timer::FireTimers, NULL);
-static Timer *s_head = NULL;
-static Timer *s_tail = NULL;
+static Timer *sHead = NULL;
+static Timer *sTail = NULL;
 
 Timer::Timer(Handler handler, void *context)
 {
-    m_handler = handler;
-    m_context = context;
+    mHandler = handler;
+    mContext = context;
 }
 
 ThreadError Timer::StartAt(uint32_t t0, uint32_t dt)
 {
-    m_t0 = t0;
-    m_dt = dt;
+    mT0 = t0;
+    mDt = dt;
     return Add(*this);
 }
 
@@ -55,12 +55,12 @@ bool Timer::IsRunning() const
 
 uint32_t Timer::Gett0() const
 {
-    return m_t0;
+    return mT0;
 }
 
 uint32_t Timer::Getdt() const
 {
-    return m_dt;
+    return mDt;
 }
 
 uint32_t Timer::GetNow()
@@ -76,19 +76,19 @@ void Timer::Init()
 
 ThreadError Timer::Add(Timer &timer)
 {
-    VerifyOrExit(timer.m_next == NULL && s_tail != &timer, ;);
+    VerifyOrExit(timer.mNext == NULL && sTail != &timer, ;);
 
-    if (s_tail == NULL)
+    if (sTail == NULL)
     {
-        s_head = &timer;
+        sHead = &timer;
     }
     else
     {
-        s_tail->m_next = &timer;
+        sTail->mNext = &timer;
     }
 
-    timer.m_next = NULL;
-    s_tail = &timer;
+    timer.mNext = NULL;
+    sTail = &timer;
 
 exit:
     SetAlarm();
@@ -97,28 +97,28 @@ exit:
 
 ThreadError Timer::Remove(Timer &timer)
 {
-    VerifyOrExit(timer.m_next != NULL || s_tail == &timer, ;);
+    VerifyOrExit(timer.mNext != NULL || sTail == &timer, ;);
 
-    if (s_head == &timer)
+    if (sHead == &timer)
     {
-        s_head = timer.m_next;
+        sHead = timer.mNext;
 
-        if (s_tail == &timer)
+        if (sTail == &timer)
         {
-            s_tail = NULL;
+            sTail = NULL;
         }
     }
     else
     {
-        for (Timer *cur = s_head; cur; cur = cur->m_next)
+        for (Timer *cur = sHead; cur; cur = cur->mNext)
         {
-            if (cur->m_next == &timer)
+            if (cur->mNext == &timer)
             {
-                cur->m_next = timer.m_next;
+                cur->mNext = timer.mNext;
 
-                if (s_tail == &timer)
+                if (sTail == &timer)
                 {
-                    s_tail = cur;
+                    sTail = cur;
                 }
 
                 break;
@@ -126,7 +126,7 @@ ThreadError Timer::Remove(Timer &timer)
         }
     }
 
-    timer.m_next = NULL;
+    timer.mNext = NULL;
     SetAlarm();
 
 exit:
@@ -137,12 +137,12 @@ bool Timer::IsAdded(const Timer &timer)
 {
     bool rval = false;
 
-    if (s_head == &timer)
+    if (sHead == &timer)
     {
         ExitNow(rval = true);
     }
 
-    for (Timer *cur = s_head; cur; cur = cur->m_next)
+    for (Timer *cur = sHead; cur; cur = cur->mNext)
     {
         if (cur == &timer)
         {
@@ -157,34 +157,34 @@ exit:
 void Timer::SetAlarm()
 {
     uint32_t now = alarm_get_now();
-    int32_t min_remaining = (1UL << 31) - 1;
+    int32_t minRemaining = (1UL << 31) - 1;
     uint32_t elapsed;
     int32_t remaining;
 
-    if (s_head == NULL)
+    if (sHead == NULL)
     {
         alarm_stop();
         ExitNow();
     }
 
-    for (Timer *timer = s_head; timer; timer = timer->m_next)
+    for (Timer *timer = sHead; timer; timer = timer->mNext)
     {
-        elapsed = now - timer->m_t0;
-        remaining = timer->m_dt - elapsed;
+        elapsed = now - timer->mT0;
+        remaining = timer->mDt - elapsed;
 
-        if (remaining < min_remaining)
+        if (remaining < minRemaining)
         {
-            min_remaining = remaining;
+            minRemaining = remaining;
         }
     }
 
-    if (min_remaining <= 0)
+    if (minRemaining <= 0)
     {
         s_task.Post();
     }
     else
     {
-        alarm_start_at(now, min_remaining);
+        alarm_start_at(now, minRemaining);
     }
 
 exit:
@@ -201,11 +201,11 @@ void Timer::FireTimers(void *context)
     uint32_t now = alarm_get_now();
     uint32_t elapsed;
 
-    for (Timer *cur = s_head; cur; cur = cur->m_next)
+    for (Timer *cur = sHead; cur; cur = cur->mNext)
     {
-        elapsed = now - cur->m_t0;
+        elapsed = now - cur->mT0;
 
-        if (elapsed >= cur->m_dt)
+        if (elapsed >= cur->mDt)
         {
             Remove(*cur);
             cur->Fired();

@@ -34,12 +34,12 @@ private:
     static void HandleActiveScanResult(void *context, Thread::Mac::ActiveScanResult *result);
     void HandleActiveScanResult(Thread::Mac::ActiveScanResult *result);
 
-    int PrintUsage(char *buf, uint16_t buf_length);
-    int PrintWhitelist(char *buf, uint16_t buf_length);
-    int ProcessWhitelist(int argc, char *argv[], char *buf, uint16_t buf_length);
+    int PrintUsage(char *buf, uint16_t bufLength);
+    int PrintWhitelist(char *buf, uint16_t bufLength);
+    int ProcessWhitelist(int argc, char *argv[], char *buf, uint16_t bufLength);
 
-    Server *m_server;
-    Thread::Mac::Mac *m_mac;
+    Server *mServer;
+    Thread::Mac::Mac *mMac;
 };
 
 }  // namespace Cli

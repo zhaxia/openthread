@@ -45,21 +45,21 @@ public:
 
     virtual ThreadError SendMessage(uint8_t protocol, Message &message) = 0;
     virtual ThreadError Send(uint8_t protocol, uint8_t *frame,
-                             uint16_t frame_length) = 0;
+                             uint16_t frameLength) = 0;
 
     static void HandleReceivedDatagram(void *context, Message &message);
     void HandleReceivedDatagram(Message &message);
 
 protected:
-    static void HandleReceive(void *context, uint8_t protocol, uint8_t *buf, uint16_t buf_length);
-    void HandleReceive(uint8_t protocol, uint8_t *buf, uint16_t buf_length);
+    static void HandleReceive(void *context, uint8_t protocol, uint8_t *buf, uint16_t bufLength);
+    void HandleReceive(uint8_t protocol, uint8_t *buf, uint16_t bufLength);
     static void HandleSendDone(void *context);
     void HandleSendDone();
     static void HandleSendMessageDone(void *context);
     void HandleSendMessageDone();
 
 private:
-    ThreadError ProcessThreadControl(uint8_t *buf, uint16_t buf_length);
+    ThreadError ProcessThreadControl(uint8_t *buf, uint16_t bufLength);
     ThreadError ProcessPrimitive(ThreadControl &message);
     ThreadError ProcessPrimitiveKey(ThreadControl &message);
     ThreadError ProcessPrimitiveKeySequence(ThreadControl &message);
@@ -83,20 +83,18 @@ private:
 
     static void RunUpdateAddressesTask(void *context);
 
-    ThreadNetif m_netif;
-    NetifHandler m_netif_handler;
+    ThreadNetif mNetif;
+    NetifHandler mNetifHandler;
 
-    bool m_sending;
-
-    uint16_t m_scan_result_index;
+    bool mSending;
 
     void RunUpdateAddressesTask();
-    Tasklet m_update_addresses_task;
+    Tasklet mUpdateAddressesTask;
 
     void RunSendScanResultsTask();
 
 protected:
-    MessageQueue m_send_queue;
+    MessageQueue mSendQueue;
 };
 
 }  // namespace Thread

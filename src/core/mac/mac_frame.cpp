@@ -21,7 +21,7 @@
 namespace Thread {
 namespace Mac {
 
-ThreadError Frame::InitMacHeader(uint16_t fcf, uint8_t sec_ctl)
+ThreadError Frame::InitMacHeader(uint16_t fcf, uint8_t secCtl)
 {
     uint8_t *bytes = GetPsdu();
     uint8_t length = 0;
@@ -83,14 +83,14 @@ ThreadError Frame::InitMacHeader(uint16_t fcf, uint8_t sec_ctl)
     // Security Header
     if (fcf & Frame::kFcfSecurityEnabled)
     {
-        bytes[length] = sec_ctl;
+        bytes[length] = secCtl;
 
-        if (sec_ctl & kSecLevelMask)
+        if (secCtl & kSecLevelMask)
         {
             length += 5;
         }
 
-        switch (sec_ctl & kKeyIdModeMask)
+        switch (secCtl & kKeyIdModeMask)
         {
         case kKeyIdMode0:
             break;
@@ -135,9 +135,9 @@ bool Frame::GetAckRequest()
     return (GetPsdu()[0] & Frame::kFcfAckRequest) != 0;
 }
 
-ThreadError Frame::SetAckRequest(bool ack_request)
+ThreadError Frame::SetAckRequest(bool ackRequest)
 {
-    if (ack_request)
+    if (ackRequest)
     {
         GetPsdu()[0] |= Frame::kFcfAckRequest;
     }
@@ -154,9 +154,9 @@ bool Frame::GetFramePending()
     return (GetPsdu()[0] & Frame::kFcfFramePending) != 0;
 }
 
-ThreadError Frame::SetFramePending(bool frame_pending)
+ThreadError Frame::SetFramePending(bool framePending)
 {
-    if (frame_pending)
+    if (framePending)
     {
         GetPsdu()[0] |= Frame::kFcfFramePending;
     }
@@ -259,22 +259,22 @@ ThreadError Frame::GetDstAddr(Address &address)
     switch (fcf & Frame::kFcfDstAddrMask)
     {
     case Frame::kFcfDstAddrShort:
-        address.length = 2;
-        address.address16 = (static_cast<uint16_t>(buf[1]) << 8) | buf[0];
+        address.mLength = 2;
+        address.mAddress16 = (static_cast<uint16_t>(buf[1]) << 8) | buf[0];
         break;
 
     case Frame::kFcfDstAddrExt:
-        address.length = 8;
+        address.mLength = 8;
 
         for (int i = 0; i < 8; i++)
         {
-            address.address64.bytes[i] = buf[7 - i];
+            address.mAddress64.mBytes[i] = buf[7 - i];
         }
 
         break;
 
     default:
-        address.length = 0;
+        address.mLength = 0;
         break;
     }
 
@@ -310,7 +310,7 @@ ThreadError Frame::SetDstAddr(const Address64 &address64)
 
     for (int i = 0; i < 8; i++)
     {
-        buf[i] = address64.bytes[7 - i];
+        buf[i] = address64.mBytes[7 - i];
     }
 
     return kThreadError_None;
@@ -416,22 +416,22 @@ ThreadError Frame::GetSrcAddr(Address &address)
     switch (fcf & Frame::kFcfSrcAddrMask)
     {
     case Frame::kFcfSrcAddrShort:
-        address.length = 2;
-        address.address16 = (static_cast<uint16_t>(buf[1]) << 8) | buf[0];;
+        address.mLength = 2;
+        address.mAddress16 = (static_cast<uint16_t>(buf[1]) << 8) | buf[0];;
         break;
 
     case Frame::kFcfSrcAddrExt:
-        address.length = 8;
+        address.mLength = 8;
 
         for (int i = 0; i < 8; i++)
         {
-            address.address64.bytes[i] = buf[7 - i];
+            address.mAddress64.mBytes[i] = buf[7 - i];
         }
 
         break;
 
     default:
-        address.length = 0;
+        address.mLength = 0;
         break;
     }
 
@@ -467,7 +467,7 @@ ThreadError Frame::SetSrcAddr(const Address64 &address64)
 
     for (int i = 0; i < 8; i++)
     {
-        buf[i] = address64.bytes[7 - i];
+        buf[i] = address64.mBytes[7 - i];
     }
 
     return kThreadError_None;
@@ -523,20 +523,20 @@ exit:
     return cur;
 }
 
-ThreadError Frame::GetSecurityLevel(uint8_t &sec_level)
+ThreadError Frame::GetSecurityLevel(uint8_t &secLevel)
 {
     ThreadError error = kThreadError_None;
     uint8_t *buf;
 
     VerifyOrExit((buf = FindSecurityHeader()) != NULL, error = kThreadError_Parse);
 
-    sec_level = buf[0] & kSecLevelMask;
+    secLevel = buf[0] & kSecLevelMask;
 
 exit:
     return error;
 }
 
-ThreadError Frame::GetFrameCounter(uint32_t &frame_counter)
+ThreadError Frame::GetFrameCounter(uint32_t &frameCounter)
 {
     ThreadError error = kThreadError_None;
     uint8_t *buf;
@@ -546,16 +546,16 @@ ThreadError Frame::GetFrameCounter(uint32_t &frame_counter)
     // Security Control
     buf++;
 
-    frame_counter = ((static_cast<uint32_t>(buf[3]) << 24) |
-                     (static_cast<uint32_t>(buf[2]) << 16) |
-                     (static_cast<uint32_t>(buf[1]) << 8) |
-                     (static_cast<uint32_t>(buf[0])));
+    frameCounter = ((static_cast<uint32_t>(buf[3]) << 24) |
+                    (static_cast<uint32_t>(buf[2]) << 16) |
+                    (static_cast<uint32_t>(buf[1]) << 8) |
+                    (static_cast<uint32_t>(buf[0])));
 
 exit:
     return error;
 }
 
-ThreadError Frame::SetFrameCounter(uint32_t frame_counter)
+ThreadError Frame::SetFrameCounter(uint32_t frameCounter)
 {
     uint8_t *buf;
 
@@ -565,10 +565,10 @@ ThreadError Frame::SetFrameCounter(uint32_t frame_counter)
     // Security Control
     buf++;
 
-    buf[0] = frame_counter;
-    buf[1] = frame_counter >> 8;
-    buf[2] = frame_counter >> 16;
-    buf[3] = frame_counter >> 24;
+    buf[0] = frameCounter;
+    buf[1] = frameCounter >> 8;
+    buf[2] = frameCounter >> 16;
+    buf[3] = frameCounter >> 24;
 
     return kThreadError_None;
 }
@@ -604,25 +604,25 @@ ThreadError Frame::SetKeyId(uint8_t keyid)
     return kThreadError_None;
 }
 
-ThreadError Frame::GetCommandId(uint8_t &command_id)
+ThreadError Frame::GetCommandId(uint8_t &commandId)
 {
     ThreadError error = kThreadError_None;
     uint8_t *buf;
 
     VerifyOrExit((buf = GetPayload()) != NULL, error = kThreadError_Parse);
-    command_id = buf[-1];
+    commandId = buf[-1];
 
 exit:
     return error;
 }
 
-ThreadError Frame::SetCommandId(uint8_t command_id)
+ThreadError Frame::SetCommandId(uint8_t commandId)
 {
     ThreadError error = kThreadError_None;
     uint8_t *buf;
 
     VerifyOrExit((buf = GetPayload()) != NULL, error = kThreadError_Parse);
-    buf[-1] = command_id;
+    buf[-1] = commandId;
 
 exit:
     return error;
@@ -646,7 +646,7 @@ uint8_t Frame::GetHeaderLength()
 
 uint8_t Frame::GetFooterLength()
 {
-    uint8_t footer_length = 0;
+    uint8_t footerLength = 0;
     uint8_t *cur;
 
     VerifyOrExit((cur = FindSecurityHeader()) != NULL, ;);
@@ -659,25 +659,25 @@ uint8_t Frame::GetFooterLength()
 
     case kSecMic32:
     case kSecEncMic32:
-        footer_length += 4;
+        footerLength += 4;
         break;
 
     case kSecMic64:
     case kSecEncMic64:
-        footer_length += 8;
+        footerLength += 8;
         break;
 
     case kSecMic128:
     case kSecEncMic128:
-        footer_length += 16;
+        footerLength += 16;
         break;
     }
 
 exit:
     // Frame Check Sequence
-    footer_length += 2;
+    footerLength += 2;
 
-    return footer_length;
+    return footerLength;
 }
 
 uint8_t Frame::GetMaxPayloadLength()
@@ -705,7 +705,7 @@ uint8_t *Frame::GetPayload()
 {
     uint8_t *cur = GetPsdu();
     uint16_t fcf = (static_cast<uint16_t>(GetPsdu()[1]) << 8) | GetPsdu()[0];
-    uint8_t sec_ctl;
+    uint8_t secCtl;
 
     // Frame Control
     cur += 2;
@@ -761,14 +761,14 @@ uint8_t *Frame::GetPayload()
     // Security Control + Frame Counter + Key Identifier
     if ((fcf & Frame::kFcfSecurityEnabled) != 0)
     {
-        sec_ctl = *cur;
+        secCtl = *cur;
 
-        if (sec_ctl & kSecLevelMask)
+        if (secCtl & kSecLevelMask)
         {
             cur += 5;
         }
 
-        switch (sec_ctl & kKeyIdModeMask)
+        switch (secCtl & kKeyIdModeMask)
         {
         case kKeyIdMode0:
             break;

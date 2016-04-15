@@ -61,17 +61,17 @@ public:
 
     union
     {
-        uint8_t  addr8[16];
-        uint16_t addr16[8];
-        uint32_t addr32[4];
+        uint8_t  mAddr8[16];
+        uint16_t mAddr16[8];
+        uint32_t mAddr32[4];
     };
 };
 
 struct sockaddr_in6
 {
-    uint16_t   sin6_port;
-    Ip6Address sin6_addr;
-    uint8_t    sin6_scope_id;
+    uint16_t   mPort;
+    Ip6Address mAddr;
+    uint8_t    mScopeId;
 };
 
 }  // namespace Thread

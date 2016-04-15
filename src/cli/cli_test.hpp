@@ -31,16 +31,16 @@ public:
     void Run(int argc, char *argv[], Server &server) final;
 
 private:
-    int PrintUsage(char *buf, uint16_t buf_length);
+    int PrintUsage(char *buf, uint16_t bufLength);
 
-    int TestTimer(char *buf, uint16_t buf_length);
-    int TestPhyTx(char *buf, uint16_t buf_length);
+    int TestTimer(char *buf, uint16_t bufLength);
+    int TestPhyTx(char *buf, uint16_t bufLength);
 
     static void HandleTimer(void *context);
     void HandleTimer();
-    Timer m_timer;
+    Timer mTimer;
 
-    Server *m_server;
+    Server *mServer;
 };
 
 }  // namespace Cli

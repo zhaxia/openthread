@@ -56,38 +56,38 @@ uint16_t Sha256::GetSize() const
 
 ThreadError Sha256::Init()
 {
-    m_length_lo = 0;
-    m_length_hi = 0;
-    m_block_index = 0;
+    mLengthLo = 0;
+    mLengthHi = 0;
+    mBlockIndex = 0;
 
-    m_hash[0] = 0x6A09E667UL;
-    m_hash[1] = 0xBB67AE85UL;
-    m_hash[2] = 0x3C6EF372UL;
-    m_hash[3] = 0xA54FF53AUL;
-    m_hash[4] = 0x510E527FUL;
-    m_hash[5] = 0x9B05688CUL;
-    m_hash[6] = 0x1F83D9ABUL;
-    m_hash[7] = 0x5BE0CD19UL;
+    mHash[0] = 0x6A09E667UL;
+    mHash[1] = 0xBB67AE85UL;
+    mHash[2] = 0x3C6EF372UL;
+    mHash[3] = 0xA54FF53AUL;
+    mHash[4] = 0x510E527FUL;
+    mHash[5] = 0x9B05688CUL;
+    mHash[6] = 0x1F83D9ABUL;
+    mHash[7] = 0x5BE0CD19UL;
 
     return kThreadError_None;
 }
 
-ThreadError Sha256::Input(const void *buf, uint16_t buf_length)
+ThreadError Sha256::Input(const void *buf, uint16_t bufLength)
 {
     const uint8_t *bytes = reinterpret_cast<const uint8_t *>(buf);
 
-    while (buf_length--)
+    while (bufLength--)
     {
-        m_block[m_block_index] = *bytes++;
-        m_block_index++;
-        m_length_lo += 8;
+        mBlock[mBlockIndex] = *bytes++;
+        mBlockIndex++;
+        mLengthLo += 8;
 
-        if (m_length_lo == 0)
+        if (mLengthLo == 0)
         {
-            m_length_hi++;
+            mLengthHi++;
         }
 
-        if (m_block_index == 64)
+        if (mBlockIndex == 64)
         {
             ProcessBlock();
         }
@@ -101,13 +101,13 @@ ThreadError Sha256::Finalize(uint8_t *hash)
 {
     PadMessage();
 
-    memset(m_block, 0, 64);
-    m_length_lo = 0;
-    m_length_hi = 0;
+    memset(mBlock, 0, 64);
+    mLengthLo = 0;
+    mLengthHi = 0;
 
     for (int i = 0; i < kHashSize; i++)
     {
-        hash[i] = m_hash[i >> 2] >> (8 * (3 - (i & 0x03)));
+        hash[i] = mHash[i >> 2] >> (8 * (3 - (i & 0x03)));
     }
 
     return kThreadError_None;
@@ -115,31 +115,31 @@ ThreadError Sha256::Finalize(uint8_t *hash)
 
 void Sha256::PadMessage()
 {
-    m_block[m_block_index++] = 0x80;
+    mBlock[mBlockIndex++] = 0x80;
 
-    if (m_block_index > 56)
+    if (mBlockIndex > 56)
     {
-        while (m_block_index < 64)
+        while (mBlockIndex < 64)
         {
-            m_block[m_block_index++] = 0;
+            mBlock[mBlockIndex++] = 0;
         }
 
         ProcessBlock();
     }
 
-    while (m_block_index < 56)
+    while (mBlockIndex < 56)
     {
-        m_block[m_block_index++] = 0;
+        mBlock[mBlockIndex++] = 0;
     }
 
-    m_block[56] = m_length_hi >> 24;
-    m_block[57] = m_length_hi >> 16;
-    m_block[58] = m_length_hi >> 8;
-    m_block[59] = m_length_hi >> 0;
-    m_block[60] = m_length_lo >> 24;
-    m_block[61] = m_length_lo >> 16;
-    m_block[62] = m_length_lo >> 8;
-    m_block[63] = m_length_lo >> 0;
+    mBlock[56] = mLengthHi >> 24;
+    mBlock[57] = mLengthHi >> 16;
+    mBlock[58] = mLengthHi >> 8;
+    mBlock[59] = mLengthHi >> 0;
+    mBlock[60] = mLengthLo >> 24;
+    mBlock[61] = mLengthLo >> 16;
+    mBlock[62] = mLengthLo >> 8;
+    mBlock[63] = mLengthLo >> 0;
 
     ProcessBlock();
 }
@@ -151,16 +151,16 @@ void Sha256::ProcessBlock()
 
     for (int i = 0; i < 8; i++)
     {
-        S[i] = m_hash[i];
+        S[i] = mHash[i];
     }
 
     for (int i = 0; i < 16; i++)
     {
         W[i] =
-            (static_cast<uint32_t>(m_block[i * 4 + 0]) << 24) |
-            (static_cast<uint32_t>(m_block[i * 4 + 1]) << 16) |
-            (static_cast<uint32_t>(m_block[i * 4 + 2]) << 8) |
-            (static_cast<uint32_t>(m_block[i * 4 + 3]) << 0);
+            (static_cast<uint32_t>(mBlock[i * 4 + 0]) << 24) |
+            (static_cast<uint32_t>(mBlock[i * 4 + 1]) << 16) |
+            (static_cast<uint32_t>(mBlock[i * 4 + 2]) << 8) |
+            (static_cast<uint32_t>(mBlock[i * 4 + 3]) << 0);
     }
 
     for (int i = 16; i < 64; i++)
@@ -190,10 +190,10 @@ void Sha256::ProcessBlock()
 
     for (int i = 0; i < 8; i++)
     {
-        m_hash[i] += S[i];
+        mHash[i] += S[i];
     }
 
-    m_block_index = 0;
+    mBlockIndex = 0;
 }
 
 }  // namespace Crypto

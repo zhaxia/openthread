@@ -38,20 +38,20 @@ class Message;
 
 struct MessageList
 {
-    Message *head;
-    Message *tail;
+    Message *mHead;
+    Message *mTail;
 };
 
 struct MessageListEntry
 {
-    struct MessageList *list;
-    Message *next;
-    Message *prev;
+    struct MessageList *mList;
+    Message *mNext;
+    Message *mPrev;
 };
 
 struct BufferHeader
 {
-    struct Buffer *next;
+    struct Buffer *mNext;
 };
 
 struct MessageInfo
@@ -61,17 +61,17 @@ struct MessageInfo
         kListAll = 0,
         kListInterface = 1,
     };
-    MessageListEntry list[2];
-    uint16_t header_reserved;
-    uint16_t length;
-    uint16_t offset;
-    uint16_t datagram_tag;
-    uint8_t timeout;
+    MessageListEntry mList[2];
+    uint16_t mHeaderReserved;
+    uint16_t mLength;
+    uint16_t mOffset;
+    uint16_t mDatagramTag;
+    uint8_t mTimeout;
 
-    uint8_t child_mask[8];
+    uint8_t mChildMask[8];
 
-    uint8_t type : 2;
-    bool direct_tx : 1;
+    uint8_t mType : 2;
+    bool mDirectTx : 1;
 };
 
 struct Buffer
@@ -82,28 +82,28 @@ struct Buffer
         kFirstBufferDataSize = kBufferDataSize - sizeof(struct MessageInfo),
     };
 
-    struct BufferHeader header;
+    struct BufferHeader mHeader;
     union
     {
         struct
         {
-            MessageInfo info;
-            uint8_t data[kFirstBufferDataSize];
-        } head;
-        uint8_t data[kBufferDataSize];
+            MessageInfo mInfo;
+            uint8_t mData[kFirstBufferDataSize];
+        } mHead;
+        uint8_t mData[kBufferDataSize];
     };
 };
 
-#define msg_list           head.info.list
-#define msg_queue          head.info.queue
-#define msg_reserved       head.info.header_reserved
-#define msg_length         head.info.length
-#define msg_offset         head.info.offset
-#define msg_dgram_tag      head.info.datagram_tag
-#define msg_type           head.info.type
-#define msg_timeout        head.info.timeout
-#define msg_child_mask     head.info.child_mask
-#define msg_direct_tx      head.info.direct_tx
+#define mMsgList           mHead.mInfo.mList
+#define mMsgQueue          mHead.mInfo.mQueue
+#define mMsgReserved       mHead.mInfo.mHeaderReserved
+#define mMsgLength         mHead.mInfo.mLength
+#define mMsgOffset         mHead.mInfo.mOffset
+#define mMsgDgramTag       mHead.mInfo.mDatagramTag
+#define mMsgType           mHead.mInfo.mType
+#define mMsgTimeout        mHead.mInfo.mTimeout
+#define mMsgChildMask      mHead.mInfo.mChildMask
+#define mMsgDirectTx       mHead.mInfo.mDirectTx
 
 class Message: private Buffer
 {
@@ -130,7 +130,7 @@ public:
 
     int Read(uint16_t offset, uint16_t length, void *buf) const;
     int Write(uint16_t offset, uint16_t length, const void *buf);
-    int CopyTo(uint16_t src_offset, uint16_t dst_offset, uint16_t length, Message &message);
+    int CopyTo(uint16_t srcOffset, uint16_t dstOffset, uint16_t length, Message &message);
 
     uint8_t GetType() const;
     Message *GetNext() const;
@@ -170,10 +170,10 @@ public:
     ThreadError Dequeue(Message &message);
 
 private:
-    static ThreadError AddToList(int list_id, Message &message);
-    static ThreadError RemoveFromList(int list_id, Message &message);
+    static ThreadError AddToList(int listId, Message &message);
+    static ThreadError RemoveFromList(int listId, Message &message);
 
-    MessageList m_interface;
+    MessageList mInterface;
 };
 
 }  // namespace Thread

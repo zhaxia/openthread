@@ -38,15 +38,15 @@ static const uint8_t kThreadMasterKey[] =
 static const char name[] = "thread";
 
 ThreadNetif::ThreadNetif():
-    m_coap_server(kCoapUdpPort),
-    m_address_resolver(*this),
-    m_key_manager(*this),
-    m_lowpan(*this),
-    m_mac(this),
-    m_mesh_forwarder(*this),
-    m_mle_router(*this),
-    m_network_data_local(*this),
-    m_network_data_leader(*this)
+    mCoapServer(kCoapUdpPort),
+    mAddressResolver(*this),
+    mKeyManager(*this),
+    mLowpan(*this),
+    mMac(this),
+    mMeshForwarder(*this),
+    mMleRouter(*this),
+    mNetworkDataLocal(*this),
+    mNetworkDataLeader(*this)
 {
 }
 
@@ -57,98 +57,98 @@ const char *ThreadNetif::GetName() const
 
 ThreadError ThreadNetif::Init()
 {
-    m_key_manager.SetMasterKey(kThreadMasterKey, sizeof(kThreadMasterKey));
-    m_mac.Init();
-    m_mle_router.Init();
+    mKeyManager.SetMasterKey(kThreadMasterKey, sizeof(kThreadMasterKey));
+    mMac.Init();
+    mMleRouter.Init();
     return kThreadError_None;
 }
 
 ThreadError ThreadNetif::Up()
 {
     Netif::AddNetif();
-    m_mesh_forwarder.Start();
-    m_mle_router.Start();
-    m_coap_server.Start();
-    m_is_up = true;
+    mMeshForwarder.Start();
+    mMleRouter.Start();
+    mCoapServer.Start();
+    mIsUp = true;
     return kThreadError_None;
 }
 
 ThreadError ThreadNetif::Down()
 {
-    m_coap_server.Stop();
-    m_mle_router.Stop();
-    m_mesh_forwarder.Stop();
+    mCoapServer.Stop();
+    mMleRouter.Stop();
+    mMeshForwarder.Stop();
     Netif::RemoveNetif();
-    m_is_up = false;
+    mIsUp = false;
     return kThreadError_None;
 }
 
 bool ThreadNetif::IsUp() const
 {
-    return m_is_up;
+    return mIsUp;
 }
 
 ThreadError ThreadNetif::GetLinkAddress(LinkAddress &address) const
 {
-    address.type = LinkAddress::kEui64;
-    address.length = 8;
-    memcpy(&address.address64, m_mac.GetAddress64(), address.length);
+    address.mType = LinkAddress::kEui64;
+    address.mLength = 8;
+    memcpy(&address.mAddress64, mMac.GetAddress64(), address.mLength);
     return kThreadError_None;
 }
 
-ThreadError ThreadNetif::RouteLookup(const Ip6Address &source, const Ip6Address &destination, uint8_t *prefix_match)
+ThreadError ThreadNetif::RouteLookup(const Ip6Address &source, const Ip6Address &destination, uint8_t *prefixMatch)
 {
-    return m_network_data_leader.RouteLookup(source, destination, prefix_match, NULL);
+    return mNetworkDataLeader.RouteLookup(source, destination, prefixMatch, NULL);
 }
 
 AddressResolver *ThreadNetif::GetAddressResolver()
 {
-    return &m_address_resolver;
+    return &mAddressResolver;
 }
 
 Coap::Server *ThreadNetif::GetCoapServer()
 {
-    return &m_coap_server;
+    return &mCoapServer;
 }
 
 KeyManager *ThreadNetif::GetKeyManager()
 {
-    return &m_key_manager;
+    return &mKeyManager;
 }
 
 Lowpan *ThreadNetif::GetLowpan()
 {
-    return &m_lowpan;
+    return &mLowpan;
 }
 
 Mac::Mac *ThreadNetif::GetMac()
 {
-    return &m_mac;
+    return &mMac;
 }
 
 Mle::MleRouter *ThreadNetif::GetMle()
 {
-    return &m_mle_router;
+    return &mMleRouter;
 }
 
 MeshForwarder *ThreadNetif::GetMeshForwarder()
 {
-    return &m_mesh_forwarder;
+    return &mMeshForwarder;
 }
 
 NetworkData::Local *ThreadNetif::GetNetworkDataLocal()
 {
-    return &m_network_data_local;
+    return &mNetworkDataLocal;
 }
 
 NetworkData::Leader *ThreadNetif::GetNetworkDataLeader()
 {
-    return &m_network_data_leader;
+    return &mNetworkDataLeader;
 }
 
 ThreadError ThreadNetif::SendMessage(Message &message)
 {
-    return m_mesh_forwarder.SendMessage(message);
+    return mMeshForwarder.SendMessage(message);
 }
 
 }  // namespace Thread

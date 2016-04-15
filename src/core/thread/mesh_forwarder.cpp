@@ -31,31 +31,31 @@ using Thread::Encoding::BigEndian::HostSwap16;
 namespace Thread {
 
 MeshForwarder::MeshForwarder(ThreadNetif &netif):
-    m_mac_receiver(&HandleReceivedFrame, this),
-    m_mac_sender(&HandleFrameRequest, &HandleSentFrame, this),
-    m_poll_timer(&HandlePollTimer, this),
-    m_reassembly_timer(&HandleReassemblyTimer, this),
-    m_schedule_transmission_task(ScheduleTransmissionTask, this)
+    mMacReceiver(&HandleReceivedFrame, this),
+    mMacSender(&HandleFrameRequest, &HandleSentFrame, this),
+    mPollTimer(&HandlePollTimer, this),
+    mReassemblyTimer(&HandleReassemblyTimer, this),
+    mScheduleTransmissionTask(ScheduleTransmissionTask, this)
 {
-    m_address_resolver = netif.GetAddressResolver();
-    m_lowpan = netif.GetLowpan();
-    m_mac = netif.GetMac();
-    m_mle = netif.GetMle();
-    m_netif = &netif;
-    m_network_data = netif.GetNetworkDataLeader();
-    m_frag_tag = Random::Get();
+    mAddressResolver = netif.GetAddressResolver();
+    mLowpan = netif.GetLowpan();
+    mMac = netif.GetMac();
+    mMle = netif.GetMle();
+    mNetif = &netif;
+    mNetworkData = netif.GetNetworkDataLeader();
+    mFragTag = Random::Get();
 }
 
 ThreadError MeshForwarder::Start()
 {
     ThreadError error = kThreadError_None;
 
-    VerifyOrExit(m_enabled == false, error = kThreadError_Busy);
+    VerifyOrExit(mEnabled == false, error = kThreadError_Busy);
 
-    m_mac->RegisterReceiver(m_mac_receiver);
-    SuccessOrExit(error = m_mac->Start());
+    mMac->RegisterReceiver(mMacReceiver);
+    SuccessOrExit(error = mMac->Start());
 
-    m_enabled = true;
+    mEnabled = true;
 
 exit:
     return error;
@@ -66,26 +66,26 @@ ThreadError MeshForwarder::Stop()
     ThreadError error = kThreadError_None;
     Message *message;
 
-    VerifyOrExit(m_enabled == true, error = kThreadError_Busy);
+    VerifyOrExit(mEnabled == true, error = kThreadError_Busy);
 
-    m_poll_timer.Stop();
-    m_reassembly_timer.Stop();
+    mPollTimer.Stop();
+    mReassemblyTimer.Stop();
 
-    while ((message = m_send_queue.GetHead()) != NULL)
+    while ((message = mSendQueue.GetHead()) != NULL)
     {
-        m_send_queue.Dequeue(*message);
+        mSendQueue.Dequeue(*message);
         Message::Free(*message);
     }
 
-    while ((message = m_reassembly_list.GetHead()) != NULL)
+    while ((message = mReassemblyList.GetHead()) != NULL)
     {
-        m_reassembly_list.Dequeue(*message);
+        mReassemblyList.Dequeue(*message);
         Message::Free(*message);
     }
 
-    m_enabled = false;
+    mEnabled = false;
 
-    SuccessOrExit(error = m_mac->Stop());
+    SuccessOrExit(error = mMac->Stop());
 
 exit:
     return error;
@@ -93,26 +93,26 @@ exit:
 
 const Mac::Address64 *MeshForwarder::GetAddress64() const
 {
-    return m_mac->GetAddress64();
+    return mMac->GetAddress64();
 }
 
 Mac::Address16 MeshForwarder::GetAddress16() const
 {
-    return m_mac->GetAddress16();
+    return mMac->GetAddress16();
 }
 
 ThreadError MeshForwarder::SetAddress16(Mac::Address16 address16)
 {
-    m_mac->SetAddress16(address16);
+    mMac->SetAddress16(address16);
     return kThreadError_None;
 }
 
 void MeshForwarder::HandleResolved(const Ip6Address &eid)
 {
     Message *cur, *next;
-    Ip6Address ip6_dst;
+    Ip6Address ip6Dst;
 
-    for (cur = m_resolving_queue.GetHead(); cur; cur = next)
+    for (cur = mResolvingQueue.GetHead(); cur; cur = next)
     {
         next = cur->GetNext();
 
@@ -121,16 +121,16 @@ void MeshForwarder::HandleResolved(const Ip6Address &eid)
             continue;
         }
 
-        cur->Read(Ip6Header::GetDestinationOffset(), sizeof(ip6_dst), &ip6_dst);
+        cur->Read(Ip6Header::GetDestinationOffset(), sizeof(ip6Dst), &ip6Dst);
 
-        if (memcmp(&ip6_dst, &eid, sizeof(ip6_dst)) == 0)
+        if (memcmp(&ip6Dst, &eid, sizeof(ip6Dst)) == 0)
         {
-            m_resolving_queue.Dequeue(*cur);
-            m_send_queue.Enqueue(*cur);
+            mResolvingQueue.Dequeue(*cur);
+            mSendQueue.Enqueue(*cur);
         }
     }
 
-    m_schedule_transmission_task.Post();
+    mScheduleTransmissionTask.Post();
 }
 
 void MeshForwarder::ScheduleTransmissionTask(void *context)
@@ -142,27 +142,27 @@ void MeshForwarder::ScheduleTransmissionTask(void *context)
 void MeshForwarder::ScheduleTransmissionTask()
 {
     ThreadError error = kThreadError_None;
-    uint8_t num_children;
+    uint8_t numChildren;
     Child *children;
 
-    VerifyOrExit(m_send_busy == false, error = kThreadError_Busy);
+    VerifyOrExit(mSendBusy == false, error = kThreadError_Busy);
 
-    children = m_mle->GetChildren(&num_children);
+    children = mMle->GetChildren(&numChildren);
 
-    for (int i = 0; i < num_children; i++)
+    for (int i = 0; i < numChildren; i++)
     {
-        if (children[i].state == Child::kStateValid &&
-            children[i].data_request &&
-            (m_send_message = GetIndirectTransmission(children[i])) != NULL)
+        if (children[i].mState == Child::kStateValid &&
+            children[i].mDataRequest &&
+            (mSendMessage = GetIndirectTransmission(children[i])) != NULL)
         {
-            m_mac->SendFrameRequest(m_mac_sender);
+            mMac->SendFrameRequest(mMacSender);
             ExitNow();
         }
     }
 
-    if ((m_send_message = GetDirectTransmission()) != NULL)
+    if ((mSendMessage = GetDirectTransmission()) != NULL)
     {
-        m_mac->SendFrameRequest(m_mac_sender);
+        mMac->SendFrameRequest(mMacSender);
         ExitNow();
     }
 
@@ -174,39 +174,39 @@ ThreadError MeshForwarder::SendMessage(Message &message)
 {
     ThreadError error = kThreadError_None;
     Neighbor *neighbor;
-    Ip6Header ip6_header;
-    uint8_t num_children;
+    Ip6Header ip6Header;
+    uint8_t numChildren;
     Child *children;
-    MeshHeader mesh_header;
+    MeshHeader meshHeader;
 
     switch (message.GetType())
     {
     case Message::kTypeIp6:
-        message.Read(0, sizeof(ip6_header), &ip6_header);
+        message.Read(0, sizeof(ip6Header), &ip6Header);
 
-        if (!memcmp(ip6_header.GetDestination(), m_mle->GetLinkLocalAllThreadNodesAddress(),
-                    sizeof(*ip6_header.GetDestination())) ||
-            !memcmp(ip6_header.GetDestination(), m_mle->GetRealmLocalAllThreadNodesAddress(), sizeof(*ip6_header.GetDestination())))
+        if (!memcmp(ip6Header.GetDestination(), mMle->GetLinkLocalAllThreadNodesAddress(),
+                    sizeof(*ip6Header.GetDestination())) ||
+            !memcmp(ip6Header.GetDestination(), mMle->GetRealmLocalAllThreadNodesAddress(), sizeof(*ip6Header.GetDestination())))
         {
             // schedule direct transmission
             message.SetDirectTransmission();
 
             // destined for all sleepy children
-            children = m_mle->GetChildren(&num_children);
+            children = mMle->GetChildren(&numChildren);
 
-            for (int i = 0; i < num_children; i++)
+            for (int i = 0; i < numChildren; i++)
             {
-                if (children[i].state == Neighbor::kStateValid && (children[i].mode & Mle::kModeRxOnWhenIdle) == 0)
+                if (children[i].mState == Neighbor::kStateValid && (children[i].mMode & Mle::kModeRxOnWhenIdle) == 0)
                 {
                     message.SetChildMask(i);
                 }
             }
         }
-        else if ((neighbor = m_mle->GetNeighbor(*ip6_header.GetDestination())) != NULL &&
-                 (neighbor->mode & Mle::kModeRxOnWhenIdle) == 0)
+        else if ((neighbor = mMle->GetNeighbor(*ip6Header.GetDestination())) != NULL &&
+                 (neighbor->mMode & Mle::kModeRxOnWhenIdle) == 0)
         {
             // destined for a sleepy child
-            message.SetChildMask(m_mle->GetChildIndex(*reinterpret_cast<Child *>(neighbor)));
+            message.SetChildMask(mMle->GetChildIndex(*reinterpret_cast<Child *>(neighbor)));
         }
         else
         {
@@ -217,13 +217,13 @@ ThreadError MeshForwarder::SendMessage(Message &message)
         break;
 
     case Message::kType6lo:
-        message.Read(0, sizeof(mesh_header), &mesh_header);
+        message.Read(0, sizeof(meshHeader), &meshHeader);
 
-        if ((neighbor = m_mle->GetNeighbor(mesh_header.GetDestination())) != NULL &&
-            (neighbor->mode & Mle::kModeRxOnWhenIdle) == 0)
+        if ((neighbor = mMle->GetNeighbor(meshHeader.GetDestination())) != NULL &&
+            (neighbor->mMode & Mle::kModeRxOnWhenIdle) == 0)
         {
             // destined for a sleepy child
-            message.SetChildMask(m_mle->GetChildIndex(*reinterpret_cast<Child *>(neighbor)));
+            message.SetChildMask(mMle->GetChildIndex(*reinterpret_cast<Child *>(neighbor)));
         }
         else
         {
@@ -239,8 +239,8 @@ ThreadError MeshForwarder::SendMessage(Message &message)
     }
 
     message.SetOffset(0);
-    SuccessOrExit(error = m_send_queue.Enqueue(message));
-    m_schedule_transmission_task.Post();
+    SuccessOrExit(error = mSendQueue.Enqueue(message));
+    mScheduleTransmissionTask.Post();
 
 exit:
     return error;
@@ -249,9 +249,9 @@ exit:
 void MeshForwarder::MoveToResolving(const Ip6Address &destination)
 {
     Message *cur, *next;
-    Ip6Address ip6_dst;
+    Ip6Address ip6Dst;
 
-    for (cur = m_send_queue.GetHead(); cur; cur = next)
+    for (cur = mSendQueue.GetHead(); cur; cur = next)
     {
         next = cur->GetNext();
 
@@ -260,39 +260,39 @@ void MeshForwarder::MoveToResolving(const Ip6Address &destination)
             continue;
         }
 
-        cur->Read(Ip6Header::GetDestinationOffset(), sizeof(ip6_dst), &ip6_dst);
+        cur->Read(Ip6Header::GetDestinationOffset(), sizeof(ip6Dst), &ip6Dst);
 
-        if (memcmp(&ip6_dst, &destination, sizeof(ip6_dst)) == 0)
+        if (memcmp(&ip6Dst, &destination, sizeof(ip6Dst)) == 0)
         {
-            m_send_queue.Dequeue(*cur);
-            m_resolving_queue.Enqueue(*cur);
+            mSendQueue.Dequeue(*cur);
+            mResolvingQueue.Enqueue(*cur);
         }
     }
 }
 
 Message *MeshForwarder::GetDirectTransmission()
 {
-    Message *cur_message, *next_message;
+    Message *curMessage, *nextMessage;
     ThreadError error = kThreadError_None;
-    Ip6Address ip6_dst;
+    Ip6Address ip6Dst;
 
-    for (cur_message = m_send_queue.GetHead(); cur_message; cur_message = next_message)
+    for (curMessage = mSendQueue.GetHead(); curMessage; curMessage = nextMessage)
     {
-        next_message = cur_message->GetNext();
+        nextMessage = curMessage->GetNext();
 
-        if (cur_message->GetDirectTransmission() == false)
+        if (curMessage->GetDirectTransmission() == false)
         {
             continue;
         }
 
-        switch (cur_message->GetType())
+        switch (curMessage->GetType())
         {
         case Message::kTypeIp6:
-            error = UpdateIp6Route(*cur_message);
+            error = UpdateIp6Route(*curMessage);
             break;
 
         case Message::kType6lo:
-            error = UpdateMeshRoute(*cur_message);
+            error = UpdateMeshRoute(*curMessage);
             break;
 
         case Message::kTypeMac:
@@ -305,14 +305,14 @@ Message *MeshForwarder::GetDirectTransmission()
             ExitNow();
 
         case kThreadError_LeaseQuery:
-            cur_message->Read(Ip6Header::GetDestinationOffset(), sizeof(ip6_dst), &ip6_dst);
-            MoveToResolving(ip6_dst);
+            curMessage->Read(Ip6Header::GetDestinationOffset(), sizeof(ip6Dst), &ip6Dst);
+            MoveToResolving(ip6Dst);
             continue;
 
         case kThreadError_Drop:
         case kThreadError_NoBufs:
-            m_send_queue.Dequeue(*cur_message);
-            Message::Free(*cur_message);
+            mSendQueue.Dequeue(*curMessage);
+            Message::Free(*curMessage);
             continue;
 
         default:
@@ -323,19 +323,19 @@ Message *MeshForwarder::GetDirectTransmission()
     }
 
 exit:
-    return cur_message;
+    return curMessage;
 }
 
 Message *MeshForwarder::GetIndirectTransmission(const Child &child)
 {
     Message *message = NULL;
-    int child_index = m_mle->GetChildIndex(child);
-    Ip6Header ip6_header;
-    MeshHeader mesh_header;
+    int childIndex = mMle->GetChildIndex(child);
+    Ip6Header ip6Header;
+    MeshHeader meshHeader;
 
-    for (message = m_send_queue.GetHead(); message; message = message->GetNext())
+    for (message = mSendQueue.GetHead(); message; message = message->GetNext())
     {
-        if (message->GetChildMask(child_index))
+        if (message->GetChildMask(childIndex))
         {
             break;
         }
@@ -346,33 +346,33 @@ Message *MeshForwarder::GetIndirectTransmission(const Child &child)
     switch (message->GetType())
     {
     case Message::kTypeIp6:
-        message->Read(0, sizeof(ip6_header), &ip6_header);
+        message->Read(0, sizeof(ip6Header), &ip6Header);
 
-        m_add_mesh_header = false;
-        GetMacSourceAddress(*ip6_header.GetSource(), m_macsrc);
+        mAddMeshHeader = false;
+        GetMacSourceAddress(*ip6Header.GetSource(), mMacsrc);
 
-        if (ip6_header.GetDestination()->IsLinkLocal() || ip6_header.GetDestination()->IsMulticast())
+        if (ip6Header.GetDestination()->IsLinkLocal() || ip6Header.GetDestination()->IsMulticast())
         {
-            GetMacDestinationAddress(*ip6_header.GetDestination(), m_macdst);
+            GetMacDestinationAddress(*ip6Header.GetDestination(), mMacdst);
         }
         else
         {
-            m_macdst.length = 2;
-            m_macdst.address16 = child.valid.rloc16;
+            mMacdst.mLength = 2;
+            mMacdst.mAddress16 = child.mValid.mRloc16;
         }
 
         break;
 
     case Message::kType6lo:
-        message->Read(0, sizeof(mesh_header), &mesh_header);
+        message->Read(0, sizeof(meshHeader), &meshHeader);
 
-        m_add_mesh_header = true;
-        m_meshdst = mesh_header.GetDestination();
-        m_meshsrc = mesh_header.GetSource();
-        m_macsrc.length = 2;
-        m_macsrc.address16 = GetAddress16();
-        m_macdst.length = 2;
-        m_macdst.address16 = mesh_header.GetDestination();
+        mAddMeshHeader = true;
+        mMeshdst = meshHeader.GetDestination();
+        mMeshsrc = meshHeader.GetSource();
+        mMacsrc.mLength = 2;
+        mMacsrc.mAddress16 = GetAddress16();
+        mMacdst.mLength = 2;
+        mMacdst.mAddress16 = meshHeader.GetDestination();
         break;
 
     default:
@@ -387,28 +387,28 @@ exit:
 ThreadError MeshForwarder::UpdateMeshRoute(Message &message)
 {
     ThreadError error = kThreadError_None;
-    MeshHeader mesh_header;
+    MeshHeader meshHeader;
     Neighbor *neighbor;
-    uint16_t next_hop;
+    uint16_t nextHop;
 
-    message.Read(0, sizeof(mesh_header), &mesh_header);
+    message.Read(0, sizeof(meshHeader), &meshHeader);
 
-    if ((neighbor = m_mle->GetNeighbor(mesh_header.GetDestination())) == NULL)
+    if ((neighbor = mMle->GetNeighbor(meshHeader.GetDestination())) == NULL)
     {
-        VerifyOrExit((next_hop = m_mle->GetNextHop(mesh_header.GetDestination())) != Mac::kShortAddrInvalid,
+        VerifyOrExit((nextHop = mMle->GetNextHop(meshHeader.GetDestination())) != Mac::kShortAddrInvalid,
                      error = kThreadError_Drop);
-        VerifyOrExit((neighbor = m_mle->GetNeighbor(next_hop)) != NULL, error = kThreadError_Drop);
+        VerifyOrExit((neighbor = mMle->GetNeighbor(nextHop)) != NULL, error = kThreadError_Drop);
     }
 
-    // dprintf("MESH ROUTE = %02x %02x\n", mesh_header.GetDestination(), neighbor->valid.rloc16);
-    m_macdst.length = 2;
-    m_macdst.address16 = neighbor->valid.rloc16;
-    m_macsrc.length = 2;
-    m_macsrc.address16 = GetAddress16();
+    // dprintf("MESH ROUTE = %02x %02x\n", meshHeader.GetDestination(), neighbor->mValid.mRloc16);
+    mMacdst.mLength = 2;
+    mMacdst.mAddress16 = neighbor->mValid.mRloc16;
+    mMacsrc.mLength = 2;
+    mMacsrc.mAddress16 = GetAddress16();
 
-    m_add_mesh_header = true;
-    m_meshdst = mesh_header.GetDestination();
-    m_meshsrc = mesh_header.GetSource();
+    mAddMeshHeader = true;
+    mMeshdst = meshHeader.GetDestination();
+    mMeshsrc = meshHeader.GetSource();
 
 exit:
     return error;
@@ -417,80 +417,80 @@ exit:
 ThreadError MeshForwarder::UpdateIp6Route(Message &message)
 {
     ThreadError error = kThreadError_None;
-    Ip6Header ip6_header;
+    Ip6Header ip6Header;
     Neighbor *neighbor;
 
-    m_add_mesh_header = false;
+    mAddMeshHeader = false;
 
-    message.Read(0, sizeof(ip6_header), &ip6_header);
+    message.Read(0, sizeof(ip6Header), &ip6Header);
 
-    if (ip6_header.GetDestination()->IsLinkLocal() || ip6_header.GetDestination()->IsMulticast())
+    if (ip6Header.GetDestination()->IsLinkLocal() || ip6Header.GetDestination()->IsMulticast())
     {
-        GetMacDestinationAddress(*ip6_header.GetDestination(), m_macdst);
-        GetMacSourceAddress(*ip6_header.GetSource(), m_macsrc);
+        GetMacDestinationAddress(*ip6Header.GetDestination(), mMacdst);
+        GetMacSourceAddress(*ip6Header.GetSource(), mMacsrc);
     }
-    else if (m_mle->GetDeviceState() != Mle::kDeviceStateDetached)
+    else if (mMle->GetDeviceState() != Mle::kDeviceStateDetached)
     {
         // non-link-local unicast
-        if (m_mle->GetDeviceMode() & Mle::kModeFFD)
+        if (mMle->GetDeviceMode() & Mle::kModeFFD)
         {
             // FFD - peform full routing
-            if (m_mle->IsRoutingLocator(*ip6_header.GetDestination()))
+            if (mMle->IsRoutingLocator(*ip6Header.GetDestination()))
             {
-                m_meshdst = HostSwap16(ip6_header.GetDestination()->addr16[7]);
+                mMeshdst = HostSwap16(ip6Header.GetDestination()->mAddr16[7]);
             }
-            else if ((neighbor = m_mle->GetNeighbor(*ip6_header.GetDestination())) != NULL)
+            else if ((neighbor = mMle->GetNeighbor(*ip6Header.GetDestination())) != NULL)
             {
-                m_meshdst = neighbor->valid.rloc16;
+                mMeshdst = neighbor->mValid.mRloc16;
             }
-            else if (m_network_data->IsOnMesh(*ip6_header.GetDestination()))
+            else if (mNetworkData->IsOnMesh(*ip6Header.GetDestination()))
             {
-                SuccessOrExit(error = m_address_resolver->Resolve(*ip6_header.GetDestination(), m_meshdst));
+                SuccessOrExit(error = mAddressResolver->Resolve(*ip6Header.GetDestination(), mMeshdst));
             }
             else
             {
-                m_network_data->RouteLookup(*ip6_header.GetSource(), *ip6_header.GetDestination(), NULL, &m_meshdst);
-                dprintf("found external route = %04x\n", m_meshdst);
-                assert(m_meshdst != Mac::kShortAddrInvalid);
+                mNetworkData->RouteLookup(*ip6Header.GetSource(), *ip6Header.GetDestination(), NULL, &mMeshdst);
+                dprintf("found external route = %04x\n", mMeshdst);
+                assert(mMeshdst != Mac::kShortAddrInvalid);
             }
         }
         else
         {
             // RFD - send to parent
-            m_meshdst = m_mle->GetNextHop(Mac::kShortAddrBroadcast);
+            mMeshdst = mMle->GetNextHop(Mac::kShortAddrBroadcast);
         }
 
-        if ((m_mle->GetDeviceState() == Mle::kDeviceStateChild && m_meshdst == m_mle->GetParent()->valid.rloc16) ||
-            ((m_mle->GetDeviceState() == Mle::kDeviceStateRouter || m_mle->GetDeviceState() == Mle::kDeviceStateLeader) &&
-             (neighbor = m_mle->GetNeighbor(m_meshdst)) != NULL))
+        if ((mMle->GetDeviceState() == Mle::kDeviceStateChild && mMeshdst == mMle->GetParent()->mValid.mRloc16) ||
+            ((mMle->GetDeviceState() == Mle::kDeviceStateRouter || mMle->GetDeviceState() == Mle::kDeviceStateLeader) &&
+             (neighbor = mMle->GetNeighbor(mMeshdst)) != NULL))
         {
             // destination is neighbor
-            m_macdst.length = 2;
-            m_macdst.address16 = m_meshdst;
+            mMacdst.mLength = 2;
+            mMacdst.mAddress16 = mMeshdst;
 
-            if (m_netif->IsUnicastAddress(*ip6_header.GetSource()))
+            if (mNetif->IsUnicastAddress(*ip6Header.GetSource()))
             {
-                GetMacSourceAddress(*ip6_header.GetSource(), m_macsrc);
+                GetMacSourceAddress(*ip6Header.GetSource(), mMacsrc);
             }
             else
             {
-                m_macsrc.length = 2;
-                m_macsrc.address16 = GetAddress16();
-                assert(m_macsrc.address16 != Mac::kShortAddrInvalid);
+                mMacsrc.mLength = 2;
+                mMacsrc.mAddress16 = GetAddress16();
+                assert(mMacsrc.mAddress16 != Mac::kShortAddrInvalid);
             }
         }
         else
         {
             // destination is not neighbor
-            m_meshsrc = GetAddress16();
+            mMeshsrc = GetAddress16();
 
-            SuccessOrExit(error = m_mle->CheckReachability(m_meshsrc, m_meshdst, ip6_header));
+            SuccessOrExit(error = mMle->CheckReachability(mMeshsrc, mMeshdst, ip6Header));
 
-            m_macdst.length = 2;
-            m_macdst.address16 = m_mle->GetNextHop(m_meshdst);
-            m_macsrc.length = 2;
-            m_macsrc.address16 = m_meshsrc;
-            m_add_mesh_header = true;
+            mMacdst.mLength = 2;
+            mMacdst.mAddress16 = mMle->GetNextHop(mMeshdst);
+            mMacsrc.mLength = 2;
+            mMacsrc.mAddress16 = mMeshsrc;
+            mAddMeshHeader = true;
         }
     }
     else
@@ -505,22 +505,22 @@ exit:
 
 bool MeshForwarder::GetRxOnWhenIdle()
 {
-    return m_mac->GetRxOnWhenIdle();
+    return mMac->GetRxOnWhenIdle();
 }
 
-ThreadError MeshForwarder::SetRxOnWhenIdle(bool rx_on_when_idle)
+ThreadError MeshForwarder::SetRxOnWhenIdle(bool rxOnWhenIdle)
 {
     ThreadError error;
 
-    SuccessOrExit(error = m_mac->SetRxOnWhenIdle(rx_on_when_idle));
+    SuccessOrExit(error = mMac->SetRxOnWhenIdle(rxOnWhenIdle));
 
-    if (rx_on_when_idle)
+    if (rxOnWhenIdle)
     {
-        m_poll_timer.Stop();
+        mPollTimer.Stop();
     }
     else
     {
-        m_poll_timer.Start(m_poll_period);
+        mPollTimer.Start(mPollPeriod);
     }
 
 exit:
@@ -529,12 +529,12 @@ exit:
 
 ThreadError MeshForwarder::SetPollPeriod(uint32_t period)
 {
-    if (m_mac->GetRxOnWhenIdle() == false && m_poll_period != period)
+    if (mMac->GetRxOnWhenIdle() == false && mPollPeriod != period)
     {
-        m_poll_timer.Start(period);
+        mPollTimer.Start(period);
     }
 
-    m_poll_period = period;
+    mPollPeriod = period;
     return kThreadError_None;
 }
 
@@ -554,21 +554,21 @@ void MeshForwarder::HandlePollTimer()
         dprintf("Sent poll\n");
     }
 
-    m_poll_timer.Start(m_poll_period);
+    mPollTimer.Start(mPollPeriod);
 }
 
 ThreadError MeshForwarder::GetMacSourceAddress(const Ip6Address &ipaddr, Mac::Address &macaddr)
 {
     assert(!ipaddr.IsMulticast());
 
-    macaddr.length = 8;
-    memcpy(&macaddr.address64, ipaddr.addr8 + 8, sizeof(macaddr.address64));
-    macaddr.address64.bytes[0] ^= 0x02;
+    macaddr.mLength = 8;
+    memcpy(&macaddr.mAddress64, ipaddr.mAddr8 + 8, sizeof(macaddr.mAddress64));
+    macaddr.mAddress64.mBytes[0] ^= 0x02;
 
-    if (memcmp(&macaddr.address64, m_mac->GetAddress64(), sizeof(macaddr.address64)) != 0)
+    if (memcmp(&macaddr.mAddress64, mMac->GetAddress64(), sizeof(macaddr.mAddress64)) != 0)
     {
-        macaddr.length = 2;
-        macaddr.address16 = GetAddress16();
+        macaddr.mLength = 2;
+        macaddr.mAddress16 = GetAddress16();
     }
 
     return kThreadError_None;
@@ -578,30 +578,30 @@ ThreadError MeshForwarder::GetMacDestinationAddress(const Ip6Address &ipaddr, Ma
 {
     if (ipaddr.IsMulticast())
     {
-        macaddr.length = 2;
-        macaddr.address16 = Mac::kShortAddrBroadcast;
+        macaddr.mLength = 2;
+        macaddr.mAddress16 = Mac::kShortAddrBroadcast;
     }
-    else if (ipaddr.addr16[0] == HostSwap16(0xfe80) &&
-             ipaddr.addr16[1] == HostSwap16(0x0000) &&
-             ipaddr.addr16[2] == HostSwap16(0x0000) &&
-             ipaddr.addr16[3] == HostSwap16(0x0000) &&
-             ipaddr.addr16[4] == HostSwap16(0x0000) &&
-             ipaddr.addr16[5] == HostSwap16(0x00ff) &&
-             ipaddr.addr16[6] == HostSwap16(0xfe00))
+    else if (ipaddr.mAddr16[0] == HostSwap16(0xfe80) &&
+             ipaddr.mAddr16[1] == HostSwap16(0x0000) &&
+             ipaddr.mAddr16[2] == HostSwap16(0x0000) &&
+             ipaddr.mAddr16[3] == HostSwap16(0x0000) &&
+             ipaddr.mAddr16[4] == HostSwap16(0x0000) &&
+             ipaddr.mAddr16[5] == HostSwap16(0x00ff) &&
+             ipaddr.mAddr16[6] == HostSwap16(0xfe00))
     {
-        macaddr.length = 2;
-        macaddr.address16 = HostSwap16(ipaddr.addr16[7]);
+        macaddr.mLength = 2;
+        macaddr.mAddress16 = HostSwap16(ipaddr.mAddr16[7]);
     }
-    else if (m_mle->IsRoutingLocator(ipaddr))
+    else if (mMle->IsRoutingLocator(ipaddr))
     {
-        macaddr.length = 2;
-        macaddr.address16 = HostSwap16(ipaddr.addr16[7]);
+        macaddr.mLength = 2;
+        macaddr.mAddress16 = HostSwap16(ipaddr.mAddr16[7]);
     }
     else
     {
-        macaddr.length = 8;
-        memcpy(&macaddr.address64, ipaddr.addr8 + 8, sizeof(macaddr.address64));
-        macaddr.address64.bytes[0] ^= 0x02;
+        macaddr.mLength = 8;
+        memcpy(&macaddr.mAddress64, ipaddr.mAddr8 + 8, sizeof(macaddr.mAddress64));
+        macaddr.mAddress64.mBytes[0] ^= 0x02;
     }
 
     return kThreadError_None;
@@ -615,22 +615,22 @@ ThreadError MeshForwarder::HandleFrameRequest(void *context, Mac::Frame &frame)
 
 ThreadError MeshForwarder::HandleFrameRequest(Mac::Frame &frame)
 {
-    m_send_busy = true;
-    assert(m_send_message != NULL);
+    mSendBusy = true;
+    assert(mSendMessage != NULL);
 
-    switch (m_send_message->GetType())
+    switch (mSendMessage->GetType())
     {
     case Message::kTypeIp6:
-        SendFragment(*m_send_message, frame);
+        SendFragment(*mSendMessage, frame);
         assert(frame.GetLength() != 7);
         break;
 
     case Message::kType6lo:
-        SendMesh(*m_send_message, frame);
+        SendMesh(*mSendMessage, frame);
         break;
 
     case Message::kTypeMac:
-        SendPoll(*m_send_message, frame);
+        SendPoll(*mSendMessage, frame);
         break;
     }
 
@@ -647,22 +647,22 @@ ThreadError MeshForwarder::SendPoll(Message &message, Mac::Frame &frame)
     uint16_t fcf;
     Neighbor *neighbor;
 
-    macsrc.address16 = GetAddress16();
+    macsrc.mAddress16 = GetAddress16();
 
-    if (macsrc.address16 != Mac::kShortAddrInvalid)
+    if (macsrc.mAddress16 != Mac::kShortAddrInvalid)
     {
-        macsrc.length = 2;
+        macsrc.mLength = 2;
     }
     else
     {
-        macsrc.length = 8;
-        memcpy(&macsrc.address64, m_mac->GetAddress64(), sizeof(macsrc.address64));
+        macsrc.mLength = 8;
+        memcpy(&macsrc.mAddress64, mMac->GetAddress64(), sizeof(macsrc.mAddress64));
     }
 
     // initialize MAC header
     fcf = Mac::Frame::kFcfFrameMacCmd | Mac::Frame::kFcfPanidCompression | Mac::Frame::kFcfFrameVersion2006;
 
-    if (macsrc.length == 2)
+    if (macsrc.mLength == 2)
     {
         fcf |= Mac::Frame::kFcfDstAddrShort | Mac::Frame::kFcfSrcAddrShort;
     }
@@ -674,25 +674,25 @@ ThreadError MeshForwarder::SendPoll(Message &message, Mac::Frame &frame)
     fcf |= Mac::Frame::kFcfAckRequest | Mac::Frame::kFcfSecurityEnabled;
 
     frame.InitMacHeader(fcf, Mac::Frame::kKeyIdMode1 | Mac::Frame::kSecEncMic32);
-    frame.SetDstPanId(m_mac->GetPanId());
+    frame.SetDstPanId(mMac->GetPanId());
 
-    neighbor = m_mle->GetParent();
+    neighbor = mMle->GetParent();
     assert(neighbor != NULL);
 
-    if (macsrc.length == 2)
+    if (macsrc.mLength == 2)
     {
-        frame.SetDstAddr(neighbor->valid.rloc16);
-        frame.SetSrcAddr(macsrc.address16);
+        frame.SetDstAddr(neighbor->mValid.mRloc16);
+        frame.SetSrcAddr(macsrc.mAddress16);
     }
     else
     {
-        frame.SetDstAddr(neighbor->mac_addr);
-        frame.SetSrcAddr(macsrc.address64);
+        frame.SetDstAddr(neighbor->mMacAddr);
+        frame.SetSrcAddr(macsrc.mAddress64);
     }
 
     frame.SetCommandId(Mac::Frame::kMacCmdDataRequest);
 
-    m_message_next_offset = message.GetLength();
+    mMessageNextOffset = message.GetLength();
 
     return kThreadError_None;
 }
@@ -707,9 +707,9 @@ ThreadError MeshForwarder::SendMesh(Message &message, Mac::Frame &frame)
           Mac::Frame::kFcfAckRequest | Mac::Frame::kFcfSecurityEnabled;
 
     frame.InitMacHeader(fcf, Mac::Frame::kKeyIdMode1 | Mac::Frame::kSecEncMic32);
-    frame.SetDstPanId(m_mac->GetPanId());
-    frame.SetDstAddr(m_macdst.address16);
-    frame.SetSrcAddr(m_macsrc.address16);
+    frame.SetDstPanId(mMac->GetPanId());
+    frame.SetDstAddr(mMacdst.mAddress16);
+    frame.SetSrcAddr(mMacsrc.mAddress16);
 
     // write payload
     if (message.GetLength() > frame.GetMaxPayloadLength())
@@ -721,7 +721,7 @@ ThreadError MeshForwarder::SendMesh(Message &message, Mac::Frame &frame)
     message.Read(0, message.GetLength(), frame.GetPayload());
     frame.SetPayloadLength(message.GetLength());
 
-    m_message_next_offset = message.GetLength();
+    mMessageNextOffset = message.GetLength();
 
     return kThreadError_None;
 }
@@ -730,158 +730,158 @@ ThreadError MeshForwarder::SendFragment(Message &message, Mac::Frame &frame)
 {
     Mac::Address meshdst, meshsrc;
     uint16_t fcf;
-    FragmentHeader *fragment_header;
-    MeshHeader *mesh_header;
-    Ip6Header ip6_header;
-    UdpHeader udp_header;
+    FragmentHeader *fragmentHeader;
+    MeshHeader *meshHeader;
+    Ip6Header ip6Header;
+    UdpHeader udpHeader;
     uint8_t *payload;
-    int header_length;
-    int payload_length;
-    int hc_length;
-    uint16_t fragment_length;
+    int headerLength;
+    int payloadLength;
+    int hcLength;
+    uint16_t fragmentLength;
 
-    if (m_add_mesh_header)
+    if (mAddMeshHeader)
     {
-        meshsrc.length = 2;
-        meshsrc.address16 = m_meshsrc;
-        meshdst.length = 2;
-        meshdst.address16 = m_meshdst;
+        meshsrc.mLength = 2;
+        meshsrc.mAddress16 = mMeshsrc;
+        meshdst.mLength = 2;
+        meshdst.mAddress16 = mMeshdst;
     }
     else
     {
-        meshdst = m_macdst;
-        meshsrc = m_macsrc;
+        meshdst = mMacdst;
+        meshsrc = mMacsrc;
     }
 
     // initialize MAC header
     fcf = Mac::Frame::kFcfFrameData | Mac::Frame::kFcfPanidCompression | Mac::Frame::kFcfFrameVersion2006;
-    fcf |= (m_macdst.length == 2) ? Mac::Frame::kFcfDstAddrShort : Mac::Frame::kFcfDstAddrExt;
-    fcf |= (m_macsrc.length == 2) ? Mac::Frame::kFcfSrcAddrShort : Mac::Frame::kFcfSrcAddrExt;
+    fcf |= (mMacdst.mLength == 2) ? Mac::Frame::kFcfDstAddrShort : Mac::Frame::kFcfDstAddrExt;
+    fcf |= (mMacsrc.mLength == 2) ? Mac::Frame::kFcfSrcAddrShort : Mac::Frame::kFcfSrcAddrExt;
 
     // all unicast frames request ACK
-    if (m_macdst.length == 8 || m_macdst.address16 != Mac::kShortAddrBroadcast)
+    if (mMacdst.mLength == 8 || mMacdst.mAddress16 != Mac::kShortAddrBroadcast)
     {
         fcf |= Mac::Frame::kFcfAckRequest;
     }
 
     fcf |= Mac::Frame::kFcfSecurityEnabled;
 
-    message.Read(0, sizeof(ip6_header), &ip6_header);
+    message.Read(0, sizeof(ip6Header), &ip6Header);
 
-    if (ip6_header.GetNextHeader() == kProtoUdp)
+    if (ip6Header.GetNextHeader() == kProtoUdp)
     {
-        message.Read(sizeof(ip6_header), sizeof(udp_header), &udp_header);
+        message.Read(sizeof(ip6Header), sizeof(udpHeader), &udpHeader);
 
-        if (udp_header.GetDestinationPort() == Mle::kUdpPort)
+        if (udpHeader.GetDestinationPort() == Mle::kUdpPort)
         {
             fcf &= ~Mac::Frame::kFcfSecurityEnabled;
         }
     }
 
     frame.InitMacHeader(fcf, Mac::Frame::kKeyIdMode1 | Mac::Frame::kSecEncMic32);
-    frame.SetDstPanId(m_mac->GetPanId());
+    frame.SetDstPanId(mMac->GetPanId());
 
-    if (m_macdst.length == 2)
+    if (mMacdst.mLength == 2)
     {
-        frame.SetDstAddr(m_macdst.address16);
+        frame.SetDstAddr(mMacdst.mAddress16);
     }
     else
     {
-        frame.SetDstAddr(m_macdst.address64);
+        frame.SetDstAddr(mMacdst.mAddress64);
     }
 
-    if (m_macsrc.length == 2)
+    if (mMacsrc.mLength == 2)
     {
-        frame.SetSrcAddr(m_macsrc.address16);
+        frame.SetSrcAddr(mMacsrc.mAddress16);
     }
     else
     {
-        frame.SetSrcAddr(m_macsrc.address64);
+        frame.SetSrcAddr(mMacsrc.mAddress64);
     }
 
     payload = frame.GetPayload();
 
-    header_length = 0;
+    headerLength = 0;
 
     // initialize Mesh header
-    if (m_add_mesh_header)
+    if (mAddMeshHeader)
     {
-        mesh_header = reinterpret_cast<MeshHeader *>(payload);
-        mesh_header->Init();
-        mesh_header->SetHopsLeft(Lowpan::kHopsLeft);
-        mesh_header->SetSource(m_meshsrc);
-        mesh_header->SetDestination(m_meshdst);
-        payload += mesh_header->GetHeaderLength();
-        header_length += mesh_header->GetHeaderLength();
+        meshHeader = reinterpret_cast<MeshHeader *>(payload);
+        meshHeader->Init();
+        meshHeader->SetHopsLeft(Lowpan::kHopsLeft);
+        meshHeader->SetSource(mMeshsrc);
+        meshHeader->SetDestination(mMeshdst);
+        payload += meshHeader->GetHeaderLength();
+        headerLength += meshHeader->GetHeaderLength();
     }
 
     // copy IPv6 Header
     if (message.GetOffset() == 0)
     {
-        hc_length = m_lowpan->Compress(message, meshsrc, meshdst, payload);
-        assert(hc_length > 0);
-        header_length += hc_length;
+        hcLength = mLowpan->Compress(message, meshsrc, meshdst, payload);
+        assert(hcLength > 0);
+        headerLength += hcLength;
 
-        payload_length = message.GetLength() - message.GetOffset();
+        payloadLength = message.GetLength() - message.GetOffset();
 
-        fragment_length = frame.GetMaxPayloadLength() - header_length;
+        fragmentLength = frame.GetMaxPayloadLength() - headerLength;
 
-        if (payload_length > fragment_length)
+        if (payloadLength > fragmentLength)
         {
             // write Fragment header
-            message.SetDatagramTag(m_frag_tag++);
-            memmove(payload + 4, payload, header_length);
+            message.SetDatagramTag(mFragTag++);
+            memmove(payload + 4, payload, headerLength);
 
-            payload_length = (frame.GetMaxPayloadLength() - header_length - 4) & ~0x7;
+            payloadLength = (frame.GetMaxPayloadLength() - headerLength - 4) & ~0x7;
 
-            fragment_header = reinterpret_cast<FragmentHeader *>(payload);
-            fragment_header->Init();
-            fragment_header->SetSize(message.GetLength());
-            fragment_header->SetTag(message.GetDatagramTag());
-            fragment_header->SetOffset(0);
+            fragmentHeader = reinterpret_cast<FragmentHeader *>(payload);
+            fragmentHeader->Init();
+            fragmentHeader->SetSize(message.GetLength());
+            fragmentHeader->SetTag(message.GetDatagramTag());
+            fragmentHeader->SetOffset(0);
 
-            payload += fragment_header->GetHeaderLength();
-            header_length += fragment_header->GetHeaderLength();
+            payload += fragmentHeader->GetHeaderLength();
+            headerLength += fragmentHeader->GetHeaderLength();
         }
 
-        payload += hc_length;
+        payload += hcLength;
 
         // copy IPv6 Payload
-        message.Read(message.GetOffset(), payload_length, payload);
-        frame.SetPayloadLength(header_length + payload_length);
+        message.Read(message.GetOffset(), payloadLength, payload);
+        frame.SetPayloadLength(headerLength + payloadLength);
 
-        m_message_next_offset = message.GetOffset() + payload_length;
+        mMessageNextOffset = message.GetOffset() + payloadLength;
         message.SetOffset(0);
     }
     else
     {
-        payload_length = message.GetLength() - message.GetOffset();
+        payloadLength = message.GetLength() - message.GetOffset();
 
         // write Fragment header
-        fragment_header = reinterpret_cast<FragmentHeader *>(payload);
-        fragment_header->Init();
-        fragment_header->SetSize(message.GetLength());
-        fragment_header->SetTag(message.GetDatagramTag());
-        fragment_header->SetOffset(message.GetOffset());
+        fragmentHeader = reinterpret_cast<FragmentHeader *>(payload);
+        fragmentHeader->Init();
+        fragmentHeader->SetSize(message.GetLength());
+        fragmentHeader->SetTag(message.GetDatagramTag());
+        fragmentHeader->SetOffset(message.GetOffset());
 
-        payload += fragment_header->GetHeaderLength();
-        header_length += fragment_header->GetHeaderLength();
+        payload += fragmentHeader->GetHeaderLength();
+        headerLength += fragmentHeader->GetHeaderLength();
 
-        fragment_length = (frame.GetMaxPayloadLength() - header_length) & ~0x7;
+        fragmentLength = (frame.GetMaxPayloadLength() - headerLength) & ~0x7;
 
-        if (payload_length > fragment_length)
+        if (payloadLength > fragmentLength)
         {
-            payload_length = fragment_length;
+            payloadLength = fragmentLength;
         }
 
         // copy IPv6 Payload
-        message.Read(message.GetOffset(), payload_length, payload);
-        frame.SetPayloadLength(header_length + payload_length);
+        message.Read(message.GetOffset(), payloadLength, payload);
+        frame.SetPayloadLength(headerLength + payloadLength);
 
-        m_message_next_offset = message.GetOffset() + payload_length;
+        mMessageNextOffset = message.GetOffset() + payloadLength;
     }
 
-    if (m_message_next_offset < message.GetLength())
+    if (mMessageNextOffset < message.GetLength())
     {
         frame.SetFramePending(true);
     }
@@ -900,53 +900,53 @@ void MeshForwarder::HandleSentFrame(Mac::Frame &frame)
     Mac::Address macdst;
     Child *child;
 
-    m_send_busy = false;
+    mSendBusy = false;
 
-    if (!m_enabled)
+    if (!mEnabled)
     {
         ExitNow();
     }
 
-    m_send_message->SetOffset(m_message_next_offset);
+    mSendMessage->SetOffset(mMessageNextOffset);
 
     frame.GetDstAddr(macdst);
 
-    dprintf("sent frame %d %d\n", m_message_next_offset, m_send_message->GetLength());
+    dprintf("sent frame %d %d\n", mMessageNextOffset, mSendMessage->GetLength());
 
-    if ((child = m_mle->GetChild(macdst)) != NULL)
+    if ((child = mMle->GetChild(macdst)) != NULL)
     {
-        child->data_request = false;
+        child->mDataRequest = false;
 
-        if (m_message_next_offset < m_send_message->GetLength())
+        if (mMessageNextOffset < mSendMessage->GetLength())
         {
-            child->fragment_offset = m_message_next_offset;
+            child->mFragmentOffset = mMessageNextOffset;
         }
         else
         {
-            child->fragment_offset = 0;
-            m_send_message->ClearChildMask(m_mle->GetChildIndex(*child));
+            child->mFragmentOffset = 0;
+            mSendMessage->ClearChildMask(mMle->GetChildIndex(*child));
         }
     }
 
-    if (m_send_message->GetDirectTransmission())
+    if (mSendMessage->GetDirectTransmission())
     {
-        if (m_message_next_offset < m_send_message->GetLength())
+        if (mMessageNextOffset < mSendMessage->GetLength())
         {
-            m_send_message->SetOffset(m_message_next_offset);
+            mSendMessage->SetOffset(mMessageNextOffset);
         }
         else
         {
-            m_send_message->ClearDirectTransmission();
+            mSendMessage->ClearDirectTransmission();
         }
     }
 
-    if (m_send_message->GetDirectTransmission() == false && m_send_message->IsChildPending() == false)
+    if (mSendMessage->GetDirectTransmission() == false && mSendMessage->IsChildPending() == false)
     {
-        m_send_queue.Dequeue(*m_send_message);
-        Message::Free(*m_send_message);
+        mSendQueue.Dequeue(*mSendMessage);
+        Message::Free(*mSendMessage);
     }
 
-    m_schedule_transmission_task.Post();
+    mScheduleTransmissionTask.Post();
 
 exit:
     {}
@@ -960,19 +960,19 @@ void MeshForwarder::HandleReceivedFrame(void *context, Mac::Frame &frame, Thread
 
 void MeshForwarder::HandleReceivedFrame(Mac::Frame &frame, ThreadError error)
 {
-    ThreadMessageInfo message_info;
+    ThreadMessageInfo messageInfo;
     Mac::Address macdst;
     Mac::Address macsrc;
     uint8_t *payload;
-    uint8_t payload_length;
+    uint8_t payloadLength;
     Ip6Address destination;
-    uint8_t command_id;
+    uint8_t commandId;
 
 #if 0
     dump("received frame", frame.GetHeader(), frame.GetLength());
 #endif
 
-    if (!m_enabled)
+    if (!mEnabled)
     {
         ExitNow();
     }
@@ -982,35 +982,35 @@ void MeshForwarder::HandleReceivedFrame(Mac::Frame &frame, ThreadError error)
     if (error == kThreadError_Security)
     {
         memset(&destination, 0, sizeof(destination));
-        destination.addr16[0] = HostSwap16(0xfe80);
+        destination.mAddr16[0] = HostSwap16(0xfe80);
 
-        switch (macsrc.length)
+        switch (macsrc.mLength)
         {
         case 2:
-            destination.addr16[5] = HostSwap16(0x00ff);
-            destination.addr16[6] = HostSwap16(0xfe00);
-            destination.addr16[7] = HostSwap16(macsrc.address16);
+            destination.mAddr16[5] = HostSwap16(0x00ff);
+            destination.mAddr16[6] = HostSwap16(0xfe00);
+            destination.mAddr16[7] = HostSwap16(macsrc.mAddress16);
             break;
 
         case 8:
-            memcpy(destination.addr8 + 8, &macsrc.address64, sizeof(macsrc.address64));
+            memcpy(destination.mAddr8 + 8, &macsrc.mAddress64, sizeof(macsrc.mAddress64));
             break;
 
         default:
             ExitNow();
         }
 
-        m_mle->SendLinkReject(destination);
+        mMle->SendLinkReject(destination);
         ExitNow();
     }
 
     SuccessOrExit(frame.GetDstAddr(macdst));
-    message_info.link_margin = frame.GetPower() - -100;
+    messageInfo.mLinkMargin = frame.GetPower() - -100;
 
     payload = frame.GetPayload();
-    payload_length = frame.GetPayloadLength();
+    payloadLength = frame.GetPayloadLength();
 
-    if (m_poll_timer.IsRunning() && frame.GetFramePending())
+    if (mPollTimer.IsRunning() && frame.GetFramePending())
     {
         HandlePollTimer();
     }
@@ -1020,23 +1020,23 @@ void MeshForwarder::HandleReceivedFrame(Mac::Frame &frame, ThreadError error)
     case Mac::Frame::kFcfFrameData:
         if ((payload[0] & MeshHeader::kDispatchMask) == MeshHeader::kDispatch)
         {
-            HandleMesh(payload, payload_length, macsrc, macdst, message_info);
+            HandleMesh(payload, payloadLength, macsrc, macdst, messageInfo);
         }
         else if ((payload[0] & FragmentHeader::kDispatchMask) == FragmentHeader::kDispatch)
         {
-            HandleFragment(payload, payload_length, macsrc, macdst, message_info);
+            HandleFragment(payload, payloadLength, macsrc, macdst, messageInfo);
         }
         else if ((payload[0] & (Lowpan::kHcDispatchMask >> 8)) == (Lowpan::kHcDispatch >> 8))
         {
-            HandleLowpanHC(payload, payload_length, macsrc, macdst, message_info);
+            HandleLowpanHC(payload, payloadLength, macsrc, macdst, messageInfo);
         }
 
         break;
 
     case Mac::Frame::kFcfFrameMacCmd:
-        frame.GetCommandId(command_id);
+        frame.GetCommandId(commandId);
 
-        if (command_id == Mac::Frame::kMacCmdDataRequest)
+        if (commandId == Mac::Frame::kMacCmdDataRequest)
         {
             HandleDataRequest(macsrc);
         }
@@ -1048,50 +1048,50 @@ exit:
     {}
 }
 
-void MeshForwarder::HandleMesh(uint8_t *frame, uint8_t frame_length,
+void MeshForwarder::HandleMesh(uint8_t *frame, uint8_t frameLength,
                                const Mac::Address &macsrc, const Mac::Address &macdst,
-                               const ThreadMessageInfo &message_info)
+                               const ThreadMessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     Message *message = NULL;
     Mac::Address meshdst;
     Mac::Address meshsrc;
-    MeshHeader *mesh_header = reinterpret_cast<MeshHeader *>(frame);
+    MeshHeader *meshHeader = reinterpret_cast<MeshHeader *>(frame);
 
-    VerifyOrExit(mesh_header->IsValid(), error = kThreadError_Drop);
+    VerifyOrExit(meshHeader->IsValid(), error = kThreadError_Drop);
 
-    meshsrc.length = 2;
-    meshsrc.address16 = mesh_header->GetSource();
-    meshdst.length = 2;
-    meshdst.address16 = mesh_header->GetDestination();
+    meshsrc.mLength = 2;
+    meshsrc.mAddress16 = meshHeader->GetSource();
+    meshdst.mLength = 2;
+    meshdst.mAddress16 = meshHeader->GetDestination();
 
-    if (meshdst.address16 == GetAddress16())
+    if (meshdst.mAddress16 == GetAddress16())
     {
         frame += 5;
-        frame_length -= 5;
+        frameLength -= 5;
 
         if ((frame[0] & FragmentHeader::kDispatchMask) == FragmentHeader::kDispatch)
         {
-            HandleFragment(frame, frame_length, meshsrc, meshdst, message_info);
+            HandleFragment(frame, frameLength, meshsrc, meshdst, messageInfo);
         }
         else if ((frame[0] & (Lowpan::kHcDispatchMask >> 8)) == (Lowpan::kHcDispatch >> 8))
         {
-            HandleLowpanHC(frame, frame_length, meshsrc, meshdst, message_info);
+            HandleLowpanHC(frame, frameLength, meshsrc, meshdst, messageInfo);
         }
         else
         {
             ExitNow();
         }
     }
-    else if (mesh_header->GetHopsLeft() > 0)
+    else if (meshHeader->GetHopsLeft() > 0)
     {
-        SuccessOrExit(error = CheckReachability(frame, frame_length, meshsrc, meshdst));
+        SuccessOrExit(error = CheckReachability(frame, frameLength, meshsrc, meshdst));
 
-        mesh_header->SetHopsLeft(mesh_header->GetHopsLeft() - 1);
+        meshHeader->SetHopsLeft(meshHeader->GetHopsLeft() - 1);
 
         VerifyOrExit((message = Message::New(Message::kType6lo, 0)) != NULL, error = kThreadError_Drop);
-        SuccessOrExit(error = message->SetLength(frame_length));
-        message->Write(0, frame_length, frame);
+        SuccessOrExit(error = message->SetLength(frameLength));
+        message->Write(0, frameLength, frame);
 
         SendMessage(*message);
     }
@@ -1104,11 +1104,11 @@ exit:
     }
 }
 
-ThreadError MeshForwarder::CheckReachability(uint8_t *frame, uint8_t frame_length,
+ThreadError MeshForwarder::CheckReachability(uint8_t *frame, uint8_t frameLength,
                                              const Mac::Address &meshsrc, const Mac::Address &meshdst)
 {
     ThreadError error = kThreadError_None;
-    Ip6Header ip6_header;
+    Ip6Header ip6Header;
 
     // skip mesh header
     frame += 5;
@@ -1123,58 +1123,58 @@ ThreadError MeshForwarder::CheckReachability(uint8_t *frame, uint8_t frame_lengt
     // only process IPv6 packets
     VerifyOrExit((frame[0] & (Lowpan::kHcDispatchMask >> 8)) == (Lowpan::kHcDispatch >> 8), ;);
 
-    m_lowpan->DecompressBaseHeader(ip6_header, meshsrc, meshdst, frame);
+    mLowpan->DecompressBaseHeader(ip6Header, meshsrc, meshdst, frame);
 
-    error = m_mle->CheckReachability(meshsrc.address16, meshdst.address16, ip6_header);
+    error = mMle->CheckReachability(meshsrc.mAddress16, meshdst.mAddress16, ip6Header);
 
 exit:
     return error;
 }
 
-void MeshForwarder::HandleFragment(uint8_t *frame, uint8_t frame_length,
+void MeshForwarder::HandleFragment(uint8_t *frame, uint8_t frameLength,
                                    const Mac::Address &macsrc, const Mac::Address &macdst,
-                                   const ThreadMessageInfo &message_info)
+                                   const ThreadMessageInfo &messageInfo)
 {
-    FragmentHeader *fragment_header = reinterpret_cast<FragmentHeader *>(frame);
-    uint16_t datagram_length = fragment_header->GetSize();
-    uint16_t datagram_tag = fragment_header->GetTag();
+    FragmentHeader *fragmentHeader = reinterpret_cast<FragmentHeader *>(frame);
+    uint16_t datagramLength = fragmentHeader->GetSize();
+    uint16_t datagramTag = fragmentHeader->GetTag();
     Message *message;
-    int header_length;
+    int headerLength;
 
-    if (fragment_header->GetOffset() == 0)
+    if (fragmentHeader->GetOffset() == 0)
     {
         frame += 4;
-        frame_length -= 4;
+        frameLength -= 4;
 
         VerifyOrExit((message = Message::New(Message::kTypeIp6, 0)) != NULL, ;);
-        header_length = m_lowpan->Decompress(*message, macsrc, macdst, frame, frame_length, datagram_length);
-        VerifyOrExit(header_length > 0, Message::Free(*message));
-        frame += header_length;
-        frame_length -= header_length;
+        headerLength = mLowpan->Decompress(*message, macsrc, macdst, frame, frameLength, datagramLength);
+        VerifyOrExit(headerLength > 0, Message::Free(*message));
+        frame += headerLength;
+        frameLength -= headerLength;
 
-        VerifyOrExit(message->SetLength(datagram_length) == kThreadError_None, Message::Free(*message));
-        datagram_length = HostSwap16(datagram_length - sizeof(Ip6Header));
-        message->Write(Ip6Header::GetPayloadLengthOffset(), sizeof(datagram_length), &datagram_length);
-        message->SetDatagramTag(datagram_tag);
+        VerifyOrExit(message->SetLength(datagramLength) == kThreadError_None, Message::Free(*message));
+        datagramLength = HostSwap16(datagramLength - sizeof(Ip6Header));
+        message->Write(Ip6Header::GetPayloadLengthOffset(), sizeof(datagramLength), &datagramLength);
+        message->SetDatagramTag(datagramTag);
         message->SetTimeout(kReassemblyTimeout);
 
-        m_reassembly_list.Enqueue(*message);
+        mReassemblyList.Enqueue(*message);
 
-        if (!m_reassembly_timer.IsRunning())
+        if (!mReassemblyTimer.IsRunning())
         {
-            m_reassembly_timer.Start(1000);
+            mReassemblyTimer.Start(1000);
         }
     }
     else
     {
         frame += 5;
-        frame_length -= 5;
+        frameLength -= 5;
 
-        for (message = m_reassembly_list.GetHead(); message; message = message->GetNext())
+        for (message = mReassemblyList.GetHead(); message; message = message->GetNext())
         {
-            if (message->GetLength() == datagram_length &&
-                message->GetDatagramTag() == datagram_tag &&
-                message->GetOffset() == fragment_header->GetOffset())
+            if (message->GetLength() == datagramLength &&
+                message->GetDatagramTag() == datagramTag &&
+                message->GetOffset() == fragmentHeader->GetOffset())
             {
                 break;
             }
@@ -1186,12 +1186,12 @@ void MeshForwarder::HandleFragment(uint8_t *frame, uint8_t frame_length,
     assert(message != NULL);
 
     // copy Fragment
-    message->Write(message->GetOffset(), frame_length, frame);
-    message->MoveOffset(frame_length);
+    message->Write(message->GetOffset(), frameLength, frame);
+    message->MoveOffset(frameLength);
     VerifyOrExit(message->GetOffset() >= message->GetLength(), ;);
 
-    m_reassembly_list.Dequeue(*message);
-    Ip6::HandleDatagram(*message, m_netif, m_netif->GetInterfaceId(), &message_info, false);
+    mReassemblyList.Dequeue(*message);
+    Ip6::HandleDatagram(*message, mNetif, mNetif->GetInterfaceId(), &messageInfo, false);
 
 exit:
     {}
@@ -1208,7 +1208,7 @@ void MeshForwarder::HandleReassemblyTimer()
     Message *next = NULL;
     uint8_t timeout;
 
-    for (Message *message = m_reassembly_list.GetHead(); message; message = next)
+    for (Message *message = mReassemblyList.GetHead(); message; message = next)
     {
         next = message->GetNext();
         timeout = message->GetTimeout();
@@ -1219,40 +1219,40 @@ void MeshForwarder::HandleReassemblyTimer()
         }
         else
         {
-            m_reassembly_list.Dequeue(*message);
+            mReassemblyList.Dequeue(*message);
             Message::Free(*message);
         }
     }
 
-    if (m_reassembly_list.GetHead() != NULL)
+    if (mReassemblyList.GetHead() != NULL)
     {
-        m_reassembly_timer.Start(1000);
+        mReassemblyTimer.Start(1000);
     }
 }
 
-void MeshForwarder::HandleLowpanHC(uint8_t *frame, uint8_t frame_length,
+void MeshForwarder::HandleLowpanHC(uint8_t *frame, uint8_t frameLength,
                                    const Mac::Address &macsrc, const Mac::Address &macdst,
-                                   const ThreadMessageInfo &message_info)
+                                   const ThreadMessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     Message *message;
-    int header_length;
-    uint16_t ip6_payload_length;
+    int headerLength;
+    uint16_t ip6PayloadLength;
 
     VerifyOrExit((message = Message::New(Message::kTypeIp6, 0)) != NULL, ;);
 
-    header_length = m_lowpan->Decompress(*message, macsrc, macdst, frame, frame_length, 0);
-    VerifyOrExit(header_length > 0, ;);
-    frame += header_length;
-    frame_length -= header_length;
+    headerLength = mLowpan->Decompress(*message, macsrc, macdst, frame, frameLength, 0);
+    VerifyOrExit(headerLength > 0, ;);
+    frame += headerLength;
+    frameLength -= headerLength;
 
-    SuccessOrExit(error = message->SetLength(message->GetLength() + frame_length));
+    SuccessOrExit(error = message->SetLength(message->GetLength() + frameLength));
 
-    ip6_payload_length = HostSwap16(message->GetLength() - sizeof(Ip6Header));
-    message->Write(Ip6Header::GetPayloadLengthOffset(), sizeof(ip6_payload_length), &ip6_payload_length);
+    ip6PayloadLength = HostSwap16(message->GetLength() - sizeof(Ip6Header));
+    message->Write(Ip6Header::GetPayloadLengthOffset(), sizeof(ip6PayloadLength), &ip6PayloadLength);
 
-    message->Write(message->GetOffset(), frame_length, frame);
-    Ip6::HandleDatagram(*message, m_netif, m_netif->GetInterfaceId(), &message_info, false);
+    message->Write(message->GetOffset(), frameLength, frame);
+    Ip6::HandleDatagram(*message, mNetif, mNetif->GetInterfaceId(), &messageInfo, false);
 
 exit:
 
@@ -1269,26 +1269,26 @@ void MeshForwarder::UpdateFramePending()
 void MeshForwarder::HandleDataRequest(const Mac::Address &macsrc)
 {
     Neighbor *neighbor;
-    int child_index;
+    int childIndex;
 
-    assert(m_mle->GetDeviceState() != Mle::kDeviceStateDetached);
+    assert(mMle->GetDeviceState() != Mle::kDeviceStateDetached);
 
-    VerifyOrExit((neighbor = m_mle->GetNeighbor(macsrc)) != NULL, ;);
-    neighbor->last_heard = Timer::GetNow();
+    VerifyOrExit((neighbor = mMle->GetNeighbor(macsrc)) != NULL, ;);
+    neighbor->mLastHeard = Timer::GetNow();
 
-    m_mle->HandleMacDataRequest(*reinterpret_cast<Child *>(neighbor));
-    child_index = m_mle->GetChildIndex(*reinterpret_cast<Child *>(neighbor));
+    mMle->HandleMacDataRequest(*reinterpret_cast<Child *>(neighbor));
+    childIndex = mMle->GetChildIndex(*reinterpret_cast<Child *>(neighbor));
 
-    for (Message *message = m_send_queue.GetHead(); message; message = message->GetNext())
+    for (Message *message = mSendQueue.GetHead(); message; message = message->GetNext())
     {
-        if (message->GetDirectTransmission() == false && message->GetChildMask(child_index))
+        if (message->GetDirectTransmission() == false && message->GetChildMask(childIndex))
         {
-            neighbor->data_request = true;
+            neighbor->mDataRequest = true;
             break;
         }
     }
 
-    m_schedule_transmission_task.Post();
+    mScheduleTransmissionTask.Post();
 
 exit:
     {}

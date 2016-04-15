@@ -36,18 +36,18 @@ private:
         kMaxLocalOnMeshData = 4,
     };
 
-    int PrintUsage(char *buf, uint16_t buf_length);
-    int AddHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t buf_length);
-    int RemoveHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t buf_length);
-    int AddOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_length);
-    int RemoveOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_length);
-    int PrintLocalHasRoutePrefixes(char *buf, uint16_t buf_length);
-    int PrintLocalOnMeshPrefixes(char *buf, uint16_t buf_length);
-    int PrintContextIdReuseDelay(char *buf, uint16_t buf_length);
+    int PrintUsage(char *buf, uint16_t bufLength);
+    int AddHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t bufLength);
+    int RemoveHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t bufLength);
+    int AddOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t bufLength);
+    int RemoveOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t bufLength);
+    int PrintLocalHasRoutePrefixes(char *buf, uint16_t bufLength);
+    int PrintLocalOnMeshPrefixes(char *buf, uint16_t bufLength);
+    int PrintContextIdReuseDelay(char *buf, uint16_t bufLength);
 
-    Mle::MleRouter *m_mle;
-    NetworkData::Local *m_network_data_local;
-    NetworkData::Leader *m_network_data_leader;
+    Mle::MleRouter *mMle;
+    NetworkData::Local *mNetworkDataLocal;
+    NetworkData::Leader *mNetworkDataLeader;
 };
 
 }  // namespace Cli

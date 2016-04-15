@@ -23,20 +23,20 @@ namespace Thread {
 
 typedef struct
 {
-    Ip6Address sock_addr;
-    Ip6Address peer_addr;
-    uint16_t peer_port;
-    uint16_t sock_port;
-    uint8_t interface_id;
-    uint8_t hop_limit;
-    const void *link_info;
+    Ip6Address mSockAddr;
+    Ip6Address mPeerAddr;
+    uint16_t mPeerPort;
+    uint16_t mSockPort;
+    uint8_t mInterfaceId;
+    uint8_t mHopLimit;
+    const void *mLinkInfo;
 } Ip6MessageInfo;
 
 class Socket
 {
 protected:
-    struct sockaddr_in6 m_sockname;
-    struct sockaddr_in6 m_peername;
+    struct sockaddr_in6 mSockName;
+    struct sockaddr_in6 mPeerName;
 };
 
 }  // namespace Thread

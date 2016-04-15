@@ -30,9 +30,9 @@ class ThreadNetif;
 
 struct Context
 {
-    const uint8_t *prefix;
-    uint8_t prefix_length;
-    uint8_t context_id;
+    const uint8_t *mPrefix;
+    uint8_t mPrefixLength;
+    uint8_t mContextId;
 };
 
 class Lowpan
@@ -51,22 +51,22 @@ public:
 
     explicit Lowpan(ThreadNetif &netif);
     int Compress(Message &message, const Mac::Address &macsrc, const Mac::Address &macdst, uint8_t *buf);
-    int CompressExtensionHeader(Message &message, uint8_t *buf, uint8_t &next_header);
+    int CompressExtensionHeader(Message &message, uint8_t *buf, uint8_t &nextHeader);
     int CompressSourceIid(const Mac::Address &macaddr, const Ip6Address &ipaddr, const Context &context,
-                          uint16_t &hc_ctl, uint8_t *buf);
+                          uint16_t &hcCtl, uint8_t *buf);
     int CompressDestinationIid(const Mac::Address &macaddr, const Ip6Address &ipaddr, const Context &context,
-                               uint16_t &hc_ctl, uint8_t *buf);
-    int CompressMulticast(const Ip6Address &ipaddr, uint16_t &hc_ctl, uint8_t *buf);
+                               uint16_t &hcCtl, uint8_t *buf);
+    int CompressMulticast(const Ip6Address &ipaddr, uint16_t &hcCtl, uint8_t *buf);
 
     int CompressUdp(Message &message, uint8_t *buf);
 
     int Decompress(Message &message, const Mac::Address &macsrc, const Mac::Address &macdst,
-                   const uint8_t *buf, uint16_t buf_len, uint16_t datagram_len);
+                   const uint8_t *buf, uint16_t bufLen, uint16_t datagramLen);
     int DecompressBaseHeader(Ip6Header &header, const Mac::Address &macsrc, const Mac::Address &macdst,
                              const uint8_t *buf);
-    int DecompressExtensionHeader(Message &message, const uint8_t *buf, uint16_t buf_length);
-    int DecompressUdpHeader(Message &message, const uint8_t *buf, uint16_t buf_length, uint16_t datagram_length);
-    ThreadError DispatchToNextHeader(uint8_t dispatch, IpProto &next_header);
+    int DecompressExtensionHeader(Message &message, const uint8_t *buf, uint16_t bufLength);
+    int DecompressUdpHeader(Message &message, const uint8_t *buf, uint16_t bufLength, uint16_t datagramLength);
+    ThreadError DispatchToNextHeader(uint8_t dispatch, IpProto &nextHeader);
 
 private:
     enum
@@ -114,7 +114,7 @@ private:
         kUdpPortMask       = 3 << 0,
     };
 
-    NetworkData::Leader *m_network_data;
+    NetworkData::Leader *mNetworkData;
 };
 
 class MeshHeader
@@ -129,24 +129,24 @@ public:
         kDestinationShort = 1 << 4,
     };
 
-    void Init() { m_dispatch_hops_left = kDispatch | kSourceShort | kDestinationShort; }
-    bool IsValid() { return (m_dispatch_hops_left & kSourceShort) && (m_dispatch_hops_left & kDestinationShort); }
+    void Init() { mDispatchHopsLeft = kDispatch | kSourceShort | kDestinationShort; }
+    bool IsValid() { return (mDispatchHopsLeft & kSourceShort) && (mDispatchHopsLeft & kDestinationShort); }
 
     uint8_t GetHeaderLength() { return sizeof(*this); }
 
-    uint8_t GetHopsLeft() { return m_dispatch_hops_left & kHopsLeftMask; }
-    void SetHopsLeft(uint8_t hops) { m_dispatch_hops_left = (m_dispatch_hops_left & ~kHopsLeftMask) | hops; }
+    uint8_t GetHopsLeft() { return mDispatchHopsLeft & kHopsLeftMask; }
+    void SetHopsLeft(uint8_t hops) { mDispatchHopsLeft = (mDispatchHopsLeft & ~kHopsLeftMask) | hops; }
 
-    uint16_t GetSource() { return HostSwap16(m_source); }
-    void SetSource(uint16_t source) { m_source = HostSwap16(source); }
+    uint16_t GetSource() { return HostSwap16(mSource); }
+    void SetSource(uint16_t source) { mSource = HostSwap16(source); }
 
-    uint16_t GetDestination() { return HostSwap16(m_destination); }
-    void SetDestination(uint16_t destination) { m_destination = HostSwap16(destination); }
+    uint16_t GetDestination() { return HostSwap16(mDestination); }
+    void SetDestination(uint16_t destination) { mDestination = HostSwap16(destination); }
 
 private:
-    uint8_t m_dispatch_hops_left;
-    uint16_t m_source;
-    uint16_t m_destination;
+    uint8_t mDispatchHopsLeft;
+    uint16_t mSource;
+    uint16_t mDestination;
 } __attribute__((packed));
 
 class FragmentHeader
@@ -161,49 +161,49 @@ public:
     };
 
     void Init() {
-        m_dispatch_offset_size = kDispatch;
+        mDispatchOffsetSize = kDispatch;
     }
 
     uint8_t GetHeaderLength() {
-        return (m_dispatch_offset_size & kOffset) ? sizeof(*this) : sizeof(*this) - sizeof(m_offset);
+        return (mDispatchOffsetSize & kOffset) ? sizeof(*this) : sizeof(*this) - sizeof(mOffset);
     }
 
     uint16_t GetSize() {
-        return (static_cast<uint16_t>(m_dispatch_offset_size & kSizeMask) << 8) | m_size;
+        return (static_cast<uint16_t>(mDispatchOffsetSize & kSizeMask) << 8) | mSize;
     }
 
     void SetSize(uint16_t size) {
-        m_dispatch_offset_size = (m_dispatch_offset_size & ~kSizeMask) | ((size >> 8) & kSizeMask);
-        m_size = size;
+        mDispatchOffsetSize = (mDispatchOffsetSize & ~kSizeMask) | ((size >> 8) & kSizeMask);
+        mSize = size;
     }
 
     uint16_t GetTag() {
-        return HostSwap16(m_tag);
+        return HostSwap16(mTag);
     }
 
     void SetTag(uint16_t tag) {
-        m_tag = HostSwap16(tag);
+        mTag = HostSwap16(tag);
     }
 
     uint16_t GetOffset() {
-        return (m_dispatch_offset_size & kOffset) ? static_cast<uint16_t>(m_offset) * 8 : 0;
+        return (mDispatchOffsetSize & kOffset) ? static_cast<uint16_t>(mOffset) * 8 : 0;
     }
 
     void SetOffset(uint16_t offset) {
         if (offset == 0) {
-            m_dispatch_offset_size &= ~kOffset;
+            mDispatchOffsetSize &= ~kOffset;
         }
         else {
-            m_dispatch_offset_size |= kOffset;
-            m_offset = offset / 8;
+            mDispatchOffsetSize |= kOffset;
+            mOffset = offset / 8;
         }
     }
 
 private:
-    uint8_t m_dispatch_offset_size;
-    uint8_t m_size;
-    uint16_t m_tag;
-    uint8_t m_offset;
+    uint8_t mDispatchOffsetSize;
+    uint8_t mSize;
+    uint16_t mTag;
+    uint8_t mOffset;
 } __attribute__((packed));
 
 }  // namespace Thread

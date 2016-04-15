@@ -28,29 +28,29 @@ namespace Cli {
 
 static const uint8_t VT102_ERASE_EOL[] = "\033[K";
 static const uint8_t CRNL[] = "\r\n";
-static Serial *m_server;
+static Serial *sServer;
 
 Serial::Serial()
 {
-    m_server = this;
+    sServer = this;
 }
 
 ThreadError Serial::Start()
 {
-    m_rx_length = 0;
+    mRxLength = 0;
     uart_start();
     return kThreadError_None;
 }
 
-extern "C" void uart_handle_receive(uint8_t *buf, uint16_t buf_length)
+extern "C" void uart_handle_receive(uint8_t *buf, uint16_t bufLength)
 {
-    m_server->HandleReceive(buf, buf_length);
+    sServer->HandleReceive(buf, bufLength);
 }
 
-void Serial::HandleReceive(uint8_t *buf, uint16_t buf_length)
+void Serial::HandleReceive(uint8_t *buf, uint16_t bufLength)
 {
     uint8_t *cur = buf;
-    uint8_t *end = cur + buf_length;
+    uint8_t *end = cur + bufLength;
 
     for (; cur < end; cur++)
     {
@@ -66,15 +66,15 @@ void Serial::HandleReceive(uint8_t *buf, uint16_t buf_length)
         }
     }
 
-    while (buf_length > 0 && m_rx_length < kRxBufferSize)
+    while (bufLength > 0 && mRxLength < kRxBufferSize)
     {
         switch (*buf)
         {
         case '\r':
         case '\n':
-            if (m_rx_length > 0)
+            if (mRxLength > 0)
             {
-                m_rx_buffer[m_rx_length] = '\0';
+                mRxBuffer[mRxLength] = '\0';
                 ProcessCommand();
             }
 
@@ -82,27 +82,27 @@ void Serial::HandleReceive(uint8_t *buf, uint16_t buf_length)
 
         case '\b':
         case 127:
-            if (m_rx_length > 0)
+            if (mRxLength > 0)
             {
-                m_rx_buffer[--m_rx_length] = '\0';
+                mRxBuffer[--mRxLength] = '\0';
                 uart_send(VT102_ERASE_EOL, sizeof(VT102_ERASE_EOL));
             }
 
             break;
 
         default:
-            m_rx_buffer[m_rx_length++] = *buf;
+            mRxBuffer[mRxLength++] = *buf;
             break;
         }
 
         buf++;
-        buf_length--;
+        bufLength--;
     }
 }
 
 extern "C" void uart_handle_send_done()
 {
-    m_server->HandleSendDone();
+    sServer->HandleSendDone();
 }
 
 void Serial::HandleSendDone()
@@ -112,7 +112,7 @@ void Serial::HandleSendDone()
 ThreadError Serial::ProcessCommand()
 {
     ThreadError error = kThreadError_None;
-    uint16_t payload_length = m_rx_length;
+    uint16_t payloadLength = mRxLength;
     char *cmd;
     char *last;
     char *cur;
@@ -120,33 +120,33 @@ ThreadError Serial::ProcessCommand()
     int argc;
     char *argv[kMaxArgs];
 
-    if (m_rx_buffer[payload_length - 1] == '\n')
+    if (mRxBuffer[payloadLength - 1] == '\n')
     {
-        m_rx_buffer[--payload_length] = '\0';
+        mRxBuffer[--payloadLength] = '\0';
     }
 
-    if (m_rx_buffer[payload_length - 1] == '\r')
+    if (mRxBuffer[payloadLength - 1] == '\r')
     {
-        m_rx_buffer[--payload_length] = '\0';
+        mRxBuffer[--payloadLength] = '\0';
     }
 
-    VerifyOrExit((cmd = strtok_r(m_rx_buffer, " ", &last)) != NULL, ;);
+    VerifyOrExit((cmd = strtok_r(mRxBuffer, " ", &last)) != NULL, ;);
 
     if (strncmp(cmd, "?", 1) == 0)
     {
-        cur = m_rx_buffer;
-        end = cur + sizeof(m_rx_buffer);
+        cur = mRxBuffer;
+        end = cur + sizeof(mRxBuffer);
 
         snprintf(cur, end - cur, "%s", "Commands:\r\n");
         cur += strlen(cur);
 
-        for (Command *command = m_commands; command; command = command->GetNext())
+        for (Command *command = mCommands; command; command = command->GetNext())
         {
             snprintf(cur, end - cur, "%s\r\n", command->GetName());
             cur += strlen(cur);
         }
 
-        SuccessOrExit(error = uart_send(reinterpret_cast<const uint8_t *>(m_rx_buffer), cur - m_rx_buffer));
+        SuccessOrExit(error = uart_send(reinterpret_cast<const uint8_t *>(mRxBuffer), cur - mRxBuffer));
     }
     else
     {
@@ -158,7 +158,7 @@ ThreadError Serial::ProcessCommand()
             }
         }
 
-        for (Command *command = m_commands; command; command = command->GetNext())
+        for (Command *command = mCommands; command; command = command->GetNext())
         {
             if (strcmp(cmd, command->GetName()) == 0)
             {
@@ -169,14 +169,14 @@ ThreadError Serial::ProcessCommand()
     }
 
 exit:
-    m_rx_length = 0;
+    mRxLength = 0;
 
     return error;
 }
 
-ThreadError Serial::Output(const char *buf, uint16_t buf_length)
+ThreadError Serial::Output(const char *buf, uint16_t bufLength)
 {
-    return uart_send(reinterpret_cast<const uint8_t *>(buf), buf_length);
+    return uart_send(reinterpret_cast<const uint8_t *>(buf), bufLength);
 }
 
 }  // namespace Cli

@@ -30,11 +30,11 @@ static uint32_t SetupMix(uint32_t temp)
         (Te4_0[byte(temp, 3)]);
 }
 
-ThreadError AesEcb::SetKey(const uint8_t *key, uint16_t key_length)
+ThreadError AesEcb::SetKey(const uint8_t *key, uint16_t keyLength)
 {
     uint32_t *rk;
 
-    assert(key_length == 16);
+    assert(keyLength == 16);
 
     /* setup the forward key */
     rk = m_eK;

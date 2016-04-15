@@ -35,17 +35,17 @@
 
 struct gengetopt_args_info args_info;
 
-Thread::ThreadNetif thread_netif;
+Thread::ThreadNetif sThreadNetif;
 
-Thread::Cli::Socket cli_server;
-Thread::Cli::Ifconfig cli_ifconfig(cli_server);
-Thread::Cli::Ip cli_ip(cli_server);
-Thread::Cli::Mac cli_mac(cli_server, thread_netif);
-Thread::Cli::NetData cli_netdata(cli_server, thread_netif);
-Thread::Cli::Ping cli_ping(cli_server);
-Thread::Cli::Route cli_route(cli_server);
-Thread::Cli::Shutdown cli_shutdown(cli_server);
-Thread::Cli::Thread cli_thread(cli_server, thread_netif);
+Thread::Cli::Socket sCliServer;
+Thread::Cli::Ifconfig sCliIfconfig(sCliServer);
+Thread::Cli::Ip sCliIp(sCliServer);
+Thread::Cli::Mac sCliMac(sCliServer, sThreadNetif);
+Thread::Cli::NetData sCliNetdata(sCliServer, sThreadNetif);
+Thread::Cli::Ping sCliPing(sCliServer);
+Thread::Cli::Route sCliRoute(sCliServer);
+Thread::Cli::Shutdown sCliShutdown(sCliServer);
+Thread::Cli::Thread sCliThread(sCliServer, sThreadNetif);
 
 int main(int argc, char *argv[])
 {
@@ -60,8 +60,8 @@ int main(int argc, char *argv[])
     Thread::Random::Init(args_info.nodeid_arg);
     Thread::Timer::Init();
 
-    thread_netif.Init();
-    cli_server.Start();
+    sThreadNetif.Init();
+    sCliServer.Start();
 
     Thread::TaskletScheduler::Run();
     return 0;
