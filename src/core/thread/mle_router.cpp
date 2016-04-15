@@ -1087,10 +1087,13 @@ ThreadError MleRouter::HandleAdvertisement(const Message &message, const Ip6Mess
 
         for (int i = 0; i < kMaxRouterId; i++)
         {
-            router_count += m_routers[i].allocated;
+            if (m_routers[i].allocated)
+            {
+                router_count++;
+            }
         }
 
-        if (router_count < m_router_upgrade_threshold)
+        if ((m_device_mode & kModeFFD) && (router_count < m_router_upgrade_threshold))
         {
             BecomeRouter();
             ExitNow();

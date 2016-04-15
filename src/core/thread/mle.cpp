@@ -1694,7 +1694,10 @@ ThreadError Mle::HandleChildIdResponse(const Message &message, const Ip6MessageI
 
         for (int i = 0; i < kMaxRouterId; i++)
         {
-            num_routers += route.IsRouterIdSet(i);
+            if (route.IsRouterIdSet(i))
+            {
+                num_routers++;
+            }
         }
 
         if (num_routers < m_mle_router->GetRouterUpgradeThreshold())
