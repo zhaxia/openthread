@@ -184,7 +184,7 @@ struct  _ThreadScanResult
 };
 #define THREAD_SCAN_RESULT__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&thread_scan_result__descriptor) \
-    , {0,NULL}, {0,NULL}, {0,NULL}, 0, 0, 0 }
+	 , {0,{0}}, {0,{0}}, {0,{0}}, 0, 0, 0 }
 
 
 struct  _ThreadScanResultDone
