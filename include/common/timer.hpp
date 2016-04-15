@@ -48,13 +48,13 @@ private:
     static bool IsAdded(const Timer &timer);
     static void SetAlarm();
 
-    void Fired() { m_handler(m_context); }
+    void Fired() { mHandler(mContext); }
 
-    Handler m_handler;
-    void *m_context;
-    uint32_t m_t0 = 0;
-    uint32_t m_dt = 0;
-    Timer *m_next = NULL;
+    Handler mHandler;
+    void *mContext;
+    uint32_t mT0 = 0;
+    uint32_t mDt = 0;
+    Timer *mNext = NULL;
 };
 
 }  // namespace Thread

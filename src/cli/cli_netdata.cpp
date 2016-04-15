@@ -30,9 +30,9 @@ static const char kName[] = "netdata";
 NetData::NetData(Server &server, ThreadNetif &netif):
     Command(server)
 {
-    m_mle = netif.GetMle();
-    m_network_data_local = netif.GetNetworkDataLocal();
-    m_network_data_leader = netif.GetNetworkDataLeader();
+    mMle = netif.GetMle();
+    mNetworkDataLocal = netif.GetNetworkDataLocal();
+    mNetworkDataLeader = netif.GetNetworkDataLeader();
 }
 
 const char *NetData::GetName()
@@ -40,10 +40,10 @@ const char *NetData::GetName()
     return kName;
 }
 
-int NetData::PrintUsage(char *buf, uint16_t buf_length)
+int NetData::PrintUsage(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
     snprintf(cur, end - cur,
              "usage: netdata\r\n"
@@ -58,19 +58,19 @@ int NetData::PrintUsage(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int NetData::PrintLocalOnMeshPrefixes(char *buf, uint16_t buf_length)
+int NetData::PrintLocalOnMeshPrefixes(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
 #if 0
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
-    const NetworkData::LocalOnMeshData *netdata = m_network_data_local->GetLocalOnMeshPrefixes();
+    const NetworkData::LocalOnMeshData *netdata = mNetworkDataLocal->GetLocalOnMeshPrefixes();
 
     while (netdata != NULL)
     {
         netdata->prefix.ToString(cur, end - cur);
         cur += strlen(cur);
-        snprintf(cur, end - cur, "/%d ", netdata->prefix_length);
+        snprintf(cur, end - cur, "/%d ", netdata->prefixLength);
         cur += strlen(cur);
 
         if (netdata->slaac_preferred)
@@ -114,51 +114,51 @@ int NetData::PrintLocalOnMeshPrefixes(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int NetData::PrintLocalHasRoutePrefixes(char *buf, uint16_t buf_length)
+int NetData::PrintLocalHasRoutePrefixes(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
     return cur - buf;
 }
 
-int NetData::PrintContextIdReuseDelay(char *buf, uint16_t buf_length)
+int NetData::PrintContextIdReuseDelay(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
-    snprintf(cur, end - cur, "%u\n", m_network_data_leader->GetContextIdReuseDelay());
+    snprintf(cur, end - cur, "%u\n", mNetworkDataLeader->GetContextIdReuseDelay());
     cur += strlen(cur);
 
     return cur - buf;
 }
 
-int NetData::AddHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t buf_length)
+int NetData::AddHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t bufLength)
 {
     ThreadError error = kThreadError_Error;
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
     int argcur = 0;
 
     Ip6Address prefix;
-    uint8_t prefix_length;
+    uint8_t prefixLength;
     int8_t prf = 0;
     bool stable = false;
 
-    char *prefix_length_str;
+    char *prefixLengthStr;
     char *endptr;
 
-    if ((prefix_length_str = strchr(argv[argcur], '/')) == NULL)
+    if ((prefixLengthStr = strchr(argv[argcur], '/')) == NULL)
     {
         ExitNow();
     }
 
-    *prefix_length_str++ = '\0';
+    *prefixLengthStr++ = '\0';
 
     if (prefix.FromString(argv[argcur]) != kThreadError_None)
     {
         ExitNow();
     }
 
-    prefix_length = strtol(prefix_length_str, &endptr, 0);
+    prefixLength = strtol(prefixLengthStr, &endptr, 0);
 
     if (*endptr != '\0')
     {
@@ -189,7 +189,7 @@ int NetData::AddHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t buf_l
         }
     }
 
-    SuccessOrExit(error = m_network_data_local->AddHasRoutePrefix(prefix.addr8, prefix_length, prf, stable));
+    SuccessOrExit(error = mNetworkDataLocal->AddHasRoutePrefix(prefix.mAddr8, prefixLength, prf, stable));
 
 exit:
 
@@ -201,39 +201,39 @@ exit:
     return cur - buf;
 }
 
-int NetData::RemoveHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t buf_length)
+int NetData::RemoveHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t bufLength)
 {
     ThreadError error = kThreadError_Error;
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
     int argcur = 0;
 
     Ip6Address prefix;
-    uint8_t prefix_length;
+    uint8_t prefixLength;
 
-    char *prefix_length_str;
+    char *prefixLengthStr;
     char *endptr;
 
-    if ((prefix_length_str = strchr(argv[argcur], '/')) == NULL)
+    if ((prefixLengthStr = strchr(argv[argcur], '/')) == NULL)
     {
         ExitNow();
     }
 
-    *prefix_length_str++ = '\0';
+    *prefixLengthStr++ = '\0';
 
     if (prefix.FromString(argv[argcur]) != kThreadError_None)
     {
         ExitNow();
     }
 
-    prefix_length = strtol(prefix_length_str, &endptr, 0);
+    prefixLength = strtol(prefixLengthStr, &endptr, 0);
 
     if (*endptr != '\0')
     {
         ExitNow();
     }
 
-    SuccessOrExit(error = m_network_data_local->RemoveHasRoutePrefix(prefix.addr8, prefix_length));
+    SuccessOrExit(error = mNetworkDataLocal->RemoveHasRoutePrefix(prefix.mAddr8, prefixLength));
 
 exit:
 
@@ -245,35 +245,35 @@ exit:
     return cur - buf;
 }
 
-int NetData::AddOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_length)
+int NetData::AddOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t bufLength)
 {
     ThreadError error = kThreadError_Error;
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
     int argcur = 0;
 
     Ip6Address prefix;
-    uint8_t prefix_length;
+    uint8_t prefixLength;
     uint8_t flags = 0;
     int8_t prf = 0;
     bool stable = false;
 
-    char *prefix_length_str;
+    char *prefixLengthStr;
     char *endptr;
 
-    if ((prefix_length_str = strchr(argv[argcur], '/')) == NULL)
+    if ((prefixLengthStr = strchr(argv[argcur], '/')) == NULL)
     {
         ExitNow();
     }
 
-    *prefix_length_str++ = '\0';
+    *prefixLengthStr++ = '\0';
 
     if (prefix.FromString(argv[argcur]) != kThreadError_None)
     {
         ExitNow();
     }
 
-    prefix_length = strtol(prefix_length_str, &endptr, 0);
+    prefixLength = strtol(prefixLengthStr, &endptr, 0);
 
     if (*endptr != '\0')
     {
@@ -336,7 +336,7 @@ int NetData::AddOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_len
         }
     }
 
-    SuccessOrExit(error = m_network_data_local->AddOnMeshPrefix(prefix.addr8, prefix_length, prf, flags, stable));
+    SuccessOrExit(error = mNetworkDataLocal->AddOnMeshPrefix(prefix.mAddr8, prefixLength, prf, flags, stable));
 
 exit:
 
@@ -348,39 +348,39 @@ exit:
     return cur - buf;
 }
 
-int NetData::RemoveOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t buf_length)
+int NetData::RemoveOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t bufLength)
 {
     ThreadError error = kThreadError_Error;
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
     int argcur = 0;
 
     Ip6Address prefix;
-    uint8_t prefix_length;
+    uint8_t prefixLength;
 
-    char *prefix_length_str;
+    char *prefixLengthStr;
     char *endptr;
 
-    if ((prefix_length_str = strchr(argv[argcur], '/')) == NULL)
+    if ((prefixLengthStr = strchr(argv[argcur], '/')) == NULL)
     {
         ExitNow();
     }
 
-    *prefix_length_str++ = '\0';
+    *prefixLengthStr++ = '\0';
 
     if (prefix.FromString(argv[argcur]) != kThreadError_None)
     {
         ExitNow();
     }
 
-    prefix_length = strtol(prefix_length_str, &endptr, 0);
+    prefixLength = strtol(prefixLengthStr, &endptr, 0);
 
     if (*endptr != '\0')
     {
         ExitNow();
     }
 
-    SuccessOrExit(error = m_network_data_local->RemoveOnMeshPrefix(prefix.addr8, prefix_length));
+    SuccessOrExit(error = mNetworkDataLocal->RemoveOnMeshPrefix(prefix.mAddr8, prefixLength));
 
 exit:
 
@@ -469,15 +469,15 @@ void NetData::Run(int argc, char *argv[], Server &server)
             else
             {
                 delay = strtol(argv[i], NULL, 0);
-                m_network_data_leader->SetContextIdReuseDelay(delay);
+                mNetworkDataLeader->SetContextIdReuseDelay(delay);
             }
 
             ExitNow(error = kThreadError_None);
         }
         else if (strcmp(argv[i], "register") == 0)
         {
-            m_mle->GetLeaderAddress(address);
-            m_network_data_local->Register(address);
+            mMle->GetLeaderAddress(address);
+            mNetworkDataLocal->Register(address);
             ExitNow(error = kThreadError_None);
         }
     }

@@ -31,8 +31,8 @@ static const char kName[] = "thread";
 Thread::Thread(Server &server, ThreadNetif &netif):
     Command(server)
 {
-    m_netif = &netif;
-    m_mle = netif.GetMle();
+    mNetif = &netif;
+    mMle = netif.GetMle();
 }
 
 const char *Thread::GetName()
@@ -40,10 +40,10 @@ const char *Thread::GetName()
     return kName;
 }
 
-int Thread::PrintUsage(char *buf, uint16_t buf_length)
+int Thread::PrintUsage(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
     snprintf(cur, end - cur,
              "usage: thread\r\n"
@@ -68,30 +68,30 @@ int Thread::PrintUsage(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int Thread::PrintAddressCache(char *buf, uint16_t buf_length)
+int Thread::PrintAddressCache(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
     int count = 0;
-    const AddressResolver *resolver = m_netif->GetAddressResolver();
-    uint16_t num_entries;
-    const AddressResolver::Cache *entries = resolver->GetCacheEntries(&num_entries);
+    const AddressResolver *resolver = mNetif->GetAddressResolver();
+    uint16_t numEntries;
+    const AddressResolver::Cache *entries = resolver->GetCacheEntries(&numEntries);
 
-    for (int i = 0; i < num_entries; i++)
+    for (int i = 0; i < numEntries; i++)
     {
-        if (entries[i].state == AddressResolver::Cache::kStateInvalid)
+        if (entries[i].mState == AddressResolver::Cache::kStateInvalid)
         {
             continue;
         }
 
-        entries[i].target.ToString(cur, end - cur);
+        entries[i].mTarget.ToString(cur, end - cur);
         cur += strlen(cur);
-        snprintf(cur, end - cur, " %d ", entries[i].state);
+        snprintf(cur, end - cur, " %d ", entries[i].mState);
         cur += strlen(cur);
-        snprintf(cur, end - cur, "%04x ", entries[i].rloc);
+        snprintf(cur, end - cur, "%04x ", entries[i].mRloc);
         cur += strlen(cur);
-        snprintf(cur, end - cur, "%d\r\n", entries[i].timeout);
+        snprintf(cur, end - cur, "%d\r\n", entries[i].mTimeout);
         cur += strlen(cur);
         count++;
     }
@@ -102,54 +102,54 @@ int Thread::PrintAddressCache(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int Thread::PrintChildren(char *buf, uint16_t buf_length)
+int Thread::PrintChildren(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
     int count = 0;
     Child *children;
-    uint8_t num_children;
+    uint8_t numChildren;
 
-    VerifyOrExit((children = m_mle->GetChildren(&num_children)) != NULL, ;);
+    VerifyOrExit((children = mMle->GetChildren(&numChildren)) != NULL, ;);
 
-    for (int i = 0; i < num_children; i++)
+    for (int i = 0; i < numChildren; i++)
     {
-        if (children[i].state == Neighbor::kStateInvalid)
+        if (children[i].mState == Neighbor::kStateInvalid)
         {
             continue;
         }
 
         snprintf(cur, end - cur, "%02x%02x%02x%02x%02x%02x%02x%02x: ",
-                 children[i].mac_addr.bytes[0], children[i].mac_addr.bytes[1],
-                 children[i].mac_addr.bytes[2], children[i].mac_addr.bytes[3],
-                 children[i].mac_addr.bytes[4], children[i].mac_addr.bytes[5],
-                 children[i].mac_addr.bytes[6], children[i].mac_addr.bytes[7]);
+                 children[i].mMacAddr.mBytes[0], children[i].mMacAddr.mBytes[1],
+                 children[i].mMacAddr.mBytes[2], children[i].mMacAddr.mBytes[3],
+                 children[i].mMacAddr.mBytes[4], children[i].mMacAddr.mBytes[5],
+                 children[i].mMacAddr.mBytes[6], children[i].mMacAddr.mBytes[7]);
         cur += strlen(cur);
-        snprintf(cur, end - cur, "%04x, ", children[i].valid.rloc16);
+        snprintf(cur, end - cur, "%04x, ", children[i].mValid.mRloc16);
         cur += strlen(cur);
-        snprintf(cur, end - cur, "%d, ", children[i].state);
+        snprintf(cur, end - cur, "%d, ", children[i].mState);
         cur += strlen(cur);
 
-        if (children[i].mode & Mle::ModeTlv::kModeRxOnWhenIdle)
+        if (children[i].mMode & Mle::ModeTlv::kModeRxOnWhenIdle)
         {
             snprintf(cur, end - cur, "r");
             cur += strlen(cur);
         }
 
-        if (children[i].mode & Mle::ModeTlv::kModeSecureDataRequest)
+        if (children[i].mMode & Mle::ModeTlv::kModeSecureDataRequest)
         {
             snprintf(cur, end - cur, "s");
             cur += strlen(cur);
         }
 
-        if (children[i].mode & Mle::ModeTlv::kModeFFD)
+        if (children[i].mMode & Mle::ModeTlv::kModeFFD)
         {
             snprintf(cur, end - cur, "d");
             cur += strlen(cur);
         }
 
-        if (children[i].mode & Mle::ModeTlv::kModeFullNetworkData)
+        if (children[i].mMode & Mle::ModeTlv::kModeFullNetworkData)
         {
             snprintf(cur, end - cur, "n");
             cur += strlen(cur);
@@ -166,16 +166,16 @@ exit:
     return cur - buf;
 }
 
-int Thread::PrintKey(char *buf, uint16_t buf_length)
+int Thread::PrintKey(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
     uint8_t key[16];
-    uint8_t key_length;
-    m_netif->GetKeyManager()->GetMasterKey(key, &key_length);
+    uint8_t keyLength;
+    mNetif->GetKeyManager()->GetMasterKey(key, &keyLength);
 
-    for (int i = 0; i < key_length; i++)
+    for (int i = 0; i < keyLength; i++)
     {
         snprintf(cur, end - cur, "%02x", key[i]);
         cur += strlen(cur);
@@ -187,23 +187,23 @@ int Thread::PrintKey(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int Thread::PrintKeySequence(char *buf, uint16_t buf_length)
+int Thread::PrintKeySequence(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
-    snprintf(cur, end - cur, "%u\r\n", m_netif->GetKeyManager()->GetCurrentKeySequence());
+    snprintf(cur, end - cur, "%u\r\n", mNetif->GetKeyManager()->GetCurrentKeySequence());
     cur += strlen(cur);
 
     return cur - buf;
 }
 
-int Thread::PrintLeaderData(char *buf, uint16_t buf_length)
+int Thread::PrintLeaderData(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
-    const Mle::LeaderDataTlv *leader_data = m_mle->GetLeaderDataTlv();
+    const Mle::LeaderDataTlv *leader_data = mMle->GetLeaderDataTlv();
 
     snprintf(cur, end - cur, "partition_id = %08" PRIx32 "\r\n", leader_data->GetPartitionId());
     cur += strlen(cur);
@@ -219,12 +219,12 @@ int Thread::PrintLeaderData(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int Thread::PrintMode(char *buf, uint16_t buf_length)
+int Thread::PrintMode(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
-    uint8_t mode = m_mle->GetDeviceMode();
+    uint8_t mode = mMle->GetDeviceMode();
 
     if (mode & Mle::ModeTlv::kModeRxOnWhenIdle)
     {
@@ -252,33 +252,33 @@ int Thread::PrintMode(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int Thread::PrintRouters(char *buf, uint16_t buf_length)
+int Thread::PrintRouters(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
     int count = 0;
     Router *routers;
-    uint8_t num_routers;
+    uint8_t numRouters;
 
-    VerifyOrExit((routers = m_mle->GetRouters(&num_routers)) != NULL, ;);
+    VerifyOrExit((routers = mMle->GetRouters(&numRouters)) != NULL, ;);
 
     count = 0;
 
-    for (int i = 0; i < num_routers; i++)
+    for (int i = 0; i < numRouters; i++)
     {
-        if (routers[i].state == Neighbor::kStateInvalid)
+        if (routers[i].mState == Neighbor::kStateInvalid)
         {
             continue;
         }
 
         snprintf(cur, end - cur, "%02x%02x%02x%02x%02x%02x%02x%02x: ",
-                 routers[i].mac_addr.bytes[0], routers[i].mac_addr.bytes[1],
-                 routers[i].mac_addr.bytes[2], routers[i].mac_addr.bytes[3],
-                 routers[i].mac_addr.bytes[4], routers[i].mac_addr.bytes[5],
-                 routers[i].mac_addr.bytes[6], routers[i].mac_addr.bytes[7]);
+                 routers[i].mMacAddr.mBytes[0], routers[i].mMacAddr.mBytes[1],
+                 routers[i].mMacAddr.mBytes[2], routers[i].mMacAddr.mBytes[3],
+                 routers[i].mMacAddr.mBytes[4], routers[i].mMacAddr.mBytes[5],
+                 routers[i].mMacAddr.mBytes[6], routers[i].mMacAddr.mBytes[7]);
         cur += strlen(cur);
-        snprintf(cur, end - cur, "%04x\r\n", routers[i].valid.rloc16);
+        snprintf(cur, end - cur, "%04x\r\n", routers[i].mValid.mRloc16);
         cur += strlen(cur);
         count++;
     }
@@ -289,18 +289,18 @@ exit:
     return cur - buf;
 }
 
-int Thread::PrintRoutes(char *buf, uint16_t buf_length)
+int Thread::PrintRoutes(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
     int count = 0;
     Router *routers;
-    uint8_t num_routers;
+    uint8_t numRouters;
 
-    VerifyOrExit((routers = m_mle->GetRouters(&num_routers)) != NULL, ;);
+    VerifyOrExit((routers = mMle->GetRouters(&numRouters)) != NULL, ;);
 
-    snprintf(cur, end - cur, "seq: %d\r\n", m_mle->GetRouterIdSequence());
+    snprintf(cur, end - cur, "seq: %d\r\n", mMle->GetRouterIdSequence());
     cur += strlen(cur);
 
     snprintf(cur, end - cur, "mask: ");
@@ -308,7 +308,7 @@ int Thread::PrintRoutes(char *buf, uint16_t buf_length)
 
     for (int i = 0; i < Mle::kMaxRouterId; i++)
     {
-        if (routers[i].allocated)
+        if (routers[i].mAllocated)
         {
             snprintf(cur, end - cur, "%d ", i);
             cur += strlen(cur);
@@ -320,7 +320,7 @@ int Thread::PrintRoutes(char *buf, uint16_t buf_length)
 
     count = 0;
 
-    switch (m_mle->GetDeviceState())
+    switch (mMle->GetDeviceState())
     {
     case Mle::kDeviceStateDisabled:
     case Mle::kDeviceStateDetached:
@@ -328,23 +328,23 @@ int Thread::PrintRoutes(char *buf, uint16_t buf_length)
 
     case Mle::kDeviceStateChild:
         snprintf(cur, end - cur, "%04x: %04x (0)\r\n",
-                 Mac::kShortAddrBroadcast, routers->valid.rloc16);
+                 Mac::kShortAddrBroadcast, routers->mValid.mRloc16);
         cur += strlen(cur);
         count++;
         break;
 
     case Mle::kDeviceStateRouter:
     case Mle::kDeviceStateLeader:
-        for (int i = 0; i < num_routers; i++)
+        for (int i = 0; i < numRouters; i++)
         {
-            if (routers[i].allocated == false)
+            if (routers[i].mAllocated == false)
             {
                 continue;
             }
 
             snprintf(cur, end - cur, "%d: %d, %d, %d, %u\r\n",
-                     i, routers[i].state, routers[i].nexthop, routers[i].cost,
-                     (Timer::GetNow() - routers[i].last_heard) / 1000U);
+                     i, routers[i].mState, routers[i].mNextHop, routers[i].mCost,
+                     (Timer::GetNow() - routers[i].mLastHeard) / 1000U);
             cur += strlen(cur);
             count++;
         }
@@ -358,12 +358,12 @@ exit:
     return cur - buf;
 }
 
-int Thread::PrintState(char *buf, uint16_t buf_length)
+int Thread::PrintState(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
-    switch (m_mle->GetDeviceState())
+    switch (mMle->GetDeviceState())
     {
     case Mle::kDeviceStateDisabled:
         snprintf(cur, end - cur, "disabled\r\n");
@@ -402,7 +402,7 @@ void Thread::Run(int argc, char *argv[], Server &server)
     uint8_t val8;
 
     uint8_t key[16];
-    int key_length;
+    int keyLength;
     uint8_t mode = 0;
 
     for (int i = 0; i < argc; i++)
@@ -429,12 +429,12 @@ void Thread::Run(int argc, char *argv[], Server &server)
                 ExitNow(error = kThreadError_None);
             }
 
-            if ((key_length = hex2bin(argv[i], key, sizeof(key))) < 0)
+            if ((keyLength = hex2bin(argv[i], key, sizeof(key))) < 0)
             {
                 ExitNow();
             }
 
-            ExitNow(error = m_netif->GetKeyManager()->SetMasterKey(key, key_length));
+            ExitNow(error = mNetif->GetKeyManager()->SetMasterKey(key, keyLength));
         }
         else if (strcmp(argv[i], "key_sequence") == 0)
         {
@@ -446,7 +446,7 @@ void Thread::Run(int argc, char *argv[], Server &server)
             else
             {
                 val32 = strtol(argv[i], NULL, 0);
-                ExitNow(error = m_netif->GetKeyManager()->SetCurrentKeySequence(val32));
+                ExitNow(error = mNetif->GetKeyManager()->SetCurrentKeySequence(val32));
             }
         }
         else if (strcmp(argv[i], "leader_data") == 0)
@@ -487,20 +487,20 @@ void Thread::Run(int argc, char *argv[], Server &server)
                 }
             }
 
-            ExitNow(error = m_mle->SetDeviceMode(mode));
+            ExitNow(error = mMle->SetDeviceMode(mode));
         }
         else if (strcmp(argv[i], "network_id_timeout") == 0)
         {
             if (++i >= argc)
             {
-                snprintf(cur, end - cur, "%d\n", m_mle->GetNetworkIdTimeout());
+                snprintf(cur, end - cur, "%d\n", mMle->GetNetworkIdTimeout());
                 cur += strlen(cur);
                 ExitNow(error = kThreadError_None);
             }
             else
             {
                 val32 = strtol(argv[i], NULL, 0);
-                ExitNow(error = m_mle->SetNetworkIdTimeout(val32));
+                ExitNow(error = mMle->SetNetworkIdTimeout(val32));
             }
         }
         else if (strcmp(argv[i], "release_router") == 0)
@@ -512,21 +512,21 @@ void Thread::Run(int argc, char *argv[], Server &server)
             else
             {
                 val8 = strtol(argv[i], NULL, 0);
-                ExitNow(error = m_mle->ReleaseRouterId(val8));
+                ExitNow(error = mMle->ReleaseRouterId(val8));
             }
         }
         else if (strcmp(argv[i], "router_upgrade_threshold") == 0)
         {
             if (++i >= argc)
             {
-                snprintf(cur, end - cur, "%d\n", m_mle->GetNetworkIdTimeout());
+                snprintf(cur, end - cur, "%d\n", mMle->GetNetworkIdTimeout());
                 cur += strlen(cur);
                 ExitNow(error = kThreadError_None);
             }
             else
             {
                 val32 = strtol(argv[i], NULL, 0);
-                ExitNow(error = m_mle->SetRouterUpgradeThreshold(val32));
+                ExitNow(error = mMle->SetRouterUpgradeThreshold(val32));
             }
         }
         else if (strcmp(argv[i], "routers") == 0)
@@ -541,7 +541,7 @@ void Thread::Run(int argc, char *argv[], Server &server)
         }
         else if (strcmp(argv[i], "start") == 0)
         {
-            m_netif->Up();
+            mNetif->Up();
             ExitNow(error = kThreadError_None);
         }
         else if (strcmp(argv[i], "state") == 0)
@@ -553,19 +553,19 @@ void Thread::Run(int argc, char *argv[], Server &server)
             }
             else if (strcmp(argv[i], "detached") == 0)
             {
-                ExitNow(error = m_mle->BecomeDetached());
+                ExitNow(error = mMle->BecomeDetached());
             }
             else if (strcmp(argv[i], "child") == 0)
             {
-                ExitNow(error = m_mle->BecomeChild(Mle::kJoinSamePartition));
+                ExitNow(error = mMle->BecomeChild(Mle::kJoinSamePartition));
             }
             else if (strcmp(argv[i], "router") == 0)
             {
-                ExitNow(error = m_mle->BecomeRouter());
+                ExitNow(error = mMle->BecomeRouter());
             }
             else if (strcmp(argv[i], "leader") == 0)
             {
-                ExitNow(error = m_mle->BecomeLeader());
+                ExitNow(error = mMle->BecomeLeader());
             }
             else
             {
@@ -574,34 +574,34 @@ void Thread::Run(int argc, char *argv[], Server &server)
         }
         else if (strcmp(argv[i], "stop") == 0)
         {
-            ExitNow(error = m_netif->Down());
+            ExitNow(error = mNetif->Down());
         }
         else if (strcmp(argv[i], "timeout") == 0)
         {
             if (++i >= argc)
             {
-                snprintf(cur, end - cur, "%u\n", m_mle->GetTimeout());
+                snprintf(cur, end - cur, "%u\n", mMle->GetTimeout());
                 cur += strlen(cur);
                 ExitNow(error = kThreadError_None);
             }
             else
             {
                 val32 = strtol(argv[i], NULL, 0);
-                ExitNow(error = m_mle->SetTimeout(val32));
+                ExitNow(error = mMle->SetTimeout(val32));
             }
         }
         else if (strcmp(argv[i], "weight") == 0)
         {
             if (++i >= argc)
             {
-                snprintf(cur, end - cur, "%d\n", m_mle->GetLeaderWeight());
+                snprintf(cur, end - cur, "%d\n", mMle->GetLeaderWeight());
                 cur += strlen(cur);
                 ExitNow(error = kThreadError_None);
             }
             else
             {
                 val8 = strtol(argv[i], NULL, 0);
-                ExitNow(error = m_mle->SetLeaderWeight(val8));
+                ExitNow(error = mMle->SetLeaderWeight(val8));
             }
         }
     }

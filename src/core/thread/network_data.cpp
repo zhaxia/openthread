@@ -21,22 +21,22 @@
 namespace Thread {
 namespace NetworkData {
 
-ThreadError NetworkData::GetNetworkData(bool stable, uint8_t *data, uint8_t &data_length)
+ThreadError NetworkData::GetNetworkData(bool stable, uint8_t *data, uint8_t &dataLength)
 {
     assert(data != NULL);
 
-    memcpy(data, m_tlvs, m_length);
-    data_length = m_length;
+    memcpy(data, mTlvs, mLength);
+    dataLength = mLength;
 
     if (stable)
     {
-        RemoveTemporaryData(data, data_length);
+        RemoveTemporaryData(data, dataLength);
     }
 
     return kThreadError_None;
 }
 
-ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &data_length)
+ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength)
 {
     NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(data);
     NetworkDataTlv *end;
@@ -47,7 +47,7 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &data_length
 
     while (1)
     {
-        end = reinterpret_cast<NetworkDataTlv *>(data + data_length);
+        end = reinterpret_cast<NetworkDataTlv *>(data + dataLength);
 
         if (cur >= end)
         {
@@ -59,19 +59,19 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &data_length
         case NetworkDataTlv::kTypePrefix:
         {
             prefix = reinterpret_cast<PrefixTlv *>(cur);
-            RemoveTemporaryData(data, data_length, *prefix);
+            RemoveTemporaryData(data, dataLength, *prefix);
 
             if (prefix->GetSubTlvsLength() == 0)
             {
                 length = sizeof(NetworkDataTlv) + cur->GetLength();
                 dst = reinterpret_cast<uint8_t *>(cur);
                 src = reinterpret_cast<uint8_t *>(cur->GetNext());
-                memmove(dst, src, data_length - (dst - data));
-                data_length -= length;
+                memmove(dst, src, dataLength - (dst - data));
+                dataLength -= length;
                 continue;
             }
 
-            dump("remove prefix done", m_tlvs, m_length);
+            dump("remove prefix done", mTlvs, mLength);
             break;
         }
 
@@ -85,12 +85,12 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &data_length
         cur = cur->GetNext();
     }
 
-    dump("remove done", data, data_length);
+    dump("remove done", data, dataLength);
 
     return kThreadError_None;
 }
 
-ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &data_length, PrefixTlv &prefix)
+ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength, PrefixTlv &prefix)
 {
     NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
     NetworkDataTlv *end;
@@ -118,9 +118,9 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &data_length
             length = sizeof(NetworkDataTlv) + cur->GetLength();
             dst = reinterpret_cast<uint8_t *>(cur);
             src = reinterpret_cast<uint8_t *>(cur->GetNext());
-            memmove(dst, src, data_length - (dst - data));
+            memmove(dst, src, dataLength - (dst - data));
             prefix.SetSubTlvsLength(prefix.GetSubTlvsLength() - length);
-            data_length -= length;
+            dataLength -= length;
         }
     }
 
@@ -209,10 +209,10 @@ exit:
     return rval;
 }
 
-PrefixTlv *NetworkData::FindPrefix(const uint8_t *prefix, uint8_t prefix_length)
+PrefixTlv *NetworkData::FindPrefix(const uint8_t *prefix, uint8_t prefixLength)
 {
-    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(m_tlvs);
-    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(m_tlvs + m_length);
+    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(mTlvs);
+    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(mTlvs + mLength);
     PrefixTlv *compare;
 
     while (cur < end)
@@ -221,8 +221,8 @@ PrefixTlv *NetworkData::FindPrefix(const uint8_t *prefix, uint8_t prefix_length)
         {
             compare = reinterpret_cast<PrefixTlv *>(cur);
 
-            if (compare->GetPrefixLength() == prefix_length &&
-                PrefixMatch(compare->GetPrefix(), prefix, prefix_length) >= prefix_length)
+            if (compare->GetPrefixLength() == prefixLength &&
+                PrefixMatch(compare->GetPrefix(), prefix, prefixLength) >= prefixLength)
             {
                 return compare;
             }
@@ -265,21 +265,21 @@ int8_t NetworkData::PrefixMatch(const uint8_t *a, const uint8_t *b, uint8_t leng
 
 ThreadError NetworkData::Insert(uint8_t *start, uint8_t length)
 {
-    assert(length + m_length <= sizeof(m_tlvs) &&
-           m_tlvs <= start &&
-           start <= m_tlvs + m_length);
-    memmove(start + length, start, m_length - (start - m_tlvs));
-    m_length += length;
+    assert(length + mLength <= sizeof(mTlvs) &&
+           mTlvs <= start &&
+           start <= mTlvs + mLength);
+    memmove(start + length, start, mLength - (start - mTlvs));
+    mLength += length;
     return kThreadError_None;
 }
 
 ThreadError NetworkData::Remove(uint8_t *start, uint8_t length)
 {
-    assert(length <= m_length &&
-           m_tlvs <= start &&
-           (start - m_tlvs) + length <= m_length);
-    memmove(start, start + length, m_length - ((start - m_tlvs) + length));
-    m_length -= length;
+    assert(length <= mLength &&
+           mTlvs <= start &&
+           (start - mTlvs) + length <= mLength);
+    memmove(start, start + length, mLength - ((start - mTlvs) + length));
+    mLength -= length;
     return kThreadError_None;
 }
 

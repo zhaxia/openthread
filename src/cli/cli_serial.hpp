@@ -30,9 +30,9 @@ class Serial: public Server
 public:
     Serial();
     ThreadError Start() final;
-    ThreadError Output(const char *buf, uint16_t buf_length) final;
+    ThreadError Output(const char *buf, uint16_t bufLength) final;
 
-    void HandleReceive(uint8_t *buf, uint16_t buf_length);
+    void HandleReceive(uint8_t *buf, uint16_t bufLength);
     void HandleSendDone();
 
 private:
@@ -43,8 +43,8 @@ private:
 
     ThreadError ProcessCommand();
 
-    char m_rx_buffer[kRxBufferSize];
-    uint16_t m_rx_length;
+    char mRxBuffer[kRxBufferSize];
+    uint16_t mRxLength;
 };
 
 }  // namespace Cli

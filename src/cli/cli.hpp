@@ -23,20 +23,20 @@
 namespace Thread {
 namespace Cli {
 
-static int hex2bin(const char *hex, uint8_t *bin, uint16_t bin_length)
+static int hex2bin(const char *hex, uint8_t *bin, uint16_t binLength)
 {
-    uint16_t hex_length = strlen(hex);
-    const char *hex_end = hex + hex_length;
+    uint16_t hexLength = strlen(hex);
+    const char *hexEnd = hex + hexLength;
     uint8_t *cur = bin;
-    uint8_t num_chars = hex_length & 1;
+    uint8_t numChars = hexLength & 1;
     uint8_t byte = 0;
 
-    if ((hex_length + 1) / 2 > bin_length)
+    if ((hexLength + 1) / 2 > binLength)
     {
         return -1;
     }
 
-    while (hex < hex_end)
+    while (hex < hexEnd)
     {
         if ('A' <= *hex && *hex <= 'F')
         {
@@ -56,11 +56,11 @@ static int hex2bin(const char *hex, uint8_t *bin, uint16_t bin_length)
         }
 
         hex++;
-        num_chars++;
+        numChars++;
 
-        if (num_chars >= 2)
+        if (numChars >= 2)
         {
-            num_chars = 0;
+            numChars = 0;
             *cur++ = byte;
             byte = 0;
         }

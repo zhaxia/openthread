@@ -34,10 +34,10 @@ const char *Ifconfig::GetName()
     return kName;
 }
 
-int PrintUsage(char *buf, uint16_t buf_length)
+int PrintUsage(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
     snprintf(cur, end - cur, "usage: ifconfig\r\n");
     cur += strlen(cur);
@@ -45,10 +45,10 @@ int PrintUsage(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int PrintStatus(char *buf, uint16_t buf_length)
+int PrintStatus(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = buf + buf_length;
+    char *end = buf + bufLength;
 
     for (Netif *netif = Netif::GetNetifList(); netif; netif = netif->GetNext())
     {
@@ -60,10 +60,10 @@ int PrintStatus(char *buf, uint16_t buf_length)
             snprintf(cur, end - cur,  "  inet6 ");
             cur += strlen(cur);
 
-            addr->address.ToString(cur, end - cur);
+            addr->mAddress.ToString(cur, end - cur);
             cur += strlen(cur);
 
-            snprintf(cur, end - cur, "/%d\r\n", addr->prefix_length);
+            snprintf(cur, end - cur, "/%d\r\n", addr->mPrefixLength);
             cur += strlen(cur);
         }
     }

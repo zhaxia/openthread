@@ -46,57 +46,57 @@ public:
     ThreadError SetContextIdReuseDelay(uint32_t delay);
 
     ThreadError GetContext(const Ip6Address &address, Context &context);
-    ThreadError GetContext(uint8_t context_id, Context &context);
+    ThreadError GetContext(uint8_t contextId, Context &context);
 
     bool IsOnMesh(const Ip6Address &address);
     ThreadError RouteLookup(const Ip6Address &source, const Ip6Address &destination,
-                            uint8_t *prefix_match, uint16_t *rloc);
-    ThreadError SetNetworkData(uint8_t version, uint8_t stable_version, bool stable_only,
-                               const uint8_t *data, uint8_t data_length);
+                            uint8_t *prefixMatch, uint16_t *rloc);
+    ThreadError SetNetworkData(uint8_t version, uint8_t stableVersion, bool stable_only,
+                               const uint8_t *data, uint8_t dataLength);
     ThreadError RemoveBorderRouter(uint16_t rloc);
 
 private:
     static void HandleServerData(void *context, Coap::Header &header, Message &message,
-                                 const Ip6MessageInfo &message_info);
-    void HandleServerData(Coap::Header &header, Message &message, const Ip6MessageInfo &message_info);
-    void SendServerDataResponse(const Coap::Header &request_header, const Ip6MessageInfo &message_info,
-                                const uint8_t *tlvs, uint8_t tlvs_length);
+                                 const Ip6MessageInfo &messageInfo);
+    void HandleServerData(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo);
+    void SendServerDataResponse(const Coap::Header &requestHeader, const Ip6MessageInfo &messageInfo,
+                                const uint8_t *tlvs, uint8_t tlvsLength);
 
     static void HandleTimer(void *context);
     void HandleTimer();
 
-    ThreadError RegisterNetworkData(uint16_t rloc, uint8_t *tlvs, uint8_t tlvs_length);
+    ThreadError RegisterNetworkData(uint16_t rloc, uint8_t *tlvs, uint8_t tlvsLength);
 
     ThreadError AddHasRoute(PrefixTlv &prefix, HasRouteTlv &src);
     ThreadError AddBorderRouter(PrefixTlv &prefix, BorderRouterTlv &src);
-    ThreadError AddNetworkData(uint8_t *tlv, uint8_t tlv_length);
+    ThreadError AddNetworkData(uint8_t *tlv, uint8_t tlvLength);
     ThreadError AddPrefix(PrefixTlv &tlv);
 
     int AllocateContext();
-    ThreadError FreeContext(uint8_t context_id);
+    ThreadError FreeContext(uint8_t contextId);
 
     ThreadError ConfigureAddresses();
     ThreadError ConfigureAddress(PrefixTlv &prefix);
 
     ContextTlv *FindContext(PrefixTlv &prefix);
 
-    ThreadError RemoveContext(uint8_t context_id);
-    ThreadError RemoveContext(PrefixTlv &prefix, uint8_t context_id);
+    ThreadError RemoveContext(uint8_t contextId);
+    ThreadError RemoveContext(PrefixTlv &prefix, uint8_t contextId);
 
     ThreadError RemoveRloc(uint16_t rloc);
     ThreadError RemoveRloc(PrefixTlv &prefix, uint16_t rloc);
-    ThreadError RemoveRloc(PrefixTlv &prefix, HasRouteTlv &has_route, uint16_t rloc);
-    ThreadError RemoveRloc(PrefixTlv &prefix, BorderRouterTlv &border_router, uint16_t rloc);
+    ThreadError RemoveRloc(PrefixTlv &prefix, HasRouteTlv &hasRoute, uint16_t rloc);
+    ThreadError RemoveRloc(PrefixTlv &prefix, BorderRouterTlv &borderRouter, uint16_t rloc);
 
-    ThreadError ExternalRouteLookup(uint8_t domain_id, const Ip6Address &destination,
-                                    uint8_t *prefix_match, uint16_t *rloc);
+    ThreadError ExternalRouteLookup(uint8_t domainId, const Ip6Address &destination,
+                                    uint8_t *prefixMatch, uint16_t *rloc);
     ThreadError DefaultRouteLookup(PrefixTlv &prefix, uint16_t *rloc);
 
-    Coap::Resource m_server_data;
-    uint8_t stable_version_;
-    uint8_t version_;
+    Coap::Resource mServerData;
+    uint8_t mStableVersion;
+    uint8_t mVersion;
 
-    NetifUnicastAddress addresses_[4];
+    NetifUnicastAddress mAddresses[4];
 
     enum
     {
@@ -104,14 +104,14 @@ private:
         kNumContextIds = 15,
         kContextIdReuseDelay = 48 * 60 * 60,
     };
-    uint16_t context_used_ = 0;
-    uint32_t m_context_last_used[kNumContextIds];
-    uint32_t m_context_id_reuse_delay = kContextIdReuseDelay;
-    Timer m_timer;
+    uint16_t mContextUsed = 0;
+    uint32_t mContextLastUsed[kNumContextIds];
+    uint32_t mContextIdReuseDelay = kContextIdReuseDelay;
+    Timer mTimer;
 
-    Coap::Server *m_coap_server;
-    Netif *m_netif;
-    Mle::MleRouter *m_mle;
+    Coap::Server *mCoapServer;
+    Netif *mNetif;
+    Mle::MleRouter *mMle;
 };
 
 }  // namespace NetworkData

@@ -21,19 +21,19 @@
 
 namespace Thread {
 
-static Ip6Route *s_routes = NULL;
+static Ip6Route *sRoutes = NULL;
 
 ThreadError Ip6Routes::Add(Ip6Route &route)
 {
     ThreadError error = kThreadError_None;
 
-    for (Ip6Route *cur = s_routes; cur; cur = cur->next)
+    for (Ip6Route *cur = sRoutes; cur; cur = cur->next)
     {
         VerifyOrExit(cur != &route, error = kThreadError_Busy);
     }
 
-    route.next = s_routes;
-    s_routes = &route;
+    route.next = sRoutes;
+    sRoutes = &route;
 
 exit:
     return error;
@@ -41,13 +41,13 @@ exit:
 
 ThreadError Ip6Routes::Remove(Ip6Route &route)
 {
-    if (&route == s_routes)
+    if (&route == sRoutes)
     {
-        s_routes = route.next;
+        sRoutes = route.next;
     }
     else
     {
-        for (Ip6Route *cur = s_routes; cur; cur = cur->next)
+        for (Ip6Route *cur = sRoutes; cur; cur = cur->next)
         {
             if (cur->next == &route)
             {
@@ -64,39 +64,39 @@ ThreadError Ip6Routes::Remove(Ip6Route &route)
 
 int Ip6Routes::Lookup(const Ip6Address &source, const Ip6Address &destination)
 {
-    int max_prefix_match = -1;
-    uint8_t prefix_match;
+    int maxPrefixMatch = -1;
+    uint8_t prefixMatch;
     int rval = -1;
 
-    for (Ip6Route *cur = s_routes; cur; cur = cur->next)
+    for (Ip6Route *cur = sRoutes; cur; cur = cur->next)
     {
-        prefix_match = cur->prefix.PrefixMatch(destination);
+        prefixMatch = cur->prefix.PrefixMatch(destination);
 
-        if (prefix_match < cur->prefix_length)
+        if (prefixMatch < cur->prefixLength)
         {
             continue;
         }
 
-        if (prefix_match > cur->prefix_length)
+        if (prefixMatch > cur->prefixLength)
         {
-            prefix_match = cur->prefix_length;
+            prefixMatch = cur->prefixLength;
         }
 
-        if (max_prefix_match > prefix_match)
+        if (maxPrefixMatch > prefixMatch)
         {
             continue;
         }
 
-        max_prefix_match = prefix_match;
-        rval = cur->interface_id;
+        maxPrefixMatch = prefixMatch;
+        rval = cur->interfaceId;
     }
 
     for (Netif *netif = Netif::GetNetifList(); netif; netif = netif->GetNext())
     {
-        if (netif->RouteLookup(source, destination, &prefix_match) == kThreadError_None &&
-            prefix_match > max_prefix_match)
+        if (netif->RouteLookup(source, destination, &prefixMatch) == kThreadError_None &&
+            prefixMatch > maxPrefixMatch)
         {
-            max_prefix_match = prefix_match;
+            maxPrefixMatch = prefixMatch;
             rval = netif->GetInterfaceId();
         }
     }

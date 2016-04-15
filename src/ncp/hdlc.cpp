@@ -77,19 +77,19 @@ enum State
 
 static uint16_t AppendSendByte(uint8_t byte, uint16_t fcs);
 
-static void *s_context;
-static Hdlc::ReceiveHandler s_receive_handler;
-static Hdlc::SendDoneHandler s_send_done_handler;
-static Hdlc::SendMessageDoneHandler s_s_send_messagedone_handler;
+static void *sContext;
+static Hdlc::ReceiveHandler sReceiveHandler;
+static Hdlc::SendDoneHandler sSendDoneHandler;
+static Hdlc::SendMessageDoneHandler sSendMessageDoneHandler;
 
-static State s_receive_state = kStateNoSync;
-static uint8_t s_receive_frame[512];
-static uint16_t s_receive_frame_length = 0;
-static uint16_t s_receive_fcs = 0;
-static uint8_t send_frame_[512];
-static uint16_t s_send_frame_length = 0;
-static uint8_t s_send_protocol = 0;
-static Message *s_send_message = NULL;
+static State sReceiveState = kStateNoSync;
+static uint8_t sReceiveFrame[512];
+static uint16_t sReceiveFrameLength = 0;
+static uint16_t sReceiveFcs = 0;
+static uint8_t sSendFrame[512];
+static uint16_t sSendFrameLength = 0;
+static uint8_t sSendProtocol = 0;
+static Message *sSendMessage = NULL;
 
 /*
  * Calculate a new fcs given the current fcs and the new data.
@@ -115,43 +115,43 @@ uint16_t AppendSendByte(uint8_t byte, uint16_t fcs)
 
     if (byte == kFlagSequence || byte == kEscapeSequence)
     {
-        send_frame_[s_send_frame_length++] = kEscapeSequence;
-        send_frame_[s_send_frame_length++] = byte ^ 0x20;
+        sSendFrame[sSendFrameLength++] = kEscapeSequence;
+        sSendFrame[sSendFrameLength++] = byte ^ 0x20;
     }
     else
     {
-        send_frame_[s_send_frame_length++] = byte;
+        sSendFrame[sSendFrameLength++] = byte;
     }
 
     return fcs;
 }
 
-ThreadError Hdlc::Init(void *context, ReceiveHandler receive_handler, SendDoneHandler send_done_handler,
-                       SendMessageDoneHandler s_send_messagedone_handler)
+ThreadError Hdlc::Init(void *context, ReceiveHandler receiveHandler, SendDoneHandler sendDoneHandler,
+                       SendMessageDoneHandler sendMessagedoneHandler)
 {
-    s_context = context;
-    s_receive_handler = receive_handler;
-    s_send_done_handler = send_done_handler;
-    s_s_send_messagedone_handler = s_send_messagedone_handler;
+    sContext = context;
+    sReceiveHandler = receiveHandler;
+    sSendDoneHandler = sendDoneHandler;
+    sSendMessageDoneHandler = sendMessagedoneHandler;
     return kThreadError_None;
 }
 
-ThreadError Hdlc::Send(uint8_t protocol, uint8_t *frame, uint16_t frame_length)
+ThreadError Hdlc::Send(uint8_t protocol, uint8_t *frame, uint16_t frameLength)
 {
     ThreadError error = kThreadError_None;
     uint16_t fcs;
 
-    s_send_protocol = protocol;
-    s_send_frame_length = 0;
+    sSendProtocol = protocol;
+    sSendFrameLength = 0;
 
     // flag sequence
-    send_frame_[s_send_frame_length++] = kFlagSequence;
+    sSendFrame[sSendFrameLength++] = kFlagSequence;
 
     // protocol
     fcs = AppendSendByte(protocol, PPPINITFCS16);
 
     // payload
-    for (int i = 0; i < frame_length; i++)
+    for (int i = 0; i < frameLength; i++)
     {
         fcs = AppendSendByte(frame[i], fcs);
     }
@@ -162,9 +162,9 @@ ThreadError Hdlc::Send(uint8_t protocol, uint8_t *frame, uint16_t frame_length)
     AppendSendByte(fcs >> 8, 0);
 
     // flag sequence
-    send_frame_[s_send_frame_length++] = kFlagSequence;
+    sSendFrame[sSendFrameLength++] = kFlagSequence;
 
-    uart_send(send_frame_, s_send_frame_length);
+    uart_send(sSendFrame, sSendFrameLength);
 
     return error;
 }
@@ -174,12 +174,12 @@ ThreadError Hdlc::SendMessage(uint8_t protocol, Message &message)
     ThreadError error = kThreadError_None;
     uint16_t fcs;
 
-    s_send_protocol = protocol;
-    s_send_frame_length = 0;
-    s_send_message = &message;
+    sSendProtocol = protocol;
+    sSendFrameLength = 0;
+    sSendMessage = &message;
 
     // flag sequence
-    send_frame_[s_send_frame_length++] = kFlagSequence;
+    sSendFrame[sSendFrameLength++] = kFlagSequence;
 
     // protocol
     fcs = AppendSendByte(protocol, PPPINITFCS16);
@@ -203,40 +203,40 @@ ThreadError Hdlc::SendMessage(uint8_t protocol, Message &message)
     AppendSendByte(fcs >> 8, 0);
 
     // flag sequence
-    send_frame_[s_send_frame_length++] = kFlagSequence;
+    sSendFrame[sSendFrameLength++] = kFlagSequence;
 
-    uart_send(send_frame_, s_send_frame_length);
+    uart_send(sSendFrame, sSendFrameLength);
 
     return error;
 }
 
 extern "C" void uart_handle_send_done()
 {
-    if (s_send_message == NULL)
+    if (sSendMessage == NULL)
     {
-        s_send_done_handler(s_context);
+        sSendDoneHandler(sContext);
     }
     else
     {
-        s_send_message = NULL;
-        s_s_send_messagedone_handler(s_context);
+        sSendMessage = NULL;
+        sSendMessageDoneHandler(sContext);
     }
 }
 
-extern "C" void uart_handle_receive(uint8_t *buf, uint16_t buf_length)
+extern "C" void uart_handle_receive(uint8_t *buf, uint16_t bufLength)
 {
-    for (int i = 0; i < buf_length; i++)
+    for (int i = 0; i < bufLength; i++)
     {
         uint8_t byte = buf[i];
 
-        switch (s_receive_state)
+        switch (sReceiveState)
         {
         case kStateNoSync:
             if (byte == kFlagSequence)
             {
-                s_receive_state = kStateSync;
-                s_receive_frame_length = 0;
-                s_receive_fcs = PPPINITFCS16;
+                sReceiveState = kStateSync;
+                sReceiveFrameLength = 0;
+                sReceiveFcs = PPPINITFCS16;
             }
 
             break;
@@ -245,33 +245,33 @@ extern "C" void uart_handle_receive(uint8_t *buf, uint16_t buf_length)
             switch (byte)
             {
             case kEscapeSequence:
-                s_receive_state = kStateEscaped;
+                sReceiveState = kStateEscaped;
                 break;
 
             case kFlagSequence:
-                if (s_receive_frame_length > 0)
+                if (sReceiveFrameLength > 0)
                 {
-                    if (s_receive_fcs == PPPGOODFCS16)
+                    if (sReceiveFcs == PPPGOODFCS16)
                     {
-                        s_receive_handler(s_context, s_receive_frame[0], s_receive_frame + 1,
-                                          s_receive_frame_length - 3);
+                        sReceiveHandler(sContext, sReceiveFrame[0], sReceiveFrame + 1,
+                                        sReceiveFrameLength - 3);
                     }
 
-                    s_receive_frame_length = 0;
-                    s_receive_fcs = PPPINITFCS16;
+                    sReceiveFrameLength = 0;
+                    sReceiveFcs = PPPINITFCS16;
                 }
 
                 break;
 
             default:
-                if (s_receive_frame_length < sizeof(s_receive_frame))
+                if (sReceiveFrameLength < sizeof(sReceiveFrame))
                 {
-                    s_receive_fcs = pppfcs16(s_receive_fcs, byte);
-                    s_receive_frame[s_receive_frame_length++] = byte;
+                    sReceiveFcs = pppfcs16(sReceiveFcs, byte);
+                    sReceiveFrame[sReceiveFrameLength++] = byte;
                 }
                 else
                 {
-                    s_receive_state = kStateNoSync;
+                    sReceiveState = kStateNoSync;
                 }
 
                 break;
@@ -280,16 +280,16 @@ extern "C" void uart_handle_receive(uint8_t *buf, uint16_t buf_length)
             break;
 
         case kStateEscaped:
-            if (s_receive_frame_length < sizeof(s_receive_frame))
+            if (sReceiveFrameLength < sizeof(sReceiveFrame))
             {
                 byte ^= 0x20;
-                s_receive_fcs = pppfcs16(s_receive_fcs, byte);
-                s_receive_frame[s_receive_frame_length++] = byte;
-                s_receive_state = kStateSync;
+                sReceiveFcs = pppfcs16(sReceiveFcs, byte);
+                sReceiveFrame[sReceiveFrameLength++] = byte;
+                sReceiveState = kStateSync;
             }
             else
             {
-                s_receive_state = kStateNoSync;
+                sReceiveState = kStateNoSync;
             }
 
             break;

@@ -28,25 +28,25 @@ namespace Crypto {
 class AesCcm
 {
 public:
-    void Init(const AesEcb &ecb, uint32_t header_length, uint32_t plaintext_length, uint8_t tag_length,
-              const void *nonce, uint8_t nonce_length);
-    void Header(const void *header, uint32_t header_length);
+    void Init(const AesEcb &ecb, uint32_t headerLength, uint32_t plaintextLength, uint8_t tagLength,
+              const void *nonce, uint8_t nonceLength);
+    void Header(const void *header, uint32_t headerLength);
     void Payload(void *plaintext, void *ciphertext, uint32_t length, bool encrypt);
-    void Finalize(void *tag, uint8_t *tag_length);
+    void Finalize(void *tag, uint8_t *tagLength);
 
 private:
-    const AesEcb *m_ecb;
-    uint8_t m_block[16];
-    uint8_t m_ctr[16];
-    uint8_t m_ctrpad[16];
-    uint8_t m_nonce_length;
-    uint32_t m_header_length;
-    uint32_t m_header_cur;
-    uint32_t m_plaintext_length;
-    uint32_t m_plaintext_cur;
-    uint16_t m_block_length;
-    uint16_t m_ctr_length;
-    uint8_t m_tag_length;
+    const AesEcb *mEcb;
+    uint8_t mBlock[16];
+    uint8_t mCtr[16];
+    uint8_t mCtrPad[16];
+    uint8_t mNonceLength;
+    uint32_t mHeaderLength;
+    uint32_t mHeaderCur;
+    uint32_t mPlaintextLength;
+    uint32_t mPlaintextCur;
+    uint16_t mBlockLength;
+    uint16_t mCtrLength;
+    uint8_t mTagLength;
 };
 
 }  // namespace Crypto

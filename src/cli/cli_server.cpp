@@ -25,7 +25,7 @@ ThreadError Server::Add(Command &command)
     ThreadError error = kThreadError_None;
     Command *cur;
 
-    for (cur = m_commands; cur; cur = cur->GetNext())
+    for (cur = mCommands; cur; cur = cur->GetNext())
     {
         if (cur == &command)
         {
@@ -33,13 +33,13 @@ ThreadError Server::Add(Command &command)
         }
     }
 
-    if (m_commands == NULL)
+    if (mCommands == NULL)
     {
-        m_commands = &command;
+        mCommands = &command;
     }
     else
     {
-        for (cur = m_commands; cur->GetNext(); cur = cur->GetNext()) {}
+        for (cur = mCommands; cur->GetNext(); cur = cur->GetNext()) {}
 
         cur->SetNext(command);
     }

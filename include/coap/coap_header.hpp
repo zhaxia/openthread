@@ -59,7 +59,7 @@ public:
     ThreadError SetCode(Code code);
 
     uint16_t GetMessageId() const;
-    ThreadError SetMessageId(uint16_t message_id);
+    ThreadError SetMessageId(uint16_t messageId);
 
     enum
     {
@@ -80,12 +80,12 @@ public:
             kOptionUriPath = 11,
             kOptionContentFormat = 12,
         };
-        uint16_t number;
-        uint16_t length;
-        const uint8_t *value;
+        uint16_t mNumber;
+        uint16_t mLength;
+        const uint8_t *mValue;
     };
     ThreadError AppendOption(const Option &option);
-    ThreadError AppendUriPathOptions(const char *uri_path);
+    ThreadError AppendUriPathOptions(const char *uriPath);
 
     enum
     {
@@ -106,11 +106,11 @@ private:
         kTypeMask = 0x30,
         kMaxHeaderLength = 128,
     };
-    uint8_t m_header[kMaxHeaderLength];
-    uint8_t m_header_length = 4;
-    uint16_t m_option_last = 0;
-    uint16_t m_next_option_offset = 0;
-    Option m_option = {0, 0, NULL};
+    uint8_t mHeader[kMaxHeaderLength];
+    uint8_t mHeaderLength = 4;
+    uint16_t mOptionLast = 0;
+    uint16_t mNextOptionOffset = 0;
+    Option mOption = {0, 0, NULL};
 };
 
 }  // namespace Coap

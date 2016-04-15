@@ -26,54 +26,54 @@ class Udp6Socket: private Socket
     friend class Udp6;
 
 public:
-    typedef void (*ReceiveHandler)(void *context, Message &message, const Ip6MessageInfo &message_info);
+    typedef void (*ReceiveHandler)(void *context, Message &message, const Ip6MessageInfo &messageInfo);
 
     Udp6Socket(ReceiveHandler handler, void *context);
     ThreadError Bind(const struct sockaddr_in6 *address);
     ThreadError Close();
-    ThreadError SendTo(Message &message, const Ip6MessageInfo &message_info);
+    ThreadError SendTo(Message &message, const Ip6MessageInfo &messageInfo);
 
 private:
-    void HandleUdpReceive(Message &message, const Ip6MessageInfo &message_info) {
-        m_handler(m_context, message, message_info);
+    void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo) {
+        mHandler(mContext, message, messageInfo);
     }
 
-    ReceiveHandler m_handler;
-    void *m_context;
-    Udp6Socket *m_next;
+    ReceiveHandler mHandler;
+    void *mContext;
+    Udp6Socket *mNext;
 };
 
 class Udp6
 {
 public:
     static Message *NewMessage(uint16_t reserved);
-    static ThreadError HandleMessage(Message &message, Ip6MessageInfo &message_info);
-    static ThreadError UpdateChecksum(Message &message, uint16_t pseudoheader_checksum);
+    static ThreadError HandleMessage(Message &message, Ip6MessageInfo &messageInfo);
+    static ThreadError UpdateChecksum(Message &message, uint16_t pseudoheaderChecksum);
 };
 
 class UdpHeader
 {
 public:
-    uint16_t GetSourcePort() const { return HostSwap16(m_source); }
-    void SetSourcePort(uint16_t port) { m_source = HostSwap16(port); }
+    uint16_t GetSourcePort() const { return HostSwap16(mSource); }
+    void SetSourcePort(uint16_t port) { mSource = HostSwap16(port); }
 
-    uint16_t GetDestinationPort() const { return HostSwap16(m_destination); }
-    void SetDestinationPort(uint16_t port) { m_destination = HostSwap16(port); }
+    uint16_t GetDestinationPort() const { return HostSwap16(mDestination); }
+    void SetDestinationPort(uint16_t port) { mDestination = HostSwap16(port); }
 
-    uint16_t GetLength() const { return HostSwap16(m_length); }
-    void SetLength(uint16_t length) { m_length = HostSwap16(length); }
+    uint16_t GetLength() const { return HostSwap16(mLength); }
+    void SetLength(uint16_t length) { mLength = HostSwap16(length); }
 
-    uint16_t GetChecksum() const { return HostSwap16(m_checksum); }
-    void SetChecksum(uint16_t checksum) { m_checksum = HostSwap16(checksum); }
+    uint16_t GetChecksum() const { return HostSwap16(mChecksum); }
+    void SetChecksum(uint16_t checksum) { mChecksum = HostSwap16(checksum); }
 
-    static uint8_t GetLengthOffset() { return offsetof(UdpHeader, m_length); }
-    static uint8_t GetChecksumOffset() { return offsetof(UdpHeader, m_checksum); }
+    static uint8_t GetLengthOffset() { return offsetof(UdpHeader, mLength); }
+    static uint8_t GetChecksumOffset() { return offsetof(UdpHeader, mChecksum); }
 
 private:
-    uint16_t m_source;
-    uint16_t m_destination;
-    uint16_t m_length;
-    uint16_t m_checksum;
+    uint16_t mSource;
+    uint16_t mDestination;
+    uint16_t mLength;
+    uint16_t mChecksum;
 } __attribute__((packed));
 
 }  // namespace Thread

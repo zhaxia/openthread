@@ -27,7 +27,7 @@ static const char kName[] = "ping";
 
 Ping::Ping(Server &server):
     Command(server),
-    m_icmp6_echo(&HandleEchoResponse, this)
+    mIcmp6Echo(&HandleEchoResponse, this)
 {
 }
 
@@ -36,10 +36,10 @@ const char *Ping::GetName()
     return kName;
 }
 
-int Ping::PrintUsage(char *buf, uint16_t buf_length)
+int Ping::PrintUsage(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
     snprintf(cur, end - cur, "usage: ping [-I interface] [-i wait] [-c count] [-s size] host\r\n");
     cur += strlen(cur);
@@ -51,12 +51,12 @@ void Ping::EchoRequest()
 {
     uint8_t buf[2048];
 
-    for (int i = 0; i < m_length; i++)
+    for (int i = 0; i < mLength; i++)
     {
         buf[i] = i;
     }
 
-    m_icmp6_echo.SendEchoRequest(m_sockaddr, buf, m_length);
+    mIcmp6Echo.SendEchoRequest(mSockAddr, buf, mLength);
 }
 
 void Ping::Run(int argc, char *argv[], Server &server)
@@ -68,9 +68,9 @@ void Ping::Run(int argc, char *argv[], Server &server)
 
     Netif *netif;
 
-    m_server = &server;
-    m_length = 0;
-    memset(&m_sockaddr, 0, sizeof(m_sockaddr));
+    mServer = &server;
+    mLength = 0;
+    memset(&mSockAddr, 0, sizeof(mSockAddr));
 
     for (int i = 0; i < argc; i++)
     {
@@ -82,17 +82,17 @@ void Ping::Run(int argc, char *argv[], Server &server)
         {
             VerifyOrExit(++i < argc, ;);
             VerifyOrExit((netif = Netif::GetNetifByName(argv[i])) != NULL, ;);
-            m_sockaddr.sin6_scope_id = netif->GetInterfaceId();
+            mSockAddr.mScopeId = netif->GetInterfaceId();
         }
         else if (strcmp(argv[i], "-s") == 0)
         {
             VerifyOrExit(++i < argc, ;);
-            m_length = strtol(argv[i], &endptr, 0);
+            mLength = strtol(argv[i], &endptr, 0);
             VerifyOrExit(*endptr == '\0', ;);
         }
         else
         {
-            VerifyOrExit(m_sockaddr.sin6_addr.FromString(argv[i]) == kThreadError_None, ;);
+            VerifyOrExit(mSockAddr.mAddr.FromString(argv[i]) == kThreadError_None, ;);
             EchoRequest();
             return;
         }
@@ -105,37 +105,37 @@ exit:
     server.Output(buf, cur - buf);
 }
 
-void Ping::HandleEchoResponse(void *context, Message &message, const Ip6MessageInfo &message_info)
+void Ping::HandleEchoResponse(void *context, Message &message, const Ip6MessageInfo &messageInfo)
 {
     Ping *obj = reinterpret_cast<Ping *>(context);
-    obj->HandleEchoResponse(message, message_info);
+    obj->HandleEchoResponse(message, messageInfo);
 }
 
-void Ping::HandleEchoResponse(Message &message, const Ip6MessageInfo &message_info)
+void Ping::HandleEchoResponse(Message &message, const Ip6MessageInfo &messageInfo)
 {
     char buf[256];
     char *cur = buf;
     char *end = cur + sizeof(buf);
-    Icmp6Header icmp6_header;
+    Icmp6Header icmp6Header;
     Netif *netif;
 
-    message.Read(message.GetOffset(), sizeof(icmp6_header), &icmp6_header);
+    message.Read(message.GetOffset(), sizeof(icmp6Header), &icmp6Header);
 
     snprintf(cur, end - cur, "%d bytes from ", message.GetLength() - message.GetOffset());
     cur += strlen(cur);
 
-    message_info.peer_addr.ToString(cur, end - cur);
+    messageInfo.mPeerAddr.ToString(cur, end - cur);
     cur += strlen(cur);
 
-    netif = Netif::GetNetifById(message_info.interface_id);
+    netif = Netif::GetNetifById(messageInfo.mInterfaceId);
     snprintf(cur, end - cur, "%%%s: icmp_seq=%d hlim=%d",
-             netif->GetName(), icmp6_header.GetSequence(), message_info.hop_limit);
+             netif->GetName(), icmp6Header.GetSequence(), messageInfo.mHopLimit);
     cur += strlen(cur);
 
     snprintf(cur, end - cur, "\r\n");
     cur += strlen(cur);
 
-    m_server->Output(buf, cur - buf);
+    mServer->Output(buf, cur - buf);
 }
 
 }  // namespace Cli

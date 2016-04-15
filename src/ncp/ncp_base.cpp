@@ -20,20 +20,20 @@
 namespace Thread {
 
 NcpBase::NcpBase():
-    m_netif_handler(&HandleUnicastAddressesChanged, this),
-    m_update_addresses_task(&RunUpdateAddressesTask, this)
+    mNetifHandler(&HandleUnicastAddressesChanged, this),
+    mUpdateAddressesTask(&RunUpdateAddressesTask, this)
 {
 }
 
 ThreadError NcpBase::Init()
 {
-    m_netif.Init();
+    mNetif.Init();
     return kThreadError_None;
 }
 
 ThreadError NcpBase::Start()
 {
-    m_netif.RegisterHandler(m_netif_handler);
+    mNetif.RegisterHandler(mNetifHandler);
     Ip6::SetNcpReceivedHandler(&HandleReceivedDatagram, this);
     return kThreadError_None;
 }
@@ -51,11 +51,11 @@ void NcpBase::HandleReceivedDatagram(void *context, Message &message)
 
 void NcpBase::HandleReceivedDatagram(Message &message)
 {
-    SuccessOrExit(m_send_queue.Enqueue(message));
+    SuccessOrExit(mSendQueue.Enqueue(message));
 
-    if (m_sending == false)
+    if (mSending == false)
     {
-        m_sending = true;
+        mSending = true;
         SendMessage(kNcpChannel_ThreadData, message);
     }
 
@@ -63,42 +63,42 @@ exit:
     {}
 }
 
-ThreadError NcpBase::ProcessThreadControl(uint8_t *buf, uint16_t buf_length)
+ThreadError NcpBase::ProcessThreadControl(uint8_t *buf, uint16_t bufLength)
 {
     ThreadError error = kThreadError_None;
     ThreadControl thread_control;
 
-    VerifyOrExit(thread_control__unpack(buf_length, buf, &thread_control) != NULL,
+    VerifyOrExit(thread_control__unpack(bufLength, buf, &thread_control) != NULL,
                  printf("protobuf unpack error\n"); error = kThreadError_Parse);
 
     switch (thread_control.message_case)
     {
     case THREAD_CONTROL__MESSAGE_PRIMITIVE:
         ProcessPrimitive(thread_control);
-        buf_length = thread_control__pack(&thread_control, buf);
-        Send(kNcpChannel_ThreadControl, buf, buf_length);
-        m_sending = true;
+        bufLength = thread_control__pack(&thread_control, buf);
+        Send(kNcpChannel_ThreadControl, buf, bufLength);
+        mSending = true;
         break;
 
     case THREAD_CONTROL__MESSAGE_STATE:
         ProcessState(thread_control);
-        buf_length = thread_control__pack(&thread_control, buf);
-        Send(kNcpChannel_ThreadControl, buf, buf_length);
-        m_sending = true;
+        bufLength = thread_control__pack(&thread_control, buf);
+        Send(kNcpChannel_ThreadControl, buf, bufLength);
+        mSending = true;
         break;
 
     case THREAD_CONTROL__MESSAGE_WHITELIST:
         ProcessWhitelist(thread_control);
-        buf_length = thread_control__pack(&thread_control, buf);
-        Send(kNcpChannel_ThreadControl, buf, buf_length);
-        m_sending = true;
+        bufLength = thread_control__pack(&thread_control, buf);
+        Send(kNcpChannel_ThreadControl, buf, bufLength);
+        mSending = true;
         break;
 
     case THREAD_CONTROL__MESSAGE_SCAN_REQUEST:
         ProcessScanRequest(thread_control);
-        buf_length = thread_control__pack(&thread_control, buf);
-        Send(kNcpChannel_ThreadControl, buf, buf_length);
-        m_sending = true;
+        bufLength = thread_control__pack(&thread_control, buf);
+        Send(kNcpChannel_ThreadControl, buf, bufLength);
+        mSending = true;
         break;
 
     default:
@@ -170,7 +170,7 @@ ThreadError NcpBase::ProcessPrimitive(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveKey(ThreadControl &message)
 {
-    KeyManager *key_manager = m_netif.GetKeyManager();
+    KeyManager *key_manager = mNetif.GetKeyManager();
 
     switch (message.primitive.value_case)
     {
@@ -184,16 +184,16 @@ ThreadError NcpBase::ProcessPrimitiveKey(ThreadControl &message)
 
     message.primitive.value_case = THREAD_PRIMITIVE__VALUE_BYTES;
 
-    uint8_t key_length;
-    key_manager->GetMasterKey(message.primitive.bytes.data, &key_length);
-    message.primitive.bytes.len = key_length;
+    uint8_t keyLength;
+    key_manager->GetMasterKey(message.primitive.bytes.data, &keyLength);
+    message.primitive.bytes.len = keyLength;
 
     return kThreadError_None;
 }
 
 ThreadError NcpBase::ProcessPrimitiveKeySequence(ThreadControl &message)
 {
-    KeyManager *key_manager = m_netif.GetKeyManager();
+    KeyManager *key_manager = mNetif.GetKeyManager();
 
     switch (message.primitive.value_case)
     {
@@ -213,7 +213,7 @@ ThreadError NcpBase::ProcessPrimitiveKeySequence(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveMeshLocalPrefix(ThreadControl &message)
 {
-    Mle::MleRouter *mle = m_netif.GetMle();
+    Mle::MleRouter *mle = mNetif.GetMle();
 
     switch (message.primitive.value_case)
     {
@@ -236,7 +236,7 @@ ThreadError NcpBase::ProcessPrimitiveMeshLocalPrefix(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveMode(ThreadControl &message)
 {
-    Mle::MleRouter *mle = m_netif.GetMle();
+    Mle::MleRouter *mle = mNetif.GetMle();
 
     switch (message.primitive.value_case)
     {
@@ -263,17 +263,17 @@ ThreadError NcpBase::ProcessPrimitiveStatus(ThreadControl &message)
     case THREAD_PRIMITIVE__VALUE_BOOL:
         if (message.primitive.bool_)
         {
-            m_netif.Up();
+            mNetif.Up();
         }
         else
         {
-            m_netif.Down();
+            mNetif.Down();
         }
 
     // fall through
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_BOOL;
-        message.primitive.bool_ = m_netif.IsUp();
+        message.primitive.bool_ = mNetif.IsUp();
         break;
 
     default:
@@ -285,7 +285,7 @@ ThreadError NcpBase::ProcessPrimitiveStatus(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveTimeout(ThreadControl &message)
 {
-    Mle::MleRouter *mle = m_netif.GetMle();
+    Mle::MleRouter *mle = mNetif.GetMle();
 
     switch (message.primitive.value_case)
     {
@@ -305,7 +305,7 @@ ThreadError NcpBase::ProcessPrimitiveTimeout(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveChannel(ThreadControl &message)
 {
-    Mac::Mac *mac = m_netif.GetMac();
+    Mac::Mac *mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
@@ -327,7 +327,7 @@ ThreadError NcpBase::ProcessPrimitiveChannel(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitivePanId(ThreadControl &message)
 {
-    Mac::Mac *mac = m_netif.GetMac();
+    Mac::Mac *mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
@@ -349,7 +349,7 @@ ThreadError NcpBase::ProcessPrimitivePanId(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveExtendedPanId(ThreadControl &message)
 {
-    Mac::Mac *mac = m_netif.GetMac();
+    Mac::Mac *mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
@@ -372,7 +372,7 @@ ThreadError NcpBase::ProcessPrimitiveExtendedPanId(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveNetworkName(ThreadControl &message)
 {
-    Mac::Mac *mac = m_netif.GetMac();
+    Mac::Mac *mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
@@ -395,7 +395,7 @@ ThreadError NcpBase::ProcessPrimitiveNetworkName(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveShortAddr(ThreadControl &message)
 {
-    Mac::Mac *mac = m_netif.GetMac();
+    Mac::Mac *mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
@@ -413,7 +413,7 @@ ThreadError NcpBase::ProcessPrimitiveShortAddr(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveExtAddr(ThreadControl &message)
 {
-    Mac::Mac *mac = m_netif.GetMac();
+    Mac::Mac *mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
@@ -432,7 +432,7 @@ ThreadError NcpBase::ProcessPrimitiveExtAddr(ThreadControl &message)
 
 ThreadError NcpBase::ProcessState(ThreadControl &message)
 {
-    Mle::MleRouter *mle = m_netif.GetMle();
+    Mle::MleRouter *mle = mNetif.GetMle();
 
     if (message.state.has_state)
     {
@@ -486,7 +486,7 @@ ThreadError NcpBase::ProcessState(ThreadControl &message)
 
 ThreadError NcpBase::ProcessWhitelist(ThreadControl &message)
 {
-    Mac::Whitelist *whitelist = m_netif.GetMac()->GetWhitelist();
+    Mac::Whitelist *whitelist = mNetif.GetMac()->GetWhitelist();
 
     switch (message.whitelist.type)
     {
@@ -563,7 +563,7 @@ ThreadError NcpBase::ProcessScanRequest(ThreadControl &message)
         scan_interval = static_cast<uint16_t>(message.scan_request.scan_interval_per_channel);
     }
 
-    return m_netif.GetMac()->ActiveScan(scan_interval, channel_mask, &HandleActiveScanResult, this);
+    return mNetif.GetMac()->ActiveScan(scan_interval, channel_mask, &HandleActiveScanResult, this);
 }
 
 void NcpBase::HandleActiveScanResult(void *context, Mac::ActiveScanResult *result)
@@ -577,35 +577,35 @@ void NcpBase::HandleActiveScanResult(Mac::ActiveScanResult *result)
     ThreadControl message;
     size_t len;
 
-    VerifyOrExit(m_sending == false, ;);
+    VerifyOrExit(mSending == false, ;);
 
     thread_control__init(&message);
 
     message.message_case = THREAD_CONTROL__MESSAGE_SCAN_RESULT;
     thread_scan_result__init(&message.scan_result);
 
-    len = sizeof(result->network_name);
-    memcpy(message.scan_result.network_name.data,  result->network_name, len);
+    len = sizeof(result->mNetworkName);
+    memcpy(message.scan_result.network_name.data,  result->mNetworkName, len);
     message.scan_result.network_name.len = len;
 
-    len = sizeof(result->ext_panid);
-    memcpy(message.scan_result.ext_panid.data,  result->ext_panid, len);
+    len = sizeof(result->mExtPanid);
+    memcpy(message.scan_result.ext_panid.data,  result->mExtPanid, len);
     message.scan_result.ext_panid.len = len;
 
-    len = sizeof(result->ext_addr);
-    memcpy(message.scan_result.ext_addr.data,  result->ext_addr, len);
+    len = sizeof(result->mExtAddr);
+    memcpy(message.scan_result.ext_addr.data,  result->mExtAddr, len);
     message.scan_result.ext_addr.len = len;
 
-    message.scan_result.panid = static_cast<uint32_t>(result->panid);
-    message.scan_result.channel = static_cast<uint32_t>(result->channel);
-    message.scan_result.rssi = static_cast<int32_t>(result->rssi);
+    message.scan_result.panid = static_cast<uint32_t>(result->mPanid);
+    message.scan_result.channel = static_cast<uint32_t>(result->mChannel);
+    message.scan_result.rssi = static_cast<int32_t>(result->mRssi);
 
     uint8_t buf[512];
-    int buf_length;
+    int bufLength;
 
-    buf_length = thread_control__pack(&message, buf);
-    Send(kNcpChannel_ThreadControl, buf, buf_length);
-    m_sending = true;
+    bufLength = thread_control__pack(&message, buf);
+    Send(kNcpChannel_ThreadControl, buf, bufLength);
+    mSending = true;
 
 exit:
     return;
@@ -614,7 +614,7 @@ exit:
 void NcpBase::HandleUnicastAddressesChanged(void *context)
 {
     NcpBase *obj = reinterpret_cast<NcpBase *>(context);
-    obj->m_update_addresses_task.Post();
+    obj->mUpdateAddressesTask.Post();
 }
 
 void NcpBase::RunUpdateAddressesTask(void *context)
@@ -631,11 +631,11 @@ void NcpBase::RunUpdateAddressesTask()
 
     thread_ip6_addresses__init(&message.addresses);
 
-    for (const NetifUnicastAddress *address = m_netif.GetUnicastAddresses(); address; address = address->GetNext())
+    for (const NetifUnicastAddress *address = mNetif.GetUnicastAddresses(); address; address = address->GetNext())
     {
         unsigned n = message.addresses.n_address;
         message.addresses.address[n].len = sizeof(message.addresses.address[n].data);
-        memcpy(message.addresses.address[n].data, &address->address, sizeof(message.addresses.address[n].data));
+        memcpy(message.addresses.address[n].data, &address->mAddress, sizeof(message.addresses.address[n].data));
         n++;
 
         message.addresses.n_address = n;
@@ -647,12 +647,12 @@ void NcpBase::RunUpdateAddressesTask()
     }
 
     uint8_t buf[1024];
-    int buf_length;
+    int bufLength;
 
-    buf_length = thread_control__pack(&message, buf);
+    bufLength = thread_control__pack(&message, buf);
 
-    Send(kNcpChannel_ThreadInterface, buf, buf_length);
-    m_sending = true;
+    Send(kNcpChannel_ThreadInterface, buf, bufLength);
+    mSending = true;
 }
 
 // ============================================================
@@ -660,25 +660,25 @@ void NcpBase::RunUpdateAddressesTask()
 // ============================================================
 
 void NcpBase::HandleReceive(void *context, uint8_t protocol,
-                            uint8_t *buf, uint16_t buf_length)
+                            uint8_t *buf, uint16_t bufLength)
 {
     NcpBase *obj = reinterpret_cast<NcpBase *>(context);
-    obj->HandleReceive(protocol, buf, buf_length);
+    obj->HandleReceive(protocol, buf, bufLength);
 }
 
-void NcpBase::HandleReceive(uint8_t protocol, uint8_t *buf, uint16_t buf_length)
+void NcpBase::HandleReceive(uint8_t protocol, uint8_t *buf, uint16_t bufLength)
 {
     switch (protocol)
     {
     case kNcpChannel_ThreadControl:
-        ProcessThreadControl(buf, buf_length);
+        ProcessThreadControl(buf, bufLength);
         break;
 
     case kNcpChannel_ThreadData:
         Message *message;
         VerifyOrExit((message = Ip6::NewMessage(0)) != NULL, ;);
-        SuccessOrExit(message->Append(buf, buf_length));
-        Ip6::HandleDatagram(*message, NULL, m_netif.GetInterfaceId(), NULL, true);
+        SuccessOrExit(message->Append(buf, bufLength));
+        Ip6::HandleDatagram(*message, NULL, mNetif.GetInterfaceId(), NULL, true);
         break;
     }
 
@@ -694,12 +694,12 @@ void NcpBase::HandleSendDone(void *context)
 
 void NcpBase::HandleSendDone()
 {
-    m_sending = false;
+    mSending = false;
 
-    if (m_send_queue.GetHead() != NULL)
+    if (mSendQueue.GetHead() != NULL)
     {
-        SendMessage(kNcpChannel_ThreadData, *m_send_queue.GetHead());
-        m_sending = true;
+        SendMessage(kNcpChannel_ThreadData, *mSendQueue.GetHead());
+        mSending = true;
     }
 }
 
@@ -711,8 +711,8 @@ void NcpBase::HandleSendMessageDone(void *context)
 
 void NcpBase::HandleSendMessageDone()
 {
-    Message *message = m_send_queue.GetHead();
-    m_send_queue.Dequeue(*message);
+    Message *message = mSendQueue.GetHead();
+    mSendQueue.Dequeue(*message);
     Message::Free(*message);
     HandleSendDone();
 }

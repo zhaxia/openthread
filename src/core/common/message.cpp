@@ -21,26 +21,26 @@
 
 namespace Thread {
 
-static int m_num_free_buffers;
-static Buffer m_buffers[kNumBuffers];
-static Buffer *m_free_buffers;
+static int sNumFreeBuffers;
+static Buffer sBuffers[kNumBuffers];
+static Buffer *sFreeBuffers;
 
 static Buffer *NewBuffer();
 static ThreadError FreeBuffers(Buffer *buffers);
-static ThreadError ReclaimBuffers(int num_buffers);
+static ThreadError ReclaimBuffers(int numBuffers);
 
-static MessageList m_all;
+static MessageList sAll;
 
 Buffer *NewBuffer()
 {
     Buffer *buffer = NULL;
 
-    VerifyOrExit(m_free_buffers != NULL, ;);
+    VerifyOrExit(sFreeBuffers != NULL, ;);
 
-    buffer = m_free_buffers;
-    m_free_buffers = m_free_buffers->header.next;
-    buffer->header.next = NULL;
-    m_num_free_buffers--;
+    buffer = sFreeBuffers;
+    sFreeBuffers = sFreeBuffers->mHeader.mNext;
+    buffer->mHeader.mNext = NULL;
+    sNumFreeBuffers--;
 
 exit:
     return buffer;
@@ -48,36 +48,36 @@ exit:
 
 ThreadError FreeBuffers(Buffer *buffers)
 {
-    Buffer *tmp_buffer;
+    Buffer *tmpBuffer;
 
     while (buffers != NULL)
     {
-        tmp_buffer = buffers->header.next;
-        buffers->header.next = m_free_buffers;
-        m_free_buffers = buffers;
-        m_num_free_buffers++;
-        buffers = tmp_buffer;
+        tmpBuffer = buffers->mHeader.mNext;
+        buffers->mHeader.mNext = sFreeBuffers;
+        sFreeBuffers = buffers;
+        sNumFreeBuffers++;
+        buffers = tmpBuffer;
     }
 
     return kThreadError_None;
 }
 
-ThreadError ReclaimBuffers(int num_buffers)
+ThreadError ReclaimBuffers(int numBuffers)
 {
-    return (num_buffers <= m_num_free_buffers) ? kThreadError_None : kThreadError_NoBufs;
+    return (numBuffers <= sNumFreeBuffers) ? kThreadError_None : kThreadError_NoBufs;
 }
 
 ThreadError Message::Init()
 {
-    m_free_buffers = m_buffers;
+    sFreeBuffers = sBuffers;
 
     for (int i = 0; i < kNumBuffers - 1; i++)
     {
-        m_buffers[i].header.next = &m_buffers[i + 1];
+        sBuffers[i].mHeader.mNext = &sBuffers[i + 1];
     }
 
-    m_buffers[kNumBuffers - 1].header.next = NULL;
-    m_num_free_buffers = kNumBuffers;
+    sBuffers[kNumBuffers - 1].mHeader.mNext = NULL;
+    sNumFreeBuffers = kNumBuffers;
 
     return kThreadError_None;
 }
@@ -93,9 +93,9 @@ Message *Message::New(uint8_t type, uint16_t reserved)
     VerifyOrExit(message->SetTotalLength(reserved) == kThreadError_None,
                  Message::Free(*message));
 
-    message->msg_type = type;
-    message->msg_reserved = reserved;
-    message->msg_length = reserved;
+    message->mMsgType = type;
+    message->mMsgReserved = reserved;
+    message->mMsgLength = reserved;
 
 exit:
     return message;
@@ -103,47 +103,47 @@ exit:
 
 ThreadError Message::Free(Message &message)
 {
-    assert(message.msg_list[MessageInfo::kListAll].list == NULL &&
-           message.msg_list[MessageInfo::kListInterface].list == NULL);
+    assert(message.mMsgList[MessageInfo::kListAll].mList == NULL &&
+           message.mMsgList[MessageInfo::kListInterface].mList == NULL);
     return FreeBuffers(reinterpret_cast<Buffer *>(&message));
 }
 
 ThreadError Message::ResizeMessage(uint16_t length)
 {
     // add buffers
-    Buffer *cur_buffer = this;
-    Buffer *last_buffer;
-    uint16_t cur_length = kFirstBufferDataSize;
+    Buffer *curBuffer = this;
+    Buffer *lastBuffer;
+    uint16_t curLength = kFirstBufferDataSize;
 
-    while (cur_length < length)
+    while (curLength < length)
     {
-        if (cur_buffer->header.next == NULL)
+        if (curBuffer->mHeader.mNext == NULL)
         {
-            cur_buffer->header.next = NewBuffer();
+            curBuffer->mHeader.mNext = NewBuffer();
         }
 
-        cur_buffer = cur_buffer->header.next;
-        cur_length += kBufferDataSize;
+        curBuffer = curBuffer->mHeader.mNext;
+        curLength += kBufferDataSize;
     }
 
     // remove buffers
-    last_buffer = cur_buffer;
-    cur_buffer = cur_buffer->header.next;
-    last_buffer->header.next = NULL;
+    lastBuffer = curBuffer;
+    curBuffer = curBuffer->mHeader.mNext;
+    lastBuffer->mHeader.mNext = NULL;
 
-    FreeBuffers(cur_buffer);
+    FreeBuffers(curBuffer);
 
     return kThreadError_None;
 }
 
 uint16_t Message::GetLength() const
 {
-    return msg_length - msg_reserved;
+    return mMsgLength - mMsgReserved;
 }
 
 ThreadError Message::SetLength(uint16_t length)
 {
-    return SetTotalLength(msg_reserved + length);
+    return SetTotalLength(mMsgReserved + length);
 }
 
 ThreadError Message::SetTotalLength(uint16_t length)
@@ -156,15 +156,15 @@ ThreadError Message::SetTotalLength(uint16_t length)
         bufs = (((length - kFirstBufferDataSize) - 1) / kBufferDataSize) + 1;
     }
 
-    if (msg_length > kFirstBufferDataSize)
+    if (mMsgLength > kFirstBufferDataSize)
     {
-        bufs -= (((msg_length - kFirstBufferDataSize) - 1) / kBufferDataSize) + 1;
+        bufs -= (((mMsgLength - kFirstBufferDataSize) - 1) / kBufferDataSize) + 1;
     }
 
     SuccessOrExit(error = ReclaimBuffers(bufs));
 
     ResizeMessage(length);
-    msg_length = length;
+    mMsgLength = length;
 
 exit:
     return error;
@@ -172,30 +172,30 @@ exit:
 
 uint16_t Message::GetOffset() const
 {
-    return msg_offset;
+    return mMsgOffset;
 }
 
 ThreadError Message::MoveOffset(int delta)
 {
-    msg_offset += delta;
-    assert(msg_offset <= GetLength());
+    mMsgOffset += delta;
+    assert(mMsgOffset <= GetLength());
     return kThreadError_None;
 }
 
 ThreadError Message::SetOffset(uint16_t offset)
 {
-    msg_offset = offset;
-    assert(msg_offset <= GetLength());
+    mMsgOffset = offset;
+    assert(mMsgOffset <= GetLength());
     return kThreadError_None;
 }
 
 ThreadError Message::Append(const void *buf, uint16_t length)
 {
     ThreadError error = kThreadError_None;
-    uint16_t old_length = GetLength();
+    uint16_t oldLength = GetLength();
 
     SuccessOrExit(error = SetLength(GetLength() + length));
-    Write(old_length, length, buf);
+    Write(oldLength, length, buf);
 
 exit:
     return error;
@@ -205,9 +205,9 @@ ThreadError Message::Prepend(const void *buf, uint16_t length)
 {
     ThreadError error = kThreadError_None;
 
-    VerifyOrExit(length <= msg_reserved, error = kThreadError_NoBufs);
-    msg_reserved -= length;
-    msg_offset += length;
+    VerifyOrExit(length <= mMsgReserved, error = kThreadError_NoBufs);
+    mMsgReserved -= length;
+    mMsgOffset += length;
 
     Write(0, length, buf);
 
@@ -217,37 +217,37 @@ exit:
 
 int Message::Read(uint16_t offset, uint16_t length, void *buf) const
 {
-    Buffer *cur_buffer;
-    uint16_t bytes_copied = 0;
-    uint16_t bytes_to_copy;
+    Buffer *curBuffer;
+    uint16_t bytesCopied = 0;
+    uint16_t bytesToCopy;
 
-    offset += msg_reserved;
+    offset += mMsgReserved;
 
-    if (offset >= msg_length)
+    if (offset >= mMsgLength)
     {
         ExitNow();
     }
 
-    if (offset + length >= msg_length)
+    if (offset + length >= mMsgLength)
     {
-        length = msg_length - offset;
+        length = mMsgLength - offset;
     }
 
     // special case first buffer
     if (offset < kFirstBufferDataSize)
     {
-        bytes_to_copy = kFirstBufferDataSize - offset;
+        bytesToCopy = kFirstBufferDataSize - offset;
 
-        if (bytes_to_copy > length)
+        if (bytesToCopy > length)
         {
-            bytes_to_copy = length;
+            bytesToCopy = length;
         }
 
-        memcpy(buf, head.data + offset, bytes_to_copy);
+        memcpy(buf, mHead.mData + offset, bytesToCopy);
 
-        length -= bytes_to_copy;
-        bytes_copied += bytes_to_copy;
-        buf = reinterpret_cast<uint8_t *>(buf) + bytes_to_copy;
+        length -= bytesToCopy;
+        bytesCopied += bytesToCopy;
+        buf = reinterpret_cast<uint8_t *>(buf) + bytesToCopy;
 
         offset = 0;
     }
@@ -257,72 +257,72 @@ int Message::Read(uint16_t offset, uint16_t length, void *buf) const
     }
 
     // advance to offset
-    cur_buffer = header.next;
+    curBuffer = mHeader.mNext;
 
     while (offset >= kBufferDataSize)
     {
-        assert(cur_buffer != NULL);
+        assert(curBuffer != NULL);
 
-        cur_buffer = cur_buffer->header.next;
+        curBuffer = curBuffer->mHeader.mNext;
         offset -= kBufferDataSize;
     }
 
     // begin copy
     while (length > 0)
     {
-        assert(cur_buffer != NULL);
+        assert(curBuffer != NULL);
 
-        bytes_to_copy = kBufferDataSize - offset;
+        bytesToCopy = kBufferDataSize - offset;
 
-        if (bytes_to_copy > length)
+        if (bytesToCopy > length)
         {
-            bytes_to_copy = length;
+            bytesToCopy = length;
         }
 
-        memcpy(buf, cur_buffer->data + offset, bytes_to_copy);
+        memcpy(buf, curBuffer->mData + offset, bytesToCopy);
 
-        length -= bytes_to_copy;
-        bytes_copied += bytes_to_copy;
-        buf = reinterpret_cast<uint8_t *>(buf) + bytes_to_copy;
+        length -= bytesToCopy;
+        bytesCopied += bytesToCopy;
+        buf = reinterpret_cast<uint8_t *>(buf) + bytesToCopy;
 
-        cur_buffer = cur_buffer->header.next;
+        curBuffer = curBuffer->mHeader.mNext;
         offset = 0;
     }
 
 exit:
-    return bytes_copied;
+    return bytesCopied;
 }
 
 int Message::Write(uint16_t offset, uint16_t length, const void *buf)
 {
-    Buffer *cur_buffer;
-    uint16_t bytes_copied = 0;
-    uint16_t bytes_to_copy;
+    Buffer *curBuffer;
+    uint16_t bytesCopied = 0;
+    uint16_t bytesToCopy;
 
-    offset += msg_reserved;
+    offset += mMsgReserved;
 
-    assert(offset + length <= msg_length);
+    assert(offset + length <= mMsgLength);
 
-    if (offset + length >= msg_length)
+    if (offset + length >= mMsgLength)
     {
-        length = msg_length - offset;
+        length = mMsgLength - offset;
     }
 
     // special case first buffer
     if (offset < kFirstBufferDataSize)
     {
-        bytes_to_copy = kFirstBufferDataSize - offset;
+        bytesToCopy = kFirstBufferDataSize - offset;
 
-        if (bytes_to_copy > length)
+        if (bytesToCopy > length)
         {
-            bytes_to_copy = length;
+            bytesToCopy = length;
         }
 
-        memcpy(head.data + offset, buf, bytes_to_copy);
+        memcpy(mHead.mData + offset, buf, bytesToCopy);
 
-        length -= bytes_to_copy;
-        bytes_copied += bytes_to_copy;
-        buf = reinterpret_cast<const uint8_t *>(buf) + bytes_to_copy;
+        length -= bytesToCopy;
+        bytesCopied += bytesToCopy;
+        buf = reinterpret_cast<const uint8_t *>(buf) + bytesToCopy;
 
         offset = 0;
     }
@@ -332,117 +332,117 @@ int Message::Write(uint16_t offset, uint16_t length, const void *buf)
     }
 
     // advance to offset
-    cur_buffer = header.next;
+    curBuffer = mHeader.mNext;
 
     while (offset >= kBufferDataSize)
     {
-        assert(cur_buffer != NULL);
+        assert(curBuffer != NULL);
 
-        cur_buffer = cur_buffer->header.next;
+        curBuffer = curBuffer->mHeader.mNext;
         offset -= kBufferDataSize;
     }
 
     // begin copy
     while (length > 0)
     {
-        assert(cur_buffer != NULL);
+        assert(curBuffer != NULL);
 
-        bytes_to_copy = kBufferDataSize - offset;
+        bytesToCopy = kBufferDataSize - offset;
 
-        if (bytes_to_copy > length)
+        if (bytesToCopy > length)
         {
-            bytes_to_copy = length;
+            bytesToCopy = length;
         }
 
-        memcpy(cur_buffer->data + offset, buf, bytes_to_copy);
+        memcpy(curBuffer->mData + offset, buf, bytesToCopy);
 
-        length -= bytes_to_copy;
-        bytes_copied += bytes_to_copy;
-        buf = reinterpret_cast<const uint8_t *>(buf) + bytes_to_copy;
+        length -= bytesToCopy;
+        bytesCopied += bytesToCopy;
+        buf = reinterpret_cast<const uint8_t *>(buf) + bytesToCopy;
 
-        cur_buffer = cur_buffer->header.next;
+        curBuffer = curBuffer->mHeader.mNext;
         offset = 0;
     }
 
-    return bytes_copied;
+    return bytesCopied;
 }
 
-int Message::CopyTo(uint16_t src_offset, uint16_t dst_offset, uint16_t length, Message &message)
+int Message::CopyTo(uint16_t srcOffset, uint16_t dstOffset, uint16_t length, Message &message)
 {
-    uint16_t bytes_copied = 0;
-    uint16_t bytes_to_copy;
+    uint16_t bytesCopied = 0;
+    uint16_t bytesToCopy;
     uint8_t buf[16];
 
     while (length > 0)
     {
-        bytes_to_copy = (length < sizeof(buf)) ? length : sizeof(buf);
+        bytesToCopy = (length < sizeof(buf)) ? length : sizeof(buf);
 
-        Read(src_offset, bytes_to_copy, buf);
-        message.Write(dst_offset, bytes_to_copy, buf);
+        Read(srcOffset, bytesToCopy, buf);
+        message.Write(dstOffset, bytesToCopy, buf);
 
-        src_offset += bytes_to_copy;
-        dst_offset += bytes_to_copy;
-        length -= bytes_to_copy;
-        bytes_copied += bytes_to_copy;
+        srcOffset += bytesToCopy;
+        dstOffset += bytesToCopy;
+        length -= bytesToCopy;
+        bytesCopied += bytesToCopy;
     }
 
-    return bytes_copied;
+    return bytesCopied;
 }
 
 uint8_t Message::GetType() const
 {
-    return msg_type;
+    return mMsgType;
 }
 
 Message *Message::GetNext() const
 {
-    return msg_list[MessageInfo::kListInterface].next;
+    return mMsgList[MessageInfo::kListInterface].mNext;
 }
 
 uint16_t Message::GetDatagramTag() const
 {
-    return msg_dgram_tag;
+    return mMsgDgramTag;
 }
 
 void Message::SetDatagramTag(uint16_t tag)
 {
-    msg_dgram_tag = tag;
+    mMsgDgramTag = tag;
 }
 
 uint8_t Message::GetTimeout() const
 {
-    return msg_timeout;
+    return mMsgTimeout;
 }
 
 void Message::SetTimeout(uint8_t timeout)
 {
-    msg_timeout = timeout;
+    mMsgTimeout = timeout;
 }
 
 uint16_t Message::UpdateChecksum(uint16_t checksum, uint16_t offset, uint16_t length) const
 {
-    Buffer *cur_buffer;
-    uint16_t bytes_covered = 0;
-    uint16_t bytes_to_cover;
+    Buffer *curBuffer;
+    uint16_t bytesCovered = 0;
+    uint16_t bytesToCover;
 
-    offset += msg_reserved;
+    offset += mMsgReserved;
 
-    assert(static_cast<uint32_t>(offset) + length <= msg_length);
+    assert(static_cast<uint32_t>(offset) + length <= mMsgLength);
 
     // special case first buffer
     if (offset < kFirstBufferDataSize)
     {
-        bytes_to_cover = kFirstBufferDataSize - offset;
+        bytesToCover = kFirstBufferDataSize - offset;
 
-        if (bytes_to_cover > length)
+        if (bytesToCover > length)
         {
-            bytes_to_cover = length;
+            bytesToCover = length;
         }
 
-        checksum = Ip6::UpdateChecksum(checksum, head.data + offset, bytes_to_cover);
+        checksum = Ip6::UpdateChecksum(checksum, mHead.mData + offset, bytesToCover);
 
-        length -= bytes_to_cover;
-        bytes_covered += bytes_to_cover;
+        length -= bytesToCover;
+        bytesCovered += bytesToCover;
 
         offset = 0;
     }
@@ -452,54 +452,54 @@ uint16_t Message::UpdateChecksum(uint16_t checksum, uint16_t offset, uint16_t le
     }
 
     // advance to offset
-    cur_buffer = header.next;
+    curBuffer = mHeader.mNext;
 
     while (offset >= kBufferDataSize)
     {
-        assert(cur_buffer != NULL);
+        assert(curBuffer != NULL);
 
-        cur_buffer = cur_buffer->header.next;
+        curBuffer = curBuffer->mHeader.mNext;
         offset -= kBufferDataSize;
     }
 
     // begin copy
     while (length > 0)
     {
-        assert(cur_buffer != NULL);
+        assert(curBuffer != NULL);
 
-        bytes_to_cover = kBufferDataSize - offset;
+        bytesToCover = kBufferDataSize - offset;
 
-        if (bytes_to_cover > length)
+        if (bytesToCover > length)
         {
-            bytes_to_cover = length;
+            bytesToCover = length;
         }
 
-        checksum = Ip6::UpdateChecksum(checksum, cur_buffer->data + offset, bytes_to_cover);
+        checksum = Ip6::UpdateChecksum(checksum, curBuffer->mData + offset, bytesToCover);
 
-        length -= bytes_to_cover;
-        bytes_covered += bytes_to_cover;
+        length -= bytesToCover;
+        bytesCovered += bytesToCover;
 
-        cur_buffer = cur_buffer->header.next;
+        curBuffer = curBuffer->mHeader.mNext;
         offset = 0;
     }
 
     return checksum;
 }
 
-bool Message::GetChildMask(uint8_t child_index) const
+bool Message::GetChildMask(uint8_t childIndex) const
 {
-    return (msg_child_mask[child_index / 8] & (0x80 >> (child_index % 8))) != 0;
+    return (mMsgChildMask[childIndex / 8] & (0x80 >> (childIndex % 8))) != 0;
 }
 
-ThreadError Message::ClearChildMask(uint8_t child_index)
+ThreadError Message::ClearChildMask(uint8_t childIndex)
 {
-    msg_child_mask[child_index / 8] &= ~(0x80 >> (child_index % 8));
+    mMsgChildMask[childIndex / 8] &= ~(0x80 >> (childIndex % 8));
     return kThreadError_None;
 }
 
-ThreadError Message::SetChildMask(uint8_t child_index)
+ThreadError Message::SetChildMask(uint8_t childIndex)
 {
-    msg_child_mask[child_index / 8] |= 0x80 >> (child_index % 8);
+    mMsgChildMask[childIndex / 8] |= 0x80 >> (childIndex % 8);
     return kThreadError_None;
 }
 
@@ -507,9 +507,9 @@ bool Message::IsChildPending() const
 {
     bool rval = false;
 
-    for (size_t i = 0; i < sizeof(msg_child_mask); i++)
+    for (size_t i = 0; i < sizeof(mMsgChildMask); i++)
     {
-        if (msg_child_mask[i] != 0)
+        if (mMsgChildMask[i] != 0)
         {
             ExitNow(rval = true);
         }
@@ -521,44 +521,44 @@ exit:
 
 bool Message::GetDirectTransmission() const
 {
-    return msg_direct_tx;
+    return mMsgDirectTx;
 }
 
 void Message::ClearDirectTransmission()
 {
-    msg_direct_tx = false;
+    mMsgDirectTx = false;
 }
 
 void Message::SetDirectTransmission()
 {
-    msg_direct_tx = true;
+    mMsgDirectTx = true;
 }
 
 MessageQueue::MessageQueue()
 {
-    m_interface.head = NULL;
-    m_interface.tail = NULL;
+    mInterface.mHead = NULL;
+    mInterface.mTail = NULL;
 }
 
 ThreadError MessageQueue::AddToList(int list_id, Message &message)
 {
     MessageList *list;
 
-    assert(message.msg_list[list_id].next == NULL && message.msg_list[list_id].prev == NULL &&
-           message.msg_list[list_id].list != NULL);
+    assert(message.mMsgList[list_id].mNext == NULL && message.mMsgList[list_id].mPrev == NULL &&
+           message.mMsgList[list_id].mList != NULL);
 
-    list = message.msg_list[list_id].list;
+    list = message.mMsgList[list_id].mList;
 
-    if (list->head == NULL)
+    if (list->mHead == NULL)
     {
-        list->head = &message;
-        list->tail = &message;
+        list->mHead = &message;
+        list->mTail = &message;
     }
     else
     {
-        list->tail->msg_list[list_id].next = &message;
-        message.msg_list[list_id].prev = list->tail;
-        list->tail = &message;
+        list->mTail->mMsgList[list_id].mNext = &message;
+        message.mMsgList[list_id].mPrev = list->mTail;
+        list->mTail = &message;
     }
 
     return kThreadError_None;
@@ -568,45 +568,45 @@ ThreadError MessageQueue::RemoveFromList(int list_id, Message &message)
 {
     MessageList *list;
 
-    assert(message.msg_list[list_id].list != NULL);
+    assert(message.mMsgList[list_id].mList != NULL);
 
-    list = message.msg_list[list_id].list;
+    list = message.mMsgList[list_id].mList;
 
-    assert(list->head == &message || message.msg_list[list_id].next != NULL || message.msg_list[list_id].prev != NULL);
+    assert(list->mHead == &message || message.mMsgList[list_id].mNext != NULL || message.mMsgList[list_id].mPrev != NULL);
 
-    if (message.msg_list[list_id].prev)
+    if (message.mMsgList[list_id].mPrev)
     {
-        message.msg_list[list_id].prev->msg_list[list_id].next = message.msg_list[list_id].next;
+        message.mMsgList[list_id].mPrev->mMsgList[list_id].mNext = message.mMsgList[list_id].mNext;
     }
     else
     {
-        list->head = message.msg_list[list_id].next;
+        list->mHead = message.mMsgList[list_id].mNext;
     }
 
-    if (message.msg_list[list_id].next)
+    if (message.mMsgList[list_id].mNext)
     {
-        message.msg_list[list_id].next->msg_list[list_id].prev = message.msg_list[list_id].prev;
+        message.mMsgList[list_id].mNext->mMsgList[list_id].mPrev = message.mMsgList[list_id].mPrev;
     }
     else
     {
-        list->tail = message.msg_list[list_id].prev;
+        list->mTail = message.mMsgList[list_id].mPrev;
     }
 
-    message.msg_list[list_id].prev = NULL;
-    message.msg_list[list_id].next = NULL;
+    message.mMsgList[list_id].mPrev = NULL;
+    message.mMsgList[list_id].mNext = NULL;
 
     return kThreadError_None;
 }
 
 Message *MessageQueue::GetHead() const
 {
-    return m_interface.head;
+    return mInterface.mHead;
 }
 
 ThreadError MessageQueue::Enqueue(Message &message)
 {
-    message.msg_list[MessageInfo::kListAll].list = &m_all;
-    message.msg_list[MessageInfo::kListInterface].list = &m_interface;
+    message.mMsgList[MessageInfo::kListAll].mList = &sAll;
+    message.mMsgList[MessageInfo::kListInterface].mList = &mInterface;
     AddToList(MessageInfo::kListAll, message);
     AddToList(MessageInfo::kListInterface, message);
     return kThreadError_None;
@@ -616,8 +616,8 @@ ThreadError MessageQueue::Dequeue(Message &message)
 {
     RemoveFromList(MessageInfo::kListAll, message);
     RemoveFromList(MessageInfo::kListInterface, message);
-    message.msg_list[MessageInfo::kListAll].list = NULL;
-    message.msg_list[MessageInfo::kListInterface].list = NULL;
+    message.mMsgList[MessageInfo::kListAll].mList = NULL;
+    message.mMsgList[MessageInfo::kListInterface].mList = NULL;
     return kThreadError_None;
 }
 

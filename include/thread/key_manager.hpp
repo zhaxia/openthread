@@ -29,11 +29,11 @@ class KeyManager
 {
 public:
     explicit KeyManager(ThreadNetif &netif);
-    ThreadError GetMasterKey(void *key, uint8_t *key_length) const;
-    ThreadError SetMasterKey(const void *key, uint8_t key_length);
+    ThreadError GetMasterKey(void *key, uint8_t *keyLength) const;
+    ThreadError SetMasterKey(const void *key, uint8_t keyLength);
 
     uint32_t GetCurrentKeySequence() const;
-    ThreadError SetCurrentKeySequence(uint32_t key_sequence);
+    ThreadError SetCurrentKeySequence(uint32_t keySequence);
     const uint8_t *GetCurrentMacKey() const;
     const uint8_t *GetCurrentMleKey() const;
 
@@ -42,8 +42,8 @@ public:
     const uint8_t *GetPreviousMacKey() const;
     const uint8_t *GetPreviousMleKey() const;
 
-    const uint8_t *GetTemporaryMacKey(uint32_t key_sequence);
-    const uint8_t *GetTemporaryMleKey(uint32_t key_sequence);
+    const uint8_t *GetTemporaryMacKey(uint32_t keySequence);
+    const uint8_t *GetTemporaryMleKey(uint32_t keySequence);
 
     uint32_t GetMacFrameCounter() const;
     uint32_t GetMleFrameCounter() const;
@@ -52,25 +52,25 @@ public:
     ThreadError IncrementMleFrameCounter();
 
 private:
-    ThreadError ComputeKey(uint32_t key_sequence, uint8_t *key);
+    ThreadError ComputeKey(uint32_t keySequence, uint8_t *key);
     void UpdateNeighbors();
 
-    uint8_t m_master_key[16];
-    uint8_t m_master_key_length;
+    uint8_t mMasterKey[16];
+    uint8_t mMasterKeyLength;
 
-    uint32_t m_previous_key_sequence;
-    uint8_t m_previous_key[32];
-    bool m_previous_key_valid = false;
+    uint32_t mPreviousKeySequence;
+    uint8_t mPreviousKey[32];
+    bool mPreviousKeyValid = false;
 
-    uint32_t m_current_key_sequence;
-    uint8_t m_current_key[32];
+    uint32_t mCurrentKeySequence;
+    uint8_t mCurrentKey[32];
 
-    uint8_t m_temporary_key[32];
+    uint8_t mTemporaryKey[32];
 
-    uint32_t m_mac_frame_counter = 0;
-    uint32_t m_mle_frame_counter = 0;
+    uint32_t mMacFrameCounter = 0;
+    uint32_t mMleFrameCounter = 0;
 
-    ThreadNetif *m_netif;
+    ThreadNetif *mNetif;
 };
 
 }  // namespace Thread

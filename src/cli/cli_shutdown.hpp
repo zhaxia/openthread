@@ -30,7 +30,7 @@ public:
     void Run(int argc, char *argv[], Server &server) final;
 
 private:
-    int PrintUsage(char *buf, uint16_t buf_length);
+    int PrintUsage(char *buf, uint16_t bufLength);
 };
 
 }  // namespace Cli

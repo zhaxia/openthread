@@ -29,9 +29,9 @@ class Hmac
 {
 public:
     explicit Hmac(Hash &hash);
-    ThreadError SetKey(const void *key, uint16_t key_length);
+    ThreadError SetKey(const void *key, uint16_t keyLength);
     ThreadError Init();
-    ThreadError Input(const void *buf, uint16_t buf_length);
+    ThreadError Input(const void *buf, uint16_t bufLength);
     ThreadError Finalize(uint8_t *hash);
 
 private:
@@ -39,9 +39,9 @@ private:
     {
         kMaxKeyLength = 64,
     };
-    uint8_t m_key[kMaxKeyLength];
-    uint8_t m_key_length = 0;
-    Hash *m_hash;
+    uint8_t mKey[kMaxKeyLength];
+    uint8_t mKeyLength = 0;
+    Hash *mHash;
 };
 
 }  // namespace Crypto

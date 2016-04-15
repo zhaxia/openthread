@@ -26,8 +26,8 @@ namespace Thread {
 struct Ip6Route
 {
     Ip6Address prefix;
-    uint8_t prefix_length;
-    uint8_t interface_id;
+    uint8_t prefixLength;
+    uint8_t interfaceId;
     struct Ip6Route *next;
 };
 

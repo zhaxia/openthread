@@ -23,22 +23,22 @@ namespace Crypto {
 
 Hmac::Hmac(Hash &hash)
 {
-    m_hash = &hash;
+    mHash = &hash;
 }
 
-ThreadError Hmac::SetKey(const void *key, uint16_t key_length)
+ThreadError Hmac::SetKey(const void *key, uint16_t keyLength)
 {
-    if (key_length > kMaxKeyLength)
+    if (keyLength > kMaxKeyLength)
     {
-        m_hash->Init();
-        m_hash->Input(key, key_length);
-        m_hash->Finalize(m_key);
-        m_key_length = m_hash->GetSize();
+        mHash->Init();
+        mHash->Input(key, keyLength);
+        mHash->Finalize(mKey);
+        mKeyLength = mHash->GetSize();
     }
     else
     {
-        memcpy(m_key, key, key_length);
-        m_key_length = key_length;
+        memcpy(mKey, key, keyLength);
+        mKeyLength = keyLength;
     }
 
     return kThreadError_None;
@@ -49,9 +49,9 @@ ThreadError Hmac::Init()
     uint8_t pad[kMaxKeyLength];
     int i;
 
-    for (i = 0; i < m_key_length; i++)
+    for (i = 0; i < mKeyLength; i++)
     {
-        pad[i] = m_key[i] ^ 0x36;
+        pad[i] = mKey[i] ^ 0x36;
     }
 
     for (; i < 64; i++)
@@ -60,15 +60,15 @@ ThreadError Hmac::Init()
     }
 
     // start inner hash
-    m_hash->Init();
-    m_hash->Input(pad, sizeof(pad));
+    mHash->Init();
+    mHash->Input(pad, sizeof(pad));
 
     return kThreadError_None;
 }
 
-ThreadError Hmac::Input(const void *buf, uint16_t buf_length)
+ThreadError Hmac::Input(const void *buf, uint16_t bufLength)
 {
-    return m_hash->Input(buf, buf_length);
+    return mHash->Input(buf, bufLength);
 }
 
 ThreadError Hmac::Finalize(uint8_t *hash)
@@ -77,12 +77,12 @@ ThreadError Hmac::Finalize(uint8_t *hash)
     int i;
 
     // finish inner hash
-    m_hash->Finalize(hash);
+    mHash->Finalize(hash);
 
     // perform outer hash
-    for (i = 0; i < m_key_length; i++)
+    for (i = 0; i < mKeyLength; i++)
     {
-        pad[i] = m_key[i] ^ 0x5c;
+        pad[i] = mKey[i] ^ 0x5c;
     }
 
     for (; i < 64; i++)
@@ -90,10 +90,10 @@ ThreadError Hmac::Finalize(uint8_t *hash)
         pad[i] = 0x5c;
     }
 
-    m_hash->Init();
-    m_hash->Input(pad, kMaxKeyLength);
-    m_hash->Input(hash, m_hash->GetSize());
-    m_hash->Finalize(hash);
+    mHash->Init();
+    mHash->Input(pad, kMaxKeyLength);
+    mHash->Input(hash, mHash->GetSize());
+    mHash->Finalize(hash);
 
     return kThreadError_None;
 }

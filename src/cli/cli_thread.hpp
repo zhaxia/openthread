@@ -32,20 +32,20 @@ public:
     void Run(int argc, char *argv[], Server &server) final;
 
 private:
-    int PrintUsage(char *buf, uint16_t buf_length);
-    int PrintAddressCache(char *buf, uint16_t buf_length);
-    int PrintChildren(char *buf, uint16_t buf_length);
-    int PrintHoldTime(char *buf, uint16_t buf_length);
-    int PrintKey(char *buf, uint16_t buf_length);
-    int PrintKeySequence(char *buf, uint16_t buf_length);
-    int PrintLeaderData(char *buf, uint16_t buf_length);
-    int PrintMode(char *buf, uint16_t buf_length);
-    int PrintRouters(char *buf, uint16_t buf_length);
-    int PrintRoutes(char *buf, uint16_t buf_length);
-    int PrintState(char *buf, uint16_t buf_length);
+    int PrintUsage(char *buf, uint16_t bufLength);
+    int PrintAddressCache(char *buf, uint16_t bufLength);
+    int PrintChildren(char *buf, uint16_t bufLength);
+    int PrintHoldTime(char *buf, uint16_t bufLength);
+    int PrintKey(char *buf, uint16_t bufLength);
+    int PrintKeySequence(char *buf, uint16_t bufLength);
+    int PrintLeaderData(char *buf, uint16_t bufLength);
+    int PrintMode(char *buf, uint16_t bufLength);
+    int PrintRouters(char *buf, uint16_t bufLength);
+    int PrintRoutes(char *buf, uint16_t bufLength);
+    int PrintState(char *buf, uint16_t bufLength);
 
-    Mle::MleRouter *m_mle;
-    ThreadNetif *m_netif;
+    Mle::MleRouter *mMle;
+    ThreadNetif *mNetif;
 };
 
 }  // namespace Cli

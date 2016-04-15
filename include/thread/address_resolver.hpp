@@ -38,11 +38,11 @@ public:
     class Cache
     {
     public:
-        Ip6Address target;
-        uint8_t iid[8];
-        Mac::Address16 rloc;
-        uint8_t timeout;
-        uint8_t failure_count : 4;
+        Ip6Address mTarget;
+        uint8_t mIid[8];
+        Mac::Address16 mRloc;
+        uint8_t mTimeout;
+        uint8_t mFailureCount : 4;
         enum State
         {
             kStateInvalid = 0,
@@ -50,15 +50,15 @@ public:
             kStateRetry = 2,
             kStateValid = 3,
         };
-        State state : 2;
+        State mState : 2;
     };
 
     explicit AddressResolver(ThreadNetif &netif);
     ThreadError Clear();
-    ThreadError Remove(uint8_t router_id);
+    ThreadError Remove(uint8_t routerId);
     ThreadError Resolve(const Ip6Address &eid, Mac::Address16 &rloc);
 
-    const Cache *GetCacheEntries(uint16_t *num_entries) const;
+    const Cache *GetCacheEntries(uint16_t *numEntries) const;
 
 private:
     enum
@@ -70,46 +70,46 @@ private:
     ThreadError SendAddressQuery(const Ip6Address &eid);
     ThreadError SendAddressError(const ThreadTargetTlv &target, const ThreadMeshLocalIidTlv &eid,
                                  const Ip6Address *destination);
-    void SendAddressQueryResponse(const ThreadTargetTlv &target_tlv, const ThreadMeshLocalIidTlv &ml_iid_tlv,
-                                  const ThreadLastTransactionTimeTlv *last_transaction_time_tlv,
+    void SendAddressQueryResponse(const ThreadTargetTlv &targetTlv, const ThreadMeshLocalIidTlv &mlIidTlv,
+                                  const ThreadLastTransactionTimeTlv *lastTransactionTimeTlv,
                                   const Ip6Address &destination);
-    void SendAddressNotificationResponse(const Coap::Header &request_header, const Ip6MessageInfo &message_info);
+    void SendAddressNotificationResponse(const Coap::Header &requestHeader, const Ip6MessageInfo &messageInfo);
 
-    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &message_info);
+    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo);
 
     static void HandleAddressError(void *context, Coap::Header &header,
-                                   Message &message, const Ip6MessageInfo &message_info);
-    void HandleAddressError(Coap::Header &header, Message &message, const Ip6MessageInfo &message_info);
+                                   Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleAddressError(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo);
 
     static void HandleAddressQuery(void *context, Coap::Header &header,
-                                   Message &message, const Ip6MessageInfo &message_info);
-    void HandleAddressQuery(Coap::Header &header, Message &message, const Ip6MessageInfo &message_info);
+                                   Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleAddressQuery(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo);
 
     static void HandleAddressNotification(void *context, Coap::Header &header,
-                                          Message &message, const Ip6MessageInfo &message_info);
-    void HandleAddressNotification(Coap::Header &header, Message &message, const Ip6MessageInfo &message_info);
+                                          Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleAddressNotification(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo);
 
-    static void HandleDstUnreach(void *context, Message &message, const Ip6MessageInfo &message_info,
-                                 const Icmp6Header &icmp6_header);
-    void HandleDstUnreach(Message &message, const Ip6MessageInfo &message_info, const Icmp6Header &icmp6_header);
+    static void HandleDstUnreach(void *context, Message &message, const Ip6MessageInfo &messageInfo,
+                                 const Icmp6Header &icmp6Header);
+    void HandleDstUnreach(Message &message, const Ip6MessageInfo &messageInfo, const Icmp6Header &icmp6Header);
 
     static void HandleTimer(void *context);
     void HandleTimer();
 
-    Coap::Resource m_address_error;
-    Coap::Resource m_address_query;
-    Coap::Resource m_address_notification;
-    Cache m_cache[kCacheEntries];
-    uint16_t m_coap_message_id;
-    uint8_t m_coap_token[2];
-    Icmp6Handler m_icmp6_handler;
-    Udp6Socket m_socket;
-    Timer m_timer;
+    Coap::Resource mAddressError;
+    Coap::Resource mAddressQuery;
+    Coap::Resource mAddressNotification;
+    Cache mCache[kCacheEntries];
+    uint16_t mCoapMessageId;
+    uint8_t mCoapToken[2];
+    Icmp6Handler mIcmp6Handler;
+    Udp6Socket mSocket;
+    Timer mTimer;
 
-    MeshForwarder *m_mesh_forwarder;
-    Coap::Server *m_coap_server;
-    Mle::MleRouter *m_mle;
-    Netif *m_netif;
+    MeshForwarder *mMeshForwarder;
+    Coap::Server *mCoapServer;
+    Mle::MleRouter *mMle;
+    Netif *mNetif;
 };
 
 }  // namespace Thread

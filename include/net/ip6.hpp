@@ -45,28 +45,28 @@ enum IpProto
 class Ip6Header
 {
 public:
-    void Init() { m_version_class_flow.d32[0] = 0; m_version_class_flow.d8[0] = kVersion6; }
-    bool IsVersion6() const { return (m_version_class_flow.d8[0] & kVersionMask) == kVersion6; }
+    void Init() { mVersionClassFlow.m32[0] = 0; mVersionClassFlow.m8[0] = kVersion6; }
+    bool IsVersion6() const { return (mVersionClassFlow.m8[0] & kVersionMask) == kVersion6; }
 
-    uint16_t GetPayloadLength() { return HostSwap16(m_payload_length); }
-    void SetPayloadLength(uint16_t length) { m_payload_length = HostSwap16(length); }
+    uint16_t GetPayloadLength() { return HostSwap16(mPayloadLength); }
+    void SetPayloadLength(uint16_t length) { mPayloadLength = HostSwap16(length); }
 
-    IpProto GetNextHeader() const { return static_cast<IpProto>(m_next_header); }
-    void SetNextHeader(IpProto next_header) { m_next_header = static_cast<uint8_t>(next_header); }
+    IpProto GetNextHeader() const { return static_cast<IpProto>(mNextHeader); }
+    void SetNextHeader(IpProto nextHeader) { mNextHeader = static_cast<uint8_t>(nextHeader); }
 
-    uint8_t GetHopLimit() const { return m_hop_limit; }
-    void SetHopLimit(uint8_t hop_limit) { m_hop_limit = hop_limit; }
+    uint8_t GetHopLimit() const { return mHopLimit; }
+    void SetHopLimit(uint8_t hopLimit) { mHopLimit = hopLimit; }
 
-    Ip6Address *GetSource() { return &m_source; }
-    void SetSource(const Ip6Address &source) { m_source = source; }
+    Ip6Address *GetSource() { return &mSource; }
+    void SetSource(const Ip6Address &source) { mSource = source; }
 
-    Ip6Address *GetDestination() { return &m_destination; }
-    void SetDestination(const Ip6Address &destination) { m_destination = destination; }
+    Ip6Address *GetDestination() { return &mDestination; }
+    void SetDestination(const Ip6Address &destination) { mDestination = destination; }
 
-    static uint8_t GetPayloadLengthOffset() { return offsetof(Ip6Header, m_payload_length); }
-    static uint8_t GetHopLimitOffset() { return offsetof(Ip6Header, m_hop_limit); }
-    static uint8_t GetHopLimitSize() { return sizeof(m_hop_limit); }
-    static uint8_t GetDestinationOffset() { return offsetof(Ip6Header, m_destination); }
+    static uint8_t GetPayloadLengthOffset() { return offsetof(Ip6Header, mPayloadLength); }
+    static uint8_t GetHopLimitOffset() { return offsetof(Ip6Header, mHopLimit); }
+    static uint8_t GetHopLimitSize() { return sizeof(mHopLimit); }
+    static uint8_t GetDestinationOffset() { return offsetof(Ip6Header, mDestination); }
 
 private:
     enum
@@ -77,29 +77,29 @@ private:
 
     union
     {
-        uint32_t d32[1];
-        uint16_t d16[2];
-        uint8_t d8[4];
-    } m_version_class_flow;
-    uint16_t m_payload_length;
-    uint8_t m_next_header;
-    uint8_t m_hop_limit;
-    Ip6Address m_source;
-    Ip6Address m_destination;
+        uint32_t m32[1];
+        uint16_t m16[2];
+        uint8_t m8[4];
+    } mVersionClassFlow;
+    uint16_t mPayloadLength;
+    uint8_t mNextHeader;
+    uint8_t mHopLimit;
+    Ip6Address mSource;
+    Ip6Address mDestination;
 } __attribute__((packed));
 
 class Ip6ExtensionHeader
 {
 public:
-    IpProto GetNextHeader() const { return static_cast<IpProto>(m_next_header); }
-    void SetNextHeader(IpProto next_header) { m_next_header = static_cast<uint8_t>(next_header); }
+    IpProto GetNextHeader() const { return static_cast<IpProto>(mNextHeader); }
+    void SetNextHeader(IpProto nextHeader) { mNextHeader = static_cast<uint8_t>(nextHeader); }
 
-    uint16_t GetLength() const { return m_length; }
-    void SetLength(uint16_t length) { m_length = length; }
+    uint16_t GetLength() const { return mLength; }
+    void SetLength(uint16_t length) { mLength = length; }
 
 private:
-    uint8_t m_next_header;
-    uint8_t m_length;
+    uint8_t mNextHeader;
+    uint8_t mLength;
 } __attribute__((packed));
 
 class Ip6HopByHopHeader: public Ip6ExtensionHeader
@@ -109,8 +109,8 @@ class Ip6HopByHopHeader: public Ip6ExtensionHeader
 class Ip6OptionHeader
 {
 public:
-    uint8_t GetType() const { return m_type; }
-    void SetType(uint8_t type) { m_type = type; }
+    uint8_t GetType() const { return mType; }
+    void SetType(uint8_t type) { mType = type; }
 
     enum Action
     {
@@ -120,36 +120,36 @@ public:
         kActionIcmp = 0xc0,
         kActionMask = 0xc0,
     };
-    Action GetAction() const { return static_cast<Action>(m_type & kActionMask); }
+    Action GetAction() const { return static_cast<Action>(mType & kActionMask); }
 
-    uint8_t GetLength() const { return m_length; }
-    void SetLength(uint8_t length) { m_length = length; }
+    uint8_t GetLength() const { return mLength; }
+    void SetLength(uint8_t length) { mLength = length; }
 
 private:
-    uint8_t m_type;
-    uint8_t m_length;
+    uint8_t mType;
+    uint8_t mLength;
 } __attribute__((packed));
 
 class Ip6FragmentHeader
 {
 public:
-    void Init() { m_reserved = 0; m_identification = 0; }
+    void Init() { mReserved = 0; mIdentification = 0; }
 
-    IpProto GetNextHeader() const { return static_cast<IpProto>(m_next_header); }
-    void SetNextHeader(IpProto next_header) { m_next_header = static_cast<uint8_t>(next_header); }
+    IpProto GetNextHeader() const { return static_cast<IpProto>(mNextHeader); }
+    void SetNextHeader(IpProto nextHeader) { mNextHeader = static_cast<uint8_t>(nextHeader); }
 
-    uint16_t GetOffset() { return (HostSwap16(m_offset_more) & kOffsetMask) >> kOffsetOffset; }
+    uint16_t GetOffset() { return (HostSwap16(mOffsetMore) & kOffsetMask) >> kOffsetOffset; }
     void SetOffset(uint16_t offset) {
-        m_offset_more = HostSwap16((HostSwap16(m_offset_more) & kOffsetMask) | (offset << kOffsetOffset));
+        mOffsetMore = HostSwap16((HostSwap16(mOffsetMore) & kOffsetMask) | (offset << kOffsetOffset));
     }
 
-    bool IsMoreFlagSet() { return HostSwap16(m_offset_more) & kMoreFlag; }
-    void ClearMoreFlag() { m_offset_more = HostSwap16(HostSwap16(m_offset_more) & ~kMoreFlag); }
-    void SetMoreFlag() { m_offset_more = HostSwap16(HostSwap16(m_offset_more) | kMoreFlag); }
+    bool IsMoreFlagSet() { return HostSwap16(mOffsetMore) & kMoreFlag; }
+    void ClearMoreFlag() { mOffsetMore = HostSwap16(HostSwap16(mOffsetMore) & ~kMoreFlag); }
+    void SetMoreFlag() { mOffsetMore = HostSwap16(HostSwap16(mOffsetMore) | kMoreFlag); }
 
 private:
-    uint8_t m_next_header;
-    uint8_t m_reserved;
+    uint8_t mNextHeader;
+    uint8_t mReserved;
 
     enum
     {
@@ -157,8 +157,8 @@ private:
         kOffsetMask = 0xfff8,
         kMoreFlag = 1,
     };
-    uint16_t m_offset_more;
-    uint32_t m_identification;
+    uint16_t mOffsetMore;
+    uint32_t mIdentification;
 } __attribute__((packed));
 
 class Ip6
@@ -171,9 +171,9 @@ public:
     };
 
     static Message *NewMessage(uint16_t reserved);
-    static ThreadError SendDatagram(Message &message, Ip6MessageInfo &message_info, IpProto ipproto);
-    static ThreadError HandleDatagram(Message &message, Netif *netif, uint8_t interface_id,
-                                      const void *link_message_info, bool from_ncp_host);
+    static ThreadError SendDatagram(Message &message, Ip6MessageInfo &messageInfo, IpProto ipproto);
+    static ThreadError HandleDatagram(Message &message, Netif *netif, uint8_t interfaceId,
+                                      const void *linkMessageInfo, bool fromNcpHost);
 
     static uint16_t UpdateChecksum(uint16_t checksum, uint16_t val);
     static uint16_t UpdateChecksum(uint16_t checksum, const void *buf, uint16_t length);

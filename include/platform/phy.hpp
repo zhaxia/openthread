@@ -32,10 +32,10 @@ enum
 
 struct PhyPacket
 {
-    uint8_t m_length;
-    uint8_t m_psdu[kMaxPsduLength];
-    uint8_t m_channel;
-    int8_t m_power;  // dBm
+    uint8_t mLength;
+    uint8_t mPsdu[kMaxPsduLength];
+    uint8_t mChannel;
+    int8_t mPower;  // dBm
 };
 
 /**

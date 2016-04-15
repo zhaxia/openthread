@@ -30,14 +30,14 @@ class Server
 public:
     ThreadError Add(Command &command);
     virtual ThreadError Start() = 0;
-    virtual ThreadError Output(const char *buf, uint16_t buf_length) = 0;
+    virtual ThreadError Output(const char *buf, uint16_t bufLength) = 0;
 
 protected:
     enum
     {
         kMaxArgs = 8,
     };
-    Command *m_commands = NULL;
+    Command *mCommands = NULL;
 };
 
 }  // namespace Cli

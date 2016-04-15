@@ -25,21 +25,21 @@ namespace Thread {
 class Neighbor
 {
 public:
-    Mac::Address64 mac_addr;
-    uint32_t last_heard;
+    Mac::Address64 mMacAddr;
+    uint32_t mLastHeard;
     union
     {
         struct
         {
-            uint32_t link_frame_counter;
-            uint32_t mle_frame_counter;
-            uint16_t rloc16;
-        } valid;
+            uint32_t mLinkFrameCounter;
+            uint32_t mMleFrameCounter;
+            uint16_t mRloc16;
+        } mValid;
         struct
         {
-            uint8_t challenge[8];
-            uint8_t challenge_length;
-        } pending;
+            uint8_t mChallenge[8];
+            uint8_t mChallengeLength;
+        } mPending;
     };
 
     enum State
@@ -50,14 +50,14 @@ public:
         kStateLinkRequest = 3,
         kStateValid = 4,
     };
-    State state : 3;
-    uint8_t mode : 4;
-    bool previous_key : 1;
-    bool frame_pending : 1;
-    bool data_request : 1;
-    bool allocated : 1;
-    bool reclaim_delay : 1;
-    int8_t rssi;
+    State mState : 3;
+    uint8_t mMode : 4;
+    bool mPreviousKey : 1;
+    bool mFramePending : 1;
+    bool mDataRequest : 1;
+    bool mAllocated : 1;
+    bool mReclaimDelay : 1;
+    int8_t mRssi;
 };
 
 class Child : public Neighbor
@@ -67,20 +67,20 @@ public:
     {
         kMaxIp6AddressPerChild = 4,
     };
-    Ip6Address ip6_address[kMaxIp6AddressPerChild];
-    uint32_t timeout;
-    uint16_t fragment_offset;
-    uint8_t request_tlvs[4];
-    uint8_t network_data_version;
+    Ip6Address mIp6Address[kMaxIp6AddressPerChild];
+    uint32_t mTimeout;
+    uint16_t mFragmentOffset;
+    uint8_t mRequestTlvs[4];
+    uint8_t mNetworkDataVersion;
 };
 
 class Router : public Neighbor
 {
 public:
-    uint8_t nexthop;
-    uint8_t link_quality_out : 2;
-    uint8_t link_quality_in : 2;
-    uint8_t cost : 4;
+    uint8_t mNextHop;
+    uint8_t mLinkQualityOut : 2;
+    uint8_t mLinkQualityIn : 2;
+    uint8_t mCost : 4;
 };
 
 }  // namespace Thread

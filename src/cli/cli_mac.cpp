@@ -28,8 +28,8 @@ static const char kName[] = "mac";
 Mac::Mac(Server &server, ThreadNetif &netif):
     Command(server)
 {
-    m_mac = netif.GetMac();
-    m_server = &server;
+    mMac = netif.GetMac();
+    mServer = &server;
 }
 
 const char *Mac::GetName()
@@ -37,10 +37,10 @@ const char *Mac::GetName()
     return kName;
 }
 
-int Mac::PrintUsage(char *buf, uint16_t buf_length)
+int Mac::PrintUsage(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
     snprintf(cur, end - cur,
              "usage: mac\r\n"
@@ -57,12 +57,12 @@ int Mac::PrintUsage(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int Mac::PrintWhitelist(char *buf, uint16_t buf_length)
+int Mac::PrintWhitelist(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
-    Thread::Mac::Whitelist *whitelist = m_mac->GetWhitelist();
+    Thread::Mac::Whitelist *whitelist = mMac->GetWhitelist();
     int length = whitelist->GetMaxEntries();
 
     if (whitelist->IsEnabled())
@@ -94,10 +94,10 @@ int Mac::PrintWhitelist(char *buf, uint16_t buf_length)
     return cur - buf;
 }
 
-int Mac::ProcessWhitelist(int argc, char *argv[], char *buf, uint16_t buf_length)
+int Mac::ProcessWhitelist(int argc, char *argv[], char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
     int argcur = 0;
     int rval;
 
@@ -112,32 +112,32 @@ int Mac::ProcessWhitelist(int argc, char *argv[], char *buf, uint16_t buf_length
     else if (strcmp(argv[argcur], "add") == 0)
     {
         VerifyOrExit(++argcur < argc, rval = -1);
-        VerifyOrExit(hex2bin(argv[argcur], macaddr.bytes, sizeof(macaddr.bytes)) == sizeof(macaddr.bytes), rval = -1);
-        VerifyOrExit((entry = m_mac->GetWhitelist()->Add(macaddr)) >= 0, rval = -1);
+        VerifyOrExit(hex2bin(argv[argcur], macaddr.mBytes, sizeof(macaddr.mBytes)) == sizeof(macaddr.mBytes), rval = -1);
+        VerifyOrExit((entry = mMac->GetWhitelist()->Add(macaddr)) >= 0, rval = -1);
 
         if (++argcur < argc)
         {
             rssi = strtol(argv[argcur], NULL, 0);
-            m_mac->GetWhitelist()->SetRssi(entry, rssi);
+            mMac->GetWhitelist()->SetRssi(entry, rssi);
         }
     }
     else if (strcmp(argv[argcur], "clear") == 0)
     {
-        m_mac->GetWhitelist()->Clear();
+        mMac->GetWhitelist()->Clear();
     }
     else if (strcmp(argv[argcur], "disable") == 0)
     {
-        m_mac->GetWhitelist()->Disable();
+        mMac->GetWhitelist()->Disable();
     }
     else if (strcmp(argv[argcur], "enable") == 0)
     {
-        m_mac->GetWhitelist()->Enable();
+        mMac->GetWhitelist()->Enable();
     }
     else if (strcmp(argv[argcur], "remove") == 0)
     {
         VerifyOrExit(++argcur < argc, rval = -1);
-        VerifyOrExit(hex2bin(argv[argcur], macaddr.bytes, sizeof(macaddr.bytes)) == sizeof(macaddr.bytes), rval = -1);
-        VerifyOrExit(m_mac->GetWhitelist()->Remove(macaddr) == kThreadError_None, rval = -1);
+        VerifyOrExit(hex2bin(argv[argcur], macaddr.mBytes, sizeof(macaddr.mBytes)) == sizeof(macaddr.mBytes), rval = -1);
+        VerifyOrExit(mMac->GetWhitelist()->Remove(macaddr) == kThreadError_None, rval = -1);
     }
 
     rval = cur - buf;
@@ -161,17 +161,17 @@ void Mac::Run(int argc, char *argv[], Server &server)
         }
         else if (strcmp(argv[i], "addr16") == 0)
         {
-            Thread::Mac::Address16 addr16 = m_mac->GetAddress16();
+            Thread::Mac::Address16 addr16 = mMac->GetAddress16();
             snprintf(cur, end - cur, "%04x\r\n", addr16);
             cur += strlen(cur);
             ExitNow(error = kThreadError_None);
         }
         else if (strcmp(argv[i], "addr64") == 0)
         {
-            const Thread::Mac::Address64 *addr64 = m_mac->GetAddress64();
+            const Thread::Mac::Address64 *addr64 = mMac->GetAddress64();
             snprintf(cur, end - cur, "%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
-                     addr64->bytes[0], addr64->bytes[1], addr64->bytes[2], addr64->bytes[3],
-                     addr64->bytes[4], addr64->bytes[5], addr64->bytes[6], addr64->bytes[7]);
+                     addr64->mBytes[0], addr64->mBytes[1], addr64->mBytes[2], addr64->mBytes[3],
+                     addr64->mBytes[4], addr64->mBytes[5], addr64->mBytes[6], addr64->mBytes[7]);
             cur += strlen(cur);
             ExitNow(error = kThreadError_None);
         }
@@ -179,7 +179,7 @@ void Mac::Run(int argc, char *argv[], Server &server)
         {
             if (++i >= argc)
             {
-                uint8_t channel = m_mac->GetChannel();
+                uint8_t channel = mMac->GetChannel();
                 snprintf(cur, end - cur, "%d\r\n", channel);
                 cur += strlen(cur);
                 ExitNow(error = kThreadError_None);
@@ -187,27 +187,27 @@ void Mac::Run(int argc, char *argv[], Server &server)
 
             uint8_t channel;
             channel = strtol(argv[i], NULL, 0);
-            m_mac->SetChannel(channel);
+            mMac->SetChannel(channel);
             ExitNow(error = kThreadError_None);
         }
         else if (strcmp(argv[i], "name") == 0)
         {
             if (++i >= argc)
             {
-                const char *name = m_mac->GetNetworkName();
+                const char *name = mMac->GetNetworkName();
                 snprintf(cur, end - cur, "%s\r\n", name);
                 cur += strlen(cur);
                 ExitNow(error = kThreadError_None);
             }
 
-            m_mac->SetNetworkName(argv[i]);
+            mMac->SetNetworkName(argv[i]);
             ExitNow(error = kThreadError_None);
         }
         else if (strcmp(argv[i], "panid") == 0)
         {
             if (++i >= argc)
             {
-                uint16_t panid = m_mac->GetPanId();
+                uint16_t panid = mMac->GetPanId();
                 snprintf(cur, end - cur, "%04x\r\n", panid);
                 cur += strlen(cur);
                 ExitNow(error = kThreadError_None);
@@ -215,13 +215,13 @@ void Mac::Run(int argc, char *argv[], Server &server)
 
             uint16_t panid;
             panid = strtol(argv[i], NULL, 0);
-            m_mac->SetPanId(panid);
+            mMac->SetPanId(panid);
             ExitNow(error = kThreadError_None);
         }
         else if (strcmp(argv[i], "scan") == 0)
         {
-            m_mac->ActiveScan(Thread::Mac::kMacScanDefaultInterval, Thread::Mac::kMacScanChannelMaskAllChannels,
-                              &HandleActiveScanResult, this);
+            mMac->ActiveScan(Thread::Mac::kMacScanDefaultInterval, Thread::Mac::kMacScanChannelMaskAllChannels,
+                             &HandleActiveScanResult, this);
             snprintf(cur, end - cur, "| Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm |\r\n");
             cur += strlen(cur);
             server.Output(buf, cur - buf);
@@ -236,7 +236,7 @@ void Mac::Run(int argc, char *argv[], Server &server)
         {
             if (++i >= argc)
             {
-                const uint8_t *xpanid = m_mac->GetExtendedPanId();
+                const uint8_t *xpanid = mMac->GetExtendedPanId();
                 snprintf(cur, end - cur, "%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
                          xpanid[0], xpanid[1], xpanid[2], xpanid[3], xpanid[4], xpanid[5], xpanid[6], xpanid[7]);
                 cur += strlen(cur);
@@ -248,7 +248,7 @@ void Mac::Run(int argc, char *argv[], Server &server)
 
             VerifyOrExit(hex2bin(argv[i], xpanid, sizeof(xpanid)) >= 0, error = kThreadError_InvalidArgs);
 
-            m_mac->SetExtendedPanId(xpanid);
+            mMac->SetExtendedPanId(xpanid);
             ExitNow(error = kThreadError_None);
         }
     }
@@ -280,26 +280,26 @@ void Mac::HandleActiveScanResult(Thread::Mac::ActiveScanResult *result)
 
     if (result != NULL)
     {
-        snprintf(cur, end - cur, "| %-16s ", result->network_name);
+        snprintf(cur, end - cur, "| %-16s ", result->mNetworkName);
         cur += strlen(cur);
 
-        bytes = result->ext_panid;
+        bytes = result->mExtPanid;
         snprintf(cur, end - cur, "| %02x%02x%02x%02x%02x%02x%02x%02x ",
                  bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]);
         cur += strlen(cur);
 
-        snprintf(cur, end - cur, "| %04x ", result->panid);
+        snprintf(cur, end - cur, "| %04x ", result->mPanid);
         cur += strlen(cur);
 
-        bytes = result->ext_addr;
+        bytes = result->mExtAddr;
         snprintf(cur, end - cur, "| %02x%02x%02x%02x%02x%02x%02x%02x ",
                  bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]);
         cur += strlen(cur);
 
-        snprintf(cur, end - cur, "| %02d ", result->channel);
+        snprintf(cur, end - cur, "| %02d ", result->mChannel);
         cur += strlen(cur);
 
-        snprintf(cur, end - cur, "| %03d ", result->rssi);
+        snprintf(cur, end - cur, "| %03d ", result->mRssi);
         cur += strlen(cur);
 
         snprintf(cur, end - cur, "|\r\n");
@@ -311,7 +311,7 @@ void Mac::HandleActiveScanResult(Thread::Mac::ActiveScanResult *result)
         cur += strlen(cur);
     }
 
-    m_server->Output(buf, cur - buf);
+    mServer->Output(buf, cur - buf);
 }
 
 }  // namespace Cli

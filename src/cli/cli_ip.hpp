@@ -31,11 +31,11 @@ public:
     void Run(int argc, char *argv[], Server &server) final;
 
 private:
-    int PrintUsage(char *buf, uint16_t buf_length);
+    int PrintUsage(char *buf, uint16_t bufLength);
     ThreadError AddAddress(int argc, char *argv[]);
     ThreadError DeleteAddress(int argc, char *argv[]);
 
-    NetifUnicastAddress m_address;
+    NetifUnicastAddress mAddress;
 };
 
 }  // namespace Cli

@@ -30,7 +30,7 @@ class Sha256: public Hash
 public:
     uint16_t GetSize() const final;
     ThreadError Init() final;
-    ThreadError Input(const void *buf, uint16_t buf_length) final;
+    ThreadError Input(const void *buf, uint16_t bufLength) final;
     ThreadError Finalize(uint8_t *hash) final;
 
 private:
@@ -41,11 +41,11 @@ private:
     {
         kHashSize = 32,
     };
-    uint32_t m_hash[kHashSize / sizeof(uint32_t)];
-    uint32_t m_length_lo;
-    uint32_t m_length_hi;
-    uint8_t m_block_index;
-    uint8_t m_block[64];
+    uint32_t mHash[kHashSize / sizeof(uint32_t)];
+    uint32_t mLengthLo;
+    uint32_t mLengthHi;
+    uint8_t mBlockIndex;
+    uint8_t mBlock[64];
 };
 
 }  // namespace Crypto

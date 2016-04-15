@@ -26,8 +26,8 @@ void TestMacHeader()
     static const struct
     {
         uint16_t fcf;
-        uint8_t sec_ctl;
-        uint8_t header_length;
+        uint8_t secCtl;
+        uint8_t headerLength;
     } tests[] =
     {
         { Mac::Frame::kFcfDstAddrNone | Mac::Frame::kFcfSrcAddrNone, 0, 3 },
@@ -58,9 +58,9 @@ void TestMacHeader()
     for (int i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
     {
         Mac::Frame frame;
-        frame.InitMacHeader(tests[i].fcf, tests[i].sec_ctl);
+        frame.InitMacHeader(tests[i].fcf, tests[i].secCtl);
         printf("%d\n", frame.GetHeaderLength());
-        VerifyOrQuit(frame.GetHeaderLength() == tests[i].header_length,
+        VerifyOrQuit(frame.GetHeaderLength() == tests[i].headerLength,
                      "MacHeader test failed\n");
     }
 }

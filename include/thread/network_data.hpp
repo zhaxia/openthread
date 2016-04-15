@@ -27,23 +27,23 @@ namespace NetworkData {
 class NetworkData
 {
 public:
-    ThreadError GetNetworkData(bool stable, uint8_t *data, uint8_t &data_length);
+    ThreadError GetNetworkData(bool stable, uint8_t *data, uint8_t &dataLength);
 
 protected:
     BorderRouterTlv *FindBorderRouter(PrefixTlv &prefix);
     BorderRouterTlv *FindBorderRouter(PrefixTlv &prefix, bool stable);
     HasRouteTlv *FindHasRoute(PrefixTlv &prefix);
     HasRouteTlv *FindHasRoute(PrefixTlv &prefix, bool stable);
-    PrefixTlv *FindPrefix(const uint8_t *prefix, uint8_t prefix_length);
+    PrefixTlv *FindPrefix(const uint8_t *prefix, uint8_t prefixLength);
 
     ThreadError Insert(uint8_t *start, uint8_t length);
     ThreadError Remove(uint8_t *start, uint8_t length);
-    ThreadError RemoveTemporaryData(uint8_t *data, uint8_t &data_length);
-    ThreadError RemoveTemporaryData(uint8_t *data, uint8_t &data_length, PrefixTlv &prefix);
+    ThreadError RemoveTemporaryData(uint8_t *data, uint8_t &dataLength);
+    ThreadError RemoveTemporaryData(uint8_t *data, uint8_t &dataLength, PrefixTlv &prefix);
     int8_t PrefixMatch(const uint8_t *a, const uint8_t *b, uint8_t length);
 
-    uint8_t m_tlvs[256];
-    uint8_t m_length = 0;
+    uint8_t mTlvs[256];
+    uint8_t mLength = 0;
 };
 
 }  // namespace NetworkData

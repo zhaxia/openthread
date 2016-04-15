@@ -44,18 +44,18 @@ public:
         kSeedLength8 = 2 << 6,
         kSeedLength16 = 3 << 6,
     };
-    SeedLength GetSeedLength() { return static_cast<SeedLength>(m_control & kSeedLengthMask); }
-    void SetSeedLength(SeedLength seed_length) { m_control = (m_control & ~kSeedLengthMask) | seed_length; }
+    SeedLength GetSeedLength() { return static_cast<SeedLength>(mControl & kSeedLengthMask); }
+    void SetSeedLength(SeedLength seedLength) { mControl = (mControl & ~kSeedLengthMask) | seedLength; }
 
-    bool IsMaxFlagSet() { return m_control & kMaxFlag; }
-    void ClearMaxFlag() { m_control &= ~kMaxFlag; }
-    void SetMaxFlag() { m_control |= kMaxFlag; }
+    bool IsMaxFlagSet() { return mControl & kMaxFlag; }
+    void ClearMaxFlag() { mControl &= ~kMaxFlag; }
+    void SetMaxFlag() { mControl |= kMaxFlag; }
 
-    uint8_t GetSequence() const { return m_sequence; }
-    void SetSequence(uint8_t sequence) { m_sequence = sequence; }
+    uint8_t GetSequence() const { return mSequence; }
+    void SetSequence(uint8_t sequence) { mSequence = sequence; }
 
-    uint16_t GetSeed() const { return HostSwap16(m_seed); }
-    void SetSeed(uint16_t seed) { m_seed = HostSwap16(seed); }
+    uint16_t GetSeed() const { return HostSwap16(mSeed); }
+    void SetSeed(uint16_t seed) { mSeed = HostSwap16(seed); }
 
 private:
     enum
@@ -63,9 +63,9 @@ private:
         kSeedLengthMask = 3 << 6,
         kMaxFlag = 1 << 5,
     };
-    uint8_t m_control;
-    uint8_t m_sequence;
-    uint16_t m_seed;
+    uint8_t mControl;
+    uint8_t mSequence;
+    uint16_t mSeed;
 } __attribute__((packed));
 
 class Ip6Mpl
@@ -85,16 +85,16 @@ private:
     static void HandleTimer(void *context);
     void HandleTimer();
 
-    Timer m_timer;
-    uint8_t m_sequence = 0;
+    Timer mTimer;
+    uint8_t mSequence = 0;
 
     struct MplEntry
     {
-        uint16_t seed;
-        uint8_t sequence;
-        uint8_t lifetime;
+        uint16_t mSeed;
+        uint8_t mSequence;
+        uint8_t mLifetime;
     };
-    MplEntry m_entries[kNumEntries];
+    MplEntry mEntries[kNumEntries];
 };
 
 }  // namespace Thread

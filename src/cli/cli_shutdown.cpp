@@ -34,10 +34,10 @@ const char *Shutdown::GetName()
     return kName;
 }
 
-int Shutdown::PrintUsage(char *buf, uint16_t buf_length)
+int Shutdown::PrintUsage(char *buf, uint16_t bufLength)
 {
     char *cur = buf;
-    char *end = cur + buf_length;
+    char *end = cur + bufLength;
 
     snprintf(cur, end - cur, "usage: shutdown\r\n");
     cur += strlen(cur);

@@ -21,16 +21,16 @@
 namespace Thread {
 
 Ip6Mpl::Ip6Mpl():
-    m_timer(&HandleTimer, this)
+    mTimer(&HandleTimer, this)
 {
-    memset(m_entries, 0, sizeof(m_entries));
+    memset(mEntries, 0, sizeof(mEntries));
 }
 
 void Ip6Mpl::InitOption(Ip6OptionMpl &option, uint16_t seed)
 {
     option.Init();
     option.SetSeedLength(Ip6OptionMpl::kSeedLength2);
-    option.SetSequence(m_sequence++);
+    option.SetSequence(mSequence++);
     option.SetSeed(seed);
 }
 
@@ -47,14 +47,14 @@ ThreadError Ip6Mpl::ProcessOption(const Message &message)
 
     for (int i = 0; i < kNumEntries; i++)
     {
-        if (m_entries[i].lifetime == 0)
+        if (mEntries[i].mLifetime == 0)
         {
-            entry = &m_entries[i];
+            entry = &mEntries[i];
         }
-        else if (m_entries[i].seed == option.GetSeed())
+        else if (mEntries[i].mSeed == option.GetSeed())
         {
-            entry = &m_entries[i];
-            diff = option.GetSequence() - entry->sequence;
+            entry = &mEntries[i];
+            diff = option.GetSequence() - entry->mSequence;
 
             if (diff <= 0)
             {
@@ -67,10 +67,10 @@ ThreadError Ip6Mpl::ProcessOption(const Message &message)
 
     VerifyOrExit(entry != NULL, error = kThreadError_Drop);
 
-    entry->seed = option.GetSeed();
-    entry->sequence = option.GetSequence();
-    entry->lifetime = kLifetime;
-    m_timer.Start(1000);
+    entry->mSeed = option.GetSeed();
+    entry->mSequence = option.GetSequence();
+    entry->mLifetime = kLifetime;
+    mTimer.Start(1000);
 
 exit:
     return error;
@@ -84,20 +84,20 @@ void Ip6Mpl::HandleTimer(void *context)
 
 void Ip6Mpl::HandleTimer()
 {
-    bool start_timer = false;
+    bool startTimer = false;
 
     for (int i = 0; i < kNumEntries; i++)
     {
-        if (m_entries[i].lifetime > 0)
+        if (mEntries[i].mLifetime > 0)
         {
-            m_entries[i].lifetime--;
-            start_timer = true;
+            mEntries[i].mLifetime--;
+            startTimer = true;
         }
     }
 
-    if (start_timer)
+    if (startTimer)
     {
-        m_timer.Start(1000);
+        mTimer.Start(1000);
     }
 }
 
