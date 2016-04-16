@@ -78,8 +78,6 @@ private:
     ThreadError ConfigureAddresses();
     ThreadError ConfigureAddress(PrefixTlv &prefix);
 
-    ContextTlv *FindContext(PrefixTlv &prefix);
-
     ThreadError RemoveContext(uint8_t contextId);
     ThreadError RemoveContext(PrefixTlv &prefix, uint8_t contextId);
 

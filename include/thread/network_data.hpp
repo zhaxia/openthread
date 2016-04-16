@@ -34,6 +34,7 @@ protected:
     BorderRouterTlv *FindBorderRouter(PrefixTlv &prefix, bool stable);
     HasRouteTlv *FindHasRoute(PrefixTlv &prefix);
     HasRouteTlv *FindHasRoute(PrefixTlv &prefix, bool stable);
+    ContextTlv *FindContext(PrefixTlv &prefix);
     PrefixTlv *FindPrefix(const uint8_t *prefix, uint8_t prefixLength);
 
     ThreadError Insert(uint8_t *start, uint8_t length);
