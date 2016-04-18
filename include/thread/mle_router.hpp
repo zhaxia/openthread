@@ -148,6 +148,7 @@ private:
     Coap::Resource mAddressRelease;
 
     uint8_t mRouterIdSequence;
+    uint32_t mRouterIdSequenceLastUpdated;
     Router mRouters[kMaxRouterId];
     Child mChildren[kMaxChildren];
 
