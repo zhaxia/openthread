@@ -36,8 +36,7 @@ namespace Mle {
 
 Mle::Mle(ThreadNetif &netif) :
     mNetifHandler(&HandleUnicastAddressesChanged, this),
-    mParentRequestTimer(&HandleParentRequestTimer, this),
-    mSocket(&HandleUdpReceive, this)
+    mParentRequestTimer(&HandleParentRequestTimer, this)
 {
     mNetif = &netif;
     mAddressResolver = netif.GetAddressResolver();
@@ -65,9 +64,9 @@ ThreadError Mle::Init()
 
     // link-local 64
     memset(&mLinkLocal64, 0, sizeof(mLinkLocal64));
-    mLinkLocal64.mAddress.mAddr16[0] = HostSwap16(0xfe80);
-    memcpy(mLinkLocal64.mAddress.mAddr8 + 8, mMesh->GetAddress64(), 8);
-    mLinkLocal64.mAddress.mAddr8[8] ^= 2;
+    mLinkLocal64.GetAddress().m16[0] = HostSwap16(0xfe80);
+    memcpy(mLinkLocal64.GetAddress().m8 + 8, mMesh->GetAddress64(), 8);
+    mLinkLocal64.GetAddress().m8[8] ^= 2;
     mLinkLocal64.mPrefixLength = 64;
     mLinkLocal64.mPreferredLifetime = 0xffffffff;
     mLinkLocal64.mValidLifetime = 0xffffffff;
@@ -75,9 +74,9 @@ ThreadError Mle::Init()
 
     // link-local 16
     memset(&mLinkLocal16, 0, sizeof(mLinkLocal16));
-    mLinkLocal16.mAddress.mAddr16[0] = HostSwap16(0xfe80);
-    mLinkLocal16.mAddress.mAddr16[5] = HostSwap16(0x00ff);
-    mLinkLocal16.mAddress.mAddr16[6] = HostSwap16(0xfe00);
+    mLinkLocal16.GetAddress().m16[0] = HostSwap16(0xfe80);
+    mLinkLocal16.GetAddress().m16[5] = HostSwap16(0x00ff);
+    mLinkLocal16.GetAddress().m16[6] = HostSwap16(0xfe00);
     mLinkLocal16.mPrefixLength = 64;
     mLinkLocal16.mPreferredLifetime = 0xffffffff;
     mLinkLocal16.mValidLifetime = 0xffffffff;
@@ -85,7 +84,7 @@ ThreadError Mle::Init()
     // mesh-local 64
     for (int i = 8; i < 16; i++)
     {
-        mMeshLocal64.mAddress.mAddr8[i] = Random::Get();
+        mMeshLocal64.GetAddress().m8[i] = Random::Get();
     }
 
     mMeshLocal64.mPrefixLength = 64;
@@ -94,23 +93,23 @@ ThreadError Mle::Init()
     mNetif->AddUnicastAddress(mMeshLocal64);
 
     // mesh-local 16
-    mMeshLocal16.mAddress.mAddr16[4] = HostSwap16(0x0000);
-    mMeshLocal16.mAddress.mAddr16[5] = HostSwap16(0x00ff);
-    mMeshLocal16.mAddress.mAddr16[6] = HostSwap16(0xfe00);
+    mMeshLocal16.GetAddress().m16[4] = HostSwap16(0x0000);
+    mMeshLocal16.GetAddress().m16[5] = HostSwap16(0x00ff);
+    mMeshLocal16.GetAddress().m16[6] = HostSwap16(0xfe00);
     mMeshLocal16.mPrefixLength = 64;
     mMeshLocal16.mPreferredLifetime = 0xffffffff;
     mMeshLocal16.mValidLifetime = 0xffffffff;
 
     // link-local all thread nodes
-    mLinkLocalAllThreadNodes.mAddress.mAddr16[0] = HostSwap16(0xff32);
-    mLinkLocalAllThreadNodes.mAddress.mAddr16[6] = HostSwap16(0x0000);
-    mLinkLocalAllThreadNodes.mAddress.mAddr16[7] = HostSwap16(0x0001);
+    mLinkLocalAllThreadNodes.GetAddress().m16[0] = HostSwap16(0xff32);
+    mLinkLocalAllThreadNodes.GetAddress().m16[6] = HostSwap16(0x0000);
+    mLinkLocalAllThreadNodes.GetAddress().m16[7] = HostSwap16(0x0001);
     mNetif->SubscribeMulticast(mLinkLocalAllThreadNodes);
 
     // realm-local all thread nodes
-    mRealmLocalAllThreadNodes.mAddress.mAddr16[0] = HostSwap16(0xff33);
-    mRealmLocalAllThreadNodes.mAddress.mAddr16[6] = HostSwap16(0x0000);
-    mRealmLocalAllThreadNodes.mAddress.mAddr16[7] = HostSwap16(0x0001);
+    mRealmLocalAllThreadNodes.GetAddress().m16[0] = HostSwap16(0xff33);
+    mRealmLocalAllThreadNodes.GetAddress().m16[6] = HostSwap16(0x0000);
+    mRealmLocalAllThreadNodes.GetAddress().m16[7] = HostSwap16(0x0001);
     mNetif->SubscribeMulticast(mRealmLocalAllThreadNodes);
 
     mNetif->RegisterHandler(mNetifHandler);
@@ -122,19 +121,19 @@ exit:
 ThreadError Mle::Start()
 {
     ThreadError error = kThreadError_None;
-    struct sockaddr_in6 sockaddr;
+    SockAddr sockaddr = {};
 
-    memset(&sockaddr, 0, sizeof(sockaddr));
-    // memcpy(&sockaddr.mAddr, &mLinkLocal64.mAddress, sizeof(sockaddr.mAddr));
+    // memcpy(&sockaddr.mAddr, &mLinkLocal64.GetAddress(), sizeof(sockaddr.mAddr));
     sockaddr.mPort = kUdpPort;
-    SuccessOrExit(error = mSocket.Bind(&sockaddr));
+    SuccessOrExit(error = mSocket.Open(&HandleUdpReceive, this));
+    SuccessOrExit(error = mSocket.Bind(sockaddr));
 
     mDeviceState = kDeviceStateDetached;
     SetStateDetached();
 
     if (GetRloc16() == Mac::kShortAddrInvalid)
     {
-        BecomeChild(kJoinAnyPartition);
+        BecomeChild(kAttachAnyPartition);
     }
     else if (GetChildId(GetRloc16()) == 0)
     {
@@ -175,13 +174,13 @@ ThreadError Mle::BecomeDetached()
 
     SetStateDetached();
     SetRloc16(Mac::kShortAddrInvalid);
-    BecomeChild(kJoinAnyPartition);
+    BecomeChild(kAttachAnyPartition);
 
 exit:
     return error;
 }
 
-ThreadError Mle::BecomeChild(JoinMode mode)
+ThreadError Mle::BecomeChild(AttachFilter filter)
 {
     ThreadError error = kThreadError_None;
 
@@ -189,10 +188,10 @@ ThreadError Mle::BecomeChild(JoinMode mode)
                  mParentRequestState == kParentIdle, error = kThreadError_Busy);
 
     mParentRequestState = kParentRequestStart;
-    mParentRequestMode = mode;
+    mParentRequestMode = filter;
     memset(&mParent, 0, sizeof(mParent));
 
-    if (mode == kJoinAnyPartition)
+    if (filter == kAttachAnyPartition)
     {
         mParent.mState = Neighbor::kStateInvalid;
     }
@@ -309,23 +308,23 @@ exit:
 
 const uint8_t *Mle::GetMeshLocalPrefix() const
 {
-    return mMeshLocal16.mAddress.mAddr8;
+    return mMeshLocal16.GetAddress().m8;
 }
 
 ThreadError Mle::SetMeshLocalPrefix(const uint8_t *xpanid)
 {
-    mMeshLocal64.mAddress.mAddr8[0] = 0xfd;
-    memcpy(mMeshLocal64.mAddress.mAddr8 + 1, xpanid, 5);
-    mMeshLocal64.mAddress.mAddr8[6] = 0x00;
-    mMeshLocal64.mAddress.mAddr8[7] = 0x00;
+    mMeshLocal64.GetAddress().m8[0] = 0xfd;
+    memcpy(mMeshLocal64.GetAddress().m8 + 1, xpanid, 5);
+    mMeshLocal64.GetAddress().m8[6] = 0x00;
+    mMeshLocal64.GetAddress().m8[7] = 0x00;
 
-    memcpy(&mMeshLocal16.mAddress, &mMeshLocal64.mAddress, 8);
+    memcpy(&mMeshLocal16.GetAddress(), &mMeshLocal64.GetAddress(), 8);
 
-    mLinkLocalAllThreadNodes.mAddress.mAddr8[3] = 64;
-    memcpy(mLinkLocalAllThreadNodes.mAddress.mAddr8 + 4, &mMeshLocal64.mAddress, 8);
+    mLinkLocalAllThreadNodes.GetAddress().m8[3] = 64;
+    memcpy(mLinkLocalAllThreadNodes.GetAddress().m8 + 4, &mMeshLocal64.GetAddress(), 8);
 
-    mRealmLocalAllThreadNodes.mAddress.mAddr8[3] = 64;
-    memcpy(mRealmLocalAllThreadNodes.mAddress.mAddr8 + 4, &mMeshLocal64.mAddress, 8);
+    mRealmLocalAllThreadNodes.GetAddress().m8[3] = 64;
+    memcpy(mRealmLocalAllThreadNodes.GetAddress().m8 + 4, &mMeshLocal64.GetAddress(), 8);
 
     return kThreadError_None;
 }
@@ -347,12 +346,12 @@ const uint16_t Mle::GetRloc16(uint8_t routerId) const
 
 const Ip6Address *Mle::GetLinkLocalAllThreadNodesAddress() const
 {
-    return &mLinkLocalAllThreadNodes.mAddress;
+    return &mLinkLocalAllThreadNodes.GetAddress();
 }
 
 const Ip6Address *Mle::GetRealmLocalAllThreadNodesAddress() const
 {
-    return &mRealmLocalAllThreadNodes.mAddress;
+    return &mRealmLocalAllThreadNodes.GetAddress();
 }
 
 uint16_t Mle::GetRloc16() const
@@ -365,11 +364,11 @@ ThreadError Mle::SetRloc16(uint16_t rloc16)
     if (rloc16 != Mac::kShortAddrInvalid)
     {
         // link-local 16
-        mLinkLocal16.mAddress.mAddr16[7] = HostSwap16(rloc16);
+        mLinkLocal16.GetAddress().m16[7] = HostSwap16(rloc16);
         mNetif->AddUnicastAddress(mLinkLocal16);
 
         // mesh-local 16
-        mMeshLocal16.mAddress.mAddr16[7] = HostSwap16(rloc16);
+        mMeshLocal16.GetAddress().m16[7] = HostSwap16(rloc16);
         mNetif->AddUnicastAddress(mMeshLocal16);
     }
     else
@@ -390,12 +389,12 @@ uint8_t Mle::GetLeaderId() const
 
 const Ip6Address *Mle::GetMeshLocal16() const
 {
-    return &mMeshLocal16.mAddress;
+    return &mMeshLocal16.GetAddress();
 }
 
 const Ip6Address *Mle::GetMeshLocal64() const
 {
-    return &mMeshLocal64.mAddress;
+    return &mMeshLocal64.GetAddress();
 }
 
 ThreadError Mle::GetLeaderAddress(Ip6Address &address) const
@@ -404,11 +403,11 @@ ThreadError Mle::GetLeaderAddress(Ip6Address &address) const
 
     VerifyOrExit(GetRloc16() != Mac::kShortAddrInvalid, error = kThreadError_Error);
 
-    memcpy(&address, &mMeshLocal16.mAddress, 8);
-    address.mAddr16[4] = HostSwap16(0x0000);
-    address.mAddr16[5] = HostSwap16(0x00ff);
-    address.mAddr16[6] = HostSwap16(0xfe00);
-    address.mAddr16[7] = HostSwap16(GetRloc16(mLeaderData.GetRouterId()));
+    memcpy(&address, &mMeshLocal16.GetAddress(), 8);
+    address.m16[4] = HostSwap16(0x0000);
+    address.m16[5] = HostSwap16(0x00ff);
+    address.m16[6] = HostSwap16(0xfe00);
+    address.m16[7] = HostSwap16(GetRloc16(mLeaderData.GetRouterId()));
 
 exit:
     return error;
@@ -652,12 +651,12 @@ ThreadError Mle::AppendIp6Address(Message &message)
     // compute size of TLV
     for (const NetifUnicastAddress *addr = mNetif->GetUnicastAddresses(); addr; addr = addr->GetNext())
     {
-        if (addr->mAddress.IsLinkLocal() || addr->mAddress == mMeshLocal16.mAddress)
+        if (addr->GetAddress().IsLinkLocal() || addr->GetAddress() == mMeshLocal16.GetAddress())
         {
             continue;
         }
 
-        if (mNetworkData->GetContext(addr->mAddress, context) == kThreadError_None)
+        if (mNetworkData->GetContext(addr->GetAddress(), context) == kThreadError_None)
         {
             // compressed entry
             length += 9;
@@ -675,23 +674,23 @@ ThreadError Mle::AppendIp6Address(Message &message)
     // write entries to message
     for (const NetifUnicastAddress *addr = mNetif->GetUnicastAddresses(); addr; addr = addr->GetNext())
     {
-        if (addr->mAddress.IsLinkLocal() || addr->mAddress == mMeshLocal16.mAddress)
+        if (addr->GetAddress().IsLinkLocal() || addr->GetAddress() == mMeshLocal16.GetAddress())
         {
             continue;
         }
 
-        if (mNetworkData->GetContext(addr->mAddress, context) == kThreadError_None)
+        if (mNetworkData->GetContext(addr->GetAddress(), context) == kThreadError_None)
         {
             // compressed entry
             entry.SetContextId(context.mContextId);
-            entry.SetIid(addr->mAddress.mAddr8 + 8);
+            entry.SetIid(addr->GetAddress().m8 + 8);
             length = 9;
         }
         else
         {
             // uncompressed entry
             entry.SetUncompressed();
-            entry.SetIp6Address(addr->mAddress);
+            entry.SetIp6Address(addr->GetAddress());
             length = 17;
         }
 
@@ -710,12 +709,12 @@ void Mle::HandleUnicastAddressesChanged(void *context)
 
 void Mle::HandleUnicastAddressesChanged()
 {
-    if (!mNetif->IsUnicastAddress(mMeshLocal64.mAddress))
+    if (!mNetif->IsUnicastAddress(mMeshLocal64.GetAddress()))
     {
         // Mesh Local EID was removed, choose a new one and add it back
         for (int i = 8; i < 16; i++)
         {
-            mMeshLocal64.mAddress.mAddr8[i] = Random::Get();
+            mMeshLocal64.GetAddress().m8[i] = Random::Get();
         }
 
         mNetif->AddUnicastAddress(mMeshLocal64);
@@ -760,7 +759,7 @@ void Mle::HandleParentRequestTimer()
 
     case kParentSynchronize:
         mParentRequestState = kParentIdle;
-        BecomeChild(kJoinAnyPartition);
+        BecomeChild(kAttachAnyPartition);
         break;
 
     case kParentRequestStart:
@@ -799,7 +798,7 @@ void Mle::HandleParentRequestTimer()
         {
             switch (mParentRequestMode)
             {
-            case kJoinAnyPartition:
+            case kAttachAnyPartition:
                 if (mDeviceMode & kModeFFD)
                 {
                     mMleRouter->BecomeLeader();
@@ -812,12 +811,12 @@ void Mle::HandleParentRequestTimer()
 
                 break;
 
-            case kJoinSamePartition:
+            case kAttachSamePartition:
                 mParentRequestState = kParentIdle;
-                BecomeChild(kJoinAnyPartition);
+                BecomeChild(kAttachAnyPartition);
                 break;
 
-            case kJoinBetterPartition:
+            case kAttachBetterPartition:
                 mParentRequestState = kParentIdle;
                 break;
             }
@@ -873,8 +872,8 @@ ThreadError Mle::SendParentRequest()
     SuccessOrExit(error = AppendVersion(*message));
 
     memset(&destination, 0, sizeof(destination));
-    destination.mAddr16[0] = HostSwap16(0xff02);
-    destination.mAddr16[7] = HostSwap16(0x0002);
+    destination.m16[0] = HostSwap16(0xff02);
+    destination.m16[7] = HostSwap16(0x0002);
     SuccessOrExit(error = SendMessage(*message, destination));
 
     switch (mParentRequestState)
@@ -926,9 +925,9 @@ ThreadError Mle::SendChildIdRequest()
     SuccessOrExit(error = AppendTlvRequest(*message, tlvs, sizeof(tlvs)));
 
     memset(&destination, 0, sizeof(destination));
-    destination.mAddr16[0] = HostSwap16(0xfe80);
-    memcpy(destination.mAddr8 + 8, &mParent.mMacAddr, sizeof(mParent.mMacAddr));
-    destination.mAddr8[8] ^= 0x2;
+    destination.m16[0] = HostSwap16(0xfe80);
+    memcpy(destination.m8 + 8, &mParent.mMacAddr, sizeof(mParent.mMacAddr));
+    destination.m8[8] ^= 0x2;
     SuccessOrExit(error = SendMessage(*message, destination));
     dprintf("Sent Child ID Request\n");
 
@@ -1053,9 +1052,9 @@ ThreadError Mle::SendChildUpdateRequest()
     }
 
     memset(&destination, 0, sizeof(destination));
-    destination.mAddr16[0] = HostSwap16(0xfe80);
-    memcpy(destination.mAddr8 + 8, &mParent.mMacAddr, sizeof(mParent.mMacAddr));
-    destination.mAddr8[8] ^= 0x2;
+    destination.m16[0] = HostSwap16(0xfe80);
+    memcpy(destination.m8 + 8, &mParent.mMacAddr, sizeof(mParent.mMacAddr));
+    destination.m8[8] ^= 0x2;
     SuccessOrExit(error = SendMessage(*message, destination));
 
     dprintf("Sent Child Update Request\n");
@@ -1103,7 +1102,7 @@ ThreadError Mle::SendMessage(Message &message, const Ip6Address &destination)
     aesCcm.Init(aesEcb, 16 + 16 + header.GetHeaderLength(), message.GetLength() - (header.GetLength() - 1),
                 sizeof(tag), nonce, sizeof(nonce));
 
-    aesCcm.Header(&mLinkLocal64.mAddress, sizeof(mLinkLocal64.mAddress));
+    aesCcm.Header(&mLinkLocal64.GetAddress(), sizeof(mLinkLocal64.GetAddress()));
     aesCcm.Header(&destination, sizeof(destination));
     aesCcm.Header(header.GetBytes() + 1, header.GetHeaderLength());
 
@@ -1122,8 +1121,8 @@ ThreadError Mle::SendMessage(Message &message, const Ip6Address &destination)
     SuccessOrExit(message.Append(tag, tagLength));
 
     memset(&messageInfo, 0, sizeof(messageInfo));
-    memcpy(&messageInfo.mPeerAddr, &destination, sizeof(messageInfo.mPeerAddr));
-    memcpy(&messageInfo.mSockAddr, &mLinkLocal64.mAddress, sizeof(messageInfo.mSockAddr));
+    memcpy(&messageInfo.GetPeerAddr(), &destination, sizeof(messageInfo.GetPeerAddr()));
+    memcpy(&messageInfo.GetSockAddr(), &mLinkLocal64.GetAddress(), sizeof(messageInfo.GetSockAddr()));
     messageInfo.mPeerPort = kUdpPort;
     messageInfo.mInterfaceId = mNetif->GetInterfaceId();
     messageInfo.mHopLimit = 255;
@@ -1136,10 +1135,10 @@ exit:
     return error;
 }
 
-void Mle::HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo)
+void Mle::HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo)
 {
     Mle *obj = reinterpret_cast<Mle *>(context);
-    obj->HandleUdpReceive(message, messageInfo);
+    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6MessageInfo *>(messageInfo));
 }
 
 void Mle::HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo)
@@ -1220,15 +1219,15 @@ void Mle::HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo)
     VerifyOrExit(messageTagLength == sizeof(messageTag), ;);
     SuccessOrExit(message.SetLength(message.GetLength() - sizeof(messageTag)));
 
-    memcpy(&macAddr, messageInfo.mPeerAddr.mAddr8 + 8, sizeof(macAddr));
+    memcpy(&macAddr, messageInfo.GetPeerAddr().m8 + 8, sizeof(macAddr));
     macAddr.mBytes[0] ^= 0x2;
     GenerateNonce(macAddr, frameCounter, Mac::Frame::kSecEncMic32, nonce);
 
     aesEcb.SetKey(mleKey, 16);
-    aesCcm.Init(aesEcb, sizeof(messageInfo.mPeerAddr) + sizeof(messageInfo.mSockAddr) + header.GetHeaderLength(),
+    aesCcm.Init(aesEcb, sizeof(messageInfo.GetPeerAddr()) + sizeof(messageInfo.GetSockAddr()) + header.GetHeaderLength(),
                 message.GetLength() - message.GetOffset(), sizeof(messageTag), nonce, sizeof(nonce));
-    aesCcm.Header(&messageInfo.mPeerAddr, sizeof(messageInfo.mPeerAddr));
-    aesCcm.Header(&messageInfo.mSockAddr, sizeof(messageInfo.mSockAddr));
+    aesCcm.Header(&messageInfo.GetPeerAddr(), sizeof(messageInfo.GetPeerAddr()));
+    aesCcm.Header(&messageInfo.GetSockAddr(), sizeof(messageInfo.GetSockAddr()));
     aesCcm.Header(header.GetBytes() + 1, header.GetHeaderLength());
 
     mleOffset = message.GetOffset();
@@ -1380,7 +1379,7 @@ ThreadError Mle::HandleAdvertisement(const Message &message, const Ip6MessageInf
         SuccessOrExit(error = mMleRouter->HandleAdvertisement(message, messageInfo));
     }
 
-    memcpy(&macAddr, messageInfo.mPeerAddr.mAddr8 + 8, sizeof(macAddr));
+    memcpy(&macAddr, messageInfo.GetPeerAddr().m8 + 8, sizeof(macAddr));
     macAddr.mBytes[0] ^= 0x2;
 
     isNeighbor = false;
@@ -1419,7 +1418,7 @@ ThreadError Mle::HandleAdvertisement(const Message &message, const Ip6MessageInf
 
         if (static_cast<int8_t>(leaderData.GetDataVersion() - mNetworkData->GetVersion()) > 0)
         {
-            SendDataRequest(messageInfo.mPeerAddr, tlvs, sizeof(tlvs));
+            SendDataRequest(messageInfo.GetPeerAddr(), tlvs, sizeof(tlvs));
         }
     }
 
@@ -1438,7 +1437,7 @@ ThreadError Mle::HandleDataRequest(const Message &message, const Ip6MessageInfo 
     SuccessOrExit(error = Tlv::GetTlv(message, Tlv::kTlvRequest, sizeof(tlvRequest), tlvRequest));
     VerifyOrExit(tlvRequest.IsValid(), error = kThreadError_Parse);
 
-    SendDataResponse(messageInfo.mPeerAddr, tlvRequest.GetTlvs(), tlvRequest.GetLength());
+    SendDataResponse(messageInfo.GetPeerAddr(), tlvRequest.GetTlvs(), tlvRequest.GetLength());
 
 exit:
     return error;
@@ -1533,10 +1532,10 @@ ThreadError Mle::HandleParentResponse(const Message &message, const Ip6MessageIn
     {
         switch (mParentRequestMode)
         {
-        case kJoinAnyPartition:
+        case kAttachAnyPartition:
             break;
 
-        case kJoinSamePartition:
+        case kAttachSamePartition:
             if (peerPartitionId != mLeaderData.GetPartitionId())
             {
                 ExitNow();
@@ -1544,7 +1543,7 @@ ThreadError Mle::HandleParentResponse(const Message &message, const Ip6MessageIn
 
             break;
 
-        case kJoinBetterPartition:
+        case kAttachBetterPartition:
             dprintf("partition info  %d %d %d %d\n",
                     leaderData.GetWeighting(), peerPartitionId,
                     mLeaderData.GetWeighting(), mLeaderData.GetPartitionId());
@@ -1618,7 +1617,7 @@ ThreadError Mle::HandleParentResponse(const Message &message, const Ip6MessageIn
     memcpy(mChildIdRequest.mChallenge, challenge.GetChallenge(), challenge.GetLength());
     mChildIdRequest.mChallengeLength = challenge.GetLength();
 
-    memcpy(&mParent.mMacAddr, messageInfo.mPeerAddr.mAddr8 + 8, sizeof(mParent.mMacAddr));
+    memcpy(&mParent.mMacAddr, messageInfo.GetPeerAddr().m8 + 8, sizeof(mParent.mMacAddr));
     mParent.mMacAddr.mBytes[0] ^= 0x2;
     mParent.mValid.mRloc16 = sourceAddress.GetRloc16();
     mParent.mValid.mLinkFrameCounter = linkFrameCounter.GetFrameCounter();
@@ -1755,7 +1754,7 @@ ThreadError Mle::HandleChildUpdateResponse(const Message &message, const Ip6Mess
 
         if (static_cast<int8_t>(leaderData.GetDataVersion() - mNetworkData->GetVersion()) > 0)
         {
-            SendDataRequest(messageInfo.mPeerAddr, tlvs, sizeof(tlvs));
+            SendDataRequest(messageInfo.GetPeerAddr(), tlvs, sizeof(tlvs));
         }
 
         // Source Address
@@ -1860,7 +1859,7 @@ ThreadError Mle::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshds
     }
 
     memcpy(&dst, GetMeshLocal16(), 14);
-    dst.mAddr16[7] = HostSwap16(meshsrc);
+    dst.m16[7] = HostSwap16(meshsrc);
     Icmp6::SendError(dst, Icmp6Header::kTypeDstUnreach, Icmp6Header::kCodeDstUnreachNoRoute, ip6Header);
 
 exit:

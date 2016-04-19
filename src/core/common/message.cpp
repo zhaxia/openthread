@@ -38,8 +38,8 @@ Buffer *NewBuffer()
     VerifyOrExit(sFreeBuffers != NULL, ;);
 
     buffer = sFreeBuffers;
-    sFreeBuffers = sFreeBuffers->mHeader.mNext;
-    buffer->mHeader.mNext = NULL;
+    sFreeBuffers = sFreeBuffers->GetNextBuffer();
+    buffer->SetNextBuffer(NULL);
     sNumFreeBuffers--;
 
 exit:
@@ -52,8 +52,8 @@ ThreadError FreeBuffers(Buffer *buffers)
 
     while (buffers != NULL)
     {
-        tmpBuffer = buffers->mHeader.mNext;
-        buffers->mHeader.mNext = sFreeBuffers;
+        tmpBuffer = buffers->GetNextBuffer();
+        buffers->SetNextBuffer(sFreeBuffers);
         sFreeBuffers = buffers;
         sNumFreeBuffers++;
         buffers = tmpBuffer;
@@ -73,10 +73,10 @@ ThreadError Message::Init()
 
     for (int i = 0; i < kNumBuffers - 1; i++)
     {
-        sBuffers[i].mHeader.mNext = &sBuffers[i + 1];
+        sBuffers[i].SetNextBuffer(&sBuffers[i + 1]);
     }
 
-    sBuffers[kNumBuffers - 1].mHeader.mNext = NULL;
+    sBuffers[kNumBuffers - 1].SetNextBuffer(NULL);
     sNumFreeBuffers = kNumBuffers;
 
     return kThreadError_None;
@@ -117,19 +117,19 @@ ThreadError Message::ResizeMessage(uint16_t length)
 
     while (curLength < length)
     {
-        if (curBuffer->mHeader.mNext == NULL)
+        if (curBuffer->GetNextBuffer() == NULL)
         {
-            curBuffer->mHeader.mNext = NewBuffer();
+            curBuffer->SetNextBuffer(NewBuffer());
         }
 
-        curBuffer = curBuffer->mHeader.mNext;
+        curBuffer = curBuffer->GetNextBuffer();
         curLength += kBufferDataSize;
     }
 
     // remove buffers
     lastBuffer = curBuffer;
-    curBuffer = curBuffer->mHeader.mNext;
-    lastBuffer->mHeader.mNext = NULL;
+    curBuffer = curBuffer->GetNextBuffer();
+    lastBuffer->SetNextBuffer(NULL);
 
     FreeBuffers(curBuffer);
 
@@ -257,13 +257,13 @@ int Message::Read(uint16_t offset, uint16_t length, void *buf) const
     }
 
     // advance to offset
-    curBuffer = mHeader.mNext;
+    curBuffer = GetNextBuffer();
 
     while (offset >= kBufferDataSize)
     {
         assert(curBuffer != NULL);
 
-        curBuffer = curBuffer->mHeader.mNext;
+        curBuffer = curBuffer->GetNextBuffer();
         offset -= kBufferDataSize;
     }
 
@@ -285,7 +285,7 @@ int Message::Read(uint16_t offset, uint16_t length, void *buf) const
         bytesCopied += bytesToCopy;
         buf = reinterpret_cast<uint8_t *>(buf) + bytesToCopy;
 
-        curBuffer = curBuffer->mHeader.mNext;
+        curBuffer = curBuffer->GetNextBuffer();
         offset = 0;
     }
 
@@ -332,13 +332,13 @@ int Message::Write(uint16_t offset, uint16_t length, const void *buf)
     }
 
     // advance to offset
-    curBuffer = mHeader.mNext;
+    curBuffer = GetNextBuffer();
 
     while (offset >= kBufferDataSize)
     {
         assert(curBuffer != NULL);
 
-        curBuffer = curBuffer->mHeader.mNext;
+        curBuffer = curBuffer->GetNextBuffer();
         offset -= kBufferDataSize;
     }
 
@@ -360,7 +360,7 @@ int Message::Write(uint16_t offset, uint16_t length, const void *buf)
         bytesCopied += bytesToCopy;
         buf = reinterpret_cast<const uint8_t *>(buf) + bytesToCopy;
 
-        curBuffer = curBuffer->mHeader.mNext;
+        curBuffer = curBuffer->GetNextBuffer();
         offset = 0;
     }
 
@@ -452,13 +452,13 @@ uint16_t Message::UpdateChecksum(uint16_t checksum, uint16_t offset, uint16_t le
     }
 
     // advance to offset
-    curBuffer = mHeader.mNext;
+    curBuffer = GetNextBuffer();
 
     while (offset >= kBufferDataSize)
     {
         assert(curBuffer != NULL);
 
-        curBuffer = curBuffer->mHeader.mNext;
+        curBuffer = curBuffer->GetNextBuffer();
         offset -= kBufferDataSize;
     }
 
@@ -479,7 +479,7 @@ uint16_t Message::UpdateChecksum(uint16_t checksum, uint16_t offset, uint16_t le
         length -= bytesToCover;
         bytesCovered += bytesToCover;
 
-        curBuffer = curBuffer->mHeader.mNext;
+        curBuffer = curBuffer->GetNextBuffer();
         offset = 0;
     }
 

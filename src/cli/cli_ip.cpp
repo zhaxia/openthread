@@ -41,8 +41,8 @@ int Ip::PrintUsage(char *buf, uint16_t bufLength)
 
     snprintf(cur, end - cur,
              "usage: ip\r\n"
-             "  addr add <addr> dev <dev>\r\n"
-             "  addr del <addr> dev <dev>\r\n");
+             "  addr add <addr>\r\n"
+             "  addr del <addr>\r\n");
     cur += strlen(cur);
 
     return cur - buf;
@@ -53,23 +53,13 @@ ThreadError Ip::AddAddress(int argc, char *argv[])
     ThreadError error = kThreadError_Error;
     int argcur = 0;
 
-    SuccessOrExit(error = mAddress.mAddress.FromString(argv[argcur]));
+    SuccessOrExit(error = otIp6AddressFromString(argv[argcur], &mAddress.mAddress));
     VerifyOrExit(++argcur < argc, error = kThreadError_Parse);
 
-    VerifyOrExit(strcmp(argv[argcur], "dev") == 0, error = kThreadError_Parse);
-    VerifyOrExit(++argcur < argc, error = kThreadError_Parse);
-
-    for (Netif *netif = Netif::GetNetifList(); netif; netif = netif->GetNext())
-    {
-        if (strcmp(netif->GetName(), argv[argcur]) == 0)
-        {
-            mAddress.mPrefixLength = 64;
-            mAddress.mPreferredLifetime = 0xffffffff;
-            mAddress.mValidLifetime = 0xffffffff;
-            netif->AddUnicastAddress(mAddress);
-            ExitNow(error = kThreadError_None);
-        }
-    }
+    mAddress.mPrefixLength = 64;
+    mAddress.mPreferredLifetime = 0xffffffff;
+    mAddress.mValidLifetime = 0xffffffff;
+    ExitNow(error = otAddUnicastAddress(&mAddress));
 
 exit:
     return error;
@@ -80,23 +70,12 @@ ThreadError Ip::DeleteAddress(int argc, char *argv[])
     ThreadError error;
     int argcur = 0;
 
-    Ip6Address address;
+    struct otIp6Address address;
 
-    SuccessOrExit(error = address.FromString(argv[argcur]));
+    SuccessOrExit(error = otIp6AddressFromString(argv[argcur], &address));
     VerifyOrExit(++argcur < argc, error = kThreadError_Parse);
-    VerifyOrExit(address == mAddress.mAddress, error = kThreadError_Error);
-
-    VerifyOrExit(strcmp(argv[argcur], "dev") == 0, error = kThreadError_Parse);
-    VerifyOrExit(++argcur < argc, error = kThreadError_Parse);
-
-    for (Netif *netif = Netif::GetNetifList(); netif; netif = netif->GetNext())
-    {
-        if (strcmp(netif->GetName(), argv[argcur]) == 0)
-        {
-            SuccessOrExit(error = netif->RemoveUnicastAddress(mAddress));
-            ExitNow(error = kThreadError_None);
-        }
-    }
+    VerifyOrExit(otIsIp6AddressEqual(&address, &mAddress.mAddress), error = kThreadError_Error);
+    ExitNow(error = otRemoveUnicastAddress(&mAddress));
 
 exit:
     return error;

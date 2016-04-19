@@ -17,30 +17,31 @@
 #ifndef UDP6_HPP_
 #define UDP6_HPP_
 
+#include <openthread.h>
 #include <net/ip6.hpp>
 
 namespace Thread {
 
-class Udp6Socket: private Socket
+class Udp6Socket: public otUdp6Socket
 {
     friend class Udp6;
 
 public:
-    typedef void (*ReceiveHandler)(void *context, Message &message, const Ip6MessageInfo &messageInfo);
-
-    Udp6Socket(ReceiveHandler handler, void *context);
-    ThreadError Bind(const struct sockaddr_in6 *address);
+    ThreadError Open(otUdp6Receive handler, void *context);
+    ThreadError Bind(const SockAddr &sockname);
     ThreadError Close();
     ThreadError SendTo(Message &message, const Ip6MessageInfo &messageInfo);
 
+    Udp6Socket *GetNext() { return static_cast<Udp6Socket *>(mNext); }
+    void SetNext(Udp6Socket *socket) { mNext = static_cast<otUdp6Socket *>(socket); }
+
+    SockAddr &GetSockName() { return *static_cast<SockAddr *>(&mSockName); }
+    SockAddr &GetPeerName() { return *static_cast<SockAddr *>(&mPeerName); }
+
 private:
     void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo) {
-        mHandler(mContext, message, messageInfo);
+        mHandler(mContext, &message, &messageInfo);
     }
-
-    ReceiveHandler mHandler;
-    void *mContext;
-    Udp6Socket *mNext;
 };
 
 class Udp6

@@ -24,19 +24,19 @@
 extern "C" {
 #endif
 
-pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t s_cond = PTHREAD_COND_INITIALIZER;
+pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t g_cond = PTHREAD_COND_INITIALIZER;
 
 uint32_t atomic_begin()
 {
-    pthread_mutex_lock(&s_mutex);
+    pthread_mutex_lock(&g_mutex);
     return 0;
 }
 
 void atomic_end(uint32_t state)
 {
-    pthread_mutex_unlock(&s_mutex);
-    pthread_cond_signal(&s_cond);
+    pthread_mutex_unlock(&g_mutex);
+    pthread_cond_signal(&g_cond);
 }
 
 #ifdef __cplusplus

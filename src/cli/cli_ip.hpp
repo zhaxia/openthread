@@ -17,8 +17,8 @@
 #ifndef CLI_IP_HPP_
 #define CLI_IP_HPP_
 
+#include <openthread.h>
 #include <cli/cli_command.hpp>
-#include <net/netif.hpp>
 
 namespace Thread {
 namespace Cli {
@@ -35,7 +35,7 @@ private:
     ThreadError AddAddress(int argc, char *argv[]);
     ThreadError DeleteAddress(int argc, char *argv[]);
 
-    NetifUnicastAddress mAddress;
+    struct otNetifAddress mAddress;
 };
 
 }  // namespace Cli

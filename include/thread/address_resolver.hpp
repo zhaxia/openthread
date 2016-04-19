@@ -75,7 +75,7 @@ private:
                                   const Ip6Address &destination);
     void SendAddressNotificationResponse(const Coap::Header &requestHeader, const Ip6MessageInfo &messageInfo);
 
-    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo);
+    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
 
     static void HandleAddressError(void *context, Coap::Header &header,
                                    Message &message, const Ip6MessageInfo &messageInfo);

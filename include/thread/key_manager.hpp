@@ -29,7 +29,7 @@ class KeyManager
 {
 public:
     explicit KeyManager(ThreadNetif &netif);
-    ThreadError GetMasterKey(void *key, uint8_t *keyLength) const;
+    const uint8_t *GetMasterKey(uint8_t *keyLength) const;
     ThreadError SetMasterKey(const void *key, uint8_t keyLength);
 
     uint32_t GetCurrentKeySequence() const;

@@ -92,7 +92,7 @@ void Ping::Run(int argc, char *argv[], Server &server)
         }
         else
         {
-            VerifyOrExit(mSockAddr.mAddr.FromString(argv[i]) == kThreadError_None, ;);
+            VerifyOrExit(mSockAddr.GetAddress().FromString(argv[i]) == kThreadError_None, ;);
             EchoRequest();
             return;
         }
@@ -124,7 +124,7 @@ void Ping::HandleEchoResponse(Message &message, const Ip6MessageInfo &messageInf
     snprintf(cur, end - cur, "%d bytes from ", message.GetLength() - message.GetOffset());
     cur += strlen(cur);
 
-    messageInfo.mPeerAddr.ToString(cur, end - cur);
+    messageInfo.GetPeerAddr().ToString(cur, end - cur);
     cur += strlen(cur);
 
     netif = Netif::GetNetifById(messageInfo.mInterfaceId);

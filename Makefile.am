@@ -21,6 +21,7 @@ AM_MAKEFLAGS                        = --no-print-directory
 SUBDIRS                             = \
     src                               \
     tests                             \
+    doc                               \
     $(NULL)
 
 EXTRA_DIST                          = \

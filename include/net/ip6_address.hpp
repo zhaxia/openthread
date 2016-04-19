@@ -19,11 +19,12 @@
 
 #include <stdint.h>
 
+#include <openthread.h>
 #include <common/thread_error.hpp>
 
 namespace Thread {
 
-class Ip6Address
+class Ip6Address: public otIp6Address
 {
 public:
     enum
@@ -58,20 +59,6 @@ public:
 
     ThreadError FromString(const char *buf);
     const char *ToString(char *buf, uint16_t size) const;
-
-    union
-    {
-        uint8_t  mAddr8[16];
-        uint16_t mAddr16[8];
-        uint32_t mAddr32[4];
-    };
-};
-
-struct sockaddr_in6
-{
-    uint16_t   mPort;
-    Ip6Address mAddr;
-    uint8_t    mScopeId;
 };
 
 }  // namespace Thread

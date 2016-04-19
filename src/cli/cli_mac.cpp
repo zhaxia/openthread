@@ -16,19 +16,24 @@
 
 #include <stdlib.h>
 
+#include <openthread.h>
+
 #include <cli/cli.hpp>
 #include <cli/cli_mac.hpp>
 #include <common/code_utils.hpp>
 
 namespace Thread {
+
+extern ThreadNetif sThreadNetif;
+
 namespace Cli {
 
 static const char kName[] = "mac";
 
-Mac::Mac(Server &server, ThreadNetif &netif):
+Mac::Mac(Server &server):
     Command(server)
 {
-    mMac = netif.GetMac();
+    mMac = sThreadNetif.GetMac();
     mServer = &server;
 }
 
@@ -101,8 +106,7 @@ int Mac::ProcessWhitelist(int argc, char *argv[], char *buf, uint16_t bufLength)
     int argcur = 0;
     int rval;
 
-    Thread::Mac::Address64 macaddr;
-    int entry;
+    uint8_t extAddr[8];
     int8_t rssi;
 
     if (argcur >= argc)
@@ -112,32 +116,36 @@ int Mac::ProcessWhitelist(int argc, char *argv[], char *buf, uint16_t bufLength)
     else if (strcmp(argv[argcur], "add") == 0)
     {
         VerifyOrExit(++argcur < argc, rval = -1);
-        VerifyOrExit(hex2bin(argv[argcur], macaddr.mBytes, sizeof(macaddr.mBytes)) == sizeof(macaddr.mBytes), rval = -1);
-        VerifyOrExit((entry = mMac->GetWhitelist()->Add(macaddr)) >= 0, rval = -1);
+        VerifyOrExit(hex2bin(argv[argcur], extAddr, sizeof(extAddr)) == sizeof(extAddr), rval = -1);
 
         if (++argcur < argc)
         {
             rssi = strtol(argv[argcur], NULL, 0);
-            mMac->GetWhitelist()->SetRssi(entry, rssi);
+            VerifyOrExit(otAddMacWhitelistRssi(extAddr, rssi) == kThreadError_None, rval = -1);
+        }
+        else
+        {
+            otAddMacWhitelist(extAddr);
+            VerifyOrExit(otAddMacWhitelist(extAddr) == kThreadError_None, rval = -1);
         }
     }
     else if (strcmp(argv[argcur], "clear") == 0)
     {
-        mMac->GetWhitelist()->Clear();
+        otClearMacWhitelist();
     }
     else if (strcmp(argv[argcur], "disable") == 0)
     {
-        mMac->GetWhitelist()->Disable();
+        otDisableMacWhitelist();
     }
     else if (strcmp(argv[argcur], "enable") == 0)
     {
-        mMac->GetWhitelist()->Enable();
+        otEnableMacWhitelist();
     }
     else if (strcmp(argv[argcur], "remove") == 0)
     {
         VerifyOrExit(++argcur < argc, rval = -1);
-        VerifyOrExit(hex2bin(argv[argcur], macaddr.mBytes, sizeof(macaddr.mBytes)) == sizeof(macaddr.mBytes), rval = -1);
-        VerifyOrExit(mMac->GetWhitelist()->Remove(macaddr) == kThreadError_None, rval = -1);
+        VerifyOrExit(hex2bin(argv[argcur], extAddr, sizeof(extAddr)) == sizeof(extAddr), rval = -1);
+        VerifyOrExit(otRemoveMacWhitelist(extAddr) == kThreadError_None, rval = -1);
     }
 
     rval = cur - buf;
@@ -161,17 +169,16 @@ void Mac::Run(int argc, char *argv[], Server &server)
         }
         else if (strcmp(argv[i], "addr16") == 0)
         {
-            Thread::Mac::Address16 addr16 = mMac->GetAddress16();
+            uint16_t addr16 = otGetRloc16();
             snprintf(cur, end - cur, "%04x\r\n", addr16);
             cur += strlen(cur);
             ExitNow(error = kThreadError_None);
         }
         else if (strcmp(argv[i], "addr64") == 0)
         {
-            const Thread::Mac::Address64 *addr64 = mMac->GetAddress64();
+            const uint8_t *addr64 = otGetExtendedAddress();
             snprintf(cur, end - cur, "%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
-                     addr64->mBytes[0], addr64->mBytes[1], addr64->mBytes[2], addr64->mBytes[3],
-                     addr64->mBytes[4], addr64->mBytes[5], addr64->mBytes[6], addr64->mBytes[7]);
+                     addr64[0], addr64[1], addr64[2], addr64[3], addr64[4], addr64[5], addr64[6], addr64[7]);
             cur += strlen(cur);
             ExitNow(error = kThreadError_None);
         }
@@ -179,7 +186,7 @@ void Mac::Run(int argc, char *argv[], Server &server)
         {
             if (++i >= argc)
             {
-                uint8_t channel = mMac->GetChannel();
+                uint8_t channel = otGetChannel();
                 snprintf(cur, end - cur, "%d\r\n", channel);
                 cur += strlen(cur);
                 ExitNow(error = kThreadError_None);
@@ -187,27 +194,25 @@ void Mac::Run(int argc, char *argv[], Server &server)
 
             uint8_t channel;
             channel = strtol(argv[i], NULL, 0);
-            mMac->SetChannel(channel);
-            ExitNow(error = kThreadError_None);
+            ExitNow(error = otSetChannel(channel));
         }
         else if (strcmp(argv[i], "name") == 0)
         {
             if (++i >= argc)
             {
-                const char *name = mMac->GetNetworkName();
+                const char *name = otGetNetworkName();
                 snprintf(cur, end - cur, "%s\r\n", name);
                 cur += strlen(cur);
                 ExitNow(error = kThreadError_None);
             }
 
-            mMac->SetNetworkName(argv[i]);
-            ExitNow(error = kThreadError_None);
+            ExitNow(error = otSetNetworkName(argv[i]));
         }
         else if (strcmp(argv[i], "panid") == 0)
         {
             if (++i >= argc)
             {
-                uint16_t panid = mMac->GetPanId();
+                uint16_t panid = otGetPanId();
                 snprintf(cur, end - cur, "%04x\r\n", panid);
                 cur += strlen(cur);
                 ExitNow(error = kThreadError_None);
@@ -215,8 +220,7 @@ void Mac::Run(int argc, char *argv[], Server &server)
 
             uint16_t panid;
             panid = strtol(argv[i], NULL, 0);
-            mMac->SetPanId(panid);
-            ExitNow(error = kThreadError_None);
+            ExitNow(error = otSetPanId(panid));
         }
         else if (strcmp(argv[i], "scan") == 0)
         {
@@ -236,7 +240,7 @@ void Mac::Run(int argc, char *argv[], Server &server)
         {
             if (++i >= argc)
             {
-                const uint8_t *xpanid = mMac->GetExtendedPanId();
+                const uint8_t *xpanid = otGetExtendedPanId();
                 snprintf(cur, end - cur, "%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
                          xpanid[0], xpanid[1], xpanid[2], xpanid[3], xpanid[4], xpanid[5], xpanid[6], xpanid[7]);
                 cur += strlen(cur);
@@ -248,7 +252,7 @@ void Mac::Run(int argc, char *argv[], Server &server)
 
             VerifyOrExit(hex2bin(argv[i], xpanid, sizeof(xpanid)) >= 0, error = kThreadError_InvalidArgs);
 
-            mMac->SetExtendedPanId(xpanid);
+            otSetExtendedPanId(xpanid);
             ExitNow(error = kThreadError_None);
         }
     }

@@ -24,8 +24,7 @@
 namespace Thread {
 namespace NetworkData {
 
-Local::Local(ThreadNetif &netif):
-    mSocket(&HandleUdpReceive, this)
+Local::Local(ThreadNetif &netif)
 {
     mMle = netif.GetMle();
 }
@@ -186,7 +185,7 @@ ThreadError Local::Register(const Ip6Address &destination)
     Ip6MessageInfo messageInfo;
 
     UpdateRloc();
-    mSocket.Bind(NULL);
+    mSocket.Open(&HandleUdpReceive, this);
 
     for (size_t i = 0; i < sizeof(mCoapToken); i++)
     {
@@ -223,10 +222,10 @@ exit:
     return error;
 }
 
-void Local::HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo)
+void Local::HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo)
 {
     Local *obj = reinterpret_cast<Local *>(context);
-    obj->HandleUdpReceive(message, messageInfo);
+    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6MessageInfo *>(messageInfo));
 }
 
 void Local::HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo)

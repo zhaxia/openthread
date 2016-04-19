@@ -17,26 +17,25 @@
 #ifndef NET_SOCKET_HPP_
 #define NET_SOCKET_HPP_
 
+#include <openthread.h>
 #include <net/ip6_address.hpp>
 
 namespace Thread {
 
-typedef struct
+class Ip6MessageInfo: public otMessageInfo
 {
-    Ip6Address mSockAddr;
-    Ip6Address mPeerAddr;
-    uint16_t mPeerPort;
-    uint16_t mSockPort;
-    uint8_t mInterfaceId;
-    uint8_t mHopLimit;
-    const void *mLinkInfo;
-} Ip6MessageInfo;
+public:
+    Ip6Address &GetSockAddr() { return *static_cast<Ip6Address *>(&mSockAddr);}
+    const Ip6Address &GetSockAddr() const { return *static_cast<const Ip6Address *>(&mSockAddr);}
+    Ip6Address &GetPeerAddr() { return *static_cast<Ip6Address *>(&mPeerAddr);}
+    const Ip6Address &GetPeerAddr() const { return *static_cast<const Ip6Address *>(&mPeerAddr);}
+};
 
-class Socket
+class SockAddr: public otSockAddr
 {
-protected:
-    struct sockaddr_in6 mSockName;
-    struct sockaddr_in6 mPeerName;
+public:
+    Ip6Address &GetAddress() { return *static_cast<Ip6Address *>(&mAddress); }
+    const Ip6Address &GetAddress() const { return *static_cast<const Ip6Address *>(&mAddress); }
 };
 
 }  // namespace Thread

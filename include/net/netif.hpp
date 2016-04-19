@@ -37,20 +37,16 @@ public :
     Mac::Address64 mAddress64;
 };
 
-class NetifUnicastAddress
+class NetifUnicastAddress: public otNetifAddress
 {
     friend class Netif;
 
 public:
-    const NetifUnicastAddress *GetNext() const { return mNext; }
+    const Ip6Address &GetAddress() const { return *static_cast<const Ip6Address *>(&mAddress); }
+    Ip6Address &GetAddress() { return *static_cast<Ip6Address *>(&mAddress); }
 
-    Ip6Address mAddress;
-    uint32_t mPreferredLifetime;
-    uint32_t mValidLifetime;
-    uint8_t mPrefixLength;
-
-private:
-    NetifUnicastAddress *mNext;
+    const NetifUnicastAddress *GetNext() const { return static_cast<const NetifUnicastAddress *>(mNext); }
+    NetifUnicastAddress *GetNext() { return static_cast<NetifUnicastAddress *>(mNext); }
 };
 
 class NetifMulticastAddress
@@ -59,6 +55,9 @@ class NetifMulticastAddress
 
 public:
     const NetifMulticastAddress *GetNext() const { return mNext; }
+
+    const Ip6Address &GetAddress() const { return *static_cast<const Ip6Address *>(&mAddress); }
+    Ip6Address &GetAddress() { return *static_cast<Ip6Address *>(&mAddress); }
 
     Ip6Address mAddress;
 

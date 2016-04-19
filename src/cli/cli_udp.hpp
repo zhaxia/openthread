@@ -17,11 +17,9 @@
 #ifndef CLI_UDP_HPP_
 #define CLI_UDP_HPP_
 
+#include <openthread.h>
 #include <cli/cli_server.hpp>
 #include <common/thread_error.hpp>
-#include <common/message.hpp>
-#include <net/socket.hpp>
-#include <net/udp6.hpp>
 
 namespace Thread {
 namespace Cli {
@@ -31,16 +29,15 @@ class Command;
 class Udp: public Server
 {
 public:
-    Udp();
     ThreadError Start() final;
     ThreadError Output(const char *buf, uint16_t bufLength) final;
 
 private:
-    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo);
-    void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
+    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
+    void HandleUdpReceive(otMessage message, const otMessageInfo *messageInfo);
 
-    Udp6Socket mSocket;
-    Ip6MessageInfo mPeer;
+    otUdp6Socket mSocket;
+    otMessageInfo mPeer;
 };
 
 }  // namespace Cli

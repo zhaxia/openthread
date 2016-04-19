@@ -21,8 +21,7 @@
 namespace Thread {
 namespace Coap {
 
-Server::Server(uint16_t port):
-    mSocket(&HandleUdpReceive, this)
+Server::Server(uint16_t port)
 {
     mPort = port;
 }
@@ -30,11 +29,11 @@ Server::Server(uint16_t port):
 ThreadError Server::Start()
 {
     ThreadError error;
-    struct sockaddr_in6 sockaddr;
-
-    memset(&sockaddr, 0, sizeof(sockaddr));
+    SockAddr sockaddr = {};
     sockaddr.mPort = mPort;
-    SuccessOrExit(error = mSocket.Bind(&sockaddr));
+
+    SuccessOrExit(error = mSocket.Open(&HandleUdpReceive, this));
+    SuccessOrExit(error = mSocket.Bind(sockaddr));
 
 exit:
     return error;
@@ -61,10 +60,10 @@ exit:
     return error;
 }
 
-void Server::HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo)
+void Server::HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo)
 {
     Server *obj = reinterpret_cast<Server *>(context);
-    obj->HandleUdpReceive(message, messageInfo);
+    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6MessageInfo *>(messageInfo));
 }
 
 void Server::HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo)

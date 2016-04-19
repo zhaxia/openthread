@@ -18,8 +18,6 @@
 #define CLI_THREAD_HPP_
 
 #include <cli/cli_command.hpp>
-#include <thread/mle.hpp>
-#include <thread/thread_netif.hpp>
 
 namespace Thread {
 namespace Cli {
@@ -27,25 +25,18 @@ namespace Cli {
 class Thread: public Command
 {
 public:
-    explicit Thread(Server &server, ThreadNetif &netif);
+    explicit Thread(Server &server);
     const char *GetName() final;
     void Run(int argc, char *argv[], Server &server) final;
 
 private:
     int PrintUsage(char *buf, uint16_t bufLength);
-    int PrintAddressCache(char *buf, uint16_t bufLength);
-    int PrintChildren(char *buf, uint16_t bufLength);
     int PrintHoldTime(char *buf, uint16_t bufLength);
     int PrintKey(char *buf, uint16_t bufLength);
     int PrintKeySequence(char *buf, uint16_t bufLength);
     int PrintLeaderData(char *buf, uint16_t bufLength);
     int PrintMode(char *buf, uint16_t bufLength);
-    int PrintRouters(char *buf, uint16_t bufLength);
-    int PrintRoutes(char *buf, uint16_t bufLength);
     int PrintState(char *buf, uint16_t bufLength);
-
-    Mle::MleRouter *mMle;
-    ThreadNetif *mNetif;
 };
 
 }  // namespace Cli

@@ -18,6 +18,7 @@
 
 #include <platform/posix/cmdline.h>
 
+#include <openthread.h>
 #include <cli/cli_ifconfig.hpp>
 #include <cli/cli_ip.hpp>
 #include <cli/cli_mac.hpp>
@@ -26,29 +27,26 @@
 #include <cli/cli_route.hpp>
 #include <cli/cli_shutdown.hpp>
 #include <cli/cli_thread.hpp>
-#include <common/random.hpp>
-#include <common/message.hpp>
-#include <common/tasklet.hpp>
-#include <common/timer.hpp>
+#include <platform/atomic.hpp>
+#include <platform/sleep.hpp>
 #include <platform/posix/cli_posix.hpp>
-#include <thread/thread_netif.hpp>
 
 struct gengetopt_args_info args_info;
-
-Thread::ThreadNetif sThreadNetif;
 
 Thread::Cli::Socket sCliServer;
 Thread::Cli::Ifconfig sCliIfconfig(sCliServer);
 Thread::Cli::Ip sCliIp(sCliServer);
-Thread::Cli::Mac sCliMac(sCliServer, sThreadNetif);
-Thread::Cli::NetData sCliNetdata(sCliServer, sThreadNetif);
+Thread::Cli::Mac sCliMac(sCliServer);
+Thread::Cli::NetData sCliNetdata(sCliServer);
 Thread::Cli::Ping sCliPing(sCliServer);
 Thread::Cli::Route sCliRoute(sCliServer);
 Thread::Cli::Shutdown sCliShutdown(sCliServer);
-Thread::Cli::Thread sCliThread(sCliServer, sThreadNetif);
+Thread::Cli::Thread sCliThread(sCliServer);
 
 int main(int argc, char *argv[])
 {
+    uint32_t atomic_state;
+
     memset(&args_info, 0, sizeof(args_info));
 
     if (cmdline_parser(argc, argv, &args_info) != 0)
@@ -56,13 +54,18 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    Thread::Message::Init();
-    Thread::Random::Init(args_info.nodeid_arg);
-    Thread::Timer::Init();
-
-    sThreadNetif.Init();
+    otInit(args_info.nodeid_arg);
     sCliServer.Start();
 
-    Thread::TaskletScheduler::Run();
+    while (1)
+    {
+	otProcessNextTasklet();
+
+	atomic_state = atomic_begin();
+	if (!otAreTaskletsPending())
+	    sleep_start();
+	atomic_end(atomic_state);
+    }
+
     return 0;
 }
