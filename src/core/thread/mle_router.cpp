@@ -114,7 +114,7 @@ int MleRouter::AllocateRouterId(uint8_t routerId)
 
     // bump sequence number
     mRouterIdSequence++;
-    mRouters[mRouterId].mLastHeard = Timer::GetNow();
+    mRouterIdSequenceLastUpdated = Timer::GetNow();
     rval = routerId;
 
     dprintf("add router id %d\n", routerId);
@@ -131,6 +131,7 @@ ThreadError MleRouter::ReleaseRouterId(uint8_t routerId)
     mRouters[routerId].mState = Neighbor::kStateInvalid;
     mRouters[routerId].mNextHop = kMaxRouterId;
     mRouterIdSequence++;
+    mRouterIdSequenceLastUpdated = Timer::GetNow();
     mAddressResolver->Remove(routerId);
     mNetworkData->RemoveBorderRouter(GetRloc16(routerId));
     ResetAdvertiseInterval();
@@ -139,7 +140,7 @@ ThreadError MleRouter::ReleaseRouterId(uint8_t routerId)
 
 uint32_t MleRouter::GetLeaderAge() const
 {
-    return (Timer::GetNow() - mRouters[GetLeaderId()].mLastHeard) / 1000;
+    return (Timer::GetNow() - mRouterIdSequenceLastUpdated) / 1000;
 }
 
 ThreadError MleRouter::BecomeRouter()
@@ -244,7 +245,7 @@ ThreadError MleRouter::HandleChildStart(JoinMode mode)
 {
     uint32_t advertiseDelay;
 
-    mRouters[GetLeaderId()].mLastHeard = Timer::GetNow();
+    mRouterIdSequenceLastUpdated = Timer::GetNow();
 
     mAdvertiseTimer.Stop();
     mStateUpdateTimer.Start(1000);
@@ -287,7 +288,6 @@ ThreadError MleRouter::SetStateRouter(uint16_t rloc16)
 
     mNetif->SubscribeAllRoutersMulticast();
     mRouters[mRouterId].mNextHop = mRouterId;
-    mRouters[GetLeaderId()].mLastHeard = Timer::GetNow();
     mNetworkData->Stop();
     mStateUpdateTimer.Start(1000);
 
@@ -977,6 +977,7 @@ ThreadError MleRouter::ProcessRouteTlv(const RouteTlv &route)
     if (diff > 0 || mDeviceState == kDeviceStateDetached)
     {
         mRouterIdSequence = route.GetRouterIdSequence();
+        mRouterIdSequenceLastUpdated = Timer::GetNow();
 
         for (int i = 0; i < kMaxRouterId; i++)
         {
@@ -996,7 +997,6 @@ ThreadError MleRouter::ProcessRouteTlv(const RouteTlv &route)
             ExitNow(error = kThreadError_NoRoute);
         }
 
-        mRouters[GetLeaderId()].mLastHeard = Timer::GetNow();
     }
 
 exit:
@@ -1315,8 +1315,7 @@ ThreadError MleRouter::HandleParentRequest(const Message &message, const Ip6Mess
     // 2. It is disconnected from its Partition (that is, it has not
     // received an updated ID sequence number within LEADER_TIMEOUT
     // seconds
-    VerifyOrExit((Timer::GetNow() - mRouters[GetLeaderId()].mLastHeard) < (mNetworkIdTimeout * 1000U),
-                 error = kThreadError_Drop);
+    VerifyOrExit(GetLeaderAge() < mNetworkIdTimeout, error = kThreadError_Drop);
 
     // 3. Its current routing path cost to the Leader is infinite.
     VerifyOrExit(mRouters[GetLeaderId()].mNextHop != kMaxRouterId, error = kThreadError_Drop);
@@ -1394,9 +1393,9 @@ void MleRouter::HandleStateUpdateTimer()
     case kDeviceStateChild:
     case kDeviceStateRouter:
         // verify path to leader
-        dprintf("network id timeout = %d\n", (Timer::GetNow() - mRouters[leaderId].mLastHeard) / 1000);
+        dprintf("network id timeout = %d\n", GetLeaderAge());
 
-        if ((Timer::GetNow() - mRouters[leaderId].mLastHeard) >= (mNetworkIdTimeout * 1000U))
+        if (GetLeaderAge() >= mNetworkIdTimeout)
         {
             BecomeChild(kJoinSamePartition);
         }
@@ -1406,10 +1405,10 @@ void MleRouter::HandleStateUpdateTimer()
     case kDeviceStateLeader:
 
         // update router id sequence
-        if ((Timer::GetNow() - mRouters[leaderId].mLastHeard) >= (kRouterIdSequencePeriod * 1000U))
+        if (GetLeaderAge() >= kRouterIdSequencePeriod)
         {
             mRouterIdSequence++;
-            mRouters[leaderId].mLastHeard = Timer::GetNow();
+            mRouterIdSequenceLastUpdated = Timer::GetNow();
         }
 
         break;
@@ -2390,6 +2389,7 @@ void MleRouter::HandleAddressSolicitResponse(Message &message)
 
     // copy router id information
     mRouterIdSequence = routerMaskTlv.GetRouterIdSequence();
+    mRouterIdSequenceLastUpdated = Timer::GetNow();
 
     for (int i = 0; i < kMaxRouterId; i++)
     {
