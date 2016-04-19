@@ -66,7 +66,7 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength)
                 length = sizeof(NetworkDataTlv) + cur->GetLength();
                 dst = reinterpret_cast<uint8_t *>(cur);
                 src = reinterpret_cast<uint8_t *>(cur->GetNext());
-                memmove(dst, src, dataLength - (dst - data));
+                memmove(dst, src, dataLength - (src - data));
                 dataLength -= length;
                 continue;
             }
@@ -74,10 +74,19 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength)
             dump("remove prefix done", mTlvs, mLength);
             break;
         }
-
         default:
         {
-            assert(false);
+            // remove temporary tlv
+            if (!cur->IsStable())
+            {
+                length = sizeof(NetworkDataTlv) + cur->GetLength();
+                dst = reinterpret_cast<uint8_t *>(cur);
+                src = reinterpret_cast<uint8_t *>(cur->GetNext());
+                memmove(dst, src, dataLength - (src - data));
+                dataLength -= length;
+                continue;
+            }
+
             break;
         }
         }
@@ -94,7 +103,13 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength,
 {
     NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
     NetworkDataTlv *end;
+    BorderRouterTlv *borderRouter;
+    HasRouteTlv *hasRoute;
+    ContextTlv *context;
+    BorderRouterEntry *borderRouterEntry;
+    HasRouteEntry *hasRouteEntry;
     uint8_t length;
+    uint8_t contextId;
     uint8_t *dst;
     uint8_t *src;
 
@@ -109,6 +124,50 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength,
 
         if (cur->IsStable())
         {
+            switch (cur->GetType())
+            {
+            case NetworkDataTlv::kTypeBorderRouter:
+            {
+                borderRouter = FindBorderRouter(prefix);
+                context = FindContext(prefix);
+                contextId = context->GetContextId();
+
+                // replace p_border_router_16
+                for (int i = 0; i < borderRouter->GetNumEntries(); i++)
+                {
+                    borderRouterEntry = borderRouter->GetEntry(i);
+
+                    if (borderRouterEntry->IsDhcp() || borderRouterEntry->IsConfigure())
+                    {
+                        borderRouterEntry->SetRloc(0xfc00 | contextId);
+                    }
+                    else
+                    {
+                        borderRouterEntry->SetRloc(0xfffe);
+                    }
+                }
+
+                break;
+            }
+            case NetworkDataTlv::kTypeHasRoute:
+            {
+                hasRoute = FindHasRoute(prefix);
+
+                // replace r_border_router_16
+                for (int j = 0; j < hasRoute->GetNumEntries(); j++)
+                {
+                    hasRouteEntry = hasRoute->GetEntry(j);
+                    hasRouteEntry->SetRloc(0xfffe);
+                }
+
+                break;
+            }
+            default:
+            {
+                break;
+            }
+            }
+
             // keep stable tlv
             cur = cur->GetNext();
         }
@@ -118,7 +177,7 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength,
             length = sizeof(NetworkDataTlv) + cur->GetLength();
             dst = reinterpret_cast<uint8_t *>(cur);
             src = reinterpret_cast<uint8_t *>(cur->GetNext());
-            memmove(dst, src, dataLength - (dst - data));
+            memmove(dst, src, dataLength - (src - data));
             prefix.SetSubTlvsLength(prefix.GetSubTlvsLength() - length);
             dataLength -= length;
         }
@@ -200,6 +259,26 @@ HasRouteTlv *NetworkData::FindHasRoute(PrefixTlv &prefix, bool stable)
             cur->IsStable() == stable)
         {
             ExitNow(rval = reinterpret_cast<HasRouteTlv *>(cur));
+        }
+
+        cur = cur->GetNext();
+    }
+
+exit:
+    return rval;
+}
+
+ContextTlv *NetworkData::FindContext(PrefixTlv &prefix)
+{
+    ContextTlv *rval = NULL;
+    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
+    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs() + prefix.GetSubTlvsLength());
+
+    while (cur < end)
+    {
+        if (cur->GetType() == NetworkDataTlv::kTypeContext)
+        {
+            ExitNow(rval = reinterpret_cast<ContextTlv *>(cur));
         }
 
         cur = cur->GetNext();

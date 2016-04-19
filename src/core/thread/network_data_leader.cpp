@@ -267,24 +267,6 @@ exit:
     return kThreadError_None;
 }
 
-ContextTlv *Leader::FindContext(PrefixTlv &prefix)
-{
-    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
-    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs() + prefix.GetSubTlvsLength());
-
-    while (cur < end)
-    {
-        if (cur->GetType() == NetworkDataTlv::kTypeContext)
-        {
-            return reinterpret_cast<ContextTlv *>(cur);
-        }
-
-        cur = cur->GetNext();
-    }
-
-    return NULL;
-}
-
 bool Leader::IsOnMesh(const Ip6Address &address)
 {
     PrefixTlv *prefix;
