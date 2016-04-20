@@ -27,7 +27,7 @@ void TestMessage()
 
     Thread::Message::Init();
 
-    for (int i = 0; i < sizeof(writeBuffer); i++)
+    for (unsigned i = 0; i < sizeof(writeBuffer); i++)
     {
         writeBuffer[i] = random();
     }

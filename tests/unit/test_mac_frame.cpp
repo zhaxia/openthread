@@ -55,7 +55,7 @@ void TestMacHeader()
         },
     };
 
-    for (int i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
+    for (unsigned i = 0; i < sizeof(tests) / sizeof(tests[0]); i++)
     {
         Mac::Frame frame;
         frame.InitMacHeader(tests[i].fcf, tests[i].secCtl);

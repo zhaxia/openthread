@@ -18,17 +18,34 @@ include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
 # Always package (e.g. for 'make dist') these subdirectories.
 
-DIST_SUBDIRS                            = \
-    scripts                               \
-    src                                   \
+DIST_SUBDIRS                                   = \
+    scripts                                      \
+    src                                          \
     $(NULL)
 
 # Always build (e.g. for 'make all') these subdirectories.
 
-SUBDIRS                                 = \
-    src                                   \
+SUBDIRS                                        = \
+    src                                          \
     $(NULL)
 
 all:
+
+check_PROGRAMS =
+
+check_SCRIPTS                                  = \
+    scripts/Cert_5_1_01_RouterAttach.py          \
+    $(NULL)
+
+TESTS_ENVIRONMENT                              = \
+    export                                       \
+    abs_builddir='$(abs_builddir)'               \
+    abs_srcdir='$(abs_srcdir)';                  \
+    $(NULL)
+
+TESTS                                          = \
+    $(check_PROGRAMS)                            \
+    $(check_SCRIPTS)                             \
+    $(NULL)
 
 include $(abs_top_nlbuild_autotools_dir)/automake/post.am
