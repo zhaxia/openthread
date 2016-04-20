@@ -50,12 +50,17 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-	otProcessNextTasklet();
+        otProcessNextTasklet();
 
-	atomic_state = atomic_begin();
-	if (!otAreTaskletsPending())
+        atomic_state = atomic_begin();
+
+        if (!otAreTaskletsPending())
+        {
             sleep_start();
-	atomic_end(atomic_state);
+        }
+
+        atomic_end(atomic_state);
     }
+
     return 0;
 }
