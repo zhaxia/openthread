@@ -54,7 +54,7 @@ public:
     ThreadError SendMessage(Message &message, const Ip6MessageInfo &messageInfo);
 
 private:
-    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo);
+    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
     void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
 
     Udp6Socket mSocket;

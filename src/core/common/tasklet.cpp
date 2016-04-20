@@ -80,23 +80,22 @@ Tasklet *TaskletScheduler::PopTasklet()
     return task;
 }
 
-void TaskletScheduler::Run()
+bool TaskletScheduler::AreTaskletsPending()
+{
+    return sHead != NULL;
+}
+
+void TaskletScheduler::RunNextTasklet()
 {
     uint32_t state;
-    dprintf("Tasklet Scheduler Run\n");
+    Tasklet *task;
 
-    for (;;)
+    state = atomic_begin();
+    task = PopTasklet();
+    atomic_end(state);
+
+    if (task != NULL)
     {
-        state = atomic_begin();
-
-        Tasklet *task;
-
-        while ((task = TaskletScheduler::PopTasklet()) == NULL)
-        {
-            sleep_start();
-        }
-
-        atomic_end(state);
         task->RunTask();
     }
 }

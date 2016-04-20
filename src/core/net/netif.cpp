@@ -248,7 +248,7 @@ ThreadError Netif::AddUnicastAddress(NetifUnicastAddress &address)
 {
     ThreadError error = kThreadError_None;
 
-    for (NetifUnicastAddress *cur = mUnicastAddresses; cur; cur = cur->mNext)
+    for (NetifUnicastAddress *cur = mUnicastAddresses; cur; cur = cur->GetNext())
     {
         if (cur == &address)
         {
@@ -271,12 +271,12 @@ ThreadError Netif::RemoveUnicastAddress(const NetifUnicastAddress &address)
 
     if (mUnicastAddresses == &address)
     {
-        mUnicastAddresses = mUnicastAddresses->mNext;
+        mUnicastAddresses = mUnicastAddresses->GetNext();
         ExitNow();
     }
     else if (mUnicastAddresses != NULL)
     {
-        for (NetifUnicastAddress *cur = mUnicastAddresses; cur->mNext; cur = cur->mNext)
+        for (NetifUnicastAddress *cur = mUnicastAddresses; cur->GetNext(); cur = cur->GetNext())
         {
             if (cur->mNext == &address)
             {
@@ -304,9 +304,9 @@ bool Netif::IsUnicastAddress(const Ip6Address &address)
 
     for (Netif *netif = sNetifListHead; netif; netif = netif->mNext)
     {
-        for (NetifUnicastAddress *cur = netif->mUnicastAddresses; cur; cur = cur->mNext)
+        for (NetifUnicastAddress *cur = netif->mUnicastAddresses; cur; cur = cur->GetNext())
         {
-            if (cur->mAddress == address)
+            if (cur->GetAddress() == address)
             {
                 ExitNow(rval = true);
             }
@@ -319,7 +319,7 @@ exit:
 
 const NetifUnicastAddress *Netif::SelectSourceAddress(Ip6MessageInfo &messageInfo)
 {
-    Ip6Address *destination = &messageInfo.mPeerAddr;
+    Ip6Address *destination = &messageInfo.GetPeerAddr();
     int interfaceId = messageInfo.mInterfaceId;
     const NetifUnicastAddress *rvalAddr = NULL;
     const Ip6Address *candidateAddr;
@@ -330,9 +330,9 @@ const NetifUnicastAddress *Netif::SelectSourceAddress(Ip6MessageInfo &messageInf
     {
         candidateId = netif->GetInterfaceId();
 
-        for (const NetifUnicastAddress *addr = netif->GetUnicastAddresses(); addr; addr = addr->mNext)
+        for (const NetifUnicastAddress *addr = netif->GetUnicastAddresses(); addr; addr = addr->GetNext())
         {
-            candidateAddr = &addr->mAddress;
+            candidateAddr = &addr->GetAddress();
 
             if (destination->IsLinkLocal() || destination->IsMulticast())
             {
@@ -355,7 +355,7 @@ const NetifUnicastAddress *Netif::SelectSourceAddress(Ip6MessageInfo &messageInf
                 rvalIface = candidateId;
                 goto exit;
             }
-            else if (candidateAddr->GetScope() < rvalAddr->mAddress.GetScope())
+            else if (candidateAddr->GetScope() < rvalAddr->GetAddress().GetScope())
             {
                 // Rule 2: Prefer appropriate scope
                 if (candidateAddr->GetScope() >= destination->GetScope())
@@ -364,9 +364,9 @@ const NetifUnicastAddress *Netif::SelectSourceAddress(Ip6MessageInfo &messageInf
                     rvalIface = candidateId;
                 }
             }
-            else if (candidateAddr->GetScope() > rvalAddr->mAddress.GetScope())
+            else if (candidateAddr->GetScope() > rvalAddr->GetAddress().GetScope())
             {
-                if (rvalAddr->mAddress.GetScope() < destination->GetScope())
+                if (rvalAddr->GetAddress().GetScope() < destination->GetScope())
                 {
                     rvalAddr = addr;
                     rvalIface = candidateId;
@@ -386,7 +386,7 @@ const NetifUnicastAddress *Netif::SelectSourceAddress(Ip6MessageInfo &messageInf
                 rvalAddr = addr;
                 rvalIface = candidateId;
             }
-            else if (destination->PrefixMatch(*candidateAddr) > destination->PrefixMatch(rvalAddr->mAddress))
+            else if (destination->PrefixMatch(*candidateAddr) > destination->PrefixMatch(rvalAddr->GetAddress()))
             {
                 // Rule 6: Prefer matching label
                 // Rule 7: Prefer public address
@@ -408,9 +408,9 @@ int Netif::GetOnLinkNetif(const Ip6Address &address)
 
     for (Netif *netif = sNetifListHead; netif; netif = netif->mNext)
     {
-        for (NetifUnicastAddress *cur = netif->mUnicastAddresses; cur; cur = cur->mNext)
+        for (NetifUnicastAddress *cur = netif->mUnicastAddresses; cur; cur = cur->GetNext())
         {
-            if (cur->mAddress.PrefixMatch(address) >= cur->mPrefixLength)
+            if (cur->GetAddress().PrefixMatch(address) >= cur->mPrefixLength)
             {
                 ExitNow(rval = netif->mInterfaceId);
             }

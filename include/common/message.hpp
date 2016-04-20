@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <openthread.h>
 #include <common/thread_error.hpp>
 #include <mac/mac_frame.hpp>
 
@@ -76,6 +77,10 @@ struct MessageInfo
 
 struct Buffer
 {
+public:
+    struct Buffer *GetNextBuffer() const { return mHeader.mNext; }
+    void SetNextBuffer(struct Buffer *buf) { mHeader.mNext = buf; }
+
     enum
     {
         kBufferDataSize = kBufferSize - sizeof(struct BufferHeader),

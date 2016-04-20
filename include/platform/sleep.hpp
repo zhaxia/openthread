@@ -17,8 +17,6 @@
 #ifndef SLEEP_HPP_
 #define SLEEP_HPP_
 
-namespace Thread {
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -28,7 +26,5 @@ void sleep_start();
 #ifdef __cplusplus
 }  // end of extern "C"
 #endif
-
-}  // namespace Thread
 
 #endif  // SLEEP_HPP_

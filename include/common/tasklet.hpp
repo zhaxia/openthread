@@ -42,7 +42,8 @@ class TaskletScheduler
 {
 public:
     static ThreadError Post(Tasklet &tasklet);
-    static void Run();
+    static bool AreTaskletsPending();
+    static void RunNextTasklet();
 
 private:
     static Tasklet *PopTasklet();

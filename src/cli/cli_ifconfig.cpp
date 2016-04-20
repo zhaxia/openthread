@@ -14,10 +14,12 @@
  *    limitations under the License.
  */
 
+#include <openthread.h>
 #include <cli/cli_ifconfig.hpp>
 #include <common/code_utils.hpp>
-#include <net/ip6_address.hpp>
-#include <net/netif.hpp>
+#include <common/encoding.hpp>
+
+using Thread::Encoding::BigEndian::HostSwap16;
 
 namespace Thread {
 namespace Cli {
@@ -50,22 +52,23 @@ int PrintStatus(char *buf, uint16_t bufLength)
     char *cur = buf;
     char *end = buf + bufLength;
 
-    for (Netif *netif = Netif::GetNetifList(); netif; netif = netif->GetNext())
+    snprintf(cur, end - cur, "thread:\r\n");
+    cur += strlen(cur);
+
+    for (const otNetifAddress *addr = otGetUnicastAddresses(); addr; addr = addr->mNext)
     {
-        snprintf(cur, end - cur, "%s:\r\n", netif->GetName());
+        snprintf(cur, end - cur,  "  inet6 ");
         cur += strlen(cur);
 
-        for (const NetifUnicastAddress *addr = netif->GetUnicastAddresses(); addr; addr = addr->GetNext())
-        {
-            snprintf(cur, end - cur,  "  inet6 ");
-            cur += strlen(cur);
+        snprintf(cur, end - cur, "%x:%x:%x:%x:%x:%x:%x:%x",
+                 HostSwap16(addr->mAddress.m16[0]), HostSwap16(addr->mAddress.m16[1]),
+                 HostSwap16(addr->mAddress.m16[2]), HostSwap16(addr->mAddress.m16[3]),
+                 HostSwap16(addr->mAddress.m16[4]), HostSwap16(addr->mAddress.m16[5]),
+                 HostSwap16(addr->mAddress.m16[6]), HostSwap16(addr->mAddress.m16[7]));
+        cur += strlen(cur);
 
-            addr->mAddress.ToString(cur, end - cur);
-            cur += strlen(cur);
-
-            snprintf(cur, end - cur, "/%d\r\n", addr->mPrefixLength);
-            cur += strlen(cur);
-        }
+        snprintf(cur, end - cur, "/%d\r\n", addr->mPrefixLength);
+        cur += strlen(cur);
     }
 
     return cur - buf;

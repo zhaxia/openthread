@@ -17,8 +17,8 @@
 #ifndef CLI_NETDATA_HPP_
 #define CLI_NETDATA_HPP_
 
+#include <openthread.h>
 #include <cli/cli_command.hpp>
-#include <thread/thread_netif.hpp>
 
 namespace Thread {
 namespace Cli {
@@ -26,7 +26,7 @@ namespace Cli {
 class NetData: public Command
 {
 public:
-    explicit NetData(Server &server, ThreadNetif &netif);
+    explicit NetData(Server &server);
     const char *GetName() final;
     void Run(int argc, char *argv[], Server &server) final;
 
@@ -41,13 +41,7 @@ private:
     int RemoveHasRoutePrefix(int argc, char *argv[], char *buf, uint16_t bufLength);
     int AddOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t bufLength);
     int RemoveOnMeshPrefix(int argc, char *argv[], char *buf, uint16_t bufLength);
-    int PrintLocalHasRoutePrefixes(char *buf, uint16_t bufLength);
-    int PrintLocalOnMeshPrefixes(char *buf, uint16_t bufLength);
     int PrintContextIdReuseDelay(char *buf, uint16_t bufLength);
-
-    Mle::MleRouter *mMle;
-    NetworkData::Local *mNetworkDataLocal;
-    NetworkData::Leader *mNetworkDataLeader;
 };
 
 }  // namespace Cli

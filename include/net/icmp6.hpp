@@ -76,7 +76,7 @@ class Icmp6Echo
 public:
     typedef void (*EchoReplyHandler)(void *context, Message &message, const Ip6MessageInfo &messageInfo);
     Icmp6Echo(EchoReplyHandler handler, void *context);
-    ThreadError SendEchoRequest(const struct sockaddr_in6 &address, const void *payload, uint16_t payloadLength);
+    ThreadError SendEchoRequest(const SockAddr &address, const void *payload, uint16_t payloadLength);
 
 private:
     void HandleEchoReply(Message &message, const Ip6MessageInfo &messageInfo) {

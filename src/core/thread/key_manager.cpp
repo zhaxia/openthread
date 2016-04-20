@@ -34,19 +34,14 @@ KeyManager::KeyManager(ThreadNetif &netif)
     mNetif = &netif;
 }
 
-ThreadError KeyManager::GetMasterKey(void *key, uint8_t *keyLength) const
+const uint8_t *KeyManager::GetMasterKey(uint8_t *keyLength) const
 {
-    if (key)
-    {
-        memcpy(key, mMasterKey, mMasterKeyLength);
-    }
-
     if (keyLength)
     {
         *keyLength = mMasterKeyLength;
     }
 
-    return kThreadError_None;
+    return mMasterKey;
 }
 
 ThreadError KeyManager::SetMasterKey(const void *key, uint8_t keyLength)

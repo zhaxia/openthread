@@ -437,7 +437,7 @@ ThreadError MeshForwarder::UpdateIp6Route(Message &message)
             // FFD - peform full routing
             if (mMle->IsRoutingLocator(*ip6Header.GetDestination()))
             {
-                mMeshdst = HostSwap16(ip6Header.GetDestination()->mAddr16[7]);
+                mMeshdst = HostSwap16(ip6Header.GetDestination()->m16[7]);
             }
             else if ((neighbor = mMle->GetNeighbor(*ip6Header.GetDestination())) != NULL)
             {
@@ -562,7 +562,7 @@ ThreadError MeshForwarder::GetMacSourceAddress(const Ip6Address &ipaddr, Mac::Ad
     assert(!ipaddr.IsMulticast());
 
     macaddr.mLength = 8;
-    memcpy(&macaddr.mAddress64, ipaddr.mAddr8 + 8, sizeof(macaddr.mAddress64));
+    memcpy(&macaddr.mAddress64, ipaddr.m8 + 8, sizeof(macaddr.mAddress64));
     macaddr.mAddress64.mBytes[0] ^= 0x02;
 
     if (memcmp(&macaddr.mAddress64, mMac->GetAddress64(), sizeof(macaddr.mAddress64)) != 0)
@@ -581,26 +581,26 @@ ThreadError MeshForwarder::GetMacDestinationAddress(const Ip6Address &ipaddr, Ma
         macaddr.mLength = 2;
         macaddr.mAddress16 = Mac::kShortAddrBroadcast;
     }
-    else if (ipaddr.mAddr16[0] == HostSwap16(0xfe80) &&
-             ipaddr.mAddr16[1] == HostSwap16(0x0000) &&
-             ipaddr.mAddr16[2] == HostSwap16(0x0000) &&
-             ipaddr.mAddr16[3] == HostSwap16(0x0000) &&
-             ipaddr.mAddr16[4] == HostSwap16(0x0000) &&
-             ipaddr.mAddr16[5] == HostSwap16(0x00ff) &&
-             ipaddr.mAddr16[6] == HostSwap16(0xfe00))
+    else if (ipaddr.m16[0] == HostSwap16(0xfe80) &&
+             ipaddr.m16[1] == HostSwap16(0x0000) &&
+             ipaddr.m16[2] == HostSwap16(0x0000) &&
+             ipaddr.m16[3] == HostSwap16(0x0000) &&
+             ipaddr.m16[4] == HostSwap16(0x0000) &&
+             ipaddr.m16[5] == HostSwap16(0x00ff) &&
+             ipaddr.m16[6] == HostSwap16(0xfe00))
     {
         macaddr.mLength = 2;
-        macaddr.mAddress16 = HostSwap16(ipaddr.mAddr16[7]);
+        macaddr.mAddress16 = HostSwap16(ipaddr.m16[7]);
     }
     else if (mMle->IsRoutingLocator(ipaddr))
     {
         macaddr.mLength = 2;
-        macaddr.mAddress16 = HostSwap16(ipaddr.mAddr16[7]);
+        macaddr.mAddress16 = HostSwap16(ipaddr.m16[7]);
     }
     else
     {
         macaddr.mLength = 8;
-        memcpy(&macaddr.mAddress64, ipaddr.mAddr8 + 8, sizeof(macaddr.mAddress64));
+        memcpy(&macaddr.mAddress64, ipaddr.m8 + 8, sizeof(macaddr.mAddress64));
         macaddr.mAddress64.mBytes[0] ^= 0x02;
     }
 
@@ -982,18 +982,18 @@ void MeshForwarder::HandleReceivedFrame(Mac::Frame &frame, ThreadError error)
     if (error == kThreadError_Security)
     {
         memset(&destination, 0, sizeof(destination));
-        destination.mAddr16[0] = HostSwap16(0xfe80);
+        destination.m16[0] = HostSwap16(0xfe80);
 
         switch (macsrc.mLength)
         {
         case 2:
-            destination.mAddr16[5] = HostSwap16(0x00ff);
-            destination.mAddr16[6] = HostSwap16(0xfe00);
-            destination.mAddr16[7] = HostSwap16(macsrc.mAddress16);
+            destination.m16[5] = HostSwap16(0x00ff);
+            destination.m16[6] = HostSwap16(0xfe00);
+            destination.m16[7] = HostSwap16(macsrc.mAddress16);
             break;
 
         case 8:
-            memcpy(destination.mAddr8 + 8, &macsrc.mAddress64, sizeof(macsrc.mAddress64));
+            memcpy(destination.m8 + 8, &macsrc.mAddress64, sizeof(macsrc.mAddress64));
             break;
 
         default:

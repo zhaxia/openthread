@@ -25,6 +25,7 @@ libopenthread_a_CPPFLAGS =            \
     $(NULL)
 
 libopenthread_a_SOURCES             = \
+    openthread.cpp                    \
     coap/coap_header.cpp              \
     coap/coap_server.cpp              \
     common/message.cpp                \

@@ -38,7 +38,7 @@ Icmp6Echo::Icmp6Echo(EchoReplyHandler handler, void *context)
     sEchoClients = this;
 }
 
-ThreadError Icmp6Echo::SendEchoRequest(const struct sockaddr_in6 &sockaddr,
+ThreadError Icmp6Echo::SendEchoRequest(const SockAddr &sockaddr,
                                        const void *payload, uint16_t payloadLength)
 {
     ThreadError error = kThreadError_None;
@@ -58,7 +58,7 @@ ThreadError Icmp6Echo::SendEchoRequest(const struct sockaddr_in6 &sockaddr,
     message->Write(0, sizeof(icmp6Header), &icmp6Header);
 
     memset(&messageInfo, 0, sizeof(messageInfo));
-    messageInfo.mPeerAddr = sockaddr.mAddr;
+    messageInfo.GetPeerAddr() = sockaddr.GetAddress();
     messageInfo.mInterfaceId = sockaddr.mScopeId;
 
     SuccessOrExit(error = Ip6::SendDatagram(*message, messageInfo, kProtoIcmp6));
@@ -130,7 +130,7 @@ ThreadError Icmp6::HandleMessage(Message &message, Ip6MessageInfo &messageInfo)
     message.Read(message.GetOffset(), sizeof(icmp6Header), &icmp6Header);
 
     // verify checksum
-    checksum = Ip6::ComputePseudoheaderChecksum(messageInfo.mPeerAddr, messageInfo.mSockAddr,
+    checksum = Ip6::ComputePseudoheaderChecksum(messageInfo.GetPeerAddr(), messageInfo.GetSockAddr(),
                                                 payloadLength, kProtoIcmp6);
     checksum = message.UpdateChecksum(checksum, message.GetOffset(), payloadLength);
     VerifyOrExit(checksum == 0xffff, ;);
@@ -187,11 +187,11 @@ ThreadError Icmp6::HandleEchoRequest(Message &requestMessage, const Ip6MessageIn
                           Icmp6Header::GetDataOffset(), payloadLength, *replyMessage);
 
     memset(&replyMessageInfo, 0, sizeof(replyMessageInfo));
-    replyMessageInfo.mPeerAddr = messageInfo.mPeerAddr;
+    replyMessageInfo.GetPeerAddr() = messageInfo.GetPeerAddr();
 
-    if (!messageInfo.mSockAddr.IsMulticast())
+    if (!messageInfo.GetSockAddr().IsMulticast())
     {
-        replyMessageInfo.mSockAddr = messageInfo.mSockAddr;
+        replyMessageInfo.GetSockAddr() = messageInfo.GetSockAddr();
     }
 
     replyMessageInfo.mInterfaceId = messageInfo.mInterfaceId;

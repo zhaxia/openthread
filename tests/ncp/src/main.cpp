@@ -24,6 +24,8 @@
 #include <common/tasklet.hpp>
 #include <common/timer.hpp>
 #include <ncp/ncp.hpp>
+#include <platform/atomic.hpp>
+#include <platform/sleep.hpp>
 
 struct gengetopt_args_info args_info;
 
@@ -31,6 +33,8 @@ Thread::Ncp sNcp;
 
 int main(int argc, char *argv[])
 {
+    uint32_t atomic_state;
+
     memset(&args_info, 0, sizeof(args_info));
 
     if (cmdline_parser(argc, argv, &args_info) != 0)
@@ -44,6 +48,19 @@ int main(int argc, char *argv[])
 
     sNcp.Start();
 
-    Thread::TaskletScheduler::Run();
+    while (1)
+    {
+        otProcessNextTasklet();
+
+        atomic_state = atomic_begin();
+
+        if (!otAreTaskletsPending())
+        {
+            sleep_start();
+        }
+
+        atomic_end(atomic_state);
+    }
+
     return 0;
 }

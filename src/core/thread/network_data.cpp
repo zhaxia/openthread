@@ -74,6 +74,7 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength)
             dump("remove prefix done", mTlvs, mLength);
             break;
         }
+
         default:
         {
             // remove temporary tlv
@@ -149,6 +150,7 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength,
 
                 break;
             }
+
             case NetworkDataTlv::kTypeHasRoute:
             {
                 hasRoute = FindHasRoute(prefix);
@@ -162,6 +164,7 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength,
 
                 break;
             }
+
             default:
             {
                 break;

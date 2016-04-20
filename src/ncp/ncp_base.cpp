@@ -185,7 +185,8 @@ ThreadError NcpBase::ProcessPrimitiveKey(ThreadControl &message)
     message.primitive.value_case = THREAD_PRIMITIVE__VALUE_BYTES;
 
     uint8_t keyLength;
-    key_manager->GetMasterKey(message.primitive.bytes.data, &keyLength);
+    const uint8_t *key = key_manager->GetMasterKey(&keyLength);
+    memcpy(message.primitive.bytes.data, key, keyLength);
     message.primitive.bytes.len = keyLength;
 
     return kThreadError_None;
@@ -443,7 +444,7 @@ ThreadError NcpBase::ProcessState(ThreadControl &message)
             break;
 
         case THREAD_STATE__STATE__CHILD:
-            mle->BecomeChild(Mle::kJoinSamePartition);
+            mle->BecomeChild(kAttachSamePartition);
             break;
 
         case THREAD_STATE__STATE__ROUTER:

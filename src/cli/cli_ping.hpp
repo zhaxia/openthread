@@ -37,7 +37,7 @@ private:
     int PrintUsage(char *buf, uint16_t bufLength);
     void EchoRequest();
 
-    sockaddr_in6 mSockAddr;
+    SockAddr mSockAddr;
     Server *mServer;
     Icmp6Echo mIcmp6Echo;
     uint16_t mLength = 0;

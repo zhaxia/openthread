@@ -59,7 +59,7 @@ uint16_t Ip6::UpdateChecksum(uint16_t checksum, const void *buf, uint16_t len)
 
 uint16_t Ip6::UpdateChecksum(uint16_t checksum, const Ip6Address &address)
 {
-    return Ip6::UpdateChecksum(checksum, address.mAddr8, sizeof(address));
+    return Ip6::UpdateChecksum(checksum, address.m8, sizeof(address));
 }
 
 uint16_t Ip6::ComputePseudoheaderChecksum(const Ip6Address &src, const Ip6Address &dst, uint16_t length, IpProto proto)
@@ -88,7 +88,7 @@ ThreadError AddMplOption(Message &message, Ip6Header &ip6Header, IpProto nextHea
 
     hbhHeader.SetNextHeader(nextHeader);
     hbhHeader.SetLength(0);
-    sIp6Mpl.InitOption(mplOption, HostSwap16(ip6Header.GetSource()->mAddr16[7]));
+    sIp6Mpl.InitOption(mplOption, HostSwap16(ip6Header.GetSource()->m16[7]));
     SuccessOrExit(error = message.Prepend(&mplOption, sizeof(mplOption)));
     SuccessOrExit(error = message.Prepend(&hbhHeader, sizeof(hbhHeader)));
     ip6Header.SetPayloadLength(sizeof(hbhHeader) + sizeof(mplOption) + payloadLength);
@@ -110,24 +110,24 @@ ThreadError Ip6::SendDatagram(Message &message, Ip6MessageInfo &messageInfo, IpP
     ip6Header.SetNextHeader(ipproto);
     ip6Header.SetHopLimit(messageInfo.mHopLimit ? messageInfo.mHopLimit : kDefaultHopLimit);
 
-    if (messageInfo.mSockAddr.IsUnspecified())
+    if (messageInfo.GetSockAddr().IsUnspecified())
     {
         VerifyOrExit((source = Netif::SelectSourceAddress(messageInfo)) != NULL, error = kThreadError_Error);
-        ip6Header.SetSource(source->mAddress);
+        ip6Header.SetSource(source->GetAddress());
     }
     else
     {
-        ip6Header.SetSource(messageInfo.mSockAddr);
+        ip6Header.SetSource(messageInfo.GetSockAddr());
     }
 
-    ip6Header.SetDestination(messageInfo.mPeerAddr);
+    ip6Header.SetDestination(messageInfo.GetPeerAddr());
 
     if (ip6Header.GetDestination()->IsLinkLocal() || ip6Header.GetDestination()->IsLinkLocalMulticast())
     {
         VerifyOrExit(messageInfo.mInterfaceId != 0, error = kThreadError_Drop);
     }
 
-    if (messageInfo.mPeerAddr.IsRealmLocalMulticast())
+    if (messageInfo.GetPeerAddr().IsRealmLocalMulticast())
     {
         SuccessOrExit(error = AddMplOption(message, ip6Header, ipproto, payloadLength));
     }
@@ -303,7 +303,7 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, uint8_t interfac
     uint8_t nextHeader;
     uint8_t hopLimit;
 
-#if 0
+#if 1
     uint8_t buf[1024];
     message.Read(0, sizeof(buf), buf);
     dump("handle datagram", buf, message.GetLength());
@@ -322,8 +322,8 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, uint8_t interfac
                  sizeof(ip6Header) + payloadLength <= Ip6::kMaxDatagramLength, ;);
 
     memset(&messageInfo, 0, sizeof(messageInfo));
-    messageInfo.mPeerAddr = *ip6Header.GetSource();
-    messageInfo.mSockAddr = *ip6Header.GetDestination();
+    messageInfo.GetPeerAddr() = *ip6Header.GetSource();
+    messageInfo.GetSockAddr() = *ip6Header.GetDestination();
     messageInfo.mInterfaceId = interfaceId;
     messageInfo.mHopLimit = ip6Header.GetHopLimit();
     messageInfo.mLinkInfo = linkMessageInfo;
@@ -415,29 +415,29 @@ ThreadError ForwardMessage(Message &message, Ip6MessageInfo &messageInfo)
     int interfaceId;
     Netif *netif;
 
-    if (messageInfo.mSockAddr.IsMulticast())
+    if (messageInfo.GetSockAddr().IsMulticast())
     {
         // multicast
         interfaceId = messageInfo.mInterfaceId;
     }
-    else if (messageInfo.mSockAddr.IsLinkLocal())
+    else if (messageInfo.GetSockAddr().IsLinkLocal())
     {
         // on-link link-local address
         interfaceId = messageInfo.mInterfaceId;
     }
-    else if ((interfaceId = Netif::GetOnLinkNetif(messageInfo.mSockAddr)) > 0)
+    else if ((interfaceId = Netif::GetOnLinkNetif(messageInfo.GetSockAddr())) > 0)
     {
         // on-link global address
         ;
     }
-    else if ((interfaceId = Ip6Routes::Lookup(messageInfo.mPeerAddr, messageInfo.mSockAddr)) > 0)
+    else if ((interfaceId = Ip6Routes::Lookup(messageInfo.GetPeerAddr(), messageInfo.GetSockAddr())) > 0)
     {
         // route
         ;
     }
     else
     {
-        dump("no route", &messageInfo.mSockAddr, 16);
+        dump("no route", &messageInfo.GetSockAddr(), 16);
         ExitNow(error = kThreadError_NoRoute);
     }
 

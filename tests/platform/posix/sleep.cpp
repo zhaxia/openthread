@@ -22,12 +22,12 @@
 extern "C" {
 #endif
 
-extern pthread_mutex_t s_mutex;
-extern pthread_cond_t s_cond;
+extern pthread_mutex_t g_mutex;
+extern pthread_cond_t g_cond;
 
 void sleep_start()
 {
-    pthread_cond_wait(&s_cond, &s_mutex);
+    pthread_cond_wait(&g_cond, &g_mutex);
 }
 
 #ifdef __cplusplus

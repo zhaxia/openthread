@@ -26,7 +26,7 @@ namespace Cli {
 class Mac: public Command
 {
 public:
-    explicit Mac(Server &server, ThreadNetif &netif);
+    explicit Mac(Server &server);
     const char *GetName() final;
     void Run(int argc, char *argv[], Server &server) final;
 

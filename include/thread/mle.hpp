@@ -17,6 +17,7 @@
 #ifndef MLE_HPP_
 #define MLE_HPP_
 
+#include <openthread.h>
 #include <common/encoding.hpp>
 #include <common/timer.hpp>
 #include <crypto/aes_ecb.hpp>
@@ -84,13 +85,6 @@ enum DeviceState
     kDeviceStateChild    = 2,
     kDeviceStateRouter   = 3,
     kDeviceStateLeader   = 4,
-};
-
-enum JoinMode
-{
-    kJoinAnyPartition    = 0,
-    kJoinSamePartition   = 1,
-    kJoinBetterPartition = 2,
 };
 
 class Header
@@ -210,7 +204,7 @@ public:
     ThreadError Stop();
 
     ThreadError BecomeDetached();
-    ThreadError BecomeChild(JoinMode mode);
+    ThreadError BecomeChild(AttachFilter filter);
 
     DeviceState GetDeviceState() const;
 
@@ -273,7 +267,7 @@ protected:
     void HandleUnicastAddressesChanged();
     static void HandleParentRequestTimer(void *context);
     void HandleParentRequestTimer();
-    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo);
+    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
     void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
     ThreadError HandleAdvertisement(const Message &message, const Ip6MessageInfo &messageInfo);
     ThreadError HandleDataRequest(const Message &message, const Ip6MessageInfo &messageInfo);
@@ -327,7 +321,7 @@ protected:
         kChildIdRequest,
     };
     ParentRequestState mParentRequestState = kParentIdle;
-    JoinMode mParentRequestMode = kJoinAnyPartition;
+    AttachFilter mParentRequestMode = kAttachAnyPartition;
 
     struct
     {

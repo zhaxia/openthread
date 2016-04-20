@@ -89,7 +89,7 @@ ThreadError Leader::GetContext(const Ip6Address &address, Context &context)
 
     context.mPrefixLength = 0;
 
-    if (PrefixMatch(mMle->GetMeshLocalPrefix(), address.mAddr8, 64) >= 0)
+    if (PrefixMatch(mMle->GetMeshLocalPrefix(), address.m8, 64) >= 0)
     {
         context.mPrefix = mMle->GetMeshLocalPrefix();
         context.mPrefixLength = 64;
@@ -107,7 +107,7 @@ ThreadError Leader::GetContext(const Ip6Address &address, Context &context)
 
         prefix = reinterpret_cast<PrefixTlv *>(cur);
 
-        if (PrefixMatch(prefix->GetPrefix(), address.mAddr8, prefix->GetPrefixLength()) < 0)
+        if (PrefixMatch(prefix->GetPrefix(), address.m8, prefix->GetPrefixLength()) < 0)
         {
             continue;
         }
@@ -184,7 +184,7 @@ ThreadError Leader::ConfigureAddresses()
     for (size_t i = 0; i < sizeof(mAddresses) / sizeof(mAddresses[0]); i++)
     {
         if (mAddresses[i].mValidLifetime == 0 ||
-            IsOnMesh(mAddresses[i].mAddress))
+            IsOnMesh(mAddresses[i].GetAddress()))
         {
             continue;
         }
@@ -233,7 +233,7 @@ ThreadError Leader::ConfigureAddress(PrefixTlv &prefix)
     {
         if (mAddresses[i].mValidLifetime != 0 &&
             mAddresses[i].mPrefixLength == prefix.GetPrefixLength() &&
-            PrefixMatch(mAddresses[i].mAddress.mAddr8, prefix.GetPrefix(), prefix.GetPrefixLength()) >= 0)
+            PrefixMatch(mAddresses[i].mAddress.m8, prefix.GetPrefix(), prefix.GetPrefixLength()) >= 0)
         {
             mAddresses[i].mPreferredLifetime = entry->IsPreferred() ? 0xffffffff : 0;
             ExitNow();
@@ -249,11 +249,11 @@ ThreadError Leader::ConfigureAddress(PrefixTlv &prefix)
         }
 
         memset(&mAddresses[i], 0, sizeof(mAddresses[i]));
-        memcpy(mAddresses[i].mAddress.mAddr8, prefix.GetPrefix(), (prefix.GetPrefixLength() + 7) / 8);
+        memcpy(mAddresses[i].mAddress.m8, prefix.GetPrefix(), (prefix.GetPrefixLength() + 7) / 8);
 
         for (size_t j = 8; j < sizeof(mAddresses[i].mAddress); j++)
         {
-            mAddresses[i].mAddress.mAddr8[j] = Random::Get();
+            mAddresses[i].mAddress.m8[j] = Random::Get();
         }
 
         mAddresses[i].mPrefixLength = prefix.GetPrefixLength();
@@ -272,7 +272,7 @@ bool Leader::IsOnMesh(const Ip6Address &address)
     PrefixTlv *prefix;
     bool rval = false;
 
-    if (memcmp(address.mAddr8, mMle->GetMeshLocalPrefix(), 8) == 0)
+    if (memcmp(address.m8, mMle->GetMeshLocalPrefix(), 8) == 0)
     {
         ExitNow(rval = true);
     }
@@ -288,7 +288,7 @@ bool Leader::IsOnMesh(const Ip6Address &address)
 
         prefix = reinterpret_cast<PrefixTlv *>(cur);
 
-        if (PrefixMatch(prefix->GetPrefix(), address.mAddr8, prefix->GetPrefixLength()) < 0)
+        if (PrefixMatch(prefix->GetPrefix(), address.m8, prefix->GetPrefixLength()) < 0)
         {
             continue;
         }
@@ -322,7 +322,7 @@ ThreadError Leader::RouteLookup(const Ip6Address &source, const Ip6Address &dest
 
         prefix = reinterpret_cast<PrefixTlv *>(cur);
 
-        if (PrefixMatch(prefix->GetPrefix(), source.mAddr8, prefix->GetPrefixLength()) >= 0)
+        if (PrefixMatch(prefix->GetPrefix(), source.m8, prefix->GetPrefixLength()) >= 0)
         {
             if (ExternalRouteLookup(prefix->GetDomainId(), destination, prefix_match, rloc) == kThreadError_None)
             {
@@ -373,7 +373,7 @@ ThreadError Leader::ExternalRouteLookup(uint8_t domain_id, const Ip6Address &des
             continue;
         }
 
-        plen = PrefixMatch(prefix->GetPrefix(), destination.mAddr8, prefix->GetPrefixLength());
+        plen = PrefixMatch(prefix->GetPrefix(), destination.m8, prefix->GetPrefixLength());
 
         if (plen > rval_plen)
         {
@@ -523,7 +523,7 @@ void Leader::HandleServerData(Coap::Header &header, Message &message,
     tlvsLength = message.GetLength() - message.GetOffset();
 
     message.Read(message.GetOffset(), tlvsLength, tlvs);
-    rloc16 = HostSwap16(messageInfo.mPeerAddr.mAddr16[7]);
+    rloc16 = HostSwap16(messageInfo.mPeerAddr.m16[7]);
     RegisterNetworkData(rloc16, tlvs, tlvsLength);
 
     SendServerDataResponse(header, messageInfo, tlvs, tlvsLength);

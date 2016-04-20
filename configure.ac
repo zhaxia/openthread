@@ -354,6 +354,7 @@ tests/ncp/tools/ncp-driver/Makefile
 tests/soc/Makefile
 tests/soc/src/Makefile
 tests/unit/Makefile
+doc/Makefile
 ])
 
 #

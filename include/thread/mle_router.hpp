@@ -84,7 +84,7 @@ private:
     ThreadError AppendRoute(Message &message);
     uint8_t GetLinkCost(uint8_t routerId);
     ThreadError HandleDetachStart();
-    ThreadError HandleChildStart(JoinMode mode);
+    ThreadError HandleChildStart(AttachFilter filter);
     ThreadError HandleLinkRequest(const Message &message, const Ip6MessageInfo &messageInfo);
     ThreadError HandleLinkAccept(const Message &message, const Ip6MessageInfo &messageInfo, uint32_t keySequence);
     ThreadError HandleLinkAccept(const Message &message, const Ip6MessageInfo &messageInfo, uint32_t keySequence,
@@ -118,7 +118,7 @@ private:
     ThreadError UpdateChildAddresses(const AddressRegistrationTlv &tlv, Child &child);
     void UpdateRoutes(const RouteTlv &tlv, uint8_t routerId);
 
-    static void HandleUdpReceive(void *context, Message &message, const Ip6MessageInfo &messageInfo);
+    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
     void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
     void HandleAddressSolicitResponse(Message &message);
     static void HandleAddressRelease(void *context, Coap::Header &header, Message &message,
