@@ -42,6 +42,7 @@ AM_CPPFLAGS                                    = \
 COMMON_LDADD                                   = \
     $(top_srcdir)/src/core/libopenthread.a       \
     $(top_srcdir)/tests/platform/posix/libopenthread-posix.a       \
+    -lpthread                                    \
     $(NULL)
 
 # Test applications that should be run when the 'check' target is run.

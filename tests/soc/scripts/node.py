@@ -45,7 +45,13 @@ class Node:
 
     def __init_sim(self, nodeid):
         """ Initialize a simulation node. """
-        cmd = './soc --nodeid=%d' % nodeid
+        if "abs_builddir" in os.environ.keys():
+            builddir = os.environ['abs_builddir']
+            cmd = '%s/src/soc' % builddir
+        else:
+            cmd = './soc'
+        cmd += ' --nodeid=%d' % nodeid
+
         FNULL = open(os.devnull, 'w')
         self.node_process = subprocess.Popen(cmd.split(), stdout = FNULL)
 	
