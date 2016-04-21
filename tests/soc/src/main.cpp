@@ -27,10 +27,10 @@
 #include <cli/cli_route.hpp>
 #include <cli/cli_shutdown.hpp>
 #include <cli/cli_thread.hpp>
-#include <platform/atomic.hpp>
-#include <platform/sleep.hpp>
+#include <platform/atomic.h>
 #include <platform/posix/cli_posix.hpp>
 
+extern "C" void sleep_start(void);
 struct gengetopt_args_info args_info;
 
 Thread::Cli::Socket sCliServer;
@@ -59,12 +59,16 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-	otProcessNextTasklet();
+        otProcessNextTasklet();
 
-	atomic_state = atomic_begin();
-	if (!otAreTaskletsPending())
-	    sleep_start();
-	atomic_end(atomic_state);
+        atomic_state = ot_atomic_begin();
+
+        if (!otAreTaskletsPending())
+        {
+            sleep_start();
+        }
+
+        ot_atomic_end(atomic_state);
     }
 
     return 0;

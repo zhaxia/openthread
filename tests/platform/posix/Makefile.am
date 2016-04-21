@@ -36,13 +36,12 @@ libopenthread_posix_a_CXXFLAGS         = \
     $(NULL)
 
 libopenthread_posix_a_SOURCES          = \
-    alarm.cpp                            \
-    atomic.cpp                           \
+    alarm.c                              \
+    atomic.c                             \
     cli_posix.cpp                        \
     cmdline.c                            \
-    phy.cpp                              \
-    sleep.cpp                            \
-    uart.cpp                             \
+    radio.cpp                            \
+    serial.c                             \
     $(NULL)
 
 include_HEADERS                        = \

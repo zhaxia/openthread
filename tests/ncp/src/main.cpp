@@ -24,11 +24,11 @@
 #include <common/tasklet.hpp>
 #include <common/timer.hpp>
 #include <ncp/ncp.hpp>
-#include <platform/atomic.hpp>
-#include <platform/sleep.hpp>
+#include <platform/atomic.h>
+
+extern "C" void sleep_start(void);
 
 struct gengetopt_args_info args_info;
-
 Thread::Ncp sNcp;
 
 int main(int argc, char *argv[])
@@ -46,20 +46,21 @@ int main(int argc, char *argv[])
     Thread::Random::Init(args_info.nodeid_arg);
     Thread::Timer::Init();
 
+    sNcp.Init();
     sNcp.Start();
 
     while (1)
     {
         otProcessNextTasklet();
 
-        atomic_state = atomic_begin();
+        atomic_state = ot_atomic_begin();
 
         if (!otAreTaskletsPending())
         {
             sleep_start();
         }
 
-        atomic_end(atomic_state);
+        ot_atomic_end(atomic_state);
     }
 
     return 0;

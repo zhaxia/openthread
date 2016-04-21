@@ -20,20 +20,16 @@
 #include <common/code_utils.hpp>
 #include <common/thread_error.hpp>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace Thread {
 
-ThreadError uart_start();
-ThreadError uart_stop();
+ThreadError serial_enable();
+ThreadError serial_disable();
 
-ThreadError uart_send(const uint8_t *buf, uint16_t buf_length);
+ThreadError serial_send(const uint8_t *buf, uint16_t buf_length);
 
-int uart_get_fd();
-ThreadError uart_read();
+int serial_get_fd();
+ThreadError serial_read(uint8_t *buf, uint16_t &buf_length);
 
-#ifdef __cplusplus
-}  // end of extern "C"
-#endif
+}  // namespace Thread
 
 #endif  // SERIAL_PORT_HPP_

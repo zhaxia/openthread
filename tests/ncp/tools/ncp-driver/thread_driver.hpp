@@ -32,13 +32,20 @@ private:
     ThreadError ProcessPrimitive(ThreadPrimitive *primitive);
     ThreadError ProcessAddresses(ThreadIp6Addresses *addresses);
 
+    static void HandleFrame(void *context, uint8_t *buf, uint16_t buf_length);
+    void HandleFrame(uint8_t *buf, uint16_t buf_length);
+
     static void HandleReceive(void *context, uint8_t protocol, uint8_t *buf, uint16_t buf_length);
     void HandleReceive(uint8_t protocol, uint8_t *buf, uint16_t buf_length);
+
     static void HandleSendDone(void *context);
     static void HandleSendMessageDone(void *context);
 
     TunNetif tun_netif_;
     int ipc_fd_ = -1;
+
+    Hdlc::Decoder mHdlcDecoder;
+    uint8_t mSerialFrame[512];
 };
 
 }  // namespace Thread

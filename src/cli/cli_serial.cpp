@@ -21,7 +21,8 @@
 #include <cli/cli_serial.hpp>
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
-#include <platform/uart.hpp>
+#include <common/tasklet.hpp>
+#include <platform/serial.h>
 
 namespace Thread {
 namespace Cli {
@@ -29,6 +30,8 @@ namespace Cli {
 static const uint8_t VT102_ERASE_EOL[] = "\033[K";
 static const uint8_t CRNL[] = "\r\n";
 static Serial *sServer;
+
+static Tasklet sReceiveTask(&Serial::ReceiveTask, NULL);
 
 Serial::Serial()
 {
@@ -38,30 +41,46 @@ Serial::Serial()
 ThreadError Serial::Start()
 {
     mRxLength = 0;
-    uart_start();
+    ot_serial_enable();
     return kThreadError_None;
 }
 
-extern "C" void uart_handle_receive(uint8_t *buf, uint16_t bufLength)
+extern "C" void ot_serial_signal_send_done(void)
 {
-    sServer->HandleReceive(buf, bufLength);
 }
 
-void Serial::HandleReceive(uint8_t *buf, uint16_t bufLength)
+extern "C" void ot_serial_signal_receive(void)
 {
-    uint8_t *cur = buf;
-    uint8_t *end = cur + bufLength;
+    sReceiveTask.Post();
+}
+
+void Serial::ReceiveTask(void *context)
+{
+    sServer->ReceiveTask();
+}
+
+void Serial::ReceiveTask()
+{
+    uint16_t bufLength;
+    const uint8_t *buf;
+    const uint8_t *cur;
+    const uint8_t *end;
+
+    buf = ot_serial_get_received_bytes(&bufLength);
+
+    cur = buf;
+    end = cur + bufLength;
 
     for (; cur < end; cur++)
     {
         switch (*cur)
         {
         case '\r':
-            uart_send(CRNL, sizeof(CRNL));
+            ot_serial_send(CRNL, sizeof(CRNL));
             break;
 
         default:
-            uart_send(cur, 1);
+            ot_serial_send(cur, 1);
             break;
         }
     }
@@ -85,7 +104,7 @@ void Serial::HandleReceive(uint8_t *buf, uint16_t bufLength)
             if (mRxLength > 0)
             {
                 mRxBuffer[--mRxLength] = '\0';
-                uart_send(VT102_ERASE_EOL, sizeof(VT102_ERASE_EOL));
+                ot_serial_send(VT102_ERASE_EOL, sizeof(VT102_ERASE_EOL));
             }
 
             break;
@@ -98,15 +117,8 @@ void Serial::HandleReceive(uint8_t *buf, uint16_t bufLength)
         buf++;
         bufLength--;
     }
-}
 
-extern "C" void uart_handle_send_done()
-{
-    sServer->HandleSendDone();
-}
-
-void Serial::HandleSendDone()
-{
+    ot_serial_handle_receive_done();
 }
 
 ThreadError Serial::ProcessCommand()
@@ -146,7 +158,7 @@ ThreadError Serial::ProcessCommand()
             cur += strlen(cur);
         }
 
-        SuccessOrExit(error = uart_send(reinterpret_cast<const uint8_t *>(mRxBuffer), cur - mRxBuffer));
+        SuccessOrExit(error = ot_serial_send(reinterpret_cast<const uint8_t *>(mRxBuffer), cur - mRxBuffer));
     }
     else
     {
@@ -176,7 +188,7 @@ exit:
 
 ThreadError Serial::Output(const char *buf, uint16_t bufLength)
 {
-    return uart_send(reinterpret_cast<const uint8_t *>(buf), bufLength);
+    return ot_serial_send(reinterpret_cast<const uint8_t *>(buf), bufLength);
 }
 
 }  // namespace Cli

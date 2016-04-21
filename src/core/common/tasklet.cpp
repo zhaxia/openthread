@@ -17,8 +17,7 @@
 #include <common/code_utils.hpp>
 #include <common/tasklet.hpp>
 #include <common/thread_error.hpp>
-#include <platform/atomic.hpp>
-#include <platform/sleep.hpp>
+#include <platform/atomic.h>
 
 namespace Thread {
 
@@ -40,7 +39,7 @@ ThreadError Tasklet::Post()
 ThreadError TaskletScheduler::Post(Tasklet &tasklet)
 {
     ThreadError error = kThreadError_None;
-    uint32_t state = atomic_begin();
+    uint32_t state = ot_atomic_begin();
 
     VerifyOrExit(sTail != &tasklet && tasklet.mNext == NULL, error = kThreadError_Busy);
 
@@ -56,7 +55,7 @@ ThreadError TaskletScheduler::Post(Tasklet &tasklet)
     }
 
 exit:
-    atomic_end(state);
+    ot_atomic_end(state);
 
     return error;
 }
@@ -90,9 +89,9 @@ void TaskletScheduler::RunNextTasklet()
     uint32_t state;
     Tasklet *task;
 
-    state = atomic_begin();
+    state = ot_atomic_begin();
     task = PopTasklet();
-    atomic_end(state);
+    ot_atomic_end(state);
 
     if (task != NULL)
     {

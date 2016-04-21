@@ -17,9 +17,9 @@
 #ifndef CODE_UTILS_HPP_
 #define CODE_UTILS_HPP_
 
-#include <common/debug.hpp>
+#include <stdbool.h>
 
-namespace Thread {
+#include <common/debug.hpp>
 
 #define SuccessOrExit(ERR)                      \
   do {                                          \
@@ -41,7 +41,5 @@ namespace Thread {
     __VA_ARGS__;                                \
     goto exit;                                  \
   } while (false)
-
-}  // namespace Thread
 
 #endif  // CODE_UTILS_HPP_

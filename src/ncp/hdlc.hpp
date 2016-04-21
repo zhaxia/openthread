@@ -21,23 +21,50 @@
 #include <common/thread_error.hpp>
 
 namespace Thread {
+namespace Hdlc {
 
-class Hdlc
+class Encoder
 {
 public:
-    typedef void (*ReceiveHandler)(void *context, uint8_t protocol, uint8_t *frame, uint16_t frameLength);
-    typedef void (*SendDoneHandler)(void *context);
-    typedef void (*SendMessageDoneHandler)(void *context);
+    ThreadError Init(uint8_t *aOutBuf, uint16_t &aOutLength);
+    ThreadError Encode(const uint8_t *aInBuf, uint16_t aInLength, uint8_t *aOutBuf, uint16_t &aOutLength);
+    ThreadError Finalize(uint8_t *aOutBuf, uint16_t &aOutLength);
 
-    static ThreadError Init(void *context, ReceiveHandler receiveHandler, SendDoneHandler sendDoneHandler,
-                            SendMessageDoneHandler sendMessageDoneHandler);
-    static ThreadError Start();
-    static ThreadError Stop();
+private:
+    ThreadError Encode(uint8_t aInByte, uint8_t *aOutBuf, uint16_t aOutLength);
 
-    static ThreadError Send(uint8_t protocol, uint8_t *frame, uint16_t frameLength);
-    static ThreadError SendMessage(uint8_t protocol, Message &message);
+    uint16_t mOutOffset;
+    uint16_t mFcs;
 };
 
+class Decoder
+{
+public:
+    typedef void (*FrameHandler)(void *aContext, uint8_t *aFrame, uint16_t aFrameLength);
+
+    void Init(uint8_t *aOutBuf, uint16_t aOutLength, FrameHandler aFrameHandler, void *aContext);
+    ThreadError Decode(const uint8_t *aInBuf, uint16_t aInLength);
+
+private:
+    enum State
+    {
+        kStateNoSync = 0,
+        kStateSync,
+        kStateEscaped,
+    };
+    State mState;
+
+    FrameHandler mFrameHandler;
+    void *mContext;
+
+    uint8_t *mOutBuf;
+    uint16_t mOutOffset;
+    uint16_t mOutLength;
+
+    uint16_t mFcs;
+};
+
+}  // namespace Hdlc
 }  // namespace Thread
 
 #endif  // HDLC_HPP_

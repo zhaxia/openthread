@@ -35,6 +35,8 @@ public:
     void HandleReceive(uint8_t *buf, uint16_t bufLength);
     void HandleSendDone();
 
+    static void ReceiveTask(void *context);
+
 private:
     enum
     {
@@ -42,6 +44,7 @@ private:
     };
 
     ThreadError ProcessCommand();
+    void ReceiveTask();
 
     char mRxBuffer[kRxBufferSize];
     uint16_t mRxLength;

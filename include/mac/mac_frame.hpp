@@ -20,7 +20,7 @@
 #include <stdint.h>
 
 #include <common/thread_error.hpp>
-#include <platform/phy.hpp>
+#include <platform/radio.h>
 
 namespace Thread {
 namespace Mac {
@@ -49,7 +49,7 @@ struct Address
     };
 };
 
-class Frame: public PhyPacket
+class Frame: public RadioPacket
 {
 public:
     enum

@@ -14,6 +14,13 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ * @brief
+ *   This file defines the error codes for OpenThread.
+ *
+ */
+
 #ifndef THREAD_ERROR_HPP_
 #define THREAD_ERROR_HPP_
 
@@ -21,10 +28,13 @@
 extern "C" {
 #endif
 
-enum ThreadError
+/**
+ * This enumeration represents error codes used throughout OpenThread.
+ */
+typedef enum ThreadError
 {
     kThreadError_None = 0,
-    kThreadError_Error = 1,
+    kThreadError_Failed = 1,
     kThreadError_Drop = 2,
     kThreadError_NoBufs = 3,
     kThreadError_NoRoute = 4,
@@ -36,7 +46,10 @@ enum ThreadError
     kThreadError_NoAddress = 10,
     kThreadError_NotReceiving = 11,
     kThreadError_Abort = 12,
-};
+    kThreadError_NotImplemented = 13,
+    kThreadError_InvalidState = 14,
+    kThreadError_Error = 255,
+} ThreadError;
 
 #ifdef __cplusplus
 }  // end of extern "C"

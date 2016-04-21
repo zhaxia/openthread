@@ -17,51 +17,63 @@
 /**
  *    @file
  *    @brief
- *      Defines the interface to the Alarm object that drives Thread
- *      timers.
+ *      This file defines the Alarm interface for OpenThread.
  */
 
-#ifndef ALARM_HPP_
-#define ALARM_HPP_
+#ifndef ALARM_H_
+#define ALARM_H_
 
 #include <stdint.h>
-
-namespace Thread {
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * Initialize the Alarm resources.  This will typically initilize
- * hardware resources that are used to implement the alarm.
+ * @defgroup alarm Alarm
+ * @ingroup platform
+ *
+ * @{
+ *
  */
-void alarm_init();
 
 /**
- * Set the alarm to fire at a time delay relative from t0.
- *
- * @param[in] t0  The reference time.
- * @param[in] dt  The time delay in milliseconds.
+ * Initialize the Alarm.
  */
-void alarm_start_at(uint32_t t0, uint32_t dt);
+void ot_alarm_init(void);
+
+/**
+ * Set the alarm to fire at @p aDt milliseconds after @p aT0.
+ *
+ * @param[in] aT0  The reference time.
+ * @param[in] aDt  The time delay in milliseconds from @p aT0.
+ */
+void ot_alarm_start_at(uint32_t aT0, uint32_t aDt);
 
 /**
  * Stop the alarm.
  */
-void alarm_stop();
+void ot_alarm_stop(void);
 
 /**
  * Get the current current time.
  *
- * @return The current time.
+ * @returns The current time in milliseconds.
  */
-uint32_t alarm_get_now();
+uint32_t ot_alarm_get_now(void);
+
+/**
+ * Signal that the alarm has fired.
+ */
+extern void ot_alarm_signal_fired(void);
+
+/**
+ * @}
+ *
+ */
 
 #ifdef __cplusplus
-}  // end of extern "C"
+}  // extern "C"
 #endif
 
-}  // namespace Thread
-
-#endif  // ALARM_HPP_
+#endif  // ALARM_H_

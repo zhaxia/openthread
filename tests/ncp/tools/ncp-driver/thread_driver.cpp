@@ -33,9 +33,10 @@ ThreadError ThreadDriver::Start()
 {
     ThreadError error = kThreadError_None;
 
+    mHdlcDecoder.Init(mSerialFrame, sizeof(mSerialFrame), &HandleFrame, this);
+
     // setup communication with NCP
-    Hdlc::Init(this, &HandleReceive, &HandleSendDone, &HandleSendMessageDone);
-    SuccessOrExit(error = Hdlc::Start());
+    serial_enable();
 
     // setup tun interface
     tun_netif_.Open();
@@ -66,7 +67,7 @@ ThreadError ThreadDriver::Start()
 
         FD_ZERO(&fds);
 
-        fd = uart_get_fd();
+        fd = serial_get_fd();
 
         if (maxfd < fd)
         {
@@ -122,17 +123,51 @@ ThreadError ThreadDriver::Start()
 
                 printf("accept %d\n", ipc_fd_);
             }
-            else if (FD_ISSET(uart_get_fd(), &fds))
+            else if (FD_ISSET(serial_get_fd(), &fds))
             {
-                uart_read();
-                printf("uart read\n");
+                uint8_t buf[2048];
+                uint16_t buf_length = sizeof(buf);
+
+                serial_read(buf, buf_length);
+
+                dump("serial", buf, buf_length);
+                mHdlcDecoder.Decode(buf, buf_length);
+
+                printf("serial read\n");
             }
             else if (FD_ISSET(tun_netif_.GetFileDescriptor(), &fds))
             {
-                uint8_t buf[1500];
+                uint8_t buf[2048];
                 int buf_length;
                 buf_length = tun_netif_.Read(buf, sizeof(buf));
-                Hdlc::Send(2, buf, buf_length);
+
+                Hdlc::Encoder encoder;
+                uint8_t hdlc[4096];
+                uint8_t *hdlcCur = hdlc;
+                uint16_t hdlcLength;
+
+                // header
+                hdlcLength = sizeof(hdlc);
+                encoder.Init(hdlcCur, hdlcLength);
+                hdlcCur += hdlcLength;
+
+                // protocol
+                uint8_t protocol = 2;
+                hdlcLength = sizeof(hdlc) - (hdlcCur - hdlc);
+                encoder.Encode(&protocol, sizeof(protocol), hdlcCur, hdlcLength);
+                hdlcCur += hdlcLength;
+
+                // message
+                hdlcLength = sizeof(hdlc) - (hdlcCur - hdlc);
+                encoder.Encode(buf, buf_length, hdlcCur, hdlcLength);
+                hdlcCur += hdlcLength;
+
+                // footer
+                hdlcLength = sizeof(hdlc) - (hdlcCur - hdlc);
+                encoder.Finalize(hdlcCur, hdlcLength);
+                hdlcCur += hdlcLength;
+
+                serial_send(hdlc, hdlcCur - hdlc);
                 printf("tun read\n");
             }
             else if (FD_ISSET(ipc_fd_, &fds))
@@ -147,7 +182,34 @@ ThreadError ThreadDriver::Start()
                 }
                 else
                 {
-                    Hdlc::Send(0, buf, buf_length);
+                    Hdlc::Encoder encoder;
+                    uint8_t hdlc[4096];
+                    uint8_t *hdlcCur = hdlc;
+                    uint16_t hdlcLength;
+
+                    // header
+                    hdlcLength = sizeof(hdlc);
+                    encoder.Init(hdlcCur, hdlcLength);
+                    hdlcCur += hdlcLength;
+
+                    // protocol
+                    uint8_t protocol = 0;
+                    hdlcLength = sizeof(hdlc) - (hdlcCur - hdlc);
+                    encoder.Encode(&protocol, sizeof(protocol), hdlcCur, hdlcLength);
+                    hdlcCur += hdlcLength;
+
+                    // message
+                    hdlcLength = sizeof(hdlc) - (hdlcCur - hdlc);
+                    encoder.Encode(buf, buf_length, hdlcCur, hdlcLength);
+                    hdlcCur += hdlcLength;
+
+                    // footer
+                    hdlcLength = sizeof(hdlc) - (hdlcCur - hdlc);
+                    encoder.Finalize(hdlcCur, hdlcLength);
+                    hdlcCur += hdlcLength;
+
+                    serial_send(hdlc, hdlcCur - hdlc);
+
                     printf("ipc read\n");
                 }
             }
@@ -166,21 +228,7 @@ void ThreadDriver::HandleReceive(void *context, uint8_t protocol, uint8_t *buf, 
 
 void ThreadDriver::HandleReceive(uint8_t protocol, uint8_t *buf, uint16_t buf_length)
 {
-    switch (protocol)
-    {
-    case 0:
-        ProcessThreadControl(buf, buf_length);
-        write(ipc_fd_, buf, buf_length);
-        break;
 
-    case 1:
-        ProcessThreadControl(buf, buf_length);
-        break;
-
-    case 2:
-        tun_netif_.Write(buf, buf_length);
-        break;
-    }
 }
 
 ThreadError ThreadDriver::ProcessThreadControl(uint8_t *buf, uint16_t buf_length)
@@ -242,6 +290,36 @@ void ThreadDriver::HandleSendDone(void *context)
 
 void ThreadDriver::HandleSendMessageDone(void *context)
 {
+}
+
+void ThreadDriver::HandleFrame(void *context, uint8_t *buf, uint16_t buf_length)
+{
+    ThreadDriver *obj = reinterpret_cast<ThreadDriver *>(context);
+    obj->HandleFrame(buf, buf_length);
+}
+
+void ThreadDriver::HandleFrame(uint8_t *buf, uint16_t buf_length)
+{
+    uint8_t protocol = buf[0];
+
+    buf++;
+    buf_length--;
+
+    switch (protocol)
+    {
+    case 0:
+        ProcessThreadControl(buf, buf_length);
+        write(ipc_fd_, buf, buf_length);
+        break;
+
+    case 1:
+        ProcessThreadControl(buf, buf_length);
+        break;
+
+    case 2:
+        tun_netif_.Write(buf, buf_length);
+        break;
+    }
 }
 
 }  // namespace Thread

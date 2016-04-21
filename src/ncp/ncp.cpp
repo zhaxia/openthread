@@ -16,8 +16,13 @@
 
 #include <common/code_utils.hpp>
 #include <ncp/ncp.hpp>
+#include <platform/serial.h>
 
 namespace Thread {
+
+static Tasklet sSendDoneTask(&Ncp::SendDoneTask, NULL);
+static Tasklet sReceiveTask(&Ncp::ReceiveTask, NULL);
+static Ncp *sNcp;
 
 Ncp::Ncp():
     NcpBase()
@@ -27,36 +32,137 @@ Ncp::Ncp():
 ThreadError Ncp::Init()
 {
     super_t::Init();
-    Hdlc::Init(this,
-               &super_t::HandleReceive,
-               &super_t::HandleSendDone,
-               &super_t::HandleSendMessageDone);
+    mHdlcDecoder.Init(mReceiveFrame, sizeof(mReceiveFrame), &HandleFrame, this);
+    sNcp = this;
+
     return kThreadError_None;
 }
 
 ThreadError Ncp::Start()
 {
-    super_t::Start();
-    return mHdlc.Start();
+    ot_serial_enable();
+    return super_t::Start();
 }
 
 ThreadError Ncp::Stop()
 {
-    super_t::Stop();
-    return mHdlc.Stop();
+    ot_serial_disable();
+    return super_t::Stop();
 }
 
 ThreadError Ncp::Send(uint8_t protocol, uint8_t *frame,
                       uint16_t frameLength)
 {
-    return mHdlc.Send(protocol, frame, frameLength);
+    printf("here s\n");
+
+    uint8_t *cur = mSendFrame;
+    uint16_t outLength;
+
+    outLength = sizeof(mSendFrame) - (cur - mSendFrame);
+    mHdlcEncoder.Init(cur, outLength);
+    cur += outLength;
+
+    outLength = sizeof(mSendFrame) - (cur - mSendFrame);
+    mHdlcEncoder.Encode(&protocol, sizeof(protocol), cur, outLength);
+    cur += outLength;
+
+    outLength = sizeof(mSendFrame) - (cur - mSendFrame);
+    mHdlcEncoder.Encode(frame, frameLength, cur, outLength);
+    cur += outLength;
+
+    outLength = sizeof(mSendFrame) - (cur - mSendFrame);
+    mHdlcEncoder.Finalize(cur, outLength);
+    cur += outLength;
+
+    return ot_serial_send(mSendFrame, cur - mSendFrame);
 }
 
 /// TODO: queue
 ThreadError Ncp::SendMessage(uint8_t protocol, Message &message)
 {
-    return mHdlc.SendMessage(protocol, message);
+    uint8_t *cur = mSendFrame;
+    uint16_t outLength;
+    uint16_t inLength;
+    uint8_t inBuf[16];
+
+    outLength = sizeof(mSendFrame) - (cur - mSendFrame);
+    mHdlcEncoder.Init(cur, outLength);
+    cur += outLength;
+
+    outLength = sizeof(mSendFrame) - (cur - mSendFrame);
+    mHdlcEncoder.Encode(&protocol, sizeof(protocol), cur, outLength);
+    cur += outLength;
+
+
+    for (int offset = 0; offset < message.GetLength(); offset += sizeof(inBuf))
+    {
+        inLength = message.Read(offset, sizeof(inBuf), inBuf);
+        outLength = sizeof(mSendFrame) - (cur - mSendFrame);
+        mHdlcEncoder.Encode(inBuf, inLength, cur, outLength);
+        cur += outLength;
+    }
+
+    outLength = sizeof(mSendFrame) - (cur - mSendFrame);
+    mHdlcEncoder.Finalize(cur, outLength);
+    cur += outLength;
+
+    return ot_serial_send(mSendFrame, cur - mSendFrame);
 }
 
+extern "C" void ot_serial_signal_send_done()
+{
+    sSendDoneTask.Post();
+}
+
+void Ncp::SendDoneTask(void *context)
+{
+    sNcp->SendDoneTask();
+}
+
+void Ncp::SendDoneTask()
+{
+    if (mSendMessage == NULL)
+    {
+        super_t::HandleSendDone();
+    }
+    else
+    {
+        mSendMessage = NULL;
+        super_t::HandleSendMessageDone();
+    }
+
+}
+
+extern "C" void ot_serial_signal_receive()
+{
+    sReceiveTask.Post();
+}
+
+void Ncp::ReceiveTask(void *context)
+{
+    sNcp->ReceiveTask();
+}
+
+void Ncp::ReceiveTask()
+{
+    const uint8_t *buf;
+    uint16_t bufLength;
+
+    buf = ot_serial_get_received_bytes(&bufLength);
+
+    mHdlcDecoder.Decode(buf, bufLength);
+
+    ot_serial_handle_receive_done();
+}
+
+void Ncp::HandleFrame(void *context, uint8_t *aBuf, uint16_t aBufLength)
+{
+    sNcp->HandleFrame(aBuf, aBufLength);
+}
+
+void Ncp::HandleFrame(uint8_t *aBuf, uint16_t aBufLength)
+{
+    super_t::HandleReceive(aBuf[0], aBuf + 1, aBufLength - 1);
+}
 
 }  // namespace Thread

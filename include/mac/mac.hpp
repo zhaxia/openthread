@@ -22,7 +22,7 @@
 #include <crypto/aes_ecb.hpp>
 #include <mac/mac_frame.hpp>
 #include <mac/mac_whitelist.hpp>
-#include <platform/phy.hpp>
+#include <platform/radio.h>
 #include <thread/key_manager.hpp>
 #include <thread/topology.hpp>
 
@@ -129,10 +129,13 @@ public:
     const uint8_t *GetExtendedPanId() const;
     ThreadError SetExtendedPanId(const uint8_t *xpanid);
 
-    void HandleReceiveDone(PhyPacket *packet, ThreadError error);
-    void HandleTransmitDone(PhyPacket *packet, bool rxPending, ThreadError error);
+    void HandleReceiveDone(RadioPacket *packet, ThreadError error);
+    void HandleTransmitDone(RadioPacket *packet, bool rxPending, ThreadError error);
 
     Whitelist *GetWhitelist();
+
+    static void ReceiveDoneTask(void *context);
+    static void TransmitDoneTask(void *context);
 
 private:
     void GenerateNonce(const Address64 &address, uint32_t frameCounter, uint8_t securityLevel, uint8_t *nonce);
@@ -153,6 +156,9 @@ private:
     void HandleBackoffTimer();
     static void HandleReceiveTimer(void *context);
     void HandleReceiveTimer();
+
+    void ReceiveDoneTask();
+    void TransmitDoneTask();
 
     Timer mAckTimer;
     Timer mBackoffTimer;
