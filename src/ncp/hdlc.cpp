@@ -16,14 +16,14 @@
 
 #include <common/code_utils.hpp>
 #include <ncp/hdlc.hpp>
-#include <platform/uart.hpp>
 
 namespace Thread {
+namespace Hdlc {
 
 /*
  * FCS lookup table as calculated by the table generator.
  */
-const uint16_t fcstab[256] =
+static const uint16_t fcstab[256] =
 {
     0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
     0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
@@ -59,184 +59,124 @@ const uint16_t fcstab[256] =
     0x7bc7, 0x6a4e, 0x58d5, 0x495c, 0x3de3, 0x2c6a, 0x1ef1, 0x0f78
 };
 
-#define PPPINITFCS16    0xffff  /* Initial FCS value */
-#define PPPGOODFCS16    0xf0b8  /* Good final FCS value */
-
 enum
 {
     kFlagSequence = 0x7e,
     kEscapeSequence = 0x7d,
+    kInitFcs16 = 0xffff,
+    kGoodFcs16 = 0xf0b8,
 };
 
-enum State
-{
-    kStateNoSync = 0,
-    kStateSync,
-    kStateEscaped,
-};
-
-static uint16_t AppendSendByte(uint8_t byte, uint16_t fcs);
-
-static void *sContext;
-static Hdlc::ReceiveHandler sReceiveHandler;
-static Hdlc::SendDoneHandler sSendDoneHandler;
-static Hdlc::SendMessageDoneHandler sSendMessageDoneHandler;
-
-static State sReceiveState = kStateNoSync;
-static uint8_t sReceiveFrame[512];
-static uint16_t sReceiveFrameLength = 0;
-static uint16_t sReceiveFcs = 0;
-static uint8_t sSendFrame[512];
-static uint16_t sSendFrameLength = 0;
-static uint8_t sSendProtocol = 0;
-static Message *sSendMessage = NULL;
+static uint16_t UpdateFcs(uint16_t fcs, uint8_t byte);
 
 /*
  * Calculate a new fcs given the current fcs and the new data.
  */
-uint16_t pppfcs16(uint16_t fcs, uint8_t cp)
+uint16_t UpdateFcs(uint16_t fcs, uint8_t cp)
 {
     return (fcs >> 8) ^ fcstab[(fcs ^ cp) & 0xff];
 }
 
-ThreadError Hdlc::Start()
-{
-    return uart_start();
-}
-
-ThreadError Hdlc::Stop()
-{
-    return uart_stop();
-}
-
-uint16_t AppendSendByte(uint8_t byte, uint16_t fcs)
-{
-    fcs = pppfcs16(fcs, byte);
-
-    if (byte == kFlagSequence || byte == kEscapeSequence)
-    {
-        sSendFrame[sSendFrameLength++] = kEscapeSequence;
-        sSendFrame[sSendFrameLength++] = byte ^ 0x20;
-    }
-    else
-    {
-        sSendFrame[sSendFrameLength++] = byte;
-    }
-
-    return fcs;
-}
-
-ThreadError Hdlc::Init(void *context, ReceiveHandler receiveHandler, SendDoneHandler sendDoneHandler,
-                       SendMessageDoneHandler sendMessagedoneHandler)
-{
-    sContext = context;
-    sReceiveHandler = receiveHandler;
-    sSendDoneHandler = sendDoneHandler;
-    sSendMessageDoneHandler = sendMessagedoneHandler;
-    return kThreadError_None;
-}
-
-ThreadError Hdlc::Send(uint8_t protocol, uint8_t *frame, uint16_t frameLength)
+ThreadError Encoder::Init(uint8_t *aOutBuf, uint16_t &aOutLength)
 {
     ThreadError error = kThreadError_None;
-    uint16_t fcs;
 
-    sSendProtocol = protocol;
-    sSendFrameLength = 0;
+    mFcs = kInitFcs16;
 
-    // flag sequence
-    sSendFrame[sSendFrameLength++] = kFlagSequence;
+    VerifyOrExit(aOutLength > 0, error = kThreadError_NoBufs);
+    aOutBuf[0] = kFlagSequence;
+    aOutLength = 1;
 
-    // protocol
-    fcs = AppendSendByte(protocol, PPPINITFCS16);
-
-    // payload
-    for (int i = 0; i < frameLength; i++)
-    {
-        fcs = AppendSendByte(frame[i], fcs);
-    }
-
-    // fcs
-    fcs ^= 0xffff;
-    AppendSendByte(fcs, 0);
-    AppendSendByte(fcs >> 8, 0);
-
-    // flag sequence
-    sSendFrame[sSendFrameLength++] = kFlagSequence;
-
-    uart_send(sSendFrame, sSendFrameLength);
-
+exit:
     return error;
 }
 
-ThreadError Hdlc::SendMessage(uint8_t protocol, Message &message)
+ThreadError Encoder::Encode(uint8_t aInByte, uint8_t *aOutBuf, uint16_t aOutLength)
 {
     ThreadError error = kThreadError_None;
-    uint16_t fcs;
 
-    sSendProtocol = protocol;
-    sSendFrameLength = 0;
-    sSendMessage = &message;
+    mFcs = UpdateFcs(mFcs, aInByte);
 
-    // flag sequence
-    sSendFrame[sSendFrameLength++] = kFlagSequence;
-
-    // protocol
-    fcs = AppendSendByte(protocol, PPPINITFCS16);
-
-    // payload
-    uint8_t buf[16];
-
-    for (int offset = 0; offset < message.GetLength(); offset += sizeof(buf))
+    if (aInByte == kFlagSequence || aInByte == kEscapeSequence)
     {
-        int read_len = message.Read(offset, sizeof(buf), buf);
-
-        for (int i = 0; i < read_len; i++)
-        {
-            fcs = AppendSendByte(buf[i], fcs);
-        }
-    }
-
-    // fcs
-    fcs ^= 0xffff;
-    AppendSendByte(fcs, 0);
-    AppendSendByte(fcs >> 8, 0);
-
-    // flag sequence
-    sSendFrame[sSendFrameLength++] = kFlagSequence;
-
-    uart_send(sSendFrame, sSendFrameLength);
-
-    return error;
-}
-
-extern "C" void uart_handle_send_done()
-{
-    if (sSendMessage == NULL)
-    {
-        sSendDoneHandler(sContext);
+        VerifyOrExit(mOutOffset + 2 < aOutLength, error = kThreadError_NoBufs);
+        aOutBuf[mOutOffset++] = kEscapeSequence;
+        aOutBuf[mOutOffset++] = aInByte ^ 0x20;
     }
     else
     {
-        sSendMessage = NULL;
-        sSendMessageDoneHandler(sContext);
+        VerifyOrExit(mOutOffset + 1 < aOutLength, error = kThreadError_NoBufs);
+        aOutBuf[mOutOffset++] = aInByte;
     }
+
+exit:
+    return error;
 }
 
-extern "C" void uart_handle_receive(uint8_t *buf, uint16_t bufLength)
+ThreadError Encoder::Encode(const uint8_t *aInBuf, uint16_t aInLength, uint8_t *aOutBuf, uint16_t &aOutLength)
 {
-    for (int i = 0; i < bufLength; i++)
-    {
-        uint8_t byte = buf[i];
+    ThreadError error = kThreadError_None;
 
-        switch (sReceiveState)
+    mOutOffset = 0;
+
+    for (int i = 0; i < aInLength; i++)
+    {
+        SuccessOrExit(error = Encode(aInBuf[i], aOutBuf, aOutLength));
+    }
+
+exit:
+    aOutLength = mOutOffset;
+    return error;
+}
+
+ThreadError Encoder::Finalize(uint8_t *aOutBuf, uint16_t &aOutLength)
+{
+    ThreadError error = kThreadError_None;
+    uint16_t fcs = mFcs;
+
+    mOutOffset = 0;
+
+    fcs ^= 0xffff;
+
+    SuccessOrExit(error = Encode(fcs, aOutBuf, aOutLength));
+    SuccessOrExit(error = Encode(fcs >> 8, aOutBuf, aOutLength));
+
+    VerifyOrExit(mOutOffset < aOutLength, error = kThreadError_NoBufs);
+    aOutBuf[mOutOffset++] = kFlagSequence;
+
+    aOutLength = mOutOffset;
+
+exit:
+    return error;
+}
+
+void Decoder::Init(uint8_t *aOutBuf, uint16_t aOutLength, FrameHandler aFrameHandler, void *aContext)
+{
+    mState = kStateNoSync;
+    mFrameHandler = aFrameHandler;
+    mContext = aContext;
+    mOutBuf = aOutBuf;
+    mOutOffset = 0;
+    mOutLength = aOutLength;
+}
+
+ThreadError Decoder::Decode(const uint8_t *aInBuf, uint16_t aInLength)
+{
+    ThreadError error = kThreadError_None;
+    uint8_t byte;
+
+    for (int i = 0; i < aInLength; i++)
+    {
+        byte = aInBuf[i];
+
+        switch (mState)
         {
         case kStateNoSync:
             if (byte == kFlagSequence)
             {
-                sReceiveState = kStateSync;
-                sReceiveFrameLength = 0;
-                sReceiveFcs = PPPINITFCS16;
+                mState = kStateSync;
+                mOutOffset = 0;
+                mFcs = kInitFcs16;
             }
 
             break;
@@ -245,33 +185,33 @@ extern "C" void uart_handle_receive(uint8_t *buf, uint16_t bufLength)
             switch (byte)
             {
             case kEscapeSequence:
-                sReceiveState = kStateEscaped;
+                mState = kStateEscaped;
                 break;
 
             case kFlagSequence:
-                if (sReceiveFrameLength > 0)
+                if (mOutOffset > 0)
                 {
-                    if (sReceiveFcs == PPPGOODFCS16)
+                    if (mFcs == kGoodFcs16)
                     {
-                        sReceiveHandler(sContext, sReceiveFrame[0], sReceiveFrame + 1,
-                                        sReceiveFrameLength - 3);
+                        mFrameHandler(mContext, mOutBuf, mOutOffset - 2);
                     }
 
-                    sReceiveFrameLength = 0;
-                    sReceiveFcs = PPPINITFCS16;
+                    mOutOffset = 0;
+                    mFcs = kInitFcs16;
                 }
 
                 break;
 
             default:
-                if (sReceiveFrameLength < sizeof(sReceiveFrame))
+                if (mOutOffset < mOutLength)
                 {
-                    sReceiveFcs = pppfcs16(sReceiveFcs, byte);
-                    sReceiveFrame[sReceiveFrameLength++] = byte;
+                    printf("%02x\n", byte);
+                    mFcs = UpdateFcs(mFcs, byte);
+                    mOutBuf[mOutOffset++] = byte;
                 }
                 else
                 {
-                    sReceiveState = kStateNoSync;
+                    mState = kStateNoSync;
                 }
 
                 break;
@@ -280,21 +220,26 @@ extern "C" void uart_handle_receive(uint8_t *buf, uint16_t bufLength)
             break;
 
         case kStateEscaped:
-            if (sReceiveFrameLength < sizeof(sReceiveFrame))
+            if (mOutOffset < mOutLength)
             {
                 byte ^= 0x20;
-                sReceiveFcs = pppfcs16(sReceiveFcs, byte);
-                sReceiveFrame[sReceiveFrameLength++] = byte;
-                sReceiveState = kStateSync;
+                mFcs = UpdateFcs(mFcs, byte);
+                mOutBuf[mOutOffset++] = byte;
+                mState = kStateSync;
             }
             else
             {
-                sReceiveState = kStateNoSync;
+                mState = kStateNoSync;
             }
+
 
             break;
         }
     }
+
+exit:
+    return error;
 }
 
+}  // namespace Hdlc
 }  // namespace Thread

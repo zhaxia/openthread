@@ -21,7 +21,6 @@
 
 #include <common/message.hpp>
 #include <common/thread_error.hpp>
-#include <platform/uart.hpp>
 #include <thread/thread_netif.hpp>
 
 enum

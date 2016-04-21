@@ -17,28 +17,24 @@
 #include <pthread.h>
 #include <stdio.h>
 
-#include <platform/atomic.hpp>
-#include <common/code_utils.hpp>
+#include <platform/atomic.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_cond_t s_cond = PTHREAD_COND_INITIALIZER;
 
-pthread_mutex_t g_mutex = PTHREAD_MUTEX_INITIALIZER;
-pthread_cond_t g_cond = PTHREAD_COND_INITIALIZER;
-
-uint32_t atomic_begin()
+uint32_t ot_atomic_begin()
 {
-    pthread_mutex_lock(&g_mutex);
+    pthread_mutex_lock(&s_mutex);
     return 0;
 }
 
-void atomic_end(uint32_t state)
+void ot_atomic_end(uint32_t state)
 {
-    pthread_mutex_unlock(&g_mutex);
-    pthread_cond_signal(&g_cond);
+    pthread_mutex_unlock(&s_mutex);
+    pthread_cond_signal(&s_cond);
 }
 
-#ifdef __cplusplus
-}  // end of extern "C"
-#endif
+void sleep_start()
+{
+    pthread_cond_wait(&s_cond, &s_mutex);
+}

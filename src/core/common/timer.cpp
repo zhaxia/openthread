@@ -17,7 +17,7 @@
 #include <common/code_utils.hpp>
 #include <common/thread_error.hpp>
 #include <common/timer.hpp>
-#include <platform/alarm.hpp>
+#include <platform/alarm.h>
 
 namespace Thread {
 
@@ -65,13 +65,13 @@ uint32_t Timer::Getdt() const
 
 uint32_t Timer::GetNow()
 {
-    return alarm_get_now();
+    return ot_alarm_get_now();
 }
 
 void Timer::Init()
 {
     dprintf("Timer init\n");
-    alarm_init();
+    ot_alarm_init();
 }
 
 ThreadError Timer::Add(Timer &timer)
@@ -156,14 +156,14 @@ exit:
 
 void Timer::SetAlarm()
 {
-    uint32_t now = alarm_get_now();
+    uint32_t now = ot_alarm_get_now();
     int32_t minRemaining = (1UL << 31) - 1;
     uint32_t elapsed;
     int32_t remaining;
 
     if (sHead == NULL)
     {
-        alarm_stop();
+        ot_alarm_stop();
         ExitNow();
     }
 
@@ -184,21 +184,21 @@ void Timer::SetAlarm()
     }
     else
     {
-        alarm_start_at(now, minRemaining);
+        ot_alarm_start_at(now, minRemaining);
     }
 
 exit:
     {}
 }
 
-extern "C" void alarm_fired()
+extern "C" void ot_alarm_signal_fired()
 {
     Thread::s_task.Post();
 }
 
 void Timer::FireTimers(void *context)
 {
-    uint32_t now = alarm_get_now();
+    uint32_t now = ot_alarm_get_now();
     uint32_t elapsed;
 
     for (Timer *cur = sHead; cur; cur = cur->mNext)

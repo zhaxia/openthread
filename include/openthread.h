@@ -1154,6 +1154,10 @@ ThreadError otSendUdp6(otUdp6Socket *socket, otMessage aMessage, const otMessage
  *
  */
 
+/**
+ * @defgroup platform Platform
+ */
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

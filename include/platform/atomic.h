@@ -31,14 +31,27 @@ extern "C" {
 #endif
 
 /**
+ * @defgroup atomic Atomic
+ * @ingroup platform
+ *
+ * @{
+ *
+ */
+
+/**
  * Begin critical section.
  */
-uint32_t atomic_begin();
+uint32_t ot_atomic_begin();
 
 /**
  * End critical section.
  */
-void atomic_end(uint32_t state);
+void ot_atomic_end(uint32_t state);
+
+/**
+ * @}
+ *
+ */
 
 #ifdef __cplusplus
 }  // end of extern "C"

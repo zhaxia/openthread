@@ -26,16 +26,14 @@
 #include <serial_port.hpp>
 #include <common/code_utils.hpp>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 extern struct gengetopt_args_info args_info;
-extern void uart_handle_send_done();
-extern void uart_handle_receive(uint8_t *buf, uint16_t buf_length);
+
+namespace Thread {
+
+extern void serial_handle_receive(uint8_t *buf, uint16_t buf_length);
 int fd_;
 
-ThreadError uart_start()
+ThreadError serial_enable()
 {
     ThreadError error = kThreadError_None;
     struct termios termios;
@@ -83,7 +81,7 @@ exit:
     return error;
 }
 
-ThreadError uart_stop()
+ThreadError serial_disable()
 {
     ThreadError error = kThreadError_None;
     VerifyOrExit(close(fd_) == 0, perror("close"); error = kThreadError_Error);
@@ -91,31 +89,27 @@ exit:
     return error;
 }
 
-ThreadError uart_send(const uint8_t *buf, uint16_t buf_length)
+ThreadError serial_send(const uint8_t *buf, uint16_t buf_length)
 {
     write(fd_, buf, buf_length);
-    uart_handle_send_done();
     return kThreadError_None;
 }
 
-int uart_get_fd()
+int serial_get_fd()
 {
     return fd_;
 }
 
-ThreadError uart_read()
+ThreadError serial_read(uint8_t *buf, uint16_t &buf_length)
 {
     ThreadError error = kThreadError_None;
-    uint8_t buf[1024];
-    size_t length;
+    int length;
 
-    VerifyOrExit((length = read(fd_, buf, sizeof(buf))) >= 0, error = kThreadError_Error);
-    uart_handle_receive(buf, length);
+    VerifyOrExit((length = read(fd_, buf, buf_length)) >= 0, error = kThreadError_Error);
+    buf_length = length;
 
 exit:
     return error;
 }
 
-#ifdef __cplusplus
-}  // end of extern "C"
-#endif
+}  // namespace Thread

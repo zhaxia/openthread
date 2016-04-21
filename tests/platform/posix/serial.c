@@ -23,36 +23,24 @@
 #include <fcntl.h>
 
 #include <platform/posix/cmdline.h>
-
-#include <platform/uart.hpp>
+#include <platform/serial.h>
 #include <common/code_utils.hpp>
-#include <common/tasklet.hpp>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+static void *serial_receive_thread(void *arg);
 
 extern struct gengetopt_args_info args_info;
-extern void uart_handle_receive(uint8_t *buf, uint16_t buf_length);
-extern void uart_handle_send_done();
 
-static void uart_receive_task(void *context);
-static void uart_send_task(void *context);
-static void *uart_receive_thread(void *arg);
-
-static Thread::Tasklet s_receive_task(&uart_receive_task, NULL);
-static Thread::Tasklet s_send_task(&uart_send_task, NULL);
 static int s_fd;
 static pthread_t s_pthread;
 static sem_t *s_semaphore;
 
-ThreadError uart_start()
+ThreadError ot_serial_enable()
 {
     ThreadError error = kThreadError_None;
     struct termios termios;
     char *path;
     char cmd[256];
-
+    printf("here\n");
     // open file
 #if __APPLE__
 
@@ -107,9 +95,9 @@ ThreadError uart_start()
     // set configuration
     VerifyOrExit(tcsetattr(s_fd, TCSAFLUSH, &termios) == 0, perror("tcsetattr"); error = kThreadError_Error);
 
-    snprintf(cmd, sizeof(cmd), "thread_uart_semaphore_%d", args_info.nodeid_arg);
+    snprintf(cmd, sizeof(cmd), "thread_serial_semaphore_%d", args_info.nodeid_arg);
     s_semaphore = sem_open(cmd, O_CREAT, 0644, 0);
-    pthread_create(&s_pthread, NULL, &uart_receive_thread, NULL);
+    pthread_create(&s_pthread, NULL, &serial_receive_thread, NULL);
 
     return error;
 
@@ -118,7 +106,7 @@ exit:
     return error;
 }
 
-ThreadError uart_stop()
+ThreadError ot_serial_disable()
 {
     ThreadError error = kThreadError_None;
 
@@ -127,23 +115,22 @@ ThreadError uart_stop()
     return error;
 }
 
-ThreadError uart_send(const uint8_t *buf, uint16_t buf_length)
+ThreadError ot_serial_send(const uint8_t *buf, uint16_t buf_length)
 {
     ThreadError error = kThreadError_None;
 
     VerifyOrExit(write(s_fd, buf, buf_length) >= 0, error = kThreadError_Error);
-    s_send_task.Post();
+    ot_serial_signal_send_done();
 
 exit:
     return error;
 }
 
-void uart_send_task(void *context)
+void ot_serial_handle_send_done(void)
 {
-    uart_handle_send_done();
 }
 
-void *uart_receive_thread(void *arg)
+void *serial_receive_thread(void *arg)
 {
     fd_set fds;
     int rval;
@@ -157,7 +144,7 @@ void *uart_receive_thread(void *arg)
 
         if (rval >= 0 && FD_ISSET(s_fd, &fds))
         {
-            s_receive_task.Post();
+            ot_serial_signal_receive();
             sem_wait(s_semaphore);
         }
     }
@@ -165,17 +152,23 @@ void *uart_receive_thread(void *arg)
     return NULL;
 }
 
-void uart_receive_task(void *context)
+static uint8_t sReceiveBuffer[128];
+
+const uint8_t *ot_serial_get_received_bytes(uint16_t *aBufLength)
 {
-    uint8_t receive_buffer[1024];
-    size_t len;
+    size_t length;
 
-    len = read(s_fd, receive_buffer, sizeof(receive_buffer));
-    uart_handle_receive(receive_buffer, len);
+    length = read(s_fd, sReceiveBuffer, sizeof(sReceiveBuffer));
 
-    sem_post(s_semaphore);
+    if (aBufLength != NULL)
+    {
+        *aBufLength = length;
+    }
+
+    return sReceiveBuffer;
 }
 
-#ifdef __cplusplus
-}  // end of extern "C"
-#endif
+void ot_serial_handle_receive_done()
+{
+    sem_post(s_semaphore);
+}

@@ -31,7 +31,7 @@
 #include <common/code_utils.hpp>
 #include <common/thread_error.hpp>
 #include <mac/mac.hpp>
-#include <platform/phy.hpp>
+#include <platform/radio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,17 +41,22 @@ extern struct gengetopt_args_info args_info;
 
 namespace Thread {
 
-extern void phy_handle_transmit_done(PhyPacket *packet, bool rx_pending, ThreadError error);
-extern void phy_handle_receive_done(PhyPacket *packet, ThreadError error);
+enum PhyState
+{
+    kStateDisabled = 0,
+    kStateSleep = 1,
+    kStateIdle = 2,
+    kStateListen = 3,
+    kStateReceive = 4,
+    kStateTransmit = 5,
+};
 
 static void *phy_receive_thread(void *arg);
-static void phy_received_task(void *context);
-static void phy_sent_task(void *context);
 
 static PhyState s_state = kStateDisabled;
-static PhyPacket *s_receive_frame = NULL;
-static PhyPacket *s_transmit_frame = NULL;
-static PhyPacket m_ack_packet;
+static RadioPacket *s_receive_frame = NULL;
+static RadioPacket *s_transmit_frame = NULL;
+static RadioPacket m_ack_packet;
 static bool s_data_pending = false;
 
 static uint8_t s_extended_address[8];
@@ -63,16 +68,13 @@ static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_condition_variable = PTHREAD_COND_INITIALIZER;
 static int s_sockfd;
 
-static Tasklet s_received_task(&phy_received_task, NULL);
-static Tasklet s_sent_task(&phy_sent_task, NULL);
-
-ThreadError phy_set_pan_id(uint16_t panid)
+ThreadError ot_radio_set_pan_id(uint16_t panid)
 {
     s_panid = panid;
     return kThreadError_None;
 }
 
-ThreadError phy_set_extended_address(uint8_t *address)
+ThreadError ot_radio_set_extended_address(uint8_t *address)
 {
     for (unsigned i = 0; i < sizeof(s_extended_address); i++)
     {
@@ -82,13 +84,13 @@ ThreadError phy_set_extended_address(uint8_t *address)
     return kThreadError_None;
 }
 
-ThreadError phy_set_short_address(uint16_t address)
+ThreadError ot_radio_set_short_address(uint16_t address)
 {
     s_short_address = address;
     return kThreadError_None;
 }
 
-ThreadError phy_init()
+void ot_radio_init()
 {
     struct sockaddr_in sockaddr;
     memset(&sockaddr, 0, sizeof(sockaddr));
@@ -100,11 +102,9 @@ ThreadError phy_init()
     bind(s_sockfd, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
 
     pthread_create(&s_pthread, NULL, &phy_receive_thread, NULL);
-
-    return kThreadError_None;
 }
 
-ThreadError phy_start()
+ThreadError ot_radio_enable()
 {
     ThreadError error = kThreadError_None;
 
@@ -118,7 +118,7 @@ exit:
     return error;
 }
 
-ThreadError phy_stop()
+ThreadError ot_radio_disable()
 {
     pthread_mutex_lock(&s_mutex);
     s_state = kStateDisabled;
@@ -127,7 +127,7 @@ ThreadError phy_stop()
     return kThreadError_None;
 }
 
-ThreadError phy_sleep()
+ThreadError ot_radio_sleep()
 {
     ThreadError error = kThreadError_None;
 
@@ -141,7 +141,7 @@ exit:
     return error;
 }
 
-ThreadError phy_idle()
+ThreadError ot_radio_idle()
 {
     ThreadError error = kThreadError_None;
 
@@ -173,7 +173,7 @@ exit:
     return error;
 }
 
-ThreadError phy_receive(PhyPacket *packet)
+ThreadError ot_radio_receive(RadioPacket *packet)
 {
     ThreadError error = kThreadError_None;
 
@@ -189,7 +189,7 @@ exit:
     return error;
 }
 
-ThreadError phy_transmit(PhyPacket *packet)
+ThreadError ot_radio_transmit(RadioPacket *packet)
 {
     ThreadError error = kThreadError_None;
     struct sockaddr_in sockaddr;
@@ -220,7 +220,7 @@ ThreadError phy_transmit(PhyPacket *packet)
 
     if (!reinterpret_cast<Mac::Frame *>(s_transmit_frame)->GetAckRequest())
     {
-        s_sent_task.Post();
+        ot_radio_signal_transmit_done();
     }
 
 exit:
@@ -228,7 +228,7 @@ exit:
     return error;
 }
 
-PhyState phy_get_state()
+PhyState ot_radio_get_state()
 {
     PhyState state;
     pthread_mutex_lock(&s_mutex);
@@ -237,37 +237,36 @@ PhyState phy_get_state()
     return state;
 }
 
-int8_t phy_get_noise_floor()
+int8_t ot_radio_get_noise_floor()
 {
     return 0;
 }
 
-void phy_sent_task(void *context)
+ThreadError ot_radio_handle_transmit_done(bool *rxPending)
 {
-    PhyState state;
+    ThreadError error = kThreadError_None;
+
+    VerifyOrExit(s_state == kStateTransmit, error = kThreadError_InvalidState);
+
     pthread_mutex_lock(&s_mutex);
-    state = s_state;
-
-    if (s_state != kStateDisabled)
-    {
-        s_state = kStateIdle;
-    }
-
+    s_state = kStateIdle;
     pthread_cond_signal(&s_condition_variable);
     pthread_mutex_unlock(&s_mutex);
 
-    if (state != kStateDisabled)
+    if (rxPending != NULL)
     {
-        assert(state == kStateTransmit);
-        phy_handle_transmit_done(s_transmit_frame, s_data_pending, kThreadError_None);
+        *rxPending = s_data_pending;
     }
+
+exit:
+    return error;
 }
 
 void *phy_receive_thread(void *arg)
 {
     fd_set fds;
     int rval;
-    PhyPacket receive_frame;
+    RadioPacket receive_frame;
     int length;
     uint8_t tx_sequence, rx_sequence;
     uint8_t command_id;
@@ -333,12 +332,12 @@ void *phy_receive_thread(void *arg)
             }
 
             dprintf("Received ack %d\n", rx_sequence);
-            s_sent_task.Post();
+            ot_radio_signal_transmit_done();
             break;
 
         case kStateListen:
             s_state = kStateReceive;
-            s_received_task.Post();
+            ot_radio_signal_receive_done();
 
             while (s_state == kStateReceive)
             {
@@ -387,14 +386,15 @@ void send_ack()
     dprintf("Sent ack %d\n", sequence);
 }
 
-void phy_received_task(void *context)
+ThreadError ot_radio_handle_receive_done()
 {
     ThreadError error = kThreadError_None;
     Mac::Frame *receive_frame;
     uint16_t dstpan;
     Mac::Address dstaddr;
     int length;
-    PhyState state;
+
+    VerifyOrExit(s_state == kStateReceive, error = kThreadError_InvalidState);
 
     length = recvfrom(s_sockfd, s_receive_frame->mPsdu, Mac::Frame::kMTU, 0, NULL, NULL);
     receive_frame = reinterpret_cast<Mac::Frame *>(s_receive_frame);
@@ -435,7 +435,6 @@ void phy_received_task(void *context)
 
 exit:
     pthread_mutex_lock(&s_mutex);
-    state = s_state;
 
     if (s_state != kStateDisabled)
     {
@@ -445,11 +444,7 @@ exit:
     pthread_cond_signal(&s_condition_variable);
     pthread_mutex_unlock(&s_mutex);
 
-    if (state != kStateDisabled)
-    {
-        assert(state == kStateReceive);
-        phy_handle_receive_done(s_receive_frame, error);
-    }
+    return error;
 }
 
 #ifdef __cplusplus

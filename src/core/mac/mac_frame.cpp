@@ -16,7 +16,6 @@
 
 #include <common/code_utils.hpp>
 #include <mac/mac_frame.hpp>
-#include <platform/phy.hpp>
 
 namespace Thread {
 namespace Mac {

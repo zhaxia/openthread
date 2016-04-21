@@ -30,6 +30,9 @@ static const uint8_t sExtendedPanidInit[] = {0xde, 0xad, 0x00, 0xbe, 0xef, 0x00,
 static const char sNetworkNameInit[] = "OpenThread";
 static Mac *sMac;
 
+static Tasklet sReceiveDoneTask(&Mac::ReceiveDoneTask, NULL);
+static Tasklet sTransmitDoneTask(&Mac::TransmitDoneTask, NULL);
+
 Mac::Mac(ThreadNetif *netif):
     mAckTimer(&HandleAckTimer, this),
     mBackoffTimer(&HandleBackoffTimer, this),
@@ -54,7 +57,7 @@ ThreadError Mac::Init()
     mBeaconSequence = Random::Get();
     mDataSequence = Random::Get();
 
-    phy_init();
+    ot_radio_init();
 
     return kThreadError_None;
 }
@@ -65,11 +68,11 @@ ThreadError Mac::Start()
 
     VerifyOrExit(mState == kStateDisabled, ;);
 
-    SuccessOrExit(error = phy_start());
+    SuccessOrExit(error = ot_radio_enable());
 
     SetExtendedPanId(mExtendedPanid);
-    phy_set_pan_id(mPanid);
-    phy_set_short_address(mAddress16);
+    ot_radio_set_pan_id(mPanid);
+    ot_radio_set_short_address(mAddress16);
     {
         uint8_t buf[8];
 
@@ -78,7 +81,7 @@ ThreadError Mac::Start()
             buf[i] = mAddress64.mBytes[7 - i];
         }
 
-        phy_set_extended_address(buf);
+        ot_radio_set_extended_address(buf);
     }
     mState = kStateIdle;
     NextOperation();
@@ -91,7 +94,7 @@ ThreadError Mac::Stop()
 {
     ThreadError error = kThreadError_None;
 
-    SuccessOrExit(error = phy_stop());
+    SuccessOrExit(error = ot_radio_disable());
     mAckTimer.Stop();
     mBackoffTimer.Stop();
     mState = kStateDisabled;
@@ -197,7 +200,7 @@ Address16 Mac::GetAddress16() const
 ThreadError Mac::SetAddress16(Address16 address16)
 {
     mAddress16 = address16;
-    return phy_set_short_address(address16);
+    return ot_radio_set_short_address(address16);
 }
 
 uint8_t Mac::GetChannel() const
@@ -230,7 +233,7 @@ uint16_t Mac::GetPanId() const
 ThreadError Mac::SetPanId(uint16_t panid)
 {
     mPanid = panid;
-    return phy_set_pan_id(mPanid);
+    return ot_radio_set_pan_id(mPanid);
 }
 
 const uint8_t *Mac::GetExtendedPanId() const
@@ -280,20 +283,23 @@ void Mac::NextOperation()
 {
     switch (mState)
     {
+    case kStateDisabled:
+        break;
+
     case kStateActiveScan:
         mReceiveFrame.SetChannel(mScanChannel);
-        phy_receive(&mReceiveFrame);
+        ot_radio_receive(&mReceiveFrame);
         break;
 
     default:
         if (mRxOnWhenIdle || mReceiveTimer.IsRunning())
         {
             mReceiveFrame.SetChannel(mChannel);
-            phy_receive(&mReceiveFrame);
+            ot_radio_receive(&mReceiveFrame);
         }
         else
         {
-            phy_sleep();
+            ot_radio_sleep();
         }
 
         break;
@@ -451,7 +457,7 @@ void Mac::HandleBackoffTimer()
 {
     ThreadError error = kThreadError_None;
 
-    if (phy_idle() != kThreadError_None)
+    if (ot_radio_idle() != kThreadError_None)
     {
         mBackoffTimer.Start(16);
         ExitNow();
@@ -485,7 +491,7 @@ void Mac::HandleBackoffTimer()
     // Security Processing
     ProcessTransmitSecurity();
 
-    SuccessOrExit(error = phy_transmit(&mSendFrame));
+    SuccessOrExit(error = ot_radio_transmit(&mSendFrame));
 
     if (mSendFrame.GetAckRequest())
     {
@@ -503,13 +509,23 @@ exit:
     }
 }
 
-extern "C" void phy_handle_transmit_done(PhyPacket *packet, bool rxPending, ThreadError error)
+extern "C" void ot_radio_signal_transmit_done()
 {
-    sMac->HandleTransmitDone(packet, rxPending, error);
+    sTransmitDoneTask.Post();
 }
 
-void Mac::HandleTransmitDone(PhyPacket *packet, bool rxPending, ThreadError error)
+void Mac::TransmitDoneTask(void *context)
 {
+    sMac->TransmitDoneTask();
+}
+
+void Mac::TransmitDoneTask()
+{
+    ThreadError error;
+    bool rxPending;
+
+    error = ot_radio_handle_transmit_done(&rxPending);
+
     mAckTimer.Stop();
 
     if (error != kThreadError_None)
@@ -558,7 +574,7 @@ void Mac::HandleAckTimer(void *context)
 
 void Mac::HandleAckTimer()
 {
-    phy_idle();
+    ot_radio_idle();
 
     switch (mState)
     {
@@ -759,13 +775,19 @@ exit:
     return error;
 }
 
-extern "C" void phy_handle_receive_done(PhyPacket *packet, ThreadError error)
+extern "C" void ot_radio_signal_receive_done()
 {
-    sMac->HandleReceiveDone(packet, error);
+    sReceiveDoneTask.Post();
 }
 
-void Mac::HandleReceiveDone(PhyPacket *packet, ThreadError error)
+void Mac::ReceiveDoneTask(void *context)
 {
+    sMac->ReceiveDoneTask();
+}
+
+void Mac::ReceiveDoneTask()
+{
+    ThreadError error;
     Address srcaddr;
     Address dstaddr;
     PanId panid;
@@ -773,8 +795,7 @@ void Mac::HandleReceiveDone(PhyPacket *packet, ThreadError error)
     int entry;
     int8_t rssi;
 
-    assert(packet == &mReceiveFrame);
-
+    error = ot_radio_handle_receive_done();
     VerifyOrExit(error == kThreadError_None, ;);
 
     mReceiveFrame.GetSrcAddr(srcaddr);
@@ -805,7 +826,7 @@ void Mac::HandleReceiveDone(PhyPacket *packet, ThreadError error)
 
         if (mWhitelist.GetRssi(entry, rssi) == kThreadError_None)
         {
-            packet->mPower = rssi;
+            mReceiveFrame.mPower = rssi;
         }
     }
 

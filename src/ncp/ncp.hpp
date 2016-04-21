@@ -33,12 +33,24 @@ public:
     ThreadError Start() final;
     ThreadError Stop() final;
 
+    ThreadError Send(uint8_t protocol, uint8_t *frame, uint16_t frameLength) final;
     ThreadError SendMessage(uint8_t protocol, Message &message) final;
-    ThreadError Send(uint8_t protocol, uint8_t *frame,
-                     uint16_t frameLength) final;
+
+    static void HandleFrame(void *context, uint8_t *aBuf, uint16_t aBufLength);
+    static void SendDoneTask(void *context);
+    static void ReceiveTask(void *context);
 
 private:
-    Hdlc mHdlc;
+    void HandleFrame(uint8_t *aBuf, uint16_t aBufLength);
+    void SendDoneTask();
+    void ReceiveTask();
+
+    Hdlc::Encoder mHdlcEncoder;
+    Hdlc::Decoder mHdlcDecoder;
+
+    uint8_t mSendFrame[512];
+    uint8_t mReceiveFrame[512];
+    Message *mSendMessage;
 };
 
 }  // namespace Thread

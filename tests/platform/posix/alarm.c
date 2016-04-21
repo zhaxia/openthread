@@ -15,37 +15,30 @@
  */
 
 #include <pthread.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/time.h>
 
-#include <platform/alarm.hpp>
-#include <platform/atomic.hpp>
-#include <common/code_utils.hpp>
-#include <common/timer.hpp>
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-extern void alarm_fired();
+#include <platform/alarm.h>
 
 static void *alarm_thread(void *arg);
 
 static bool s_is_running = false;
 static uint32_t s_alarm = 0;
-static timeval s_start;
+static struct timeval s_start;
 
 static pthread_t s_thread;
 static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_cond = PTHREAD_COND_INITIALIZER;
 
-void alarm_init()
+void ot_alarm_init()
 {
     gettimeofday(&s_start, NULL);
     pthread_create(&s_thread, NULL, alarm_thread, NULL);
 }
 
-uint32_t alarm_get_now()
+uint32_t ot_alarm_get_now()
 {
     struct timeval tv;
 
@@ -55,7 +48,7 @@ uint32_t alarm_get_now()
     return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 }
 
-void alarm_start_at(uint32_t t0, uint32_t dt)
+void ot_alarm_start_at(uint32_t t0, uint32_t dt)
 {
     pthread_mutex_lock(&s_mutex);
     s_alarm = t0 + dt;
@@ -64,7 +57,7 @@ void alarm_start_at(uint32_t t0, uint32_t dt)
     pthread_cond_signal(&s_cond);
 }
 
-void alarm_stop()
+void ot_alarm_stop()
 {
     pthread_mutex_lock(&s_mutex);
     s_is_running = false;
@@ -91,7 +84,7 @@ void *alarm_thread(void *arg)
         else
         {
             // alarm is running
-            remaining = s_alarm - alarm_get_now();
+            remaining = s_alarm - ot_alarm_get_now();
 
             if (remaining > 0)
             {
@@ -112,14 +105,10 @@ void *alarm_thread(void *arg)
                 // alarm has passed, signal
                 s_is_running = false;
                 pthread_mutex_unlock(&s_mutex);
-                alarm_fired();
+                ot_alarm_signal_fired();
             }
         }
     }
 
     return NULL;
 }
-
-#ifdef __cplusplus
-}  // end of extern "C"
-#endif
