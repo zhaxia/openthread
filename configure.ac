@@ -266,6 +266,35 @@ NL_ENABLE_TESTS([yes])
 
 AM_CONDITIONAL([OPENTHREAD_BUILD_TESTS], [test "${nl_cv_build_tests}" = "yes"])
 
+# Check whether to run only the minimum set of tests.
+
+AC_MSG_CHECKING([whether to run only the minimum set of tests.])
+AC_ARG_ENABLE(minimum-set-of-tests,
+    [AS_HELP_STRING([--enable-minimum-set-of-tests],[Run only the most essential tests. @<:@default=no@:>@.])],
+    [
+        case "${enableval}" in
+
+        no|yes)
+            enable_minimum_set_of_tests=${enableval}
+            ;;
+
+        *)
+            AC_MSG_ERROR([Invalid value ${enableval} for --enable-minimum-set-of-tests])
+            ;;
+
+        esac
+    ],
+    [enable_minimum_set_of_tests=no])
+AC_MSG_RESULT(${enable_minimum_set_of_tests})
+
+AM_CONDITIONAL([OPENTHREAD_WITH_MINIMUM_SET_OF_TESTS], [test "${enable_minimum_set_of_tests}" = "yes"])
+
+if test "${enable_minimum_set_of_tests}" = "yes"; then
+    if test "${nl_cv_build_coverage}" = "yes"; then
+        AC_MSG_ERROR(["Do not run code coverage with only the minimum set of tests."])
+    fi
+fi
+
 #
 # Documentation
 #
@@ -388,6 +417,7 @@ AC_MSG_NOTICE([
   Lcov                                      : ${LCOV:--}
   Genhtml                                   : ${GENHTML:--}
   Build tests                               : ${nl_cv_build_tests}
+  Minimum set of tests                      : ${enable_minimum_set_of_tests}
   Prefix                                    : ${prefix}
   Shadow directory program                  : ${LNDIR}
   Documentation support                     : ${nl_cv_build_docs}
