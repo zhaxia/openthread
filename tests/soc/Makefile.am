@@ -31,11 +31,24 @@ SUBDIRS                                        = \
 
 all:
 
+if OPENTHREAD_BUILD_TESTS
+
+# First, list all essential program and script tests that MUST be run.
+
 check_PROGRAMS =
 
 check_SCRIPTS                                  = \
     scripts/Cert_5_1_01_RouterAttach.py          \
     $(NULL)
+
+# List all other non-essential program and script tests that MAY be run.
+
+if !OPENTHREAD_WITH_MINIMUM_SET_OF_TESTS
+
+check_SCRIPTS                                 += \
+    $(NULL)
+
+endif # OPENTHREAD_WITH_ESSENTIAL_TESTS_ONLY
 
 TESTS_ENVIRONMENT                              = \
     export                                       \
@@ -47,5 +60,7 @@ TESTS                                          = \
     $(check_PROGRAMS)                            \
     $(check_SCRIPTS)                             \
     $(NULL)
+
+endif # OPENTHREAD_BUILD_TESTS
 
 include $(abs_top_nlbuild_autotools_dir)/automake/post.am

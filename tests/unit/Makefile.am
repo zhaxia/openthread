@@ -49,11 +49,12 @@ COMMON_LDADD                                   = \
 
 check_PROGRAMS                                 = \
     test-aes                                     \
-    test-hmac-sha256                             \
     test-mac-frame                               \
     test-message                                 \
     test-sha256                                  \
     $(NULL)
+
+###test-hmac-sha256                             
 
 # Test applications and scripts that should be built and run when the
 # 'check' target is run.
@@ -73,8 +74,8 @@ TESTS_ENVIRONMENT                              = \
 test_aes_LDADD               = $(COMMON_LDADD)
 test_aes_SOURCES             = test_aes.cpp
 
-test_hmac_sha256_LDADD       = $(COMMON_LDADD)
-test_hmac_sha256_SOURCES     = test_hmac_sha256.cpp
+###test_hmac_sha256_LDADD       = $(COMMON_LDADD)
+###test_hmac_sha256_SOURCES     = test_hmac_sha256.cpp
 
 test_mac_frame_LDADD         = $(COMMON_LDADD)
 test_mac_frame_SOURCES       = test_mac_frame.cpp
@@ -85,32 +86,6 @@ test_message_SOURCES         = test_message.cpp
 test_sha256_LDADD            = $(COMMON_LDADD)
 test_sha256_SOURCES          = test_sha256.cpp
 
-if OPENTHREAD_BUILD_COVERAGE
-CLEANFILES                                     = $(wildcard *.gcda *.gcno)
-
-if OPENTHREAD_BUILD_COVERAGE_REPORTS
-# The bundle should positively be qualified with the absolute build
-# path. Otherwise, VPATH will get auto-prefixed to it if there is
-# already such a directory in the non-colocated source tree.
-
-OPENTHREAD_COVERAGE_BUNDLE                           = ${abs_builddir}/${PACKAGE}${NL_COVERAGE_BUNDLE_SUFFIX}
-OPENTHREAD_COVERAGE_INFO                             = ${OPENTHREAD_COVERAGE_BUNDLE}/${PACKAGE}${NL_COVERAGE_INFO_SUFFIX}
-
-$(OPENTHREAD_COVERAGE_BUNDLE):
-	$(call create-directory)
-
-$(OPENTHREAD_COVERAGE_INFO): check | $(dir $(OPENTHREAD_COVERAGE_INFO))
-	$(call generate-coverage-report,${top_builddir})
-
-coverage: $(OPENTHREAD_COVERAGE_INFO)
-
-clean-local: clean-local-coverage
-
-.PHONY: clean-local-coverage
-clean-local-coverage:
-	-$(AM_V_at)rm -rf $(OPENTHREAD_COVERAGE_BUNDLE)
-endif # OPENTHREAD_BUILD_COVERAGE_REPORTS
-endif # OPENTHREAD_BUILD_COVERAGE
 endif # OPENTHREAD_BUILD_TESTS
 
 include $(abs_top_nlbuild_autotools_dir)/automake/post.am
