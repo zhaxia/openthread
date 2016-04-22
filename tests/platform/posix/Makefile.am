@@ -24,6 +24,8 @@ libopenthread_posix_a_CPPFLAGS         = \
     -I$(top_srcdir)/src/core             \
     -I$(top_srcdir)/tests                \
     -I$(top_srcdir)/tests/platform/posix \
+    -D_BSD_SOURCE                        \
+    -std=c99                             \
     $(NULL)
 
 libopenthread_posix_a_CXXFLAGS         = \
