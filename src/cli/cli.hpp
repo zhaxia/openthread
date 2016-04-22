@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for converting a hex string to binary.
+ */
+
 #ifndef CLI_HPP_
 #define CLI_HPP_
 

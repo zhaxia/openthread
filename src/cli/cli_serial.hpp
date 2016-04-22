@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for a CLI server on the serial service.
+ */
+
 #ifndef CLI_SERIAL_HPP_
 #define CLI_SERIAL_HPP_
 

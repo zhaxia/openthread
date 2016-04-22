@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the CLI commands for configuring and managing the IEEE 802.15.4 MAC.
+ */
+
 #include <stdlib.h>
 
 #include <openthread.h>

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for the message buffer pool and message buffers.
+ */
+
 #ifndef MESSAGE_HPP_
 #define MESSAGE_HPP_
 

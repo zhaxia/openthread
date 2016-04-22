@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for CLI commands that call the exit() function.
+ */
+
 #ifndef CLI_SHUTDOWN_HPP_
 #define CLI_SHUTDOWN_HPP_
 

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for a CLI server on a UDP socket.
+ */
+
 #ifndef CLI_UDP_HPP_
 #define CLI_UDP_HPP_
 

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements common methods for manipulating Thread Network Data.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <thread/network_data.hpp>

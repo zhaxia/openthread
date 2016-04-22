@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the message buffer pool and message buffers.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/message.hpp>
 #include <common/thread_error.hpp>

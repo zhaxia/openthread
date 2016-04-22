@@ -34,6 +34,9 @@ extern "C" {
  * @defgroup atomic Atomic
  * @ingroup platform
  *
+ * @brief
+ *   This module includes the platform abstraction to support critical sections.
+ *
  * @{
  *
  */

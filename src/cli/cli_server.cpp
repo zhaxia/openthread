@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements adding a CLI command to the CLI server.
+ */
+
 #include <cli/cli_command.hpp>
 #include <common/code_utils.hpp>
 

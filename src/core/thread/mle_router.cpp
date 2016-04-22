@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements MLE functionality required for the Thread Router and Leader roles.
+ */
+
 #include <assert.h>
 
 #include <common/code_utils.hpp>
@@ -242,7 +247,7 @@ ThreadError MleRouter::HandleDetachStart()
     return error;
 }
 
-ThreadError MleRouter::HandleChildStart(AttachFilter filter)
+ThreadError MleRouter::HandleChildStart(otMleAttachFilter filter)
 {
     uint32_t advertiseDelay;
 
@@ -254,14 +259,14 @@ ThreadError MleRouter::HandleChildStart(AttachFilter filter)
 
     switch (filter)
     {
-    case kAttachAnyPartition:
+    case kMleAttachAnyPartition:
         break;
 
-    case kAttachSamePartition:
+    case kMleAttachSamePartition:
         SendAddressRelease();
         break;
 
-    case kAttachBetterPartition:
+    case kMleAttachBetterPartition:
         // BecomeRouter();
         break;
     }
@@ -1050,7 +1055,7 @@ ThreadError MleRouter::HandleAdvertisement(const Message &message, const Ip6Mess
              peerParitionId > mLeaderData.GetPartitionId()))
         {
             dprintf("trying to migrate\n");
-            BecomeChild(kAttachBetterPartition);
+            BecomeChild(kMleAttachBetterPartition);
         }
 
         ExitNow(error = kThreadError_Drop);
@@ -1388,7 +1393,7 @@ void MleRouter::HandleStateUpdateTimer()
 
     case kDeviceStateDetached:
         SetStateDetached();
-        BecomeChild(kAttachAnyPartition);
+        BecomeChild(kMleAttachAnyPartition);
         ExitNow();
 
     case kDeviceStateChild:
@@ -1398,7 +1403,7 @@ void MleRouter::HandleStateUpdateTimer()
 
         if (GetLeaderAge() >= mNetworkIdTimeout)
         {
-            BecomeChild(kAttachSamePartition);
+            BecomeChild(kMleAttachSamePartition);
         }
 
         break;

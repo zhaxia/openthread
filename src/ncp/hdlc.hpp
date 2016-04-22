@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for an HDLC encoder and decoer.
+ */
+
 #ifndef HDLC_HPP_
 #define HDLC_HPP_
 

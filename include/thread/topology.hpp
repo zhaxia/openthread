@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for maintaining Thread network topologies.
+ */
+
 #ifndef TOPOLOGY_HPP_
 #define TOPOLOGY_HPP_
 

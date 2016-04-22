@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for ICMPv6.
+ */
+
 #ifndef ICMP6_HPP_
 #define ICMP6_HPP_
 

@@ -33,6 +33,9 @@ extern "C" {
  * @defgroup alarm Alarm
  * @ingroup platform
  *
+ * @brief
+ *   This module includes the platform abstraction for the alarm service.
+ *
  * @{
  *
  */

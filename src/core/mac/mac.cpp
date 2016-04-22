@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the subset of IEEE 802.15.4 primitives required for Thread.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/random.hpp>
 #include <common/thread_error.hpp>

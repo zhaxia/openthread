@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for performing AES-ECB computations.
+ */
+
 #ifndef AES_ECB_HPP_
 #define AES_ECB_HPP_
 

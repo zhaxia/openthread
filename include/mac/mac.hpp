@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for the IEEE 802.15.4 MAC.
+ */
+
 #ifndef MAC_HPP_
 #define MAC_HPP_
 

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for the CoAP server.
+ */
+
 #ifndef COAP_SERVER_HPP_
 #define COAP_SERVER_HPP_
 
@@ -65,4 +70,4 @@ private:
 }  // namespace Coap
 }  // namespace Thread
 
-#endif  // COAP_COAP_SERVER_HPP_
+#endif  // COAP_SERVER_HPP_

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for computing HMACs.
+ */
+
 #ifndef HMAC_HPP_
 #define HMAC_HPP_
 

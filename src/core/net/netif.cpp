@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements IPv6 network interfaces.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/message.hpp>

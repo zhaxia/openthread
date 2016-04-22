@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the CLI commands for IPv6 ping.
+ */
+
 #include <stdlib.h>
 
 #include <cli/cli_ping.hpp>

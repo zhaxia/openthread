@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for IPv6 packet processing.
+ */
+
 #ifndef IP6_HPP_
 #define IP6_HPP_
 

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for generating and processing MLE TLVs.
+ */
+
 #ifndef MLE_TLVS_HPP_
 #define MLE_TLVS_HPP_
 

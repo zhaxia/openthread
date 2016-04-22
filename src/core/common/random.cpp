@@ -14,6 +14,14 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements a pseudo-random number generator.
+ *
+ * @warning
+ *   This implementation is not a true random number generator and does @em satisfy the Thread requirements.
+ */
+
 #include <common/random.hpp>
 
 namespace Thread {

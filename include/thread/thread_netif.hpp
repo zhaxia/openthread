@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for the Thread network interface.
+ */
+
 #ifndef THREAD_NETIF_HPP_
 #define THREAD_NETIF_HPP_
 

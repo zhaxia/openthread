@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements SHA-256.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/thread_error.hpp>
 #include <crypto/sha256.hpp>

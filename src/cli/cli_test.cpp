@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements CLI commands for testing the timer.
+ */
+
 #include <stdlib.h>
 
 #include <cli/cli_test.hpp>

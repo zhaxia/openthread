@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file includes functions for debugging.
+ */
+
 #ifndef DEBUG_HPP_
 #define DEBUG_HPP_
 

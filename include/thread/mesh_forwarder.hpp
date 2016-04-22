@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for forwarding IPv6 datagrams across the Thread mesh.
+ */
+
 #ifndef MESH_FORWARDER_HPP_
 #define MESH_FORWARDER_HPP_
 

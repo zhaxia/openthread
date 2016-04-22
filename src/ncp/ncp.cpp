@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements an HDLC interface to the Thread stack.
+ */
+
 #include <common/code_utils.hpp>
 #include <ncp/ncp.hpp>
 #include <platform/serial.h>

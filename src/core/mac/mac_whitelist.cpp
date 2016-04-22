@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements whitelist IEEE 802.15.4 frame filtering based on MAC address.
+ */
+
 #include <common/code_utils.hpp>
 #include <mac/mac_whitelist.hpp>
 

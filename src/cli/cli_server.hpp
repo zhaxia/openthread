@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for adding a CLI command to the CLI server.
+ */
+
 #ifndef CLI_SERVER_HPP_
 #define CLI_SERVER_HPP_
 

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the CLI server on a UDP socket.
+ */
+
 #include <stdio.h>
 #include <string.h>
 

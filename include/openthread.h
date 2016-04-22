@@ -31,10 +31,23 @@ extern "C" {
 #endif
 
 /**
- * @defgroup execution  Stack Execution
+ * @defgroup api  API
+ * @brief
+ *   This module includes the application programming interface to the OpenThread stack.
+ */
+
+/**
+ * @defgroup platform  Platform Abstraction
+ * @brief
+ *   This module includes the platform abstraction used by the OpenThread stack.
+ */
+
+/**
+ * @defgroup execution  Execution
+ * @ingroup api
  *
  * @brief
- *   These functions control the Thread stack's execution.
+ *   This module includes functions that control the Thread stack's execution.
  *
  * @{
  *
@@ -65,9 +78,10 @@ bool otAreTaskletsPending(void);
 
 /**
  * @defgroup config  Configuration
+ * @ingroup api
  *
  * @brief
- *   These functions manage runtime configuration parameters.
+ *   This module includes functions for configuration.
  *
  * @{
  *
@@ -77,7 +91,7 @@ bool otAreTaskletsPending(void);
  * @defgroup config-general  General
  *
  * @brief
- *   These functions manage configuration parameters that apply to both End Devices and Routers.
+ *   This module includes functions that manage configuration parameters for the Thread Child, Router, and Leader rols.
  *
  * @{
  *
@@ -265,7 +279,7 @@ ThreadError otSetPanId(uint16_t aPanId);
  * @defgroup config-router  Router/Leader
  *
  * @brief
- *   These functions manage configuration parameters that apply to the Router/Leader role
+ *   This module includes functions that manage configuration parameters for the Thread Router and Leader roles.
  *
  * @{
  *
@@ -297,7 +311,7 @@ void otSetLocalLeaderWeight(uint8_t aWeight);
  * @defgroup config-br  Border Router
  *
  * @brief
- *   These functions manage configuration parameters that apply to the Border Router role.
+ *   This module includes functions that manage configuration parameters that apply to the Thread Border Router role.
  *
  * @{
  *
@@ -471,7 +485,7 @@ ThreadError otSendServerData(void);
  * @defgroup config-test  Test
  *
  * @brief
- *   These functions manage configuration parameters that apply to the Border Router role.
+ *   This module includes functions that manage configuration parameters required for Thread Certification testing.
  *
  * @{
  *
@@ -652,12 +666,12 @@ ThreadError otBecomeDetached();
 /**
  * Represents any restrictions on the attach process.
  */
-enum AttachFilter
+typedef enum otMleAttachFilter
 {
-    kAttachAnyPartition    = 0,  ///< Attach to any Thread partition.
-    kAttachSamePartition   = 1,  ///< Attach to the same Thread partition.
-    kAttachBetterPartition = 2,  ///< Attach to a better (i.e. higher weight/partition id) Thread partition.
-};
+    kMleAttachAnyPartition    = 0,  ///< Attach to any Thread partition.
+    kMleAttachSamePartition   = 1,  ///< Attach to the same Thread partition.
+    kMleAttachBetterPartition = 2,  ///< Attach to a better (i.e. higher weight/partition id) Thread partition.
+} otMleAttachFilter;
 
 /**
  * Attempt to reattach as a child.
@@ -667,7 +681,7 @@ enum AttachFilter
  * @retval kThreadErrorNone    Successfully begin attempt to become a child.
  * @retval kThreadErrorBusy    Thread is disabled or in the middle of an attach process.
  */
-ThreadError otBecomeChild(AttachFilter aFilter);
+ThreadError otBecomeChild(otMleAttachFilter aFilter);
 
 /**
  * Attempt to become a router.
@@ -696,9 +710,10 @@ ThreadError otBecomeLeader();
 
 /**
  * @defgroup diagnostics  Diagnostics
+ * @ingroup api
  *
  * @brief
- *   These functions manage runtime configuration parameters.
+ *   This module includes functions that expose internal state.
  *
  * @{
  *
@@ -855,9 +870,10 @@ ThreadError otDisable(void);
 
 /**
  * @defgroup messages  Message Buffers
+ * @ingroup api
  *
  * @brief
- *   These functions manipulate OpenThread message buffers
+ *   This module includes functions that manipulate OpenThread message buffers
  *
  * @{
  *
@@ -1030,9 +1046,10 @@ int otWriteMessage(otMessage aMessage, uint16_t aOffset, const void *aBuf, uint1
 
 /**
  * @defgroup udp  UDP
+ * @ingroup api
  *
  * @brief
- *   These functions control UDP communication.
+ *   This module includes functions that control UDP communication.
  *
  * @{
  *
@@ -1152,10 +1169,6 @@ ThreadError otSendUdp6(otUdp6Socket *socket, otMessage aMessage, const otMessage
 /**
  * @}
  *
- */
-
-/**
- * @defgroup platform Platform
  */
 
 #ifdef __cplusplus

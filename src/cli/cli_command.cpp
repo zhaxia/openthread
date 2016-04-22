@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the common methods for CLI commands.
+ */
+
 #include <cli/cli_command.hpp>
 
 namespace Thread {

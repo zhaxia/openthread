@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for generating and processing Thread Network Data TLVs.
+ */
+
 #ifndef NETWORK_DATA_TLVS_HPP_
 #define NETWORK_DATA_TLVS_HPP_
 

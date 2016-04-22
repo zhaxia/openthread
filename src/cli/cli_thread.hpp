@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for CLI commands that configure and manage Thread protocols.
+ */
+
 #ifndef CLI_THREAD_HPP_
 #define CLI_THREAD_HPP_
 

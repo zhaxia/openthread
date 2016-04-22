@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for CLI commands that configure and manage IPv6 routes.
+ */
+
 #ifndef CLI_ROUTE_HPP_
 #define CLI_ROUTE_HPP_
 

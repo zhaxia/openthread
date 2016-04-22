@@ -16,9 +16,7 @@
 
 /**
  * @file
- * @brief
- *   This file defines the error codes for OpenThread.
- *
+ *   This file contains definitions for the error codes used throughout the Thread library.
  */
 
 #ifndef THREAD_ERROR_HPP_

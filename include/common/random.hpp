@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for the random number generator.
+ */
+
 #ifndef RANDOM_HPP_
 #define RANDOM_HPP_
 

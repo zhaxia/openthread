@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements mesh forwarding of IPv6/6LoWPAN messages.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <common/message.hpp>

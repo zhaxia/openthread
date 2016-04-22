@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements AES-ECB.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/thread_error.hpp>
 #include <crypto/aes_ecb.hpp>

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements common Thread Network Layer TLV processing.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/message.hpp>
 #include <thread/thread_tlvs.hpp>

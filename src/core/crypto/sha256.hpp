@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for computing SHA-256 hashes.
+ */
+
 #ifndef SHA256_HPP_
 #define SHA256_HPP_
 

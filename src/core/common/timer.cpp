@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements a multiplexed timer service on top of the alarm abstraction.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/thread_error.hpp>
 #include <common/timer.hpp>

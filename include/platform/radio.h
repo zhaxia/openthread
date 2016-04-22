@@ -36,12 +36,18 @@ extern "C" {
  * @defgroup radio Radio
  * @ingroup platform
  *
+ * @brief
+ *   This module includes the platform abstraction for radio communication.
+ *
  * @{
  *
  */
 
 /**
  * @defgroup radio-types Types
+ *
+ * @brief
+ *   This module includes the platform abstraction for a radio packet.
  *
  * @{
  *
@@ -70,6 +76,9 @@ typedef struct RadioPacket
 
 /**
  * @defgroup radio-config Configuration
+ *
+ * @brief
+ *   This module includes the platform abstraction for radio configuration.
  *
  * @{
  *
@@ -112,6 +121,9 @@ ThreadError ot_radio_set_short_address(uint16_t aShortAddress);
 
 /**
  * @defgroup radio-operation Operation
+ *
+ * @brief
+ *   This module includes the platform abstraction for radio operations.
  *
  * @{
  *

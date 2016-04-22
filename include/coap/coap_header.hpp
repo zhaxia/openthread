@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for generating and processing CoAP headers.
+ */
+
 #ifndef COAP_HEADER_HPP_
 #define COAP_HEADER_HPP_
 
@@ -116,4 +121,4 @@ private:
 }  // namespace Coap
 }  // namespace Thread
 
-#endif  // COAP_COAP_HEADER_HPP_
+#endif  // COAP_HEADER_HPP_

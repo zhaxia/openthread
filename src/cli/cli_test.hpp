@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for CLI commands that test the timer service.
+ */
+
 #ifndef CLI_TEST_HPP_
 #define CLI_TEST_HPP_
 

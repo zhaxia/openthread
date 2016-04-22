@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements common methods for manipulating MLE TLVs.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/message.hpp>
 #include <thread/mle_tlvs.hpp>

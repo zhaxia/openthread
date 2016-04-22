@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements a protobuf interface to the OpenThread stack.
+ */
+
 #include <common/code_utils.hpp>
 #include <ncp/ncp.hpp>
 
@@ -444,7 +449,7 @@ ThreadError NcpBase::ProcessState(ThreadControl &message)
             break;
 
         case THREAD_STATE__STATE__CHILD:
-            mle->BecomeChild(kAttachSamePartition);
+            mle->BecomeChild(kMleAttachSamePartition);
             break;
 
         case THREAD_STATE__STATE__ROUTER:

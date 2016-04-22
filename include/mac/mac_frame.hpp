@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for generating and processing IEEE 802.15.4 MAC frames.
+ */
+
 #ifndef MAC_FRAME_HPP_
 #define MAC_FRAME_HPP_
 

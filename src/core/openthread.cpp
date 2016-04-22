@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the top-level interface to the OpenThread stack.
+ */
+
 #include <openthread.h>
 #include <common/code_utils.hpp>
 #include <common/random.hpp>
@@ -328,7 +333,7 @@ ThreadError otBecomeDetached()
     return sThreadNetif.GetMle()->BecomeDetached();
 }
 
-ThreadError otBecomeChild(AttachFilter aFilter)
+ThreadError otBecomeChild(otMleAttachFilter aFilter)
 {
     return sThreadNetif.GetMle()->BecomeChild(aFilter);
 }

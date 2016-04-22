@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for IPv6 network interfaces.
+ */
+
 #ifndef NET_NETIF_HPP_
 #define NET_NETIF_HPP_
 

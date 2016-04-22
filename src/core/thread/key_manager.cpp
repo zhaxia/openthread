@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements Thread security material generation.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/thread_error.hpp>
 #include <crypto/hmac.hpp>

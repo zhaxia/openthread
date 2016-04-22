@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the CLI commands for configuring and managing IPv6 addresses.
+ */
+
 #include <stdlib.h>
 
 #include <cli/cli_ip.hpp>

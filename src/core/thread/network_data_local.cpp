@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the local Thread Network Data.
+ */
+
 #include <coap/coap_header.hpp>
 #include <common/code_utils.hpp>
 #include <common/random.hpp>

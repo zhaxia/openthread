@@ -14,8 +14,13 @@
  *    limitations under the License.
  */
 
-#ifndef NCP_NCP_HPP_
-#define NCP_NCP_HPP_
+/**
+ * @file
+ *   This file contains definitions for an HDLC interface to the OpenThread stack.
+ */
+
+#ifndef NCP_HPP_
+#define NCP_HPP_
 
 #include <ncp/ncp_base.hpp>
 #include <ncp/hdlc.hpp>
@@ -55,4 +60,4 @@ private:
 
 }  // namespace Thread
 
-#endif  // NCP_NCP_HPP_
+#endif  // NCP_HPP_

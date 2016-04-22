@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for managing Thread Network Data.
+ */
+
 #ifndef NETWORK_DATA_HPP_
 #define NETWORK_DATA_HPP_
 

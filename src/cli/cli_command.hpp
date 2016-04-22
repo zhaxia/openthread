@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for the CLI commands.
+ */
+
 #ifndef CLI_COMMAND_HPP_
 #define CLI_COMMAND_HPP_
 

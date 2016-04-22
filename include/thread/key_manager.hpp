@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for Thread security material generation.
+ */
+
 #ifndef KEY_MANAGER_HPP_
 #define KEY_MANAGER_HPP_
 
