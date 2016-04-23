@@ -49,6 +49,7 @@ COMMON_LDADD                                   = \
 
 check_PROGRAMS                                 = \
     test-aes                                     \
+    test-hmac-sha256                             \
     test-mac-frame                               \
     test-message                                 \
     test-sha256                                  \
@@ -74,8 +75,8 @@ TESTS_ENVIRONMENT                              = \
 test_aes_LDADD               = $(COMMON_LDADD)
 test_aes_SOURCES             = test_aes.cpp
 
-###test_hmac_sha256_LDADD       = $(COMMON_LDADD)
-###test_hmac_sha256_SOURCES     = test_hmac_sha256.cpp
+test_hmac_sha256_LDADD       = $(COMMON_LDADD)
+test_hmac_sha256_SOURCES     = test_hmac_sha256.cpp
 
 test_mac_frame_LDADD         = $(COMMON_LDADD)
 test_mac_frame_SOURCES       = test_mac_frame.cpp

@@ -33,6 +33,11 @@ namespace Crypto {
 class Sha256: public Hash
 {
 public:
+    enum
+    {
+        kHashSize = 32,
+    };
+
     uint16_t GetSize() const final;
     ThreadError Init() final;
     ThreadError Input(const void *buf, uint16_t bufLength) final;
@@ -42,10 +47,6 @@ private:
     void PadMessage();
     void ProcessBlock();
 
-    enum
-    {
-        kHashSize = 32,
-    };
     uint32_t mHash[kHashSize / sizeof(uint32_t)];
     uint32_t mLengthLo;
     uint32_t mLengthHi;
