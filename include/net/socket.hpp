@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for IPv6 sockets.
+ */
+
 #ifndef NET_SOCKET_HPP_
 #define NET_SOCKET_HPP_
 

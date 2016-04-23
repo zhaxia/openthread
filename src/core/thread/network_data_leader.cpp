@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the Thread Network Data managed by the Thread Leader.
+ */
+
 #include <coap/coap_header.hpp>
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>

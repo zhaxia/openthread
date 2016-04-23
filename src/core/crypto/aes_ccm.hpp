@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for performing AES-CCM computations.
+ */
+
 #ifndef AES_CCM_HPP_
 #define AES_CCM_HPP_
 

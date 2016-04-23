@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for 6LoWPAN header compression.
+ */
+
 #ifndef LOWPAN_HPP_
 #define LOWPAN_HPP_
 

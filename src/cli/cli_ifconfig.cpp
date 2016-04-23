@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the CLI commands for viewing IPv6 addresses.
+ */
+
 #include <openthread.h>
 #include <cli/cli_ifconfig.hpp>
 #include <common/code_utils.hpp>

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for MLE functionality required by the Thread Router and Leader roles.
+ */
+
 #ifndef MLE_ROUTER_HPP_
 #define MLE_ROUTER_HPP_
 
@@ -84,7 +89,7 @@ private:
     ThreadError AppendRoute(Message &message);
     uint8_t GetLinkCost(uint8_t routerId);
     ThreadError HandleDetachStart();
-    ThreadError HandleChildStart(AttachFilter filter);
+    ThreadError HandleChildStart(otMleAttachFilter filter);
     ThreadError HandleLinkRequest(const Message &message, const Ip6MessageInfo &messageInfo);
     ThreadError HandleLinkAccept(const Message &message, const Ip6MessageInfo &messageInfo, uint32_t keySequence);
     ThreadError HandleLinkAccept(const Message &message, const Ip6MessageInfo &messageInfo, uint32_t keySequence,

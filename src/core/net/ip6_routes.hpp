@@ -17,6 +17,11 @@
 #ifndef IP6_ROUTES_HPP_
 #define IP6_ROUTES_HPP_
 
+/**
+ * @file
+ *   This file contains definitions for manipulating IPv6 routing tables.
+ */
+
 #include <common/message.hpp>
 #include <common/thread_error.hpp>
 #include <net/ip6_address.hpp>

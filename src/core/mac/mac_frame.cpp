@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements IEEE 802.15.4 header generation and processing.
+ */
+
 #include <common/code_utils.hpp>
 #include <mac/mac_frame.hpp>
 

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the tasklet scheduler.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/tasklet.hpp>
 #include <common/thread_error.hpp>

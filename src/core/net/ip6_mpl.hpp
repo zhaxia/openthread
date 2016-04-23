@@ -17,6 +17,11 @@
 #ifndef IP6_MPL_HPP_
 #define IP6_MPL_HPP_
 
+/**
+ * @file
+ *   This file contains definitions for MPL.
+ */
+
 #include <common/message.hpp>
 #include <common/thread_error.hpp>
 #include <common/timer.hpp>

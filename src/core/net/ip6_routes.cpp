@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements IPv6 route tables.
+ */
+
 #include <net/ip6_routes.hpp>
 #include <net/netif.hpp>
 #include <common/code_utils.hpp>

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for UDP/IPv6 sockets.
+ */
+
 #ifndef UDP6_HPP_
 #define UDP6_HPP_
 

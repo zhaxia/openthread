@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements an HDLC encoder and decoder.
+ */
+
 #include <common/code_utils.hpp>
 #include <ncp/hdlc.hpp>
 

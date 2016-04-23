@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements Thread's EID-to-RLOC mapping and caching.
+ */
+
 #include <coap/coap_header.hpp>
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>

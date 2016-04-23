@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements UDP/IPv6 sockets.
+ */
+
 #include <stdio.h>
 
 #include <common/code_utils.hpp>

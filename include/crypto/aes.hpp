@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for performing AES computations.
+ */
+
 #ifndef AES_HPP_
 #define AES_HPP_
 

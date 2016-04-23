@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for byte-ordering encoding.
+ */
+
 #ifndef ENCODING_HPP_
 #define ENCODING_HPP_
 

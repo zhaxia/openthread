@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements CLI commands for configuring and managing Thread protocols.
+ */
+
 #include <stdlib.h>
 
 #include <openthread.h>
@@ -327,7 +332,7 @@ void Thread::Run(int argc, char *argv[], Server &server)
             }
             else if (strcmp(argv[i], "child") == 0)
             {
-                ExitNow(error = otBecomeChild(kAttachSamePartition));
+                ExitNow(error = otBecomeChild(kMleAttachSamePartition));
             }
             else if (strcmp(argv[i], "router") == 0)
             {

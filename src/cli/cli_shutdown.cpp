@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements CLI commands for calling the exit() command.
+ */
+
 #include <stdlib.h>
 
 #include <cli/cli_shutdown.hpp>

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements 6LoWPAN header compression.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <common/thread_error.hpp>

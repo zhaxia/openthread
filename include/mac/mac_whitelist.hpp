@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for IEEE 802.15.4 frame filtering based on MAC address.
+ */
+
 #ifndef MAC_WHITELIST_HPP_
 #define MAC_WHITELIST_HPP_
 

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for computing hashes.
+ */
+
 #ifndef HASH_HPP_
 #define HASH_HPP_
 

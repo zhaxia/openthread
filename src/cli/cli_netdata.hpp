@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for the CLI commands that configure and manage Thread Network Data.
+ */
+
 #ifndef CLI_NETDATA_HPP_
 #define CLI_NETDATA_HPP_
 

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for MLE functionality required by the Thread Child, Router, and Leader roles.
+ */
+
 #ifndef MLE_HPP_
 #define MLE_HPP_
 
@@ -204,7 +209,7 @@ public:
     ThreadError Stop();
 
     ThreadError BecomeDetached();
-    ThreadError BecomeChild(AttachFilter filter);
+    ThreadError BecomeChild(otMleAttachFilter filter);
 
     DeviceState GetDeviceState() const;
 
@@ -321,7 +326,7 @@ protected:
         kChildIdRequest,
     };
     ParentRequestState mParentRequestState = kParentIdle;
-    AttachFilter mParentRequestMode = kAttachAnyPartition;
+    otMleAttachFilter mParentRequestMode = kMleAttachAnyPartition;
 
     struct
     {

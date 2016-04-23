@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for the multiplexed timer service.
+ */
+
 #ifndef TIMER_HPP_
 #define TIMER_HPP_
 

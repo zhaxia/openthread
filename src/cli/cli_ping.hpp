@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for the CLI command that performs ping.
+ */
+
 #ifndef CLI_PING_HPP_
 #define CLI_PING_HPP_
 

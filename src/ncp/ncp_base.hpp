@@ -14,8 +14,13 @@
  *    limitations under the License.
  */
 
-#ifndef NCP_NCP_BASE_HPP_
-#define NCP_NCP_BASE_HPP_
+/**
+ * @file
+ *   This file contains definitions a protobuf interface to the OpenThread stack.
+ */
+
+#ifndef NCP_BASE_HPP_
+#define NCP_BASE_HPP_
 
 #include <ncp/ncp.pb-c.h>
 
@@ -98,4 +103,4 @@ protected:
 
 }  // namespace Thread
 
-#endif  // NCP_NCP_BASE_HPP_
+#endif  // NCP_BASE_HPP_

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for tasklets and the tasklet scheduler.
+ */
+
 #ifndef TASKLET_HPP_
 #define TASKLET_HPP_
 

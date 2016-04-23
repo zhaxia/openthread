@@ -34,6 +34,9 @@ extern "C" {
  * @defgroup serial Serial
  * @ingroup platform
  *
+ * @brief
+ *   This module includes the platform abstraction for serial communication.
+ *
  * @{
  *
  */

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for IPv6 addresses.
+ */
+
 #ifndef IP6_ADDRESS_HPP_
 #define IP6_ADDRESS_HPP_
 

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements the CoAP server message dispatch.
+ */
+
 #include <coap/coap_server.hpp>
 #include <common/code_utils.hpp>
 #include <common/thread_error.hpp>

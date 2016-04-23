@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file contains definitions for the CLI commands that configure and manage the IEEE 802.15.4 MAC.
+ */
+
 #ifndef CLI_MAC_HPP_
 #define CLI_MAC_HPP_
 

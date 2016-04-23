@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file includes macros for validating runtime conditions.
+ */
+
 #ifndef CODE_UTILS_HPP_
 #define CODE_UTILS_HPP_
 

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements IPv6 addresses.
+ */
+
 #include <stdio.h>
 #include <string.h>
 

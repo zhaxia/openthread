@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements MPL.
+ */
+
 #include <common/code_utils.hpp>
 #include <common/message.hpp>
 #include <net/ip6_mpl.hpp>

@@ -14,6 +14,11 @@
  *    limitations under the License.
  */
 
+/**
+ * @file
+ *   This file implements MLE functionality required for the Thread Child, Router and Leader roles.
+ */
+
 #include <assert.h>
 
 #include <thread/mle.hpp>
@@ -133,7 +138,7 @@ ThreadError Mle::Start()
 
     if (GetRloc16() == Mac::kShortAddrInvalid)
     {
-        BecomeChild(kAttachAnyPartition);
+        BecomeChild(kMleAttachAnyPartition);
     }
     else if (GetChildId(GetRloc16()) == 0)
     {
@@ -174,13 +179,13 @@ ThreadError Mle::BecomeDetached()
 
     SetStateDetached();
     SetRloc16(Mac::kShortAddrInvalid);
-    BecomeChild(kAttachAnyPartition);
+    BecomeChild(kMleAttachAnyPartition);
 
 exit:
     return error;
 }
 
-ThreadError Mle::BecomeChild(AttachFilter filter)
+ThreadError Mle::BecomeChild(otMleAttachFilter filter)
 {
     ThreadError error = kThreadError_None;
 
@@ -191,7 +196,7 @@ ThreadError Mle::BecomeChild(AttachFilter filter)
     mParentRequestMode = filter;
     memset(&mParent, 0, sizeof(mParent));
 
-    if (filter == kAttachAnyPartition)
+    if (filter == kMleAttachAnyPartition)
     {
         mParent.mState = Neighbor::kStateInvalid;
     }
@@ -759,7 +764,7 @@ void Mle::HandleParentRequestTimer()
 
     case kParentSynchronize:
         mParentRequestState = kParentIdle;
-        BecomeChild(kAttachAnyPartition);
+        BecomeChild(kMleAttachAnyPartition);
         break;
 
     case kParentRequestStart:
@@ -798,7 +803,7 @@ void Mle::HandleParentRequestTimer()
         {
             switch (mParentRequestMode)
             {
-            case kAttachAnyPartition:
+            case kMleAttachAnyPartition:
                 if (mDeviceMode & kModeFFD)
                 {
                     mMleRouter->BecomeLeader();
@@ -811,12 +816,12 @@ void Mle::HandleParentRequestTimer()
 
                 break;
 
-            case kAttachSamePartition:
+            case kMleAttachSamePartition:
                 mParentRequestState = kParentIdle;
-                BecomeChild(kAttachAnyPartition);
+                BecomeChild(kMleAttachAnyPartition);
                 break;
 
-            case kAttachBetterPartition:
+            case kMleAttachBetterPartition:
                 mParentRequestState = kParentIdle;
                 break;
             }
@@ -1532,10 +1537,10 @@ ThreadError Mle::HandleParentResponse(const Message &message, const Ip6MessageIn
     {
         switch (mParentRequestMode)
         {
-        case kAttachAnyPartition:
+        case kMleAttachAnyPartition:
             break;
 
-        case kAttachSamePartition:
+        case kMleAttachSamePartition:
             if (peerPartitionId != mLeaderData.GetPartitionId())
             {
                 ExitNow();
@@ -1543,7 +1548,7 @@ ThreadError Mle::HandleParentResponse(const Message &message, const Ip6MessageIn
 
             break;
 
-        case kAttachBetterPartition:
+        case kMleAttachBetterPartition:
             dprintf("partition info  %d %d %d %d\n",
                     leaderData.GetWeighting(), peerPartitionId,
                     mLeaderData.GetWeighting(), mLeaderData.GetPartitionId());
