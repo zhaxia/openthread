@@ -19,7 +19,7 @@
 
 /**
  * @file
- *   This file contains definitions for MPL.
+ *   This file includes definitions for MPL.
  */
 
 #include <common/message.hpp>
@@ -28,6 +28,13 @@
 #include <net/ip6.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-ipv6
+ *
+ * @{
+ *
+ */
 
 class Ip6OptionMpl: public Ip6OptionHeader
 {
@@ -101,6 +108,11 @@ private:
     };
     MplEntry mEntries[kNumEntries];
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 

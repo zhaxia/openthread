@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for the Thread network interface.
+ *   This file includes definitions for the Thread network interface.
  */
 
 #ifndef THREAD_NETIF_HPP_
@@ -33,6 +33,15 @@
 #include <thread/network_data_local.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-netif
+ *
+ * @brief
+ *   This module includes definitions for the Thread network interface.
+ *
+ * @{
+ */
 
 class ThreadNetif: public Netif
 {
@@ -75,6 +84,10 @@ struct ThreadMessageInfo
 {
     uint8_t mLinkMargin;
 };
+
+/**
+ * @}
+ */
 
 }  // namespace Thread
 

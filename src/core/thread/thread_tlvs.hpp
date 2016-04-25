@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions and methods for generating and processing Thread Network Layer TLVs.
+ *   This file includes definitions and methods for generating and processing Thread Network Layer TLVs.
  */
 
 #ifndef THREAD_TLVS_HPP_

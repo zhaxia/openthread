@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for computing HMACs.
+ *   This file includes definitions for computing HMACs.
  */
 
 #ifndef HMAC_HPP_
@@ -29,6 +29,13 @@
 
 namespace Thread {
 namespace Crypto {
+
+/**
+ * @addtogroup core-security
+ *
+ * @{
+ *
+ */
 
 class Hmac
 {
@@ -48,6 +55,11 @@ private:
     uint8_t mKeyLength = 0;
     Hash *mHash;
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Crypto
 }  // namespace Thread

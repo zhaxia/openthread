@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for MLE functionality required by the Thread Child, Router, and Leader roles.
+ *   This file includes definitions for MLE functionality required by the Thread Child, Router, and Leader roles.
  */
 
 #ifndef MLE_HPP_
@@ -39,9 +39,41 @@ class KeyManager;
 class MeshForwarder;
 namespace NetworkData { class Leader; }
 
+/**
+ * @addtogroup core-mle MLE
+ *
+ * @brief
+ *   This module includes definitions for the MLE protocol.
+ *
+ * @{
+ *
+ * @defgroup core-mle-core Core
+ * @defgroup core-mle-router Router
+ * @defgroup core-mle-tlvs TLVs
+ *
+ * @}
+ */
+
+/**
+ * @namespace Thread::Mle
+ *
+ * @brief
+ *   This namespace includes definitions for the MLE protocol.
+ */
+
 namespace Mle {
 
 class MleRouter;
+
+/**
+ * @addtogroup core-mle-core
+ *
+ * @brief
+ *   This module includes definitions for MLE functionality required by the Thread Child, Router, and Leader roles.
+ *
+ * @{
+ *
+ */
 
 enum
 {
@@ -344,6 +376,11 @@ protected:
 };
 
 }  // namespace Mle
+
+/**
+ * @}
+ */
+
 }  // namespace Thread
 
 #endif  // MLE_HPP_

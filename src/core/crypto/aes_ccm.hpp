@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for performing AES-CCM computations.
+ *   This file includes definitions for performing AES-CCM computations.
  */
 
 #ifndef AES_CCM_HPP_
@@ -29,6 +29,13 @@
 
 namespace Thread {
 namespace Crypto {
+
+/**
+ * @addtogroup core-security
+ *
+ * @{
+ *
+ */
 
 class AesCcm
 {
@@ -53,6 +60,11 @@ private:
     uint16_t mCtrLength;
     uint8_t mTagLength;
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Crypto
 }  // namespace Thread

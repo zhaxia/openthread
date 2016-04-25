@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for IPv6 network interfaces.
+ *   This file includes definitions for IPv6 network interfaces.
  */
 
 #ifndef NET_NETIF_HPP_
@@ -29,6 +29,13 @@
 #include <net/socket.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-ipv6
+ *
+ * @{
+ *
+ */
 
 class LinkAddress
 {
@@ -137,6 +144,11 @@ private:
     static Netif *sNetifListHead;
     static int sNextInterfaceId;
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 

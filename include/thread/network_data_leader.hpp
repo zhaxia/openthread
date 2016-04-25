@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for manipulating Thread Network Data maanged by the Thread Leader.
+ *   This file includes definitions for manipulating Thread Network Data maanged by the Thread Leader.
  */
 
 #ifndef NETWORK_DATA_LEADER_HPP_
@@ -35,6 +35,15 @@ namespace Thread {
 class ThreadNetif;
 
 namespace NetworkData {
+
+/**
+ * @addtogroup core-netdata-leader
+ *
+ * @brief
+ *   This module includes definitions for manipulating Thread Network Data maanged by the Thread Leader..
+ *
+ * @{
+ */
 
 class Leader: public NetworkData
 {
@@ -116,6 +125,10 @@ private:
     Netif *mNetif;
     Mle::MleRouter *mMle;
 };
+
+/**
+ * @}
+ */
 
 }  // namespace NetworkData
 }  // namespace Thread

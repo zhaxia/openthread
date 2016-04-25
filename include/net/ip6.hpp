@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for IPv6 packet processing.
+ *   This file includes definitions for IPv6 packet processing.
  */
 
 #ifndef IP6_HPP_
@@ -32,6 +32,16 @@
 using Thread::Encoding::BigEndian::HostSwap16;
 
 namespace Thread {
+
+/**
+ * @addtogroup core-ipv6
+ *
+ * @brief
+ *   This module includes definitions for the IPv6 network layer.
+ *
+ * @{
+ *
+ */
 
 class Ncp;
 
@@ -189,6 +199,11 @@ public:
     typedef void (*NcpReceivedDatagramHandler)(void *context, Message &message);
     static void SetNcpReceivedHandler(NcpReceivedDatagramHandler handler, void *context);
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 

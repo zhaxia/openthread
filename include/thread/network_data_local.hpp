@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for manipulating local Thread Network Data.
+ *   This file includes definitions for manipulating local Thread Network Data.
  */
 
 #ifndef NETWORK_DATA_LOCAL_HPP_
@@ -29,6 +29,15 @@
 namespace Thread {
 
 class ThreadNetif;
+
+/**
+ * @addtogroup core-netdata-local
+ *
+ * @brief
+ *   This module includes definitions for manipulating local Thread Network Data.
+ *
+ * @{
+ */
 
 namespace NetworkData {
 
@@ -61,6 +70,11 @@ private:
 };
 
 }  // namespace NetworkData
+
+/**
+ * @}
+ */
+
 }  // namespace Thread
 
 #endif  // NETWORK_DATA_LOCAL_HPP_

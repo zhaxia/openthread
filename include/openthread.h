@@ -34,17 +34,57 @@ extern "C" {
  * @defgroup api  API
  * @brief
  *   This module includes the application programming interface to the OpenThread stack.
+ *
+ * @{
+ *
+ * @defgroup execution Execution
+ * @defgroup config Configuration
+ * @defgroup diags Diagnostics
+ * @defgroup messages Message Buffers
+ * @defgroup udp UDP
+ *
+ * @}
+ *
  */
 
 /**
  * @defgroup platform  Platform Abstraction
  * @brief
  *   This module includes the platform abstraction used by the OpenThread stack.
+ *
+ * @{
+ * @}
+ *
  */
 
 /**
- * @defgroup execution  Execution
- * @ingroup api
+ * @defgroup core Core
+ * @brief
+ *   This module includes the core OpenThread stack.
+ *
+ * @{
+ *
+ * @defgroup core-6lowpan 6LoWPAN
+ * @defgroup core-coap CoAP
+ * @defgroup core-ipv6 IPv6
+ * @defgroup core-mac MAC
+ * @defgroup core-mesh-forwarding Mesh Forwarding
+ * @defgroup core-message Message
+ * @defgroup core-mle MLE
+ * @defgroup core-netdata Network Data
+ * @defgroup core-netif Network Interface
+ * @defgroup core-arp RLOC Mapping
+ * @defgroup core-security Security
+ * @defgroup core-tasklet Tasklet
+ * @defgroup core-timer Timer
+ * @defgroup core-udp UDP
+ *
+ * @}
+ *
+ */
+
+/**
+ * @addtogroup execution  Execution
  *
  * @brief
  *   This module includes functions that control the Thread stack's execution.
@@ -77,8 +117,7 @@ bool otAreTaskletsPending(void);
  */
 
 /**
- * @defgroup config  Configuration
- * @ingroup api
+ * @addtogroup config  Configuration
  *
  * @brief
  *   This module includes functions for configuration.
@@ -709,8 +748,7 @@ ThreadError otBecomeLeader();
  */
 
 /**
- * @defgroup diagnostics  Diagnostics
- * @ingroup api
+ * @addtogroup diags  Diagnostics
  *
  * @brief
  *   This module includes functions that expose internal state.
@@ -869,8 +907,7 @@ ThreadError otEnable(void);
 ThreadError otDisable(void);
 
 /**
- * @defgroup messages  Message Buffers
- * @ingroup api
+ * @addtogroup messages  Message Buffers
  *
  * @brief
  *   This module includes functions that manipulate OpenThread message buffers
@@ -1045,8 +1082,7 @@ int otWriteMessage(otMessage aMessage, uint16_t aOffset, const void *aBuf, uint1
  */
 
 /**
- * @defgroup udp  UDP
- * @ingroup api
+ * @addtogroup udp  UDP
  *
  * @brief
  *   This module includes functions that control UDP communication.

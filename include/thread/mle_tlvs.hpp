@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for generating and processing MLE TLVs.
+ *   This file includes definitions for generating and processing MLE TLVs.
  */
 
 #ifndef MLE_TLVS_HPP_
@@ -31,7 +31,18 @@ using Thread::Encoding::BigEndian::HostSwap16;
 using Thread::Encoding::BigEndian::HostSwap32;
 
 namespace Thread {
+
 namespace Mle {
+
+/**
+ * @addtogroup core-mle-tlvs
+ *
+ * @brief
+ *   This module includes definitions for generating and processing MLE TLVs.
+ *
+ * @{
+ *
+ */
 
 class Tlv
 {
@@ -469,7 +480,13 @@ private:
     AddressRegistrationEntry mAddresses[4];
 } __attribute__((packed));
 
+/**
+ * @}
+ */
+
 }  // namespace Mle
+
+
 }  // namespace Thread
 
 #endif  // MLE_TLVS_HPP_

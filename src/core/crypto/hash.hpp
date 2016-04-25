@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for computing hashes.
+ *   This file includes definitions for computing hashes.
  */
 
 #ifndef HASH_HPP_
@@ -29,6 +29,13 @@
 namespace Thread {
 namespace Crypto {
 
+/**
+ * @addtogroup core-security
+ *
+ * @{
+ *
+ */
+
 class Hash
 {
 public:
@@ -37,6 +44,11 @@ public:
     virtual ThreadError Input(const void *buf, uint16_t bufLength) = 0;
     virtual ThreadError Finalize(uint8_t *hash) = 0;
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Crypto
 }  // namespace Thread

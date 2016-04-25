@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for the IEEE 802.15.4 MAC.
+ *   This file includes definitions for the IEEE 802.15.4 MAC.
  */
 
 #ifndef MAC_HPP_
@@ -34,6 +34,16 @@
 namespace Thread {
 
 namespace Mle { class MleRouter; }
+
+/**
+ * @addtogroup core-mac
+ *
+ * @brief
+ *   This module includes definitions for the IEEE 802.15.4 MAC
+ *
+ * @{
+ *
+ */
 
 namespace Mac {
 
@@ -210,7 +220,12 @@ private:
     Whitelist mWhitelist;
 };
 
+/**
+ * @}
+ *
+ */
+
 }  // namespace Mac
 }  // namespace Thread
 
-#endif  // MAC_MAC_HPP_
+#endif  // MAC_HPP_

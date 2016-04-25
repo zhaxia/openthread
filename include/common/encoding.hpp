@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for byte-ordering encoding.
+ *   This file includes definitions for byte-ordering encoding.
  */
 
 #ifndef ENCODING_HPP_

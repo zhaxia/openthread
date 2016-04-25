@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for Thread EID-to-RLOC mapping and caching.
+ *   This file includes definitions for Thread EID-to-RLOC mapping and caching.
  */
 
 #ifndef ADDRESS_RESOLVER_HPP_
@@ -36,6 +36,15 @@ class ThreadLastTransactionTimeTlv;
 class ThreadMeshLocalIidTlv;
 class ThreadNetif;
 class ThreadTargetTlv;
+
+/**
+ * @addtogroup core-arp EID-to-RLOC
+ *
+ * @brief
+ *   This module includes definitions for Thread EID-to-RLOC mapping and caching.
+ *
+ * @{
+ */
 
 class AddressResolver
 {
@@ -116,6 +125,10 @@ private:
     Mle::MleRouter *mMle;
     Netif *mNetif;
 };
+
+/**
+ * @}
+ */
 
 }  // namespace Thread
 

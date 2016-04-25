@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for ICMPv6.
+ *   This file includes definitions for ICMPv6.
  */
 
 #ifndef ICMP6_HPP_
@@ -28,6 +28,13 @@
 using Thread::Encoding::BigEndian::HostSwap16;
 
 namespace Thread {
+
+/**
+ * @addtogroup core-ipv6
+ *
+ * @{
+ *
+ */
 
 class Icmp6Header
 {
@@ -138,6 +145,11 @@ private:
     static ThreadError HandleEchoReply(Message &message, const Ip6MessageInfo &messageInfo,
                                        const Icmp6Header &icmp6Header);
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 

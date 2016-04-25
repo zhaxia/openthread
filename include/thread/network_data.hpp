@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for managing Thread Network Data.
+ *   This file includes definitions for managing Thread Network Data.
  */
 
 #ifndef NETWORK_DATA_HPP_
@@ -27,7 +27,40 @@
 #include <thread/network_data_tlvs.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-netdata
+ * @brief
+ *   This module includes definitions for generating, processing, and managing Thread Network Data.
+ *
+ * @{
+ *
+ * @defgroup core-netdata-core Core
+ * @defgroup core-netdata-leader Leader
+ * @defgroup core-netdata-local Local
+ * @defgroup core-netdata-tlvs TLVs
+ *
+ * @}
+ *
+ */
+
+/**
+ * @namespace Thread::NetworkData
+ *
+ * @brief
+ *   This namespace includes definitions for managing Thread Network Data.
+ */
+
 namespace NetworkData {
+
+/**
+ * @addtogroup core-netdata-core
+ *
+ * @brief
+ *   This module includes definitions for managing Thread Network Data.  
+ *
+ * @{
+ */
 
 class NetworkData
 {
@@ -53,6 +86,11 @@ protected:
 };
 
 }  // namespace NetworkData
+
+/**
+ * @}
+ */
+
 }  // namespace Thread
 
 #endif  // NETWORK_DATA_HPP_

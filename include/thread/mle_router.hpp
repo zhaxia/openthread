@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for MLE functionality required by the Thread Router and Leader roles.
+ *   This file includes definitions for MLE functionality required by the Thread Router and Leader roles.
  */
 
 #ifndef MLE_ROUTER_HPP_
@@ -37,6 +37,15 @@ namespace Mle {
 
 class MeshForwarder;
 class NetworkDataLeader;
+
+/**
+ * @addtogroup core-mle-router
+ *
+ * @brief
+ *   This module includes definitions for MLE functionality required by the Thread Router and Leader roles.
+ *
+ * @{
+ */
 
 class MleRouter: public Mle
 {
@@ -173,6 +182,11 @@ private:
 };
 
 }  // namespace Mle
+
+/**
+ * @}
+ */
+
 }  // namespace Thread
 
 #endif  // MLE_ROUTER_HPP_

@@ -19,7 +19,7 @@
 
 /**
  * @file
- *   This file contains definitions for manipulating IPv6 routing tables.
+ *   This file includes definitions for manipulating IPv6 routing tables.
  */
 
 #include <common/message.hpp>
@@ -27,6 +27,13 @@
 #include <net/ip6_address.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-ipv6
+ *
+ * @{
+ *
+ */
 
 struct Ip6Route
 {
@@ -43,6 +50,11 @@ public:
     static ThreadError Remove(Ip6Route &route);
     static int Lookup(const Ip6Address &source, const Ip6Address &destination);
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 
