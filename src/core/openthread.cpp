@@ -40,7 +40,7 @@ void otInit()
     otRandomInit();
 
     Message::Init();
-    Timer::Init();
+    TimerScheduler::Init();
 
     sThreadNetif.Init();
 }

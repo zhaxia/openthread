@@ -26,89 +26,45 @@
 
 namespace Thread {
 
-static Tasklet s_task(&Timer::FireTimers, NULL);
-static Timer *sHead = NULL;
-static Timer *sTail = NULL;
+static Tasklet  sTask(&TimerScheduler::FireTimers, NULL);
+static Timer   *sHead = NULL;
+static Timer   *sTail = NULL;
 
-Timer::Timer(Handler handler, void *context)
-{
-    mHandler = handler;
-    mContext = context;
-}
-
-ThreadError Timer::StartAt(uint32_t t0, uint32_t dt)
-{
-    mT0 = t0;
-    mDt = dt;
-    return Add(*this);
-}
-
-ThreadError Timer::Start(uint32_t dt)
-{
-    return StartAt(GetNow(), dt);
-}
-
-ThreadError Timer::Stop()
-{
-    return Remove(*this);
-}
-
-bool Timer::IsRunning() const
-{
-    return IsAdded(*this);
-}
-
-uint32_t Timer::Gett0() const
-{
-    return mT0;
-}
-
-uint32_t Timer::Getdt() const
-{
-    return mDt;
-}
-
-uint32_t Timer::GetNow()
-{
-    return otAlarmGetNow();
-}
-
-void Timer::Init()
+void TimerScheduler::Init(void)
 {
     dprintf("Timer init\n");
     otAlarmInit();
 }
 
-ThreadError Timer::Add(Timer &timer)
+void TimerScheduler::Add(Timer &aTimer)
 {
-    VerifyOrExit(timer.mNext == NULL && sTail != &timer, ;);
+    VerifyOrExit(aTimer.mNext == NULL && sTail != &aTimer, ;);
 
     if (sTail == NULL)
     {
-        sHead = &timer;
+        sHead = &aTimer;
     }
     else
     {
-        sTail->mNext = &timer;
+        sTail->mNext = &aTimer;
     }
 
-    timer.mNext = NULL;
-    sTail = &timer;
+    aTimer.mNext = NULL;
+    sTail = &aTimer;
 
 exit:
     SetAlarm();
-    return kThreadError_None;
 }
 
-ThreadError Timer::Remove(Timer &timer)
+void TimerScheduler::Remove(Timer &aTimer)
 {
-    VerifyOrExit(timer.mNext != NULL || sTail == &timer, ;);
+    VerifyOrExit(aTimer.mNext != NULL || sTail == &aTimer, ;);
 
-    if (sHead == &timer)
+    if (sHead == &aTimer)
     {
-        sHead = timer.mNext;
+        sHead = aTimer.mNext;
 
-        if (sTail == &timer)
+        if (sTail == &aTimer)
         {
             sTail = NULL;
         }
@@ -117,11 +73,11 @@ ThreadError Timer::Remove(Timer &timer)
     {
         for (Timer *cur = sHead; cur; cur = cur->mNext)
         {
-            if (cur->mNext == &timer)
+            if (cur->mNext == &aTimer)
             {
-                cur->mNext = timer.mNext;
+                cur->mNext = aTimer.mNext;
 
-                if (sTail == &timer)
+                if (sTail == &aTimer)
                 {
                     sTail = cur;
                 }
@@ -131,25 +87,25 @@ ThreadError Timer::Remove(Timer &timer)
         }
     }
 
-    timer.mNext = NULL;
+    aTimer.mNext = NULL;
     SetAlarm();
 
 exit:
-    return kThreadError_None;
+    {}
 }
 
-bool Timer::IsAdded(const Timer &timer)
+bool TimerScheduler::IsAdded(const Timer &aTimer)
 {
     bool rval = false;
 
-    if (sHead == &timer)
+    if (sHead == &aTimer)
     {
         ExitNow(rval = true);
     }
 
     for (Timer *cur = sHead; cur; cur = cur->mNext)
     {
-        if (cur == &timer)
+        if (cur == &aTimer)
         {
             ExitNow(rval = true);
         }
@@ -159,12 +115,12 @@ exit:
     return rval;
 }
 
-void Timer::SetAlarm()
+void TimerScheduler::SetAlarm(void)
 {
     uint32_t now = otAlarmGetNow();
-    int32_t minRemaining = (1UL << 31) - 1;
+    int32_t  minRemaining = (1UL << 31) - 1;
     uint32_t elapsed;
-    int32_t remaining;
+    int32_t  remaining;
 
     if (sHead == NULL)
     {
@@ -185,7 +141,7 @@ void Timer::SetAlarm()
 
     if (minRemaining <= 0)
     {
-        s_task.Post();
+        sTask.Post();
     }
     else
     {
@@ -196,12 +152,12 @@ exit:
     {}
 }
 
-extern "C" void otAlarmSignalFired()
+extern "C" void otAlarmSignalFired(void)
 {
-    Thread::s_task.Post();
+    Thread::sTask.Post();
 }
 
-void Timer::FireTimers(void *context)
+void TimerScheduler::FireTimers(void *aContext)
 {
     uint32_t now = otAlarmGetNow();
     uint32_t elapsed;

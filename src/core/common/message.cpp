@@ -26,17 +26,16 @@
 
 namespace Thread {
 
+static Buffer *NewBuffer(void);
+static ThreadError FreeBuffers(Buffer *aBuffer);
+static ThreadError ReclaimBuffers(int aNumBuffers);
+
 static int sNumFreeBuffers;
 static Buffer sBuffers[kNumBuffers];
 static Buffer *sFreeBuffers;
-
-static Buffer *NewBuffer();
-static ThreadError FreeBuffers(Buffer *buffers);
-static ThreadError ReclaimBuffers(int numBuffers);
-
 static MessageList sAll;
 
-Buffer *NewBuffer()
+Buffer *NewBuffer(void)
 {
     Buffer *buffer = NULL;
 
@@ -51,28 +50,28 @@ exit:
     return buffer;
 }
 
-ThreadError FreeBuffers(Buffer *buffers)
+ThreadError FreeBuffers(Buffer *aBuffer)
 {
     Buffer *tmpBuffer;
 
-    while (buffers != NULL)
+    while (aBuffer != NULL)
     {
-        tmpBuffer = buffers->GetNextBuffer();
-        buffers->SetNextBuffer(sFreeBuffers);
-        sFreeBuffers = buffers;
+        tmpBuffer = aBuffer->GetNextBuffer();
+        aBuffer->SetNextBuffer(sFreeBuffers);
+        sFreeBuffers = aBuffer;
         sNumFreeBuffers++;
-        buffers = tmpBuffer;
+        aBuffer = tmpBuffer;
     }
 
     return kThreadError_None;
 }
 
-ThreadError ReclaimBuffers(int numBuffers)
+ThreadError ReclaimBuffers(int aNumBuffers)
 {
-    return (numBuffers <= sNumFreeBuffers) ? kThreadError_None : kThreadError_NoBufs;
+    return (aNumBuffers <= sNumFreeBuffers) ? kThreadError_None : kThreadError_NoBufs;
 }
 
-ThreadError Message::Init()
+ThreadError Message::Init(void)
 {
     sFreeBuffers = sBuffers;
 
@@ -87,40 +86,37 @@ ThreadError Message::Init()
     return kThreadError_None;
 }
 
-Message *Message::New(uint8_t type, uint16_t reserved)
+Message *Message::New(uint8_t aType, uint16_t aReserved)
 {
     Message *message = NULL;
 
     VerifyOrExit((message = reinterpret_cast<Message *>(NewBuffer())) != NULL, ;);
 
     memset(message, 0, sizeof(*message));
+    message->SetType(aType);
+    message->SetReserved(aReserved);
 
-    VerifyOrExit(message->SetTotalLength(reserved) == kThreadError_None,
-                 Message::Free(*message));
-
-    message->mMsgType = type;
-    message->mMsgReserved = reserved;
-    message->mMsgLength = reserved;
+    VerifyOrExit(message->SetLength(0) == kThreadError_None, Message::Free(*message));
 
 exit:
     return message;
 }
 
-ThreadError Message::Free(Message &message)
+ThreadError Message::Free(Message &aMessage)
 {
-    assert(message.mMsgList[MessageInfo::kListAll].mList == NULL &&
-           message.mMsgList[MessageInfo::kListInterface].mList == NULL);
-    return FreeBuffers(reinterpret_cast<Buffer *>(&message));
+    assert(aMessage.GetMessageList(MessageInfo::kListAll).mList == NULL &&
+           aMessage.GetMessageList(MessageInfo::kListInterface).mList == NULL);
+    return FreeBuffers(reinterpret_cast<Buffer *>(&aMessage));
 }
 
-ThreadError Message::ResizeMessage(uint16_t length)
+ThreadError Message::ResizeMessage(uint16_t aLength)
 {
     // add buffers
     Buffer *curBuffer = this;
     Buffer *lastBuffer;
-    uint16_t curLength = kFirstBufferDataSize;
+    uint16_t curLength = kHeadBufferDataSize;
 
-    while (curLength < length)
+    while (curLength < aLength)
     {
         if (curBuffer->GetNextBuffer() == NULL)
         {
@@ -141,380 +137,331 @@ ThreadError Message::ResizeMessage(uint16_t length)
     return kThreadError_None;
 }
 
-uint16_t Message::GetLength() const
+Message *Message::GetNext(void) const
 {
-    return mMsgLength - mMsgReserved;
+    return GetMessageList(MessageInfo::kListInterface).mNext;
 }
 
-ThreadError Message::SetLength(uint16_t length)
+uint16_t Message::GetLength(void) const
 {
-    return SetTotalLength(mMsgReserved + length);
+    return mInfo.mLength;
 }
 
-ThreadError Message::SetTotalLength(uint16_t length)
+ThreadError Message::SetLength(uint16_t aLength)
 {
     ThreadError error = kThreadError_None;
+    uint16_t totalLengthRequest = GetReserved() + aLength;
+    uint16_t totalLengthCurrent = GetReserved() + GetLength();
     int bufs = 0;
 
-    if (length > kFirstBufferDataSize)
+    if (totalLengthRequest > kHeadBufferDataSize)
     {
-        bufs = (((length - kFirstBufferDataSize) - 1) / kBufferDataSize) + 1;
+        bufs = (((totalLengthRequest - kHeadBufferDataSize) - 1) / kBufferDataSize) + 1;
     }
 
-    if (mMsgLength > kFirstBufferDataSize)
+    if (totalLengthCurrent > kHeadBufferDataSize)
     {
-        bufs -= (((mMsgLength - kFirstBufferDataSize) - 1) / kBufferDataSize) + 1;
+        bufs -= (((totalLengthCurrent - kHeadBufferDataSize) - 1) / kBufferDataSize) + 1;
     }
 
     SuccessOrExit(error = ReclaimBuffers(bufs));
 
-    ResizeMessage(length);
-    mMsgLength = length;
+    ResizeMessage(totalLengthRequest);
+    mInfo.mLength = aLength;
 
 exit:
     return error;
 }
 
-uint16_t Message::GetOffset() const
+uint16_t Message::GetOffset(void) const
 {
-    return mMsgOffset;
+    return mInfo.mOffset;
 }
 
-ThreadError Message::MoveOffset(int delta)
+ThreadError Message::MoveOffset(int aDelta)
 {
-    mMsgOffset += delta;
-    assert(mMsgOffset <= GetLength());
-    return kThreadError_None;
+    ThreadError error = kThreadError_None;
+
+    assert(GetOffset() + aDelta <= GetLength());
+    VerifyOrExit(GetOffset() + aDelta <= GetLength(), error = kThreadError_InvalidArgs);
+
+    mInfo.mOffset += aDelta;
+    assert(mInfo.mOffset <= GetLength());
+
+exit:
+    return error;
 }
 
-ThreadError Message::SetOffset(uint16_t offset)
+ThreadError Message::SetOffset(uint16_t aOffset)
 {
-    mMsgOffset = offset;
-    assert(mMsgOffset <= GetLength());
-    return kThreadError_None;
+    ThreadError error = kThreadError_None;
+
+    assert(aOffset <= GetLength());
+    VerifyOrExit(aOffset <= GetLength(), error = kThreadError_InvalidArgs);
+
+    mInfo.mOffset = aOffset;
+
+exit:
+    return error;
 }
 
-ThreadError Message::Append(const void *buf, uint16_t length)
+uint8_t Message::GetType(void) const
+{
+    return mInfo.mType;
+}
+
+void Message::SetType(uint8_t aType)
+{
+    mInfo.mType = aType;
+}
+
+ThreadError Message::Append(const void *aBuf, uint16_t aLength)
 {
     ThreadError error = kThreadError_None;
     uint16_t oldLength = GetLength();
 
-    SuccessOrExit(error = SetLength(GetLength() + length));
-    Write(oldLength, length, buf);
+    SuccessOrExit(error = SetLength(GetLength() + aLength));
+    Write(oldLength, aLength, aBuf);
 
 exit:
     return error;
 }
 
-ThreadError Message::Prepend(const void *buf, uint16_t length)
+ThreadError Message::Prepend(const void *aBuf, uint16_t aLength)
 {
     ThreadError error = kThreadError_None;
 
-    VerifyOrExit(length <= mMsgReserved, error = kThreadError_NoBufs);
-    mMsgReserved -= length;
-    mMsgOffset += length;
+    VerifyOrExit(aLength <= GetReserved(), error = kThreadError_NoBufs);
 
-    Write(0, length, buf);
+    SetReserved(GetReserved() - aLength);
+    mInfo.mLength += aLength;
+    SetOffset(GetOffset() + aLength);
+
+    Write(0, aLength, aBuf);
 
 exit:
     return error;
 }
 
-int Message::Read(uint16_t offset, uint16_t length, void *buf) const
+int Message::Read(uint16_t aOffset, uint16_t aLength, void *aBuf) const
 {
     Buffer *curBuffer;
     uint16_t bytesCopied = 0;
     uint16_t bytesToCopy;
 
-    offset += mMsgReserved;
-
-    if (offset >= mMsgLength)
+    if (aOffset >= GetLength())
     {
         ExitNow();
     }
 
-    if (offset + length >= mMsgLength)
+    if (aOffset + aLength >= GetLength())
     {
-        length = mMsgLength - offset;
+        aLength = GetLength() - aOffset;
     }
 
-    // special case first buffer
-    if (offset < kFirstBufferDataSize)
-    {
-        bytesToCopy = kFirstBufferDataSize - offset;
+    aOffset += GetReserved();
 
-        if (bytesToCopy > length)
+    // special case first buffer
+    if (aOffset < kHeadBufferDataSize)
+    {
+        bytesToCopy = kHeadBufferDataSize - aOffset;
+
+        if (bytesToCopy > aLength)
         {
-            bytesToCopy = length;
+            bytesToCopy = aLength;
         }
 
-        memcpy(buf, mHead.mData + offset, bytesToCopy);
+        memcpy(aBuf, GetFirstData() + aOffset, bytesToCopy);
 
-        length -= bytesToCopy;
+        aLength -= bytesToCopy;
         bytesCopied += bytesToCopy;
-        buf = reinterpret_cast<uint8_t *>(buf) + bytesToCopy;
+        aBuf = reinterpret_cast<uint8_t *>(aBuf) + bytesToCopy;
 
-        offset = 0;
+        aOffset = 0;
     }
     else
     {
-        offset -= kFirstBufferDataSize;
+        aOffset -= kHeadBufferDataSize;
     }
 
     // advance to offset
     curBuffer = GetNextBuffer();
 
-    while (offset >= kBufferDataSize)
+    while (aOffset >= kBufferDataSize)
     {
         assert(curBuffer != NULL);
 
         curBuffer = curBuffer->GetNextBuffer();
-        offset -= kBufferDataSize;
+        aOffset -= kBufferDataSize;
     }
 
     // begin copy
-    while (length > 0)
+    while (aLength > 0)
     {
         assert(curBuffer != NULL);
 
-        bytesToCopy = kBufferDataSize - offset;
+        bytesToCopy = kBufferDataSize - aOffset;
 
-        if (bytesToCopy > length)
+        if (bytesToCopy > aLength)
         {
-            bytesToCopy = length;
+            bytesToCopy = aLength;
         }
 
-        memcpy(buf, curBuffer->mData + offset, bytesToCopy);
+        memcpy(aBuf, curBuffer->GetData() + aOffset, bytesToCopy);
 
-        length -= bytesToCopy;
+        aLength -= bytesToCopy;
         bytesCopied += bytesToCopy;
-        buf = reinterpret_cast<uint8_t *>(buf) + bytesToCopy;
+        aBuf = reinterpret_cast<uint8_t *>(aBuf) + bytesToCopy;
 
         curBuffer = curBuffer->GetNextBuffer();
-        offset = 0;
+        aOffset = 0;
     }
 
 exit:
     return bytesCopied;
 }
 
-int Message::Write(uint16_t offset, uint16_t length, const void *buf)
+int Message::Write(uint16_t aOffset, uint16_t aLength, const void *aBuf)
 {
     Buffer *curBuffer;
     uint16_t bytesCopied = 0;
     uint16_t bytesToCopy;
 
-    offset += mMsgReserved;
+    assert(aOffset + aLength <= GetLength());
 
-    assert(offset + length <= mMsgLength);
-
-    if (offset + length >= mMsgLength)
+    if (aOffset + aLength >= GetLength())
     {
-        length = mMsgLength - offset;
+        aLength = GetLength() - aOffset;
     }
 
-    // special case first buffer
-    if (offset < kFirstBufferDataSize)
-    {
-        bytesToCopy = kFirstBufferDataSize - offset;
+    aOffset += GetReserved();
 
-        if (bytesToCopy > length)
+    // special case first buffer
+    if (aOffset < kHeadBufferDataSize)
+    {
+        bytesToCopy = kHeadBufferDataSize - aOffset;
+
+        if (bytesToCopy > aLength)
         {
-            bytesToCopy = length;
+            bytesToCopy = aLength;
         }
 
-        memcpy(mHead.mData + offset, buf, bytesToCopy);
+        memcpy(GetFirstData() + aOffset, aBuf, bytesToCopy);
 
-        length -= bytesToCopy;
+        aLength -= bytesToCopy;
         bytesCopied += bytesToCopy;
-        buf = reinterpret_cast<const uint8_t *>(buf) + bytesToCopy;
+        aBuf = reinterpret_cast<const uint8_t *>(aBuf) + bytesToCopy;
 
-        offset = 0;
+        aOffset = 0;
     }
     else
     {
-        offset -= kFirstBufferDataSize;
+        aOffset -= kHeadBufferDataSize;
     }
 
     // advance to offset
     curBuffer = GetNextBuffer();
 
-    while (offset >= kBufferDataSize)
+    while (aOffset >= kBufferDataSize)
     {
         assert(curBuffer != NULL);
 
         curBuffer = curBuffer->GetNextBuffer();
-        offset -= kBufferDataSize;
+        aOffset -= kBufferDataSize;
     }
 
     // begin copy
-    while (length > 0)
+    while (aLength > 0)
     {
         assert(curBuffer != NULL);
 
-        bytesToCopy = kBufferDataSize - offset;
+        bytesToCopy = kBufferDataSize - aOffset;
 
-        if (bytesToCopy > length)
+        if (bytesToCopy > aLength)
         {
-            bytesToCopy = length;
+            bytesToCopy = aLength;
         }
 
-        memcpy(curBuffer->mData + offset, buf, bytesToCopy);
+        memcpy(curBuffer->GetData() + aOffset, aBuf, bytesToCopy);
 
-        length -= bytesToCopy;
+        aLength -= bytesToCopy;
         bytesCopied += bytesToCopy;
-        buf = reinterpret_cast<const uint8_t *>(buf) + bytesToCopy;
+        aBuf = reinterpret_cast<const uint8_t *>(aBuf) + bytesToCopy;
 
         curBuffer = curBuffer->GetNextBuffer();
-        offset = 0;
+        aOffset = 0;
     }
 
     return bytesCopied;
 }
 
-int Message::CopyTo(uint16_t srcOffset, uint16_t dstOffset, uint16_t length, Message &message)
+int Message::CopyTo(uint16_t aSourceOffset, uint16_t aDestinationOffset, uint16_t aLength, Message &aMessage)
 {
     uint16_t bytesCopied = 0;
     uint16_t bytesToCopy;
     uint8_t buf[16];
 
-    while (length > 0)
+    while (aLength > 0)
     {
-        bytesToCopy = (length < sizeof(buf)) ? length : sizeof(buf);
+        bytesToCopy = (aLength < sizeof(buf)) ? aLength : sizeof(buf);
 
-        Read(srcOffset, bytesToCopy, buf);
-        message.Write(dstOffset, bytesToCopy, buf);
+        Read(aSourceOffset, bytesToCopy, buf);
+        aMessage.Write(aDestinationOffset, bytesToCopy, buf);
 
-        srcOffset += bytesToCopy;
-        dstOffset += bytesToCopy;
-        length -= bytesToCopy;
+        aSourceOffset += bytesToCopy;
+        aDestinationOffset += bytesToCopy;
+        aLength -= bytesToCopy;
         bytesCopied += bytesToCopy;
     }
 
     return bytesCopied;
 }
 
-uint8_t Message::GetType() const
+uint16_t Message::GetDatagramTag(void) const
 {
-    return mMsgType;
+    return mInfo.mDatagramTag;
 }
 
-Message *Message::GetNext() const
+void Message::SetDatagramTag(uint16_t aTag)
 {
-    return mMsgList[MessageInfo::kListInterface].mNext;
+    mInfo.mDatagramTag = aTag;
 }
 
-uint16_t Message::GetDatagramTag() const
+uint8_t Message::GetTimeout(void) const
 {
-    return mMsgDgramTag;
+    return mInfo.mTimeout;
 }
 
-void Message::SetDatagramTag(uint16_t tag)
+void Message::SetTimeout(uint8_t aTimeout)
 {
-    mMsgDgramTag = tag;
+    mInfo.mTimeout = aTimeout;
 }
 
-uint8_t Message::GetTimeout() const
+bool Message::GetChildMask(uint8_t aChildIndex) const
 {
-    return mMsgTimeout;
+    assert(aChildIndex < sizeof(mInfo.mChildMask) * 8);
+    return (mInfo.mChildMask[aChildIndex / 8] & (0x80 >> (aChildIndex % 8))) != 0;
 }
 
-void Message::SetTimeout(uint8_t timeout)
+void Message::ClearChildMask(uint8_t aChildIndex)
 {
-    mMsgTimeout = timeout;
+    assert(aChildIndex < sizeof(mInfo.mChildMask) * 8);
+    mInfo.mChildMask[aChildIndex / 8] &= ~(0x80 >> (aChildIndex % 8));
 }
 
-uint16_t Message::UpdateChecksum(uint16_t checksum, uint16_t offset, uint16_t length) const
+void Message::SetChildMask(uint8_t aChildIndex)
 {
-    Buffer *curBuffer;
-    uint16_t bytesCovered = 0;
-    uint16_t bytesToCover;
-
-    offset += mMsgReserved;
-
-    assert(static_cast<uint32_t>(offset) + length <= mMsgLength);
-
-    // special case first buffer
-    if (offset < kFirstBufferDataSize)
-    {
-        bytesToCover = kFirstBufferDataSize - offset;
-
-        if (bytesToCover > length)
-        {
-            bytesToCover = length;
-        }
-
-        checksum = Ip6::UpdateChecksum(checksum, mHead.mData + offset, bytesToCover);
-
-        length -= bytesToCover;
-        bytesCovered += bytesToCover;
-
-        offset = 0;
-    }
-    else
-    {
-        offset -= kFirstBufferDataSize;
-    }
-
-    // advance to offset
-    curBuffer = GetNextBuffer();
-
-    while (offset >= kBufferDataSize)
-    {
-        assert(curBuffer != NULL);
-
-        curBuffer = curBuffer->GetNextBuffer();
-        offset -= kBufferDataSize;
-    }
-
-    // begin copy
-    while (length > 0)
-    {
-        assert(curBuffer != NULL);
-
-        bytesToCover = kBufferDataSize - offset;
-
-        if (bytesToCover > length)
-        {
-            bytesToCover = length;
-        }
-
-        checksum = Ip6::UpdateChecksum(checksum, curBuffer->mData + offset, bytesToCover);
-
-        length -= bytesToCover;
-        bytesCovered += bytesToCover;
-
-        curBuffer = curBuffer->GetNextBuffer();
-        offset = 0;
-    }
-
-    return checksum;
+    assert(aChildIndex < sizeof(mInfo.mChildMask) * 8);
+    mInfo.mChildMask[aChildIndex / 8] |= 0x80 >> (aChildIndex % 8);
 }
 
-bool Message::GetChildMask(uint8_t childIndex) const
-{
-    return (mMsgChildMask[childIndex / 8] & (0x80 >> (childIndex % 8))) != 0;
-}
-
-ThreadError Message::ClearChildMask(uint8_t childIndex)
-{
-    mMsgChildMask[childIndex / 8] &= ~(0x80 >> (childIndex % 8));
-    return kThreadError_None;
-}
-
-ThreadError Message::SetChildMask(uint8_t childIndex)
-{
-    mMsgChildMask[childIndex / 8] |= 0x80 >> (childIndex % 8);
-    return kThreadError_None;
-}
-
-bool Message::IsChildPending() const
+bool Message::IsChildPending(void) const
 {
     bool rval = false;
 
-    for (size_t i = 0; i < sizeof(mMsgChildMask); i++)
+    for (size_t i = 0; i < sizeof(mInfo.mChildMask); i++)
     {
-        if (mMsgChildMask[i] != 0)
+        if (mInfo.mChildMask[i] != 0)
         {
             ExitNow(rval = true);
         }
@@ -524,105 +471,185 @@ exit:
     return rval;
 }
 
-bool Message::GetDirectTransmission() const
+bool Message::GetDirectTransmission(void) const
 {
-    return mMsgDirectTx;
+    return mInfo.mDirectTx;
 }
 
-void Message::ClearDirectTransmission()
+void Message::ClearDirectTransmission(void)
 {
-    mMsgDirectTx = false;
+    mInfo.mDirectTx = false;
 }
 
-void Message::SetDirectTransmission()
+void Message::SetDirectTransmission(void)
 {
-    mMsgDirectTx = true;
+    mInfo.mDirectTx = true;
 }
 
-MessageQueue::MessageQueue()
+uint16_t Message::UpdateChecksum(uint16_t aChecksum, uint16_t aOffset, uint16_t aLength) const
+{
+    Buffer *curBuffer;
+    uint16_t bytesCovered = 0;
+    uint16_t bytesToCover;
+
+    assert(aOffset + aLength <= GetLength());
+
+    aOffset += GetReserved();
+
+    // special case first buffer
+    if (aOffset < kHeadBufferDataSize)
+    {
+        bytesToCover = kHeadBufferDataSize - aOffset;
+
+        if (bytesToCover > aLength)
+        {
+            bytesToCover = aLength;
+        }
+
+        aChecksum = Ip6::UpdateChecksum(aChecksum, GetFirstData() + aOffset, bytesToCover);
+
+        aLength -= bytesToCover;
+        bytesCovered += bytesToCover;
+
+        aOffset = 0;
+    }
+    else
+    {
+        aOffset -= kHeadBufferDataSize;
+    }
+
+    // advance to offset
+    curBuffer = GetNextBuffer();
+
+    while (aOffset >= kBufferDataSize)
+    {
+        assert(curBuffer != NULL);
+
+        curBuffer = curBuffer->GetNextBuffer();
+        aOffset -= kBufferDataSize;
+    }
+
+    // begin copy
+    while (aLength > 0)
+    {
+        assert(curBuffer != NULL);
+
+        bytesToCover = kBufferDataSize - aOffset;
+
+        if (bytesToCover > aLength)
+        {
+            bytesToCover = aLength;
+        }
+
+        aChecksum = Ip6::UpdateChecksum(aChecksum, curBuffer->GetData() + aOffset, bytesToCover);
+
+        aLength -= bytesToCover;
+        bytesCovered += bytesToCover;
+
+        curBuffer = curBuffer->GetNextBuffer();
+        aOffset = 0;
+    }
+
+    return aChecksum;
+}
+
+uint16_t Message::GetReserved(void) const
+{
+    return mInfo.mReserved;
+}
+
+void Message::SetReserved(uint16_t aReserved)
+{
+    mInfo.mReserved = aReserved;
+}
+
+MessageQueue::MessageQueue(void)
 {
     mInterface.mHead = NULL;
     mInterface.mTail = NULL;
 }
 
-ThreadError MessageQueue::AddToList(int list_id, Message &message)
+ThreadError MessageQueue::AddToList(int aList, Message &aMessage)
 {
     MessageList *list;
 
-    assert(message.mMsgList[list_id].mNext == NULL && message.mMsgList[list_id].mPrev == NULL &&
-           message.mMsgList[list_id].mList != NULL);
+    assert(aMessage.GetMessageList(aList).mNext == NULL &&
+	   aMessage.GetMessageList(aList).mPrev == NULL &&
+           aMessage.GetMessageList(aList).mList != NULL);
 
-    list = message.mMsgList[list_id].mList;
+    list = aMessage.GetMessageList(aList).mList;
 
     if (list->mHead == NULL)
     {
-        list->mHead = &message;
-        list->mTail = &message;
+        list->mHead = &aMessage;
+        list->mTail = &aMessage;
     }
     else
     {
-        list->mTail->mMsgList[list_id].mNext = &message;
-        message.mMsgList[list_id].mPrev = list->mTail;
-        list->mTail = &message;
+        list->mTail->GetMessageList(aList).mNext = &aMessage;
+        aMessage.GetMessageList(aList).mPrev = list->mTail;
+        list->mTail = &aMessage;
     }
 
     return kThreadError_None;
 }
 
-ThreadError MessageQueue::RemoveFromList(int list_id, Message &message)
+ThreadError MessageQueue::RemoveFromList(int aList, Message &aMessage)
 {
     MessageList *list;
 
-    assert(message.mMsgList[list_id].mList != NULL);
+    assert(aMessage.GetMessageList(aList).mList != NULL);
 
-    list = message.mMsgList[list_id].mList;
+    list = aMessage.GetMessageList(aList).mList;
 
-    assert(list->mHead == &message || message.mMsgList[list_id].mNext != NULL || message.mMsgList[list_id].mPrev != NULL);
+    assert(list->mHead == &aMessage ||
+	   aMessage.GetMessageList(aList).mNext != NULL ||
+	   aMessage.GetMessageList(aList).mPrev != NULL);
 
-    if (message.mMsgList[list_id].mPrev)
+    if (aMessage.GetMessageList(aList).mPrev)
     {
-        message.mMsgList[list_id].mPrev->mMsgList[list_id].mNext = message.mMsgList[list_id].mNext;
+        aMessage.GetMessageList(aList).mPrev->GetMessageList(aList).mNext = aMessage.GetMessageList(aList).mNext;
     }
     else
     {
-        list->mHead = message.mMsgList[list_id].mNext;
+        list->mHead = aMessage.GetMessageList(aList).mNext;
     }
 
-    if (message.mMsgList[list_id].mNext)
+    if (aMessage.GetMessageList(aList).mNext)
     {
-        message.mMsgList[list_id].mNext->mMsgList[list_id].mPrev = message.mMsgList[list_id].mPrev;
+        aMessage.GetMessageList(aList).mNext->GetMessageList(aList).mPrev = aMessage.GetMessageList(aList).mPrev;
     }
     else
     {
-        list->mTail = message.mMsgList[list_id].mPrev;
+        list->mTail = aMessage.GetMessageList(aList).mPrev;
     }
 
-    message.mMsgList[list_id].mPrev = NULL;
-    message.mMsgList[list_id].mNext = NULL;
+    aMessage.GetMessageList(aList).mPrev = NULL;
+    aMessage.GetMessageList(aList).mNext = NULL;
 
     return kThreadError_None;
 }
 
-Message *MessageQueue::GetHead() const
+Message *MessageQueue::GetHead(void) const
 {
     return mInterface.mHead;
 }
 
-ThreadError MessageQueue::Enqueue(Message &message)
+ThreadError MessageQueue::Enqueue(Message &aMessage)
 {
-    message.mMsgList[MessageInfo::kListAll].mList = &sAll;
-    message.mMsgList[MessageInfo::kListInterface].mList = &mInterface;
-    AddToList(MessageInfo::kListAll, message);
-    AddToList(MessageInfo::kListInterface, message);
+    aMessage.GetMessageList(MessageInfo::kListAll).mList = &sAll;
+    aMessage.GetMessageList(MessageInfo::kListInterface).mList = &mInterface;
+    AddToList(MessageInfo::kListAll, aMessage);
+    AddToList(MessageInfo::kListInterface, aMessage);
     return kThreadError_None;
 }
 
-ThreadError MessageQueue::Dequeue(Message &message)
+ThreadError MessageQueue::Dequeue(Message &aMessage)
 {
-    RemoveFromList(MessageInfo::kListAll, message);
-    RemoveFromList(MessageInfo::kListInterface, message);
-    message.mMsgList[MessageInfo::kListAll].mList = NULL;
-    message.mMsgList[MessageInfo::kListInterface].mList = NULL;
+    RemoveFromList(MessageInfo::kListAll, aMessage);
+    RemoveFromList(MessageInfo::kListInterface, aMessage);
+    aMessage.GetMessageList(MessageInfo::kListAll).mList = NULL;
+    aMessage.GetMessageList(MessageInfo::kListInterface).mList = NULL;
     return kThreadError_None;
 }
 

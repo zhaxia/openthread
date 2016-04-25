@@ -29,34 +29,34 @@ namespace Thread {
 static Tasklet *sHead = NULL;
 static Tasklet *sTail = NULL;
 
-Tasklet::Tasklet(Handler handler, void *context)
+Tasklet::Tasklet(Handler aHandler, void *aContext)
 {
-    mHandler = handler;
-    mContext = context;
+    mHandler = aHandler;
+    mContext = aContext;
     mNext = NULL;
 }
 
-ThreadError Tasklet::Post()
+ThreadError Tasklet::Post(void)
 {
     return TaskletScheduler::Post(*this);
 }
 
-ThreadError TaskletScheduler::Post(Tasklet &tasklet)
+ThreadError TaskletScheduler::Post(Tasklet &aTasklet)
 {
     ThreadError error = kThreadError_None;
-    uint32_t state = otAtomicBegin();
+    uint32_t    state = otAtomicBegin();
 
-    VerifyOrExit(sTail != &tasklet && tasklet.mNext == NULL, error = kThreadError_Busy);
+    VerifyOrExit(sTail != &aTasklet && aTasklet.mNext == NULL, error = kThreadError_Busy);
 
     if (sTail == NULL)
     {
-        sHead = &tasklet;
-        sTail = &tasklet;
+        sHead = &aTasklet;
+        sTail = &aTasklet;
     }
     else
     {
-        sTail->mNext = &tasklet;
-        sTail = &tasklet;
+        sTail->mNext = &aTasklet;
+        sTail = &aTasklet;
     }
 
 exit:
@@ -65,7 +65,7 @@ exit:
     return error;
 }
 
-Tasklet *TaskletScheduler::PopTasklet()
+Tasklet *TaskletScheduler::PopTasklet(void)
 {
     Tasklet *task = sHead;
 
@@ -84,15 +84,15 @@ Tasklet *TaskletScheduler::PopTasklet()
     return task;
 }
 
-bool TaskletScheduler::AreTaskletsPending()
+bool TaskletScheduler::AreTaskletsPending(void)
 {
     return sHead != NULL;
 }
 
-void TaskletScheduler::RunNextTasklet()
+void TaskletScheduler::RunNextTasklet(void)
 {
-    uint32_t state;
-    Tasklet *task;
+    uint32_t  state;
+    Tasklet  *task;
 
     state = otAtomicBegin();
     task = PopTasklet();

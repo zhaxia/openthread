@@ -221,7 +221,7 @@ ThreadError MeshForwarder::SendMessage(Message &message)
 
         break;
 
-    case Message::kType6lo:
+    case Message::kType6lowpan:
         message.Read(0, sizeof(meshHeader), &meshHeader);
 
         if ((neighbor = mMle->GetNeighbor(meshHeader.GetDestination())) != NULL &&
@@ -238,7 +238,7 @@ ThreadError MeshForwarder::SendMessage(Message &message)
 
         break;
 
-    case Message::kTypeMac:
+    case Message::kTypeMacDataPoll:
         message.SetDirectTransmission();
         break;
     }
@@ -296,11 +296,11 @@ Message *MeshForwarder::GetDirectTransmission()
             error = UpdateIp6Route(*curMessage);
             break;
 
-        case Message::kType6lo:
+        case Message::kType6lowpan:
             error = UpdateMeshRoute(*curMessage);
             break;
 
-        case Message::kTypeMac:
+        case Message::kTypeMacDataPoll:
             ExitNow();
         }
 
@@ -368,7 +368,7 @@ Message *MeshForwarder::GetIndirectTransmission(const Child &child)
 
         break;
 
-    case Message::kType6lo:
+    case Message::kType6lowpan:
         message->Read(0, sizeof(meshHeader), &meshHeader);
 
         mAddMeshHeader = true;
@@ -553,7 +553,7 @@ void MeshForwarder::HandlePollTimer()
 {
     Message *message;
 
-    if ((message = Message::New(Message::kTypeMac, 0)) != NULL)
+    if ((message = Message::New(Message::kTypeMacDataPoll, 0)) != NULL)
     {
         SendMessage(*message);
         dprintf("Sent poll\n");
@@ -630,11 +630,11 @@ ThreadError MeshForwarder::HandleFrameRequest(Mac::Frame &frame)
         assert(frame.GetLength() != 7);
         break;
 
-    case Message::kType6lo:
+    case Message::kType6lowpan:
         SendMesh(*mSendMessage, frame);
         break;
 
-    case Message::kTypeMac:
+    case Message::kTypeMacDataPoll:
         SendPoll(*mSendMessage, frame);
         break;
     }
@@ -1094,7 +1094,7 @@ void MeshForwarder::HandleMesh(uint8_t *frame, uint8_t frameLength,
 
         meshHeader->SetHopsLeft(meshHeader->GetHopsLeft() - 1);
 
-        VerifyOrExit((message = Message::New(Message::kType6lo, 0)) != NULL, error = kThreadError_Drop);
+        VerifyOrExit((message = Message::New(Message::kType6lowpan, 0)) != NULL, error = kThreadError_Drop);
         SuccessOrExit(error = message->SetLength(frameLength));
         message->Write(0, frameLength, frame);
 
