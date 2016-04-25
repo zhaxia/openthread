@@ -16,23 +16,51 @@
 
 /**
  * @file
- *   This file includes definitions for the random number generator.
+ * @brief
+ *   This file includes the platform abstraction for true random number generation.
  */
 
-#ifndef RANDOM_HPP_
-#define RANDOM_HPP_
+#ifndef RANDOM_H_
+#define RANDOM_H_
 
 #include <stdint.h>
 
-namespace Thread {
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-class Random
-{
-public:
-    static void Init(uint32_t seed);
-    static uint32_t Get();
-};
+/**
+ * @defgroup random Random
+ * @ingroup platform
+ *
+ * @brief
+ *   This module includes the platform abstraction to support critical sections.
+ *
+ * @{
+ *
+ */
 
-}  // namespace Thread
+/**
+ * Initialize the true random number generator.
+ *
+ */
+void ot_random_init();
 
-#endif  // RANDOM_HPP_
+/**
+ * Get a 32-bit true random value.
+ *
+ * @returns A 32-bit true random value.
+ *
+ */
+uint32_t ot_random_get();
+
+/**
+ * @}
+ *
+ */
+
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif
+
+#endif  // RANDOM_H_

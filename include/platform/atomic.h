@@ -15,14 +15,13 @@
  */
 
 /**
- *    @file
- *    @brief
- *      Defines the interface to the Atomic object that implements
- *      critical sections within the Thread stack.
+ * @file
+ * @brief
+ *   This file includes the platform abstraction to support critical sections.
  */
 
-#ifndef ATOMIC_HPP_
-#define ATOMIC_HPP_
+#ifndef ATOMIC_H_
+#define ATOMIC_H_
 
 #include <stdint.h>
 
@@ -60,4 +59,4 @@ void ot_atomic_end(uint32_t state);
 }  // end of extern "C"
 #endif
 
-#endif  // ATOMIC_HPP_
+#endif  // ATOMIC_H_

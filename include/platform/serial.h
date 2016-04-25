@@ -15,9 +15,9 @@
  */
 
 /**
- *    @file
- *    @brief
- *      Defines the interface to the Uart object that supports the Thread stack's serial communication.
+ * @file
+ * @brief
+ *   This file includes the platform abstraction for serial communication.
  */
 
 #ifndef SERIAL_H_

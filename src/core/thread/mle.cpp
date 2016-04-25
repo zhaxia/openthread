@@ -24,11 +24,11 @@
 #include <thread/mle.hpp>
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
-#include <common/random.hpp>
 #include <crypto/aes_ccm.hpp>
 #include <mac/mac_frame.hpp>
 #include <net/netif.hpp>
 #include <net/udp6.hpp>
+#include <platform/random.h>
 #include <thread/address_resolver.hpp>
 #include <thread/key_manager.hpp>
 #include <thread/mle_router.hpp>
@@ -89,7 +89,7 @@ ThreadError Mle::Init()
     // mesh-local 64
     for (int i = 8; i < 16; i++)
     {
-        mMeshLocal64.GetAddress().m8[i] = Random::Get();
+        mMeshLocal64.GetAddress().m8[i] = ot_random_get();
     }
 
     mMeshLocal64.mPrefixLength = 64;
@@ -719,7 +719,7 @@ void Mle::HandleUnicastAddressesChanged()
         // Mesh Local EID was removed, choose a new one and add it back
         for (int i = 8; i < 16; i++)
         {
-            mMeshLocal64.GetAddress().m8[i] = Random::Get();
+            mMeshLocal64.GetAddress().m8[i] = ot_random_get();
         }
 
         mNetif->AddUnicastAddress(mMeshLocal64);
@@ -850,7 +850,7 @@ ThreadError Mle::SendParentRequest()
 
     for (uint8_t i = 0; i < sizeof(mParentRequest.mChallenge); i++)
     {
-        mParentRequest.mChallenge[i] = Random::Get();
+        mParentRequest.mChallenge[i] = ot_random_get();
     }
 
     VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
@@ -1036,7 +1036,7 @@ ThreadError Mle::SendChildUpdateRequest()
     case kDeviceStateDetached:
         for (uint8_t i = 0; i < sizeof(mParentRequest.mChallenge); i++)
         {
-            mParentRequest.mChallenge[i] = Random::Get();
+            mParentRequest.mChallenge[i] = ot_random_get();
         }
 
         SuccessOrExit(error = AppendChallenge(*message, mParentRequest.mChallenge,

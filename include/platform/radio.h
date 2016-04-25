@@ -21,8 +21,8 @@
  *
  */
 
-#ifndef RADIO_HPP_
-#define RADIO_HPP_
+#ifndef RADIO_H_
+#define RADIO_H_
 
 #include <stdint.h>
 
@@ -267,4 +267,4 @@ int8_t ot_radio_get_noise_floor();
 }  // end of extern "C"
 #endif
 
-#endif  // RADIO_HPP_
+#endif  // RADIO_H_

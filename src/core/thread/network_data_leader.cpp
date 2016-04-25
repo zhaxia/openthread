@@ -23,10 +23,10 @@
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <common/message.hpp>
-#include <common/random.hpp>
 #include <common/thread_error.hpp>
 #include <common/timer.hpp>
 #include <mac/mac_frame.hpp>
+#include <platform/random.h>
 #include <thread/mle_router.hpp>
 #include <thread/network_data_leader.hpp>
 #include <thread/thread_netif.hpp>
@@ -50,8 +50,8 @@ ThreadError Leader::Init()
 {
     memset(mAddresses, 0, sizeof(mAddresses));
     memset(mContextLastUsed, 0, sizeof(mContextLastUsed));
-    mVersion = Random::Get();
-    mStableVersion = Random::Get();
+    mVersion = ot_random_get();
+    mStableVersion = ot_random_get();
     mLength = 0;
     return kThreadError_None;
 }
@@ -258,7 +258,7 @@ ThreadError Leader::ConfigureAddress(PrefixTlv &prefix)
 
         for (size_t j = 8; j < sizeof(mAddresses[i].mAddress); j++)
         {
-            mAddresses[i].mAddress.m8[j] = Random::Get();
+            mAddresses[i].mAddress.m8[j] = ot_random_get();
         }
 
         mAddresses[i].mPrefixLength = prefix.GetPrefixLength();

@@ -19,10 +19,6 @@
 #include <platform/posix/cmdline.h>
 
 #include <common/code_utils.hpp>
-#include <common/message.hpp>
-#include <common/random.hpp>
-#include <common/tasklet.hpp>
-#include <common/timer.hpp>
 #include <ncp/ncp.hpp>
 #include <platform/atomic.h>
 
@@ -42,9 +38,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    Thread::Message::Init();
-    Thread::Random::Init(args_info.nodeid_arg);
-    Thread::Timer::Init();
+    otInit();
 
     sNcp.Init();
     sNcp.Start();

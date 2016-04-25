@@ -22,23 +22,24 @@
  *   This implementation is not a true random number generator and does @em satisfy the Thread requirements.
  */
 
-#include <common/random.hpp>
+#include <platform/random.h>
+#include <platform/posix/cmdline.h>
 
-namespace Thread {
+extern struct gengetopt_args_info args_info;
 
 static uint32_t sState = 1;
 
-void Random::Init(uint32_t seed)
+void ot_random_init()
 {
-    sState = seed;
+    sState = args_info.nodeid_arg;
 }
 
-uint32_t Random::Get()
+uint32_t ot_random_get()
 {
     uint32_t mlcg, p, q;
     uint64_t tmpstate;
 
-    tmpstate = static_cast<uint64_t>(33614) * static_cast<uint64_t>(sState);
+    tmpstate = (uint64_t)33614 * (uint64_t)sState;
     q = tmpstate & 0xffffffff;
     q = q >> 1;
     p = tmpstate >> 32;
@@ -54,5 +55,3 @@ uint32_t Random::Get()
 
     return mlcg;
 }
-
-}  // namespace Thread
