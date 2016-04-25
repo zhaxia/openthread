@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for generating and processing IEEE 802.15.4 MAC frames.
+ *   This file includes definitions for generating and processing IEEE 802.15.4 MAC frames.
  */
 
 #ifndef MAC_FRAME_HPP_
@@ -29,6 +29,13 @@
 
 namespace Thread {
 namespace Mac {
+
+/**
+ * @addtogroup core-mac
+ *
+ * @{
+ *
+ */
 
 enum
 {
@@ -180,7 +187,12 @@ private:
     uint8_t *FindSecurityHeader();
 };
 
+/**
+ * @}
+ *
+ */
+
 }  // namespace Mac
 }  // namespace Thread
 
-#endif  // MAC_MAC_FRAME_HPP_
+#endif  // MAC_FRAME_HPP_

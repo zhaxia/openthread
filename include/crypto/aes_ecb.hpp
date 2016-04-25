@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for performing AES-ECB computations.
+ *   This file includes definitions for performing AES-ECB computations.
  */
 
 #ifndef AES_ECB_HPP_
@@ -30,6 +30,13 @@
 namespace Thread {
 namespace Crypto {
 
+/**
+ * @addtogroup core-security
+ *
+ * @{
+ *
+ */
+
 class AesEcb
 {
 public:
@@ -39,6 +46,11 @@ public:
 private:
     uint32_t m_eK[44];
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Crypto
 }  // namespace Thread

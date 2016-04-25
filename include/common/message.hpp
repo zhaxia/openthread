@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for the message buffer pool and message buffers.
+ *   This file includes definitions for the message buffer pool and message buffers.
  */
 
 #ifndef MESSAGE_HPP_
@@ -32,6 +32,16 @@
 #include <mac/mac_frame.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-message
+ *
+ * @brief
+ *   This module includes definitions for the message buffer pool and message buffers.
+ *
+ * @{
+ *
+ */
 
 enum
 {
@@ -185,6 +195,11 @@ private:
 
     MessageList mInterface;
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 

@@ -71,7 +71,7 @@ ThreadError ot_serial_send(const uint8_t *aBuf, uint16_t aBufLength);
 /**
  * Signal that the bytes send operation has completed.
  *
- * This may be called from interrupt context.  The will schedule a call to @fn ot_serial_handle_receive.
+ * This may be called from interrupt context.  This will schedule calls to ot_serial_handle_send_done().
  */
 extern void ot_serial_signal_send_done(void);
 
@@ -83,7 +83,8 @@ void ot_serial_handle_send_done(void);
 /**
  * Signal that bytes have been received.
  *
- * This may be called from interrupt context.
+ * This may be called from interrupt context.  This will schedule calls to ot_serial_get_received_bytes() and
+ * ot_serial_handle_receive_done().
  */
 extern void ot_serial_signal_receive(void);
 

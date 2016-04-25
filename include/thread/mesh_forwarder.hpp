@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for forwarding IPv6 datagrams across the Thread mesh.
+ *   This file includes definitions for forwarding IPv6 datagrams across the Thread mesh.
  */
 
 #ifndef MESH_FORWARDER_HPP_
@@ -41,6 +41,15 @@ enum
 
 class MleRouter;
 struct ThreadMessageInfo;
+
+/**
+ * @addtogroup core-mesh-forwarding
+ *
+ * @brief
+ *   This module includes definitions for mesh forwarding within Thread.
+ *
+ * @{
+ */
 
 class MeshForwarder
 {
@@ -131,6 +140,11 @@ private:
     NetworkData::Leader *mNetworkData;
     Mle::MleRouter *mMle;
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 

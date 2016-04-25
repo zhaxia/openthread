@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for the CoAP server.
+ *   This file includes definitions for the CoAP server.
  */
 
 #ifndef COAP_SERVER_HPP_
@@ -28,6 +28,13 @@
 
 namespace Thread {
 namespace Coap {
+
+/**
+ * @addtogroup core-coap
+ *
+ * @{
+ *
+ */
 
 class Resource
 {
@@ -66,6 +73,11 @@ private:
     uint16_t mPort;
     Resource *mResources = NULL;
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Coap
 }  // namespace Thread

@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for tasklets and the tasklet scheduler.
+ *   This file includes definitions for tasklets and the tasklet scheduler.
  */
 
 #ifndef TASKLET_HPP_
@@ -25,6 +25,16 @@
 #include <common/thread_error.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-tasklet
+ *
+ * @brief
+ *   This module includes definitions for tasklets and the tasklet scheduler.
+ *
+ * @{
+ *
+ */
 
 class Tasklet
 {
@@ -53,6 +63,11 @@ public:
 private:
     static Tasklet *PopTasklet();
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 

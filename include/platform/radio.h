@@ -174,7 +174,8 @@ ThreadError ot_radio_idle();
  * 2. Remain in Receive until a packet is received or reception is aborted.
  * 3. Return to Idle.
  *
- * Upon completion of the receive sequence, ot_radio_signal_receive_done() is called to signal completion to the MAC layer.
+ * Upon completion of the receive sequence, ot_radio_signal_receive_done() is called to signal completion to the MAC
+ * layer.
  *
  * @param[in]  aPacket  A pointer to a packet buffer.
  *
@@ -188,7 +189,7 @@ ThreadError ot_radio_receive(RadioPacket *aPacket);
 /**
  * Signal that a packet has been received.
  *
- * This may be called from interrupt context.  The MAC layer will then schedule a call to @fn ot_radio_handle_receive.
+ * This may be called from interrupt context.  The MAC layer will then schedule a call to ot_radio_handle_receive().
  */
 
 extern void ot_radio_signal_receive_done();
@@ -228,7 +229,7 @@ ThreadError ot_radio_transmit(RadioPacket *aPacket);
  * Signal that the requested transmission is complete.
  *
  * This may be called from interrupt context.  OpenThread will then schedule a call to
- *  @fn ot_radio_handle_transmit_done.
+ * ot_radio_handle_transmit_done().
  */
 extern void ot_radio_signal_transmit_done();
 

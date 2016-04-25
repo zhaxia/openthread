@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for 6LoWPAN header compression.
+ *   This file includes definitions for 6LoWPAN header compression.
  */
 
 #ifndef LOWPAN_HPP_
@@ -32,6 +32,15 @@ namespace Thread {
 namespace NetworkData { class Leader; }
 
 class ThreadNetif;
+
+/**
+ * @addtogroup core-6lowpan
+ *
+ * @brief
+ *   This module includes definitions for 6LoWPAN header compression.
+ *
+ * @{
+ */
 
 struct Context
 {
@@ -210,6 +219,10 @@ private:
     uint16_t mTag;
     uint8_t mOffset;
 } __attribute__((packed));
+
+/**
+ * @}
+ */
 
 }  // namespace Thread
 

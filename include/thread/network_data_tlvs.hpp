@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for generating and processing Thread Network Data TLVs.
+ *   This file includes definitions for generating and processing Thread Network Data TLVs.
  */
 
 #ifndef NETWORK_DATA_TLVS_HPP_
@@ -31,6 +31,16 @@ using Thread::Encoding::BigEndian::HostSwap16;
 
 namespace Thread {
 namespace NetworkData {
+
+/**
+ * @addtogroup core-netdata-tlvs
+ *
+ * @brief
+ *   This module includes definitions for generating and processing Thread Network Data TLVs.
+ *
+ * @{
+ *
+ */
 
 class NetworkDataTlv
 {
@@ -223,6 +233,11 @@ private:
     uint8_t mFlags;
     uint8_t mContextLength;
 } __attribute__((packed));
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace NetworkData
 }  // namespace Thread

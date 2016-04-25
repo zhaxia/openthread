@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for computing SHA-256 hashes.
+ *   This file includes definitions for computing SHA-256 hashes.
  */
 
 #ifndef SHA256_HPP_
@@ -29,6 +29,13 @@
 
 namespace Thread {
 namespace Crypto {
+
+/**
+ * @addtogroup core-security
+ *
+ * @{
+ *
+ */
 
 class Sha256: public Hash
 {
@@ -53,6 +60,11 @@ private:
     uint8_t mBlockIndex;
     uint8_t mBlock[64];
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Crypto
 }  // namespace Thread

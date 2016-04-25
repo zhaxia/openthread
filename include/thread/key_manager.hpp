@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for Thread security material generation.
+ *   This file includes definitions for Thread security material generation.
  */
 
 #ifndef KEY_MANAGER_HPP_
@@ -29,6 +29,15 @@
 namespace Thread {
 
 class ThreadNetif;
+
+/**
+ * @addtogroup core-security
+ *
+ * @brief
+ *   This module includes definitions for Thread security material generation.
+ *
+ * @{
+ */
 
 class KeyManager
 {
@@ -77,6 +86,10 @@ private:
 
     ThreadNetif *mNetif;
 };
+
+/**
+ * @}
+ */
 
 }  // namespace Thread
 

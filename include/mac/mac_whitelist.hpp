@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for IEEE 802.15.4 frame filtering based on MAC address.
+ *   This file includes definitions for IEEE 802.15.4 frame filtering based on MAC address.
  */
 
 #ifndef MAC_WHITELIST_HPP_
@@ -29,6 +29,13 @@
 
 namespace Thread {
 namespace Mac {
+
+/**
+ * @addtogroup core-mac
+ *
+ * @{
+ *
+ */
 
 class Whitelist
 {
@@ -71,7 +78,12 @@ private:
     bool mEnabled = false;
 };
 
+/**
+ * @}
+ *
+ */
+
 }  // namespace Mac
 }  // namespace Thread
 
-#endif  // MAC_MAC_WHITELIST_HPP_
+#endif  // MAC_WHITELIST_HPP_

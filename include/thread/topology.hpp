@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for maintaining Thread network topologies.
+ *   This file includes definitions for maintaining Thread network topologies.
  */
 
 #ifndef TOPOLOGY_HPP_

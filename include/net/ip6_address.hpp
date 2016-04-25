@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for IPv6 addresses.
+ *   This file includes definitions for IPv6 addresses.
  */
 
 #ifndef IP6_ADDRESS_HPP_
@@ -28,6 +28,13 @@
 #include <common/thread_error.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-ipv6
+ *
+ * @{
+ *
+ */
 
 class Ip6Address: public otIp6Address
 {
@@ -65,6 +72,11 @@ public:
     ThreadError FromString(const char *buf);
     const char *ToString(char *buf, uint16_t size) const;
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 

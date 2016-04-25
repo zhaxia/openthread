@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for UDP/IPv6 sockets.
+ *   This file includes definitions for UDP/IPv6 sockets.
  */
 
 #ifndef UDP6_HPP_
@@ -26,6 +26,16 @@
 #include <net/ip6.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-udp
+ *
+ * @brief
+ *   This module includes definitions for UDP/IPv6 sockets.
+ *
+ * @{
+ *
+ */
 
 class Udp6Socket: public otUdp6Socket
 {
@@ -81,6 +91,11 @@ private:
     uint16_t mLength;
     uint16_t mChecksum;
 } __attribute__((packed));
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 

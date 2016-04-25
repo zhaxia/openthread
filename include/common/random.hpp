@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for the random number generator.
+ *   This file includes definitions for the random number generator.
  */
 
 #ifndef RANDOM_HPP_

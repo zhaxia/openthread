@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for IPv6 sockets.
+ *   This file includes definitions for IPv6 sockets.
  */
 
 #ifndef NET_SOCKET_HPP_
@@ -26,6 +26,13 @@
 #include <net/ip6_address.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-ipv6
+ *
+ * @{
+ *
+ */
 
 class Ip6MessageInfo: public otMessageInfo
 {
@@ -42,6 +49,10 @@ public:
     Ip6Address &GetAddress() { return *static_cast<Ip6Address *>(&mAddress); }
     const Ip6Address &GetAddress() const { return *static_cast<const Ip6Address *>(&mAddress); }
 };
+
+/**
+ * @}
+ */
 
 }  // namespace Thread
 

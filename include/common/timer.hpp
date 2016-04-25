@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for the multiplexed timer service.
+ *   This file includes definitions for the multiplexed timer service.
  */
 
 #ifndef TIMER_HPP_
@@ -29,6 +29,16 @@
 #include <common/thread_error.hpp>
 
 namespace Thread {
+
+/**
+ * @addtogroup core-timer
+ *
+ * @brief
+ *   This module includes definitions for the multiplexed timer service.
+ *
+ * @{
+ *
+ */
 
 class Timer
 {
@@ -61,6 +71,11 @@ private:
     uint32_t mDt = 0;
     Timer *mNext = NULL;
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Thread
 

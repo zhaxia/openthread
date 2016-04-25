@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for performing AES computations.
+ *   This file includes definitions for performing AES computations.
  */
 
 #ifndef AES_HPP_
@@ -28,6 +28,13 @@
 
 namespace Thread {
 namespace Crypto {
+
+/**
+ * @addtogroup core-security
+ *
+ * @{
+ *
+ */
 
 #define AES_BLOCK_SIZE  16
 
@@ -340,6 +347,11 @@ static const uint32_t rcon[] =
     0x1B000000UL, 0x36000000UL,
     /* for 128-bit blocks, Rijndael never uses more than 10 rcon values */
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Crypto
 }  // namespace Thread

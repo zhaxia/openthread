@@ -16,7 +16,7 @@
 
 /**
  * @file
- *   This file contains definitions for generating and processing CoAP headers.
+ *   This file includes definitions for generating and processing CoAP headers.
  */
 
 #ifndef COAP_HEADER_HPP_
@@ -25,7 +25,24 @@
 #include <common/message.hpp>
 
 namespace Thread {
+
+/**
+ * @namespace Thread::Coap
+ * @brief
+ *   This namespace includes definitions for CoAP.
+ *
+ */
 namespace Coap {
+
+/**
+ * @addtogroup core-coap
+ *
+ * @brief
+ *   This module includes definitions for CoAP.
+ *
+ * @{
+ *
+ */
 
 class Header
 {
@@ -117,6 +134,11 @@ private:
     uint16_t mNextOptionOffset = 0;
     Option mOption = {0, 0, NULL};
 };
+
+/**
+ * @}
+ *
+ */
 
 }  // namespace Coap
 }  // namespace Thread
