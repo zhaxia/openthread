@@ -22,6 +22,8 @@
 #ifndef IP6_HPP_
 #define IP6_HPP_
 
+#include <stddef.h>
+
 #include <common/encoding.hpp>
 #include <common/message.hpp>
 #include <common/thread_error.hpp>

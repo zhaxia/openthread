@@ -36,32 +36,90 @@ namespace Thread {
  *
  */
 
+/**
+ * This class is used to represent a tasklet.
+ * 
+ */
 class Tasklet
 {
     friend class TaskletScheduler;
 
 public:
-    typedef void (*Handler)(void *context);
-    Tasklet(Handler handler, void *context);
-    ThreadError Post();
+    /**
+     * This function pointer is called when the tasklet is run.
+     *
+     * @param[in]  aContext  A pointer to arbitrary context information.
+     *
+     */
+    typedef void (*Handler)(void *aContext);
+
+    /**
+     * This constructor creates a tasklet instance.
+     *
+     * @param[in]  aHandler  A pointer to a function that is called when the tasklet is run.
+     * @param[in]  aContext  A pointer to arbitrary context information.
+     *
+     */
+    Tasklet(Handler aHandler, void *aContext);
+
+    /**
+     * This method puts the tasklet on the run queue.
+     *
+     */
+    ThreadError Post(void);
 
 private:
-    void RunTask() { mHandler(mContext); }
+    /**
+     * This method is called when the tasklet is run.
+     *
+     */
+    void RunTask(void) { mHandler(mContext); }
 
-    Handler mHandler;
-    void *mContext;
-    Tasklet *mNext;
+    Handler  mHandler;  ///< A pointer to a function that is called when the tasklet is run.
+    void    *mContext;  ///< A pointer to arbitrary context information.
+    Tasklet *mNext;     ///< A pointer to the next tasklet in the run queue.
 };
 
+/**
+ * This class implements the tasklet scheduler.
+ *
+ */
 class TaskletScheduler
 {
 public:
-    static ThreadError Post(Tasklet &tasklet);
-    static bool AreTaskletsPending();
-    static void RunNextTasklet();
+    /**
+     * This static method enqueues a tasklet into the run queue.
+     *
+     * @param[in]  aTasklet  A reference to the tasklet to enqueue.
+     *
+     * @retval kThreadError_None  Successfully enqueued the tasklet.
+     * @retval kThreadError_Busy  The tasklet was already enqueued.
+     */
+    static ThreadError Post(Tasklet &aTasklet);
+
+    /**
+     * This static method indicates whether or not there are tasklets pending.
+     *
+     * @retval TRUE   If there are tasklets pending.
+     * @retval FALSE  If there are no tasklets pending.
+     *
+     */
+    static bool AreTaskletsPending(void);
+
+    /**
+     * This static method runs the next tasklet.
+     *
+     */
+    static void RunNextTasklet(void);
 
 private:
-    static Tasklet *PopTasklet();
+    /**
+     * This static method pops the next tasklet from the run queue.
+     *
+     * @returns A pointer to the next tasklet or NULL if there are no tasklets on the run queue.
+     *
+     */
+    static Tasklet *PopTasklet(void);
 };
 
 /**
