@@ -21,10 +21,10 @@
 
 #include <openthread.h>
 #include <common/code_utils.hpp>
-#include <common/random.hpp>
 #include <common/message.hpp>
 #include <common/tasklet.hpp>
 #include <common/timer.hpp>
+#include <platform/random.h>
 #include <thread/thread_netif.hpp>
 
 namespace Thread {
@@ -35,10 +35,11 @@ ThreadNetif sThreadNetif;
 extern "C" {
 #endif
 
-void otInit(uint32_t seed)
+void otInit()
 {
+    ot_random_init();
+
     Message::Init();
-    Random::Init(seed);
     Timer::Init();
 
     sThreadNetif.Init();

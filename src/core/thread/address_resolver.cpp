@@ -22,9 +22,9 @@
 #include <coap/coap_header.hpp>
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
-#include <common/random.hpp>
 #include <common/thread_error.hpp>
 #include <mac/mac_frame.hpp>
+#include <platform/random.h>
 #include <thread/address_resolver.hpp>
 #include <thread/mesh_forwarder.hpp>
 #include <thread/mle_router.hpp>
@@ -51,7 +51,7 @@ AddressResolver::AddressResolver(ThreadNetif &netif) :
     mCoapServer->AddResource(mAddressError);
     mCoapServer->AddResource(mAddressQuery);
     mCoapServer->AddResource(mAddressNotification);
-    mCoapMessageId = Random::Get();
+    mCoapMessageId = ot_random_get();
 
     Icmp6::RegisterCallbacks(mIcmp6Handler);
 }
@@ -138,7 +138,7 @@ ThreadError AddressResolver::SendAddressQuery(const Ip6Address &eid)
 
     for (size_t i = 0; i < sizeof(mCoapToken); i++)
     {
-        mCoapToken[i] = Random::Get();
+        mCoapToken[i] = ot_random_get();
     }
 
     VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
@@ -287,7 +287,7 @@ ThreadError AddressResolver::SendAddressError(const ThreadTargetTlv &target, con
 
     for (size_t i = 0; i < sizeof(mCoapToken); i++)
     {
-        mCoapToken[i] = Random::Get();
+        mCoapToken[i] = ot_random_get();
     }
 
     VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);

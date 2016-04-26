@@ -20,11 +20,11 @@
  */
 
 #include <common/code_utils.hpp>
-#include <common/random.hpp>
 #include <common/thread_error.hpp>
 #include <crypto/aes_ccm.hpp>
 #include <mac/mac.hpp>
 #include <mac/mac_frame.hpp>
+#include <platform/random.h>
 #include <thread/mle_router.hpp>
 #include <thread/thread_netif.hpp>
 
@@ -56,11 +56,11 @@ ThreadError Mac::Init()
 {
     for (size_t i = 0; i < sizeof(mAddress64); i++)
     {
-        mAddress64.mBytes[i] = Random::Get();
+        mAddress64.mBytes[i] = ot_random_get();
     }
 
-    mBeaconSequence = Random::Get();
-    mDataSequence = Random::Get();
+    mBeaconSequence = ot_random_get();
+    mDataSequence = ot_random_get();
 
     ot_radio_init();
 
@@ -276,7 +276,7 @@ ThreadError Mac::SendFrameRequest(Sender &sender)
     if (mState == kStateIdle)
     {
         mState = kStateTransmitData;
-        backoff = (Random::Get() % 32) + 1;
+        backoff = (ot_random_get() % 32) + 1;
         mBackoffTimer.Start(backoff);
     }
 
@@ -652,7 +652,7 @@ void Mac::SentFrame(bool acked)
             if (mAttempts < 12)
             {
                 mAttempts++;
-                backoff = (Random::Get() % 32) + 1;
+                backoff = (ot_random_get() % 32) + 1;
                 mBackoffTimer.Start(backoff);
                 ExitNow();
             }

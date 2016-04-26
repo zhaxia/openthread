@@ -22,11 +22,11 @@
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <common/message.hpp>
-#include <common/random.hpp>
 #include <common/thread_error.hpp>
 #include <net/ip6.hpp>
 #include <net/netif.hpp>
 #include <net/udp6.hpp>
+#include <platform/random.h>
 #include <thread/mesh_forwarder.hpp>
 #include <thread/mle_router.hpp>
 #include <thread/thread_netif.hpp>
@@ -48,7 +48,7 @@ MeshForwarder::MeshForwarder(ThreadNetif &netif):
     mMle = netif.GetMle();
     mNetif = &netif;
     mNetworkData = netif.GetNetworkDataLeader();
-    mFragTag = Random::Get();
+    mFragTag = ot_random_get();
 }
 
 ThreadError MeshForwarder::Start()

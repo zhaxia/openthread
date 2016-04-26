@@ -43,6 +43,7 @@ libopenthread_posix_a_SOURCES          = \
     cli_posix.cpp                        \
     cmdline.c                            \
     radio.cpp                            \
+    random.c                             \
     serial.c                             \
     $(NULL)
 

@@ -54,7 +54,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    otInit(args_info.nodeid_arg);
+    otInit();
     sCliServer.Start();
 
     while (1)

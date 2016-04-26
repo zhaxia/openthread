@@ -15,9 +15,9 @@
  */
 
 /**
- *    @file
- *    @brief
- *      This file defines the Alarm interface for OpenThread.
+ * @file
+ * @brief
+ *   This file includes the platform abstraction for the alarm service.
  */
 
 #ifndef ALARM_H_

@@ -21,7 +21,7 @@
 
 #include <coap/coap_header.hpp>
 #include <common/code_utils.hpp>
-#include <common/random.hpp>
+#include <platform/random.h>
 #include <thread/network_data_local.hpp>
 #include <thread/thread_netif.hpp>
 #include <thread/thread_tlvs.hpp>
@@ -194,7 +194,7 @@ ThreadError Local::Register(const Ip6Address &destination)
 
     for (size_t i = 0; i < sizeof(mCoapToken); i++)
     {
-        mCoapToken[i] = Random::Get();
+        mCoapToken[i] = ot_random_get();
     }
 
     header.SetVersion(1);

@@ -29,7 +29,6 @@ libopenthread_a_SOURCES             = \
     coap/coap_header.cpp              \
     coap/coap_server.cpp              \
     common/message.cpp                \
-    common/random.cpp                 \
     common/tasklet.cpp                \
     common/timer.cpp                  \
     crypto/aes_ccm.cpp                \

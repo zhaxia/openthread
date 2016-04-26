@@ -96,7 +96,7 @@ extern "C" {
 /**
  * Initialize the OpenThread library.
  */
-void otInit(uint32_t seed);
+void otInit();
 
 /**
  * Run the next queued tasklet in the OpenThread library.
