@@ -70,13 +70,13 @@ uint32_t Timer::Getdt() const
 
 uint32_t Timer::GetNow()
 {
-    return ot_alarm_get_now();
+    return otAlarmGetNow();
 }
 
 void Timer::Init()
 {
     dprintf("Timer init\n");
-    ot_alarm_init();
+    otAlarmInit();
 }
 
 ThreadError Timer::Add(Timer &timer)
@@ -161,14 +161,14 @@ exit:
 
 void Timer::SetAlarm()
 {
-    uint32_t now = ot_alarm_get_now();
+    uint32_t now = otAlarmGetNow();
     int32_t minRemaining = (1UL << 31) - 1;
     uint32_t elapsed;
     int32_t remaining;
 
     if (sHead == NULL)
     {
-        ot_alarm_stop();
+        otAlarmStop();
         ExitNow();
     }
 
@@ -189,21 +189,21 @@ void Timer::SetAlarm()
     }
     else
     {
-        ot_alarm_start_at(now, minRemaining);
+        otAlarmStartAt(now, minRemaining);
     }
 
 exit:
     {}
 }
 
-extern "C" void ot_alarm_signal_fired()
+extern "C" void otAlarmSignalFired()
 {
     Thread::s_task.Post();
 }
 
 void Timer::FireTimers(void *context)
 {
-    uint32_t now = ot_alarm_get_now();
+    uint32_t now = otAlarmGetNow();
     uint32_t elapsed;
 
     for (Timer *cur = sHead; cur; cur = cur->mNext)

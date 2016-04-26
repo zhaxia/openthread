@@ -54,7 +54,7 @@ MleRouter::MleRouter(ThreadNetif &netif):
     memset(mChildren, 0, sizeof(mChildren));
     memset(mRouters, 0, sizeof(mRouters));
     mCoapServer = netif.GetCoapServer();
-    mCoapMessageId = ot_random_get();
+    mCoapMessageId = otRandomGet();
 }
 
 int MleRouter::AllocateRouterId()
@@ -81,7 +81,7 @@ int MleRouter::AllocateRouterId()
 
     // choose available router id at random
     uint8_t freeBit;
-    // freeBit = ot_random_get() % numAvailable;
+    // freeBit = otRandomGet() % numAvailable;
     freeBit = 0;
 
     // allocate router id
@@ -213,7 +213,7 @@ ThreadError MleRouter::BecomeLeader()
 
     memcpy(&mRouters[mRouterId].mMacAddr, mMesh->GetAddress64(), sizeof(mRouters[mRouterId].mMacAddr));
 
-    mLeaderData.SetPartitionId(ot_random_get());
+    mLeaderData.SetPartitionId(otRandomGet());
     mLeaderData.SetWeighting(mLeaderWeight);
     mLeaderData.SetRouterId(mRouterId);
 
@@ -273,7 +273,7 @@ ThreadError MleRouter::HandleChildStart(otMleAttachFilter filter)
 
     if (mDeviceMode & kModeFFD)
     {
-        advertiseDelay = (kReedAdvertiseInterval + (ot_random_get() % kReedAdvertiseJitter)) * 1000U;
+        advertiseDelay = (kReedAdvertiseInterval + (otRandomGet() % kReedAdvertiseJitter)) * 1000U;
         mAdvertiseTimer.Start(advertiseDelay);
         mNetif->SubscribeAllRoutersMulticast();
     }
@@ -367,7 +367,7 @@ void MleRouter::HandleAdvertiseTimer()
         break;
 
     case kDeviceStateChild:
-        advertiseDelay = (kReedAdvertiseInterval + (ot_random_get() % kReedAdvertiseJitter)) * 1000U;
+        advertiseDelay = (kReedAdvertiseInterval + (otRandomGet() % kReedAdvertiseJitter)) * 1000U;
         mAdvertiseTimer.Start(advertiseDelay);
         break;
 
@@ -381,7 +381,7 @@ void MleRouter::HandleAdvertiseTimer()
         }
 
         advertiseDelay = (mAdvertiseInterval * 1000U) / 2;
-        advertiseDelay += ot_random_get() % (advertiseDelay);
+        advertiseDelay += otRandomGet() % (advertiseDelay);
         mAdvertiseTimer.Start(advertiseDelay);
         break;
     }
@@ -396,7 +396,7 @@ ThreadError MleRouter::ResetAdvertiseInterval()
     mAdvertiseInterval = kAdvertiseIntervalMin;
 
     advertiseDelay = (mAdvertiseInterval * 1000U) / 2;
-    advertiseDelay += ot_random_get() % advertiseDelay;
+    advertiseDelay += otRandomGet() % advertiseDelay;
     mAdvertiseTimer.Start(advertiseDelay);
 
     dprintf("reset advertise interval\n");
@@ -489,7 +489,7 @@ ThreadError MleRouter::SendLinkRequest(Neighbor *neighbor)
     {
         for (uint8_t i = 0; i < sizeof(mChallenge); i++)
         {
-            mChallenge[i] = ot_random_get();
+            mChallenge[i] = otRandomGet();
         }
 
         SuccessOrExit(error = AppendChallenge(*message, mChallenge, sizeof(mChallenge)));
@@ -501,7 +501,7 @@ ThreadError MleRouter::SendLinkRequest(Neighbor *neighbor)
     {
         for (uint8_t i = 0; i < sizeof(neighbor->mPending.mChallenge); i++)
         {
-            neighbor->mPending.mChallenge[i] = ot_random_get();
+            neighbor->mPending.mChallenge[i] = otRandomGet();
         }
 
         SuccessOrExit(error = AppendChallenge(*message, mChallenge, sizeof(mChallenge)));
@@ -668,7 +668,7 @@ ThreadError MleRouter::SendLinkAccept(const Ip6MessageInfo &messageInfo, Neighbo
     {
         for (uint8_t i = 0; i < sizeof(neighbor->mPending.mChallenge); i++)
         {
-            neighbor->mPending.mChallenge[i] = ot_random_get();
+            neighbor->mPending.mChallenge[i] = otRandomGet();
         }
 
         SuccessOrExit(error = AppendChallenge(*message, neighbor->mPending.mChallenge,
@@ -1491,7 +1491,7 @@ ThreadError MleRouter::SendParentResponse(Child *child, const ChallengeTlv &chal
 
     for (uint8_t i = 0; i < sizeof(child->mPending.mChallenge); i++)
     {
-        child->mPending.mChallenge[i] = ot_random_get();
+        child->mPending.mChallenge[i] = otRandomGet();
     }
 
     SuccessOrExit(error = AppendChallenge(*message, child->mPending.mChallenge, sizeof(child->mPending.mChallenge)));
@@ -2263,7 +2263,7 @@ ThreadError MleRouter::SendAddressSolicit()
 
     for (size_t i = 0; i < sizeof(mCoapToken); i++)
     {
-        mCoapToken[i] = ot_random_get();
+        mCoapToken[i] = otRandomGet();
     }
 
     header.SetVersion(1);
@@ -2311,7 +2311,7 @@ ThreadError MleRouter::SendAddressRelease()
 
     for (size_t i = 0; i < sizeof(mCoapToken); i++)
     {
-        mCoapToken[i] = ot_random_get();
+        mCoapToken[i] = otRandomGet();
     }
 
     header.SetVersion(1);

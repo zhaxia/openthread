@@ -45,13 +45,13 @@ ThreadError Ncp::Init()
 
 ThreadError Ncp::Start()
 {
-    ot_serial_enable();
+    otSerialEnable();
     return super_t::Start();
 }
 
 ThreadError Ncp::Stop()
 {
-    ot_serial_disable();
+    otSerialDisable();
     return super_t::Stop();
 }
 
@@ -79,7 +79,7 @@ ThreadError Ncp::Send(uint8_t protocol, uint8_t *frame,
     mHdlcEncoder.Finalize(cur, outLength);
     cur += outLength;
 
-    return ot_serial_send(mSendFrame, cur - mSendFrame);
+    return otSerialSend(mSendFrame, cur - mSendFrame);
 }
 
 /// TODO: queue
@@ -111,10 +111,10 @@ ThreadError Ncp::SendMessage(uint8_t protocol, Message &message)
     mHdlcEncoder.Finalize(cur, outLength);
     cur += outLength;
 
-    return ot_serial_send(mSendFrame, cur - mSendFrame);
+    return otSerialSend(mSendFrame, cur - mSendFrame);
 }
 
-extern "C" void ot_serial_signal_send_done()
+extern "C" void otSerialSignalSendDone()
 {
     sSendDoneTask.Post();
 }
@@ -138,7 +138,7 @@ void Ncp::SendDoneTask()
 
 }
 
-extern "C" void ot_serial_signal_receive()
+extern "C" void otSerialSignalReceive()
 {
     sReceiveTask.Post();
 }
@@ -153,11 +153,11 @@ void Ncp::ReceiveTask()
     const uint8_t *buf;
     uint16_t bufLength;
 
-    buf = ot_serial_get_received_bytes(&bufLength);
+    buf = otSerialGetReceivedBytes(&bufLength);
 
     mHdlcDecoder.Decode(buf, bufLength);
 
-    ot_serial_handle_receive_done();
+    otSerialHandleReceiveDone();
 }
 
 void Ncp::HandleFrame(void *context, uint8_t *aBuf, uint16_t aBufLength)

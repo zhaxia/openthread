@@ -68,13 +68,13 @@ static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_condition_variable = PTHREAD_COND_INITIALIZER;
 static int s_sockfd;
 
-ThreadError ot_radio_set_pan_id(uint16_t panid)
+ThreadError otRadioSetPanId(uint16_t panid)
 {
     s_panid = panid;
     return kThreadError_None;
 }
 
-ThreadError ot_radio_set_extended_address(uint8_t *address)
+ThreadError otRadioSetExtendedAddress(uint8_t *address)
 {
     for (unsigned i = 0; i < sizeof(s_extended_address); i++)
     {
@@ -84,13 +84,13 @@ ThreadError ot_radio_set_extended_address(uint8_t *address)
     return kThreadError_None;
 }
 
-ThreadError ot_radio_set_short_address(uint16_t address)
+ThreadError otRadioSetShortAddress(uint16_t address)
 {
     s_short_address = address;
     return kThreadError_None;
 }
 
-void ot_radio_init()
+void otRadioInit()
 {
     struct sockaddr_in sockaddr;
     memset(&sockaddr, 0, sizeof(sockaddr));
@@ -104,7 +104,7 @@ void ot_radio_init()
     pthread_create(&s_pthread, NULL, &phy_receive_thread, NULL);
 }
 
-ThreadError ot_radio_enable()
+ThreadError otRadioEnable()
 {
     ThreadError error = kThreadError_None;
 
@@ -118,7 +118,7 @@ exit:
     return error;
 }
 
-ThreadError ot_radio_disable()
+ThreadError otRadioDisable()
 {
     pthread_mutex_lock(&s_mutex);
     s_state = kStateDisabled;
@@ -127,7 +127,7 @@ ThreadError ot_radio_disable()
     return kThreadError_None;
 }
 
-ThreadError ot_radio_sleep()
+ThreadError otRadioSleep()
 {
     ThreadError error = kThreadError_None;
 
@@ -141,7 +141,7 @@ exit:
     return error;
 }
 
-ThreadError ot_radio_idle()
+ThreadError otRadioIdle()
 {
     ThreadError error = kThreadError_None;
 
@@ -173,7 +173,7 @@ exit:
     return error;
 }
 
-ThreadError ot_radio_receive(RadioPacket *packet)
+ThreadError otRadioReceive(RadioPacket *packet)
 {
     ThreadError error = kThreadError_None;
 
@@ -189,7 +189,7 @@ exit:
     return error;
 }
 
-ThreadError ot_radio_transmit(RadioPacket *packet)
+ThreadError otRadioTransmit(RadioPacket *packet)
 {
     ThreadError error = kThreadError_None;
     struct sockaddr_in sockaddr;
@@ -220,7 +220,7 @@ ThreadError ot_radio_transmit(RadioPacket *packet)
 
     if (!reinterpret_cast<Mac::Frame *>(s_transmit_frame)->GetAckRequest())
     {
-        ot_radio_signal_transmit_done();
+        otRadioSignalTransmitDone();
     }
 
 exit:
@@ -228,21 +228,12 @@ exit:
     return error;
 }
 
-PhyState ot_radio_get_state()
-{
-    PhyState state;
-    pthread_mutex_lock(&s_mutex);
-    state = s_state;
-    pthread_mutex_unlock(&s_mutex);
-    return state;
-}
-
-int8_t ot_radio_get_noise_floor()
+int8_t otRadioGetNoiseFloor()
 {
     return 0;
 }
 
-ThreadError ot_radio_handle_transmit_done(bool *rxPending)
+ThreadError otRadioHandleTransmitDone(bool *rxPending)
 {
     ThreadError error = kThreadError_None;
 
@@ -332,12 +323,12 @@ void *phy_receive_thread(void *arg)
             }
 
             dprintf("Received ack %d\n", rx_sequence);
-            ot_radio_signal_transmit_done();
+            otRadioSignalTransmitDone();
             break;
 
         case kStateListen:
             s_state = kStateReceive;
-            ot_radio_signal_receive_done();
+            otRadioSignalReceiveDone();
 
             while (s_state == kStateReceive)
             {
@@ -386,7 +377,7 @@ void send_ack()
     dprintf("Sent ack %d\n", sequence);
 }
 
-ThreadError ot_radio_handle_receive_done()
+ThreadError otRadioHandleReceiveDone()
 {
     ThreadError error = kThreadError_None;
     Mac::Frame *receive_frame;

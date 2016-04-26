@@ -48,7 +48,7 @@ MeshForwarder::MeshForwarder(ThreadNetif &netif):
     mMle = netif.GetMle();
     mNetif = &netif;
     mNetworkData = netif.GetNetworkDataLeader();
-    mFragTag = ot_random_get();
+    mFragTag = otRandomGet();
 }
 
 ThreadError MeshForwarder::Start()

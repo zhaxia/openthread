@@ -44,7 +44,7 @@ extern "C" {
  * Initialize the true random number generator.
  *
  */
-void ot_random_init();
+void otRandomInit(void);
 
 /**
  * Get a 32-bit true random value.
@@ -52,7 +52,7 @@ void ot_random_init();
  * @returns A 32-bit true random value.
  *
  */
-uint32_t ot_random_get();
+uint32_t otRandomGet(void);
 
 /**
  * @}

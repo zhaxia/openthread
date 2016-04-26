@@ -50,8 +50,8 @@ ThreadError Leader::Init()
 {
     memset(mAddresses, 0, sizeof(mAddresses));
     memset(mContextLastUsed, 0, sizeof(mContextLastUsed));
-    mVersion = ot_random_get();
-    mStableVersion = ot_random_get();
+    mVersion = otRandomGet();
+    mStableVersion = otRandomGet();
     mLength = 0;
     return kThreadError_None;
 }
@@ -258,7 +258,7 @@ ThreadError Leader::ConfigureAddress(PrefixTlv &prefix)
 
         for (size_t j = 8; j < sizeof(mAddresses[i].mAddress); j++)
         {
-            mAddresses[i].mAddress.m8[j] = ot_random_get();
+            mAddresses[i].mAddress.m8[j] = otRandomGet();
         }
 
         mAddresses[i].mPrefixLength = prefix.GetPrefixLength();

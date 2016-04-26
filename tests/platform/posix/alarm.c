@@ -32,13 +32,13 @@ static pthread_t s_thread;
 static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_cond = PTHREAD_COND_INITIALIZER;
 
-void ot_alarm_init()
+void otAlarmInit(void)
 {
     gettimeofday(&s_start, NULL);
     pthread_create(&s_thread, NULL, alarm_thread, NULL);
 }
 
-uint32_t ot_alarm_get_now()
+uint32_t otAlarmGetNow(void)
 {
     struct timeval tv;
 
@@ -48,7 +48,7 @@ uint32_t ot_alarm_get_now()
     return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 }
 
-void ot_alarm_start_at(uint32_t t0, uint32_t dt)
+void otAlarmStartAt(uint32_t t0, uint32_t dt)
 {
     pthread_mutex_lock(&s_mutex);
     s_alarm = t0 + dt;
@@ -57,7 +57,7 @@ void ot_alarm_start_at(uint32_t t0, uint32_t dt)
     pthread_cond_signal(&s_cond);
 }
 
-void ot_alarm_stop()
+void otAlarmStop(void)
 {
     pthread_mutex_lock(&s_mutex);
     s_is_running = false;
@@ -84,7 +84,7 @@ void *alarm_thread(void *arg)
         else
         {
             // alarm is running
-            remaining = s_alarm - ot_alarm_get_now();
+            remaining = s_alarm - otAlarmGetNow();
 
             if (remaining > 0)
             {
@@ -105,7 +105,7 @@ void *alarm_thread(void *arg)
                 // alarm has passed, signal
                 s_is_running = false;
                 pthread_mutex_unlock(&s_mutex);
-                ot_alarm_signal_fired();
+                otAlarmSignalFired();
             }
         }
     }

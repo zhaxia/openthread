@@ -37,7 +37,7 @@ extern "C" {
 
 void otInit()
 {
-    ot_random_init();
+    otRandomInit();
 
     Message::Init();
     Timer::Init();
