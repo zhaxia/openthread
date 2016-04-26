@@ -27,19 +27,19 @@
 
 extern struct gengetopt_args_info args_info;
 
-static uint32_t sState = 1;
+static uint32_t s_state = 1;
 
-void ot_random_init()
+void otRandomInit(void)
 {
-    sState = args_info.nodeid_arg;
+    s_state = args_info.nodeid_arg;
 }
 
-uint32_t ot_random_get()
+uint32_t otRandomGet(void)
 {
     uint32_t mlcg, p, q;
     uint64_t tmpstate;
 
-    tmpstate = (uint64_t)33614 * (uint64_t)sState;
+    tmpstate = (uint64_t)33614 * (uint64_t)s_state;
     q = tmpstate & 0xffffffff;
     q = q >> 1;
     p = tmpstate >> 32;
@@ -51,7 +51,7 @@ uint32_t ot_random_get()
         mlcg++;
     }
 
-    sState = mlcg;
+    s_state = mlcg;
 
     return mlcg;
 }

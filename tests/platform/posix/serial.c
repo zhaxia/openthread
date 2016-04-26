@@ -30,17 +30,18 @@ static void *serial_receive_thread(void *arg);
 
 extern struct gengetopt_args_info args_info;
 
+static uint8_t s_receive_buffer[128];
 static int s_fd;
 static pthread_t s_pthread;
 static sem_t *s_semaphore;
 
-ThreadError ot_serial_enable()
+ThreadError otSerialEnable(void)
 {
     ThreadError error = kThreadError_None;
     struct termios termios;
     char *path;
     char cmd[256];
-    printf("here\n");
+
     // open file
 #if __APPLE__
 
@@ -106,7 +107,7 @@ exit:
     return error;
 }
 
-ThreadError ot_serial_disable()
+ThreadError otSerialDisable(void)
 {
     ThreadError error = kThreadError_None;
 
@@ -115,22 +116,22 @@ ThreadError ot_serial_disable()
     return error;
 }
 
-ThreadError ot_serial_send(const uint8_t *buf, uint16_t buf_length)
+ThreadError otSerialSend(const uint8_t *aBuf, uint16_t aBufLength)
 {
     ThreadError error = kThreadError_None;
 
-    VerifyOrExit(write(s_fd, buf, buf_length) >= 0, error = kThreadError_Error);
-    ot_serial_signal_send_done();
+    VerifyOrExit(write(s_fd, aBuf, aBufLength) >= 0, error = kThreadError_Error);
+    otSerialSignalSendDone();
 
 exit:
     return error;
 }
 
-void ot_serial_handle_send_done(void)
+void otSerialHandleSendDone(void)
 {
 }
 
-void *serial_receive_thread(void *arg)
+void *serial_receive_thread(void *aContext)
 {
     fd_set fds;
     int rval;
@@ -144,7 +145,7 @@ void *serial_receive_thread(void *arg)
 
         if (rval >= 0 && FD_ISSET(s_fd, &fds))
         {
-            ot_serial_signal_receive();
+            otSerialSignalReceive();
             sem_wait(s_semaphore);
         }
     }
@@ -152,23 +153,21 @@ void *serial_receive_thread(void *arg)
     return NULL;
 }
 
-static uint8_t sReceiveBuffer[128];
-
-const uint8_t *ot_serial_get_received_bytes(uint16_t *aBufLength)
+const uint8_t *otSerialGetReceivedBytes(uint16_t *aBufLength)
 {
     size_t length;
 
-    length = read(s_fd, sReceiveBuffer, sizeof(sReceiveBuffer));
+    length = read(s_fd, s_receive_buffer, sizeof(s_receive_buffer));
 
     if (aBufLength != NULL)
     {
         *aBufLength = length;
     }
 
-    return sReceiveBuffer;
+    return s_receive_buffer;
 }
 
-void ot_serial_handle_receive_done()
+void otSerialHandleReceiveDone(void)
 {
     sem_post(s_semaphore);
 }

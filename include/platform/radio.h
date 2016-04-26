@@ -92,7 +92,7 @@ typedef struct RadioPacket
  * @retval ::kThreadError_None  If the PAN ID was set properly.
  * @retval ::kThreadError_Fail  If the PAN ID was not set properly.
  */
-ThreadError ot_radio_set_pan_id(uint16_t aPanId);
+ThreadError otRadioSetPanId(uint16_t aPanId);
 
 /**
  * Set the Extended Address for address filtering.
@@ -102,7 +102,7 @@ ThreadError ot_radio_set_pan_id(uint16_t aPanId);
  * @retval ::kThreadError_None  If the Extended Address was set properly.
  * @retval ::kThreadError_Fail  If the Extended Address was not set properly.
  */
-ThreadError ot_radio_set_extended_address(uint8_t *aExtendedAddress);
+ThreadError otRadioSetExtendedAddress(uint8_t *aExtendedAddress);
 
 /**
  * Set the Short Address for address filtering.
@@ -112,7 +112,7 @@ ThreadError ot_radio_set_extended_address(uint8_t *aExtendedAddress);
  * @retval ::kThreadError_None  If the Short Address was set properly.
  * @retval ::kThreadError_Fail  If the Short Address was not set properly.
  */
-ThreadError ot_radio_set_short_address(uint16_t aShortAddress);
+ThreadError otRadioSetShortAddress(uint16_t aShortAddress);
 
 /**
  * @}
@@ -132,7 +132,7 @@ ThreadError ot_radio_set_short_address(uint16_t aShortAddress);
 /**
  * Intialize the radio.
  */
-void ot_radio_init();
+void otRadioInit();
 
 /**
  * Enable the radio.
@@ -140,7 +140,7 @@ void ot_radio_init();
  * @retval ::kThreadError_None  Successfully transitioned to Idle.
  * @retval ::kThreadError_Fail  Failed to transition to Idle.
  */
-ThreadError ot_radio_enable();
+ThreadError otRadioEnable();
 
 /**
  * Disable the radio.
@@ -148,7 +148,7 @@ ThreadError ot_radio_enable();
  * @retval ::kThreadError_None  Successfully transitioned to Disabled.
  * @retval ::kThreadError_Fail  Failed to transition to Disabled.
  */
-ThreadError ot_radio_disable();
+ThreadError otRadioDisable();
 
 /**
  * Transition the radio to Sleep.
@@ -156,7 +156,7 @@ ThreadError ot_radio_disable();
  * @retval ::kThreadError_None  Successfully transitioned to Sleep.
  * @retval ::kThreadError_Fail  Failed to transition to Sleep.
  */
-ThreadError ot_radio_sleep();
+ThreadError otRadioSleep();
 
 /**
  * Transition the radio to Idle.
@@ -164,7 +164,7 @@ ThreadError ot_radio_sleep();
  * @retval ::kThreadError_None  Successfully transitioned to Idle.
  * @retval ::kThreadError_Fail  Failed to transition to Idle.
  */
-ThreadError ot_radio_idle();
+ThreadError otRadioIdle();
 
 /**
  * Begins the receive sequence on the radio.
@@ -174,7 +174,7 @@ ThreadError ot_radio_idle();
  * 2. Remain in Receive until a packet is received or reception is aborted.
  * 3. Return to Idle.
  *
- * Upon completion of the receive sequence, ot_radio_signal_receive_done() is called to signal completion to the MAC
+ * Upon completion of the receive sequence, otRadioSignalReceiveDone() is called to signal completion to the MAC
  * layer.
  *
  * @param[in]  aPacket  A pointer to a packet buffer.
@@ -184,15 +184,15 @@ ThreadError ot_radio_idle();
  * @retval ::kThreadError_None  Successfully transitioned to Receive.
  * @retval ::kThreadError_Fail  Failed to transition to Receive.
  */
-ThreadError ot_radio_receive(RadioPacket *aPacket);
+ThreadError otRadioReceive(RadioPacket *aPacket);
 
 /**
  * Signal that a packet has been received.
  *
- * This may be called from interrupt context.  The MAC layer will then schedule a call to ot_radio_handle_receive().
+ * This may be called from interrupt context.  The MAC layer will then schedule a call to otRadioHandleReceive().
  */
 
-extern void ot_radio_signal_receive_done();
+extern void otRadioSignalReceiveDone();
 
 /**
  * Complete the receive sequence.
@@ -201,7 +201,7 @@ extern void ot_radio_signal_receive_done();
  * @retval ::kThreadError_Abort         Reception was aborted and a frame was not received.
  * @retval ::kThreadError_InvalidState  The radio was not in Receive.
  */
-ThreadError ot_radio_handle_receive_done();
+ThreadError otRadioHandleReceiveDone();
 
 /**
  * Begins the transmit sequence on the radio.
@@ -211,7 +211,7 @@ ThreadError ot_radio_handle_receive_done();
  * 2. Transmits the psdu on the given channel and at the given transmit power.
  * 3. Return to Idle.
  *
- * Upon completion of the transmit sequence, ot_radio_signal_transmit_done() is called to signal completion to the MAC
+ * Upon completion of the transmit sequence, otRadioSignalTransmitDone() is called to signal completion to the MAC
  * layer.
  *
  * @param[in]  aPacket  A pointer to a packet buffer.
@@ -223,15 +223,15 @@ ThreadError ot_radio_handle_receive_done();
  * @retval ::kThreadError_InvalidArgs  One or more parameters in @p aPacket are invalid.
  * @retval ::kThreadError_Fail         Failed to transition to Transmit.
  */
-ThreadError ot_radio_transmit(RadioPacket *aPacket);
+ThreadError otRadioTransmit(RadioPacket *aPacket);
 
 /**
  * Signal that the requested transmission is complete.
  *
  * This may be called from interrupt context.  OpenThread will then schedule a call to
- * ot_radio_handle_transmit_done().
+ * otRadio_handle_transmit_done().
  */
-extern void ot_radio_signal_transmit_done();
+extern void otRadioSignalTransmitDone();
 
 /**
  * Complete the transmit sequence on the radio.
@@ -244,14 +244,14 @@ extern void ot_radio_signal_transmit_done();
  * @retval ::kThreadError_Abort         The transmission was aborted for other reasons.
  * @retval ::kThreadError_InvalidState  The radio did not transmit a packet.
  */
-ThreadError ot_radio_handle_transmit_done(bool *aFramePending);
+ThreadError otRadioHandleTransmitDone(bool *aFramePending);
 
 /**
  * Get the most recent RSSI measurement.
  *
  * @returns The noise floor value in dBm when the noise floor value is valid.  127 when noise floor value is invalid.
  */
-int8_t ot_radio_get_noise_floor();
+int8_t otRadioGetNoiseFloor();
 
 /**
  * @}

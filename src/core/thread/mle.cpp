@@ -89,7 +89,7 @@ ThreadError Mle::Init()
     // mesh-local 64
     for (int i = 8; i < 16; i++)
     {
-        mMeshLocal64.GetAddress().m8[i] = ot_random_get();
+        mMeshLocal64.GetAddress().m8[i] = otRandomGet();
     }
 
     mMeshLocal64.mPrefixLength = 64;
@@ -719,7 +719,7 @@ void Mle::HandleUnicastAddressesChanged()
         // Mesh Local EID was removed, choose a new one and add it back
         for (int i = 8; i < 16; i++)
         {
-            mMeshLocal64.GetAddress().m8[i] = ot_random_get();
+            mMeshLocal64.GetAddress().m8[i] = otRandomGet();
         }
 
         mNetif->AddUnicastAddress(mMeshLocal64);
@@ -850,7 +850,7 @@ ThreadError Mle::SendParentRequest()
 
     for (uint8_t i = 0; i < sizeof(mParentRequest.mChallenge); i++)
     {
-        mParentRequest.mChallenge[i] = ot_random_get();
+        mParentRequest.mChallenge[i] = otRandomGet();
     }
 
     VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
@@ -1036,7 +1036,7 @@ ThreadError Mle::SendChildUpdateRequest()
     case kDeviceStateDetached:
         for (uint8_t i = 0; i < sizeof(mParentRequest.mChallenge); i++)
         {
-            mParentRequest.mChallenge[i] = ot_random_get();
+            mParentRequest.mChallenge[i] = otRandomGet();
         }
 
         SuccessOrExit(error = AppendChallenge(*message, mParentRequest.mChallenge,

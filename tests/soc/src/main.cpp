@@ -30,7 +30,7 @@
 #include <platform/atomic.h>
 #include <platform/posix/cli_posix.hpp>
 
-extern "C" void sleep_start(void);
+extern "C" void SleepStart(void);
 struct gengetopt_args_info args_info;
 
 Thread::Cli::Socket sCliServer;
@@ -61,14 +61,14 @@ int main(int argc, char *argv[])
     {
         otProcessNextTasklet();
 
-        atomic_state = ot_atomic_begin();
+        atomic_state = otAtomicBegin();
 
         if (!otAreTaskletsPending())
         {
-            sleep_start();
+            SleepStart();
         }
 
-        ot_atomic_end(atomic_state);
+        otAtomicEnd(atomic_state);
     }
 
     return 0;

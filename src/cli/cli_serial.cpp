@@ -46,15 +46,15 @@ Serial::Serial()
 ThreadError Serial::Start()
 {
     mRxLength = 0;
-    ot_serial_enable();
+    otSerialEnable();
     return kThreadError_None;
 }
 
-extern "C" void ot_serial_signal_send_done(void)
+extern "C" void otSerialSignalSendDone(void)
 {
 }
 
-extern "C" void ot_serial_signal_receive(void)
+extern "C" void otSerialSignalReceive(void)
 {
     sReceiveTask.Post();
 }
@@ -71,7 +71,7 @@ void Serial::ReceiveTask()
     const uint8_t *cur;
     const uint8_t *end;
 
-    buf = ot_serial_get_received_bytes(&bufLength);
+    buf = otSerialGetReceivedBytes(&bufLength);
 
     cur = buf;
     end = cur + bufLength;
@@ -81,11 +81,11 @@ void Serial::ReceiveTask()
         switch (*cur)
         {
         case '\r':
-            ot_serial_send(CRNL, sizeof(CRNL));
+            otSerialSend(CRNL, sizeof(CRNL));
             break;
 
         default:
-            ot_serial_send(cur, 1);
+            otSerialSend(cur, 1);
             break;
         }
     }
@@ -109,7 +109,7 @@ void Serial::ReceiveTask()
             if (mRxLength > 0)
             {
                 mRxBuffer[--mRxLength] = '\0';
-                ot_serial_send(VT102_ERASE_EOL, sizeof(VT102_ERASE_EOL));
+                otSerialSend(VT102_ERASE_EOL, sizeof(VT102_ERASE_EOL));
             }
 
             break;
@@ -123,7 +123,7 @@ void Serial::ReceiveTask()
         bufLength--;
     }
 
-    ot_serial_handle_receive_done();
+    otSerialHandleReceiveDone();
 }
 
 ThreadError Serial::ProcessCommand()
@@ -163,7 +163,7 @@ ThreadError Serial::ProcessCommand()
             cur += strlen(cur);
         }
 
-        SuccessOrExit(error = ot_serial_send(reinterpret_cast<const uint8_t *>(mRxBuffer), cur - mRxBuffer));
+        SuccessOrExit(error = otSerialSend(reinterpret_cast<const uint8_t *>(mRxBuffer), cur - mRxBuffer));
     }
     else
     {
@@ -193,7 +193,7 @@ exit:
 
 ThreadError Serial::Output(const char *buf, uint16_t bufLength)
 {
-    return ot_serial_send(reinterpret_cast<const uint8_t *>(buf), bufLength);
+    return otSerialSend(reinterpret_cast<const uint8_t *>(buf), bufLength);
 }
 
 }  // namespace Cli

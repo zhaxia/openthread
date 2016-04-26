@@ -43,7 +43,7 @@ extern "C" {
 /**
  * Initialize the Alarm.
  */
-void ot_alarm_init(void);
+void otAlarmInit(void);
 
 /**
  * Set the alarm to fire at @p aDt milliseconds after @p aT0.
@@ -51,24 +51,24 @@ void ot_alarm_init(void);
  * @param[in] aT0  The reference time.
  * @param[in] aDt  The time delay in milliseconds from @p aT0.
  */
-void ot_alarm_start_at(uint32_t aT0, uint32_t aDt);
+void otAlarmStartAt(uint32_t aT0, uint32_t aDt);
 
 /**
  * Stop the alarm.
  */
-void ot_alarm_stop(void);
+void otAlarmStop(void);
 
 /**
  * Get the current current time.
  *
  * @returns The current time in milliseconds.
  */
-uint32_t ot_alarm_get_now(void);
+uint32_t otAlarmGetNow(void);
 
 /**
  * Signal that the alarm has fired.
  */
-extern void ot_alarm_signal_fired(void);
+extern void otAlarmSignalFired(void);
 
 /**
  * @}

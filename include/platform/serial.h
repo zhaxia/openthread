@@ -47,7 +47,7 @@ extern "C" {
  * @retval ::kThreadError_None  Successfully enabled the serial.
  * @retval ::kThreadError_Fail  Failed to enabled the serial.
  */
-ThreadError ot_serial_enable(void);
+ThreadError otSerialEnable(void);
 
 /**
  * Disable the serial.
@@ -55,7 +55,7 @@ ThreadError ot_serial_enable(void);
  * @retval ::kThreadError_None  Successfully disabled the serial.
  * @retval ::kThreadError_Fail  Failed to disable the serial.
  */
-ThreadError ot_serial_disable(void);
+ThreadError otSerialDisable(void);
 
 /**
  * Send bytes over the serial.
@@ -66,27 +66,27 @@ ThreadError ot_serial_disable(void);
  * @retval ::kThreadError_None  Successfully started transmission.
  * @retval ::kThreadError_Fail  Failed to start the transmission.
  */
-ThreadError ot_serial_send(const uint8_t *aBuf, uint16_t aBufLength);
+ThreadError otSerialSend(const uint8_t *aBuf, uint16_t aBufLength);
 
 /**
  * Signal that the bytes send operation has completed.
  *
- * This may be called from interrupt context.  This will schedule calls to ot_serial_handle_send_done().
+ * This may be called from interrupt context.  This will schedule calls to otSerialHandleSendDone().
  */
-extern void ot_serial_signal_send_done(void);
+extern void otSerialSignalSendDone(void);
 
 /**
  * Complete the send sequence.
  */
-void ot_serial_handle_send_done(void);
+void otSerialHandleSendDone(void);
 
 /**
  * Signal that bytes have been received.
  *
- * This may be called from interrupt context.  This will schedule calls to ot_serial_get_received_bytes() and
- * ot_serial_handle_receive_done().
+ * This may be called from interrupt context.  This will schedule calls to otSerialGetReceivedBytes() and
+ * otSerialHandleReceiveDone().
  */
-extern void ot_serial_signal_receive(void);
+extern void otSerialSignalReceive(void);
 
 /**
  * Get a pointer to the received bytes.
@@ -95,12 +95,12 @@ extern void ot_serial_signal_receive(void);
  *
  * @returns A pointer to the received bytes.  NULL, if there are no received bytes to process.
  */
-const uint8_t *ot_serial_get_received_bytes(uint16_t *aBufLength);
+const uint8_t *otSerialGetReceivedBytes(uint16_t *aBufLength);
 
 /**
  * Release received bytes.
  */
-void ot_serial_handle_receive_done();
+void otSerialHandleReceiveDone();
 
 /**
  * @}
