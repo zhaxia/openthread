@@ -77,18 +77,18 @@ public:
     ThreadError ReleaseRouterId(uint8_t routerId);
 
     Child *GetChild(uint16_t address);
-    Child *GetChild(const Mac::Address64 &address);
+    Child *GetChild(const Mac::ExtAddress &address);
     Child *GetChild(const Mac::Address &address);
     int GetChildIndex(const Child &child);
     Child *GetChildren(uint8_t *numChildren);
     Neighbor *GetNeighbor(uint16_t address);
-    Neighbor *GetNeighbor(const Mac::Address64 &address);
+    Neighbor *GetNeighbor(const Mac::ExtAddress &address);
     Neighbor *GetNeighbor(const Mac::Address &address);
     Neighbor *GetNeighbor(const Ip6::Address &address);
     Router *GetRouters(uint8_t *numRouters);
 
     ThreadError HandleMacDataRequest(const Child &child);
-    ThreadError CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6::Header &ip6Header);
+    ThreadError CheckReachability(Mac::ShortAddress meshsrc, Mac::ShortAddress meshdst, Ip6::Header &ip6Header);
 
     ThreadError SendLinkReject(const Ip6::Address &destination);
 
@@ -143,7 +143,7 @@ private:
     void HandleAddressSolicit(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
 
     Child *NewChild();
-    Child *FindChild(const Mac::Address64 &macAddr);
+    Child *FindChild(const Mac::ExtAddress &macAddr);
 
     int AllocateRouterId();
     int AllocateRouterId(uint8_t routerId);

@@ -75,7 +75,7 @@ ThreadError AddressResolver::Remove(uint8_t routerId)
     return kThreadError_None;
 }
 
-ThreadError AddressResolver::Resolve(const Ip6::Address &dst, Mac::Address16 &rloc)
+ThreadError AddressResolver::Resolve(const Ip6::Address &dst, uint16_t &rloc)
 {
     ThreadError error = kThreadError_None;
     Cache *entry = NULL;
@@ -348,7 +348,7 @@ void AddressResolver::HandleAddressError(Coap::Header &header, Message &message,
     ThreadMeshLocalIidTlv mlIidTlv;
     Child *children;
     uint8_t numChildren;
-    Mac::Address64 macAddr;
+    Mac::ExtAddress macAddr;
     Ip6::Address destination;
 
     VerifyOrExit(header.GetCode() == Coap::Header::kCodePost, error = kThreadError_Drop);

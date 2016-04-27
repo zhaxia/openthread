@@ -77,7 +77,7 @@ void otSetChildTimeout(uint32_t aTimeout)
 
 const uint8_t *otGetExtendedAddress(void)
 {
-    return reinterpret_cast<const uint8_t *>(sThreadNetif.GetMac()->GetAddress64());
+    return reinterpret_cast<const uint8_t *>(sThreadNetif.GetMac()->GetExtAddress());
 }
 
 const uint8_t *otGetExtendedPanId(void)
@@ -289,9 +289,8 @@ ThreadError otReleaseRouterId(uint8_t aRouterId)
 ThreadError otAddMacWhitelist(const uint8_t *aExtAddr)
 {
     ThreadError error = kThreadError_None;
-    int entry = sThreadNetif.GetMac()->GetWhitelist()->Add(*reinterpret_cast<const Mac::Address64 *>(aExtAddr));
 
-    if (entry < 0)
+    if (sThreadNetif.GetMac()->GetWhitelist().Add(*reinterpret_cast<const Mac::ExtAddress *>(aExtAddr)) == NULL)
     {
         error = kThreadError_NoBufs;
     }
@@ -302,31 +301,34 @@ ThreadError otAddMacWhitelist(const uint8_t *aExtAddr)
 ThreadError otAddMacWhitelistRssi(const uint8_t *aExtAddr, int8_t aRssi)
 {
     ThreadError error = kThreadError_None;
-    int entry = sThreadNetif.GetMac()->GetWhitelist()->Add(*reinterpret_cast<const Mac::Address64 *>(aExtAddr));
-    VerifyOrExit(entry >= 0, error = kThreadError_NoBufs);
-    error = sThreadNetif.GetMac()->GetWhitelist()->SetRssi(entry, aRssi);
+    Thread::Mac::Whitelist::Entry *entry;
+
+    entry = sThreadNetif.GetMac()->GetWhitelist().Add(*reinterpret_cast<const Mac::ExtAddress *>(aExtAddr));
+    VerifyOrExit(entry != NULL, error = kThreadError_NoBufs);
+    sThreadNetif.GetMac()->GetWhitelist().SetConstantRssi(*entry, aRssi);
+
 exit:
     return error;
 }
 
-ThreadError otRemoveMacWhitelist(const uint8_t *aExtAddr)
+void otRemoveMacWhitelist(const uint8_t *aExtAddr)
 {
-    return sThreadNetif.GetMac()->GetWhitelist()->Remove(*reinterpret_cast<const Mac::Address64 *>(aExtAddr));
+    sThreadNetif.GetMac()->GetWhitelist().Remove(*reinterpret_cast<const Mac::ExtAddress *>(aExtAddr));
 }
 
 void otClearMacWhitelist()
 {
-    sThreadNetif.GetMac()->GetWhitelist()->Clear();
+    sThreadNetif.GetMac()->GetWhitelist().Clear();
 }
 
 void otDisableMacWhitelist()
 {
-    sThreadNetif.GetMac()->GetWhitelist()->Disable();
+    sThreadNetif.GetMac()->GetWhitelist().Disable();
 }
 
 void otEnableMacWhitelist()
 {
-    sThreadNetif.GetMac()->GetWhitelist()->Enable();
+    sThreadNetif.GetMac()->GetWhitelist().Enable();
 }
 
 ThreadError otBecomeDetached()

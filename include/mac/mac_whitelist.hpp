@@ -37,30 +37,13 @@ namespace Mac {
  *
  */
 
+/**
+ * This class implements whitelist filtering on IEEE 802.15.4 frames.
+ *
+ */
 class Whitelist
 {
 public:
-    Whitelist();
-
-    ThreadError Enable();
-    ThreadError Disable();
-    bool IsEnabled() const;
-
-    int GetMaxEntries() const;
-
-    int Add(const Address64 &address);
-    ThreadError Remove(const Address64 &address);
-    ThreadError Clear();
-
-    int Find(const Address64 &address) const;
-
-    const uint8_t *GetAddress(uint8_t entry) const;
-
-    ThreadError ClearRssi(uint8_t entry);
-    ThreadError GetRssi(uint8_t entry, int8_t &rssi) const;
-    ThreadError SetRssi(uint8_t entry, int8_t rssi);
-
-private:
     enum
     {
         kMaxEntries = 32,
@@ -68,11 +51,119 @@ private:
 
     struct Entry
     {
-        Address64 mAddr64;
+        ExtAddress mExtAddress;
         int8_t mRssi;
         bool mValid : 1;
-        bool mRssiValid : 1;
+        bool mConstantRssi : 1;
     };
+
+    /**
+     * This method initializes the whitelist filter.
+     *
+     */
+    void Init(void);
+
+    /**
+     * This method enables the whitelist filter.
+     *
+     */
+    void Enable(void);
+
+    /**
+     * This method disables the whitelist filter.
+     *
+     */
+    void Disable(void);
+
+    /**
+     * This method indicates whether or not the whitelist filter is enabled.
+     *
+     * @retval TRUE   If the whitelist filter is enabled.
+     * @retval FALSE  If the whitelist filter is disabled.
+     *
+     */
+    bool IsEnabled(void) const;
+
+    /**
+     * This method returns the maximum number of whitelist entries.
+     *
+     * @returns The maximum number of whitelist entries.
+     *
+     */
+    int GetMaxEntries(void) const;
+
+    /**
+     * This method returns the whitelist entries.
+     *
+     * @returns The whitelist entries.
+     *
+     */
+    const Entry *GetEntries(void) const;
+
+    /**
+     * This method adds an Extended Address to the whitelist filter.
+     *
+     * @param[in]  aAddress  A reference to the Extended Address.
+     *
+     * @returns A pointer to the whitelist entry or NULL if there are no available entries.
+     *
+     */
+    Entry *Add(const ExtAddress &address);
+
+    /**
+     * This method removes an Extended Address to the whitelist filter.
+     *
+     * @param[in]  aAddress  A reference to the Extended Address.
+     *
+     */
+    void Remove(const ExtAddress &address);
+
+    /**
+     * This method removes all entries from the whitelist filter.
+     *
+     */
+    void Clear(void);
+
+    /**
+     * This method finds a whitelist entry.
+     *
+     * @param[in]  aAddress  A reference to the Extended Address.
+     *
+     * @returns A pointer to the whitelist entry or NULL if the entry could not be found.
+     *
+     */
+    Entry *Find(const ExtAddress &address);
+
+    /**
+     * This method clears the constant RSSI value and uses the measured value provided by the radio instead.
+     *
+     * @param[in]  aEntry  A reference to the whitelist entry.
+     *
+     */
+    void ClearConstantRssi(Entry &aEntry);
+
+    /**
+     * This method indicates whether or not the constant RSSI is set.
+     *
+     * @param[in]   aEntry  A reference to the whitelist entry.
+     * @param[out]  aRssi   A reference to the RSSI variable.
+     *
+     * @retval kThreadError_None        A constant RSSI is set and written to @p aRssi.
+     * @retval kThreadError_InvalidArg  A constnat RSSI was not set.
+     *
+     */
+    ThreadError GetConstantRssi(Entry &aEntry, int8_t &aRssi) const;
+
+    /**
+     * This method sets a constant RSSI value for all received messages matching @p aEntry.
+     *
+     * @param[in]  aEntry  A reference to the whitelist entry.
+     * @param[in]  aRssi   An RSSI value in dBm.
+     *
+     */
+    void SetConstantRssi(Entry &aEntry, int8_t aRssi);
+
+private:
     Entry mWhitelist[kMaxEntries];
 
     bool mEnabled = false;

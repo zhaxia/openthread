@@ -407,7 +407,7 @@ ThreadError NcpBase::ProcessPrimitiveShortAddr(ThreadControl &message)
     {
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_UINT32;
-        message.primitive.uint32 = mac->GetAddress16();
+        message.primitive.uint32 = mac->GetShortAddress();
         return kThreadError_None;
 
     default:
@@ -426,7 +426,7 @@ ThreadError NcpBase::ProcessPrimitiveExtAddr(ThreadControl &message)
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_BYTES;
         message.primitive.bytes.len = 8;
-        memcpy(message.primitive.bytes.data, mac->GetAddress64(), 8);
+        memcpy(message.primitive.bytes.data, mac->GetExtAddress(), 8);
         return kThreadError_None;
 
     default:
@@ -492,7 +492,7 @@ ThreadError NcpBase::ProcessState(ThreadControl &message)
 
 ThreadError NcpBase::ProcessWhitelist(ThreadControl &message)
 {
-    Mac::Whitelist *whitelist = mNetif.GetMac()->GetWhitelist();
+    Mac::Whitelist &whitelist = mNetif.GetMac()->GetWhitelist();
 
     switch (message.whitelist.type)
     {
@@ -503,11 +503,11 @@ ThreadError NcpBase::ProcessWhitelist(ThreadControl &message)
             switch (message.whitelist.status)
             {
             case THREAD_WHITELIST__STATUS__DISABLE:
-                whitelist->Disable();
+                whitelist.Disable();
                 break;
 
             case THREAD_WHITELIST__STATUS__ENABLE:
-                whitelist->Enable();
+                whitelist.Enable();
                 break;
 
             case _THREAD_WHITELIST__STATUS_IS_INT_SIZE:
@@ -516,19 +516,19 @@ ThreadError NcpBase::ProcessWhitelist(ThreadControl &message)
         }
 
         message.whitelist.has_status = true;
-        message.whitelist.status = whitelist->IsEnabled() ?
+        message.whitelist.status = whitelist.IsEnabled() ?
                                    THREAD_WHITELIST__STATUS__ENABLE : THREAD_WHITELIST__STATUS__DISABLE;
         break;
     }
 
     case THREAD_WHITELIST__TYPE__LIST:
     {
-        message.whitelist.n_address = whitelist->GetMaxEntries();
+        message.whitelist.n_address = whitelist.GetMaxEntries();
 
         for (unsigned i = 0; i < message.whitelist.n_address; i++)
         {
             message.whitelist.address[i].len = sizeof(message.whitelist.address[i].data);
-            memcpy(message.whitelist.address[i].data, whitelist->GetAddress(i),
+            memcpy(message.whitelist.address[i].data, whitelist.GetEntries()[i].mExtAddress.mBytes,
                    sizeof(message.whitelist.address[i].data));
         }
 
@@ -536,15 +536,15 @@ ThreadError NcpBase::ProcessWhitelist(ThreadControl &message)
     }
 
     case THREAD_WHITELIST__TYPE__ADD:
-        whitelist->Add(*reinterpret_cast<Mac::Address64 *>(message.whitelist.address[0].data));
+        whitelist.Add(*reinterpret_cast<Mac::ExtAddress *>(message.whitelist.address[0].data));
         break;
 
     case THREAD_WHITELIST__TYPE__CLEAR:
-        whitelist->Clear();
+        whitelist.Clear();
         break;
 
     case THREAD_WHITELIST__TYPE__DELETE:
-        whitelist->Remove(*reinterpret_cast<Mac::Address64 *>(message.whitelist.address[0].data));
+        whitelist.Remove(*reinterpret_cast<Mac::ExtAddress *>(message.whitelist.address[0].data));
         break;
 
     case _THREAD_WHITELIST__TYPE_IS_INT_SIZE:
@@ -602,7 +602,7 @@ void NcpBase::HandleActiveScanResult(Mac::ActiveScanResult *result)
     memcpy(message.scan_result.ext_addr.data,  result->mExtAddr, len);
     message.scan_result.ext_addr.len = len;
 
-    message.scan_result.panid = static_cast<uint32_t>(result->mPanid);
+    message.scan_result.panid = static_cast<uint32_t>(result->mPanId);
     message.scan_result.channel = static_cast<uint32_t>(result->mChannel);
     message.scan_result.rssi = static_cast<int32_t>(result->mRssi);
 

@@ -30,7 +30,7 @@ namespace Thread {
 class Neighbor
 {
 public:
-    Mac::Address64 mMacAddr;
+    Mac::ExtAddress mMacAddr;
     uint32_t mLastHeard;
     union
     {

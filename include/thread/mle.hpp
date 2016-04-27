@@ -293,13 +293,13 @@ protected:
     ThreadError AppendLinkMargin(Message &message, uint8_t linkMargin);
     ThreadError AppendVersion(Message &message);
     ThreadError AppendIp6Address(Message &message);
-    ThreadError CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6::Header &ip6Header);
-    void GenerateNonce(const Mac::Address64 &macAddr, uint32_t frameCounter, uint8_t securityLevel, uint8_t *nonce);
+    ThreadError CheckReachability(Mac::ShortAddress meshsrc, Mac::ShortAddress meshdst, Ip6::Header &ip6Header);
+    void GenerateNonce(const Mac::ExtAddress &macAddr, uint32_t frameCounter, uint8_t securityLevel, uint8_t *nonce);
     Neighbor *GetNeighbor(const Mac::Address &address);
-    Neighbor *GetNeighbor(Mac::Address16 address);
-    Neighbor *GetNeighbor(const Mac::Address64 &address);
+    Neighbor *GetNeighbor(Mac::ShortAddress address);
+    Neighbor *GetNeighbor(const Mac::ExtAddress &address);
     Neighbor *GetNeighbor(const Ip6::Address &address);
-    Mac::Address16 GetNextHop(Mac::Address16 destination) const;
+    Mac::ShortAddress GetNextHop(Mac::ShortAddress destination) const;
     static void HandleUnicastAddressesChanged(void *context);
     void HandleUnicastAddressesChanged();
     static void HandleParentRequestTimer(void *context);

@@ -60,12 +60,12 @@ ThreadError ComputeIID(const Mac::Address &macaddr, const Context &context, uint
         iid[3] = 0xff;
         iid[4] = 0xfe;
         iid[5] = 0x00;
-        iid[6] = macaddr.mAddress16 >> 8;
-        iid[7] = macaddr.mAddress16;
+        iid[6] = macaddr.mShortAddress >> 8;
+        iid[7] = macaddr.mShortAddress;
         break;
 
     case 8:
-        memcpy(iid, &macaddr.mAddress64, sizeof(macaddr.mAddress64));
+        memcpy(iid, &macaddr.mExtAddress, sizeof(macaddr.mExtAddress));
         iid[0] ^= 0x02;
         break;
 
@@ -101,7 +101,7 @@ int Lowpan::CompressSourceIid(const Mac::Address &macaddr, const Ip6::Address &i
     else
     {
         tmp.mLength = 2;
-        tmp.mAddress16 = HostSwap16(ipaddr.m16[7]);
+        tmp.mShortAddress = HostSwap16(ipaddr.m16[7]);
         ComputeIID(tmp, context, iid);
 
         if (memcmp(iid, ipaddr.m8 + 8, 8) == 0)
@@ -138,7 +138,7 @@ int Lowpan::CompressDestinationIid(const Mac::Address &macaddr, const Ip6::Addre
     else
     {
         tmp.mLength = 2;
-        tmp.mAddress16 = HostSwap16(ipaddr.m16[7]);
+        tmp.mShortAddress = HostSwap16(ipaddr.m16[7]);
         ComputeIID(tmp, context, iid);
 
         if (memcmp(iid, ipaddr.m8 + 8, 8) == 0)

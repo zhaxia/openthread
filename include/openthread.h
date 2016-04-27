@@ -649,16 +649,13 @@ ThreadError otAddMacWhitelistRssi(const uint8_t *aExtAddr, int8_t aRssi);
  *
  * @param[in]  aExtAddr  A pointer to the IEEE 802.15.4 Extended Address.
  *
- * @retval kThreadErrorNone      Successfuly removed from the MAC whitelist.
- * @retval kThreadErrorNotFound  The IEEE 802.15.4 Extended Address at aExtAddr does not exist.
- *
  * @sa otAddMacWhitelist
  * @sa otAddMacWhitelistRssi
  * @sa otClearMacWhitelist
  * @sa otDisableMacWhitelist
  * @sa otEnableMacWhitelist
  */
-ThreadError otRemoveMacWhitelist(const uint8_t *aExtAddr);
+void otRemoveMacWhitelist(const uint8_t *aExtAddr);
 
 /**
  *  Remove all entries from the MAC whitelist.

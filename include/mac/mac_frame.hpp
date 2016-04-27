@@ -41,26 +41,43 @@ enum
 {
     kShortAddrBroadcast = 0xffff,
     kShortAddrInvalid = 0xfffe,
+    kPanIdBroadcast = 0xffff,
 };
 
 typedef uint16_t PanId;
-typedef uint16_t Address16;
+typedef uint16_t ShortAddress;
 
-struct Address64
+/**
+ * This structure represents an IEEE 802.15.4 Extended Address.
+ *
+ */
+struct ExtAddress
 {
-    uint8_t mBytes[8];
+    enum
+    {
+        kLength = 8,   ///< Size of IEEE 802.15.4 Extended Address in bytes.
+    };
+    uint8_t mBytes[kLength];  ///< The IEEE 802.15.4 Extended Address bytes.
 };
 
+/**
+ * This structure represents an IEEE 802.15.4 Short or Extended Address.
+ *
+ */
 struct Address
 {
-    uint8_t mLength;
+    uint8_t mLength;                 ///< Length of address in bytes.
     union
     {
-        Address16 mAddress16;
-        Address64 mAddress64;
+        ShortAddress mShortAddress;  ///< The IEEE 802.15.4 Short Address.
+        ExtAddress mExtAddress;      ///< The IEEE 802.15.4 Extended Address.
     };
 };
 
+/**
+ * This class implements IEEE 802.15.4 MAC frame generation and parsing.
+ *
+ */
 class Frame: public RadioPacket
 {
 public:
@@ -115,76 +132,402 @@ public:
         kMacCmdGtsRequest                  = 9,
     };
 
-    ThreadError InitMacHeader(uint16_t fcf, uint8_t secCtl);
-    uint8_t GetType();
+    /**
+     * This method initializes the MAC header.
+     *
+     * @param[in]  aFcf     The Frame Control field.
+     * @param[in]  aSecCtl  The Security Control field.
+     *
+     * @retval kThreadError_None         Successfully initialized the MAC header.
+     * @retval kThreadError_InvalidArgs  Invalid values for @p aFcf and/or @p aSecCtl.
+     *
+     */
+    ThreadError InitMacHeader(uint16_t aFcf, uint8_t aSecCtl);
 
-    bool GetSecurityEnabled();
+    /**
+     * This method returns the IEEE 802.15.4 Frame Type.
+     *
+     * @returns The IEEE 802.15.4 Frame Type.
+     *
+     */
+    uint8_t GetType(void);
 
-    bool GetFramePending();
-    ThreadError SetFramePending(bool framePending);
+    /**
+     * This method indicates whether or not security is enabled.
+     *
+     * @retval TRUE   If security is enabled.
+     * @retval FALSE  If security is not enabled.
+     *
+     */
+    bool GetSecurityEnabled(void);
 
-    bool GetAckRequest();
-    ThreadError SetAckRequest(bool ackRequest);
+    /**
+     * This method indicates whether or not the Frame Pending bit is set.
+     *
+     * @retval TRUE   If the Frame Pending bit is set.
+     * @retval FALSE  If the Frame Pending bit is not set.
+     *
+     */
+    bool GetFramePending(void);
 
-    ThreadError GetSequence(uint8_t &sequence);
-    ThreadError SetSequence(uint8_t sequence);
+    /**
+     * This method sets the Frame Pending bit.
+     *
+     * @param[in]  aFramePending  The Frame Pending bit.
+     *
+     */
+    void SetFramePending(bool aFramePending);
 
-    ThreadError GetDstPanId(PanId &panid);
-    ThreadError SetDstPanId(PanId panid);
+    /**
+     * This method indicates whether or not the Ack Request bit is set.
+     *
+     * @retval TRUE   If the Ack Request bit is set.
+     * @retval FALSE  If the Ack Request bit is not set.
+     *
+     */
+    bool GetAckRequest(void);
 
-    ThreadError GetDstAddr(Address &address);
-    ThreadError SetDstAddr(Address16 address16);
-    ThreadError SetDstAddr(const Address64 &address64);
+    /**
+     * This method sets the Ack Request bit.
+     *
+     * @param[in]  aAckRequest  The Ack Request bit.
+     *
+     */
+    void SetAckRequest(bool aAckRequest);
 
-    ThreadError GetSrcPanId(PanId &panid);
-    ThreadError SetSrcPanId(PanId panid);
+    /**
+     * This method returns the Sequence Number value.
+     *
+     * @returns The Sequence Number value.
+     *
+     */
+    uint8_t GetSequence(void);
 
-    ThreadError GetSrcAddr(Address &address);
-    ThreadError SetSrcAddr(Address16 address16);
-    ThreadError SetSrcAddr(const Address64 &address64);
+    /**
+     * This method sets the Sequence Number value.
+     *
+     * @param[in]  aSequence  The Sequence Number value.
+     *
+     */
+    void SetSequence(uint8_t aSequence);
 
-    ThreadError GetSecurityLevel(uint8_t &secLevel);
+    /**
+     * This method gets the Destination PAN Identifier.
+     *
+     * @param[out]  aPanId  The Destination PAN Identifier.
+     *
+     * @retval kThreadError_None   Successfully retrieved the Destination PAN Identifier.
+     *
+     */
+    ThreadError GetDstPanId(PanId &aPanId);
 
-    ThreadError GetFrameCounter(uint32_t &frameCounter);
-    ThreadError SetFrameCounter(uint32_t frameCounter);
+    /**
+     * This method sets the Destination PAN Identifier.
+     *
+     * @param[in]  aPanId  The Destination PAN Identifier.
+     *
+     * @retval kThreadError_None   Successfully set the Destination PAN Identifier.
+     *
+     */
+    ThreadError SetDstPanId(PanId aPanId);
 
-    ThreadError GetKeyId(uint8_t &id);
-    ThreadError SetKeyId(uint8_t id);
+    /**
+     * This method gets the Destination Address.
+     *
+     * @param[out]  aAddress  The Destination Address.
+     *
+     * @retval kThreadError_None  Successfully retrieved the Destination Address.
+     *
+     */
+    ThreadError GetDstAddr(Address &aAddress);
 
-    ThreadError GetCommandId(uint8_t &commandId);
-    ThreadError SetCommandId(uint8_t commandId);
+    /**
+     * This method sets the Destination Address.
+     *
+     * @param[in]  aShortAddress  The Destination Address.
+     *
+     * @retval kThreadError_None  Successfully set the Destination Address.
+     *
+     */
+    ThreadError SetDstAddr(ShortAddress aShortAddress);
 
-    uint8_t GetLength() const;
-    ThreadError SetLength(uint8_t length);
+    /**
+     * This method sets the Destination Address.
+     *
+     * @param[in]  aExtAddress  The Destination Address.
+     *
+     * @retval kThreadError_None  Successfully set the Destination Address.
+     *
+     */
+    ThreadError SetDstAddr(const ExtAddress &aExtAddress);
 
-    uint8_t GetHeaderLength();
-    uint8_t GetFooterLength();
+    /**
+     * This method gets the Source PAN Identifier.
+     *
+     * @param[out]  aPanId  The Source PAN Identifier.
+     *
+     * @retval kThreadError_None   Successfully retrieved the Source PAN Identifier.
+     *
+     */
+    ThreadError GetSrcPanId(PanId &aPanId);
 
-    uint8_t GetPayloadLength();
-    uint8_t GetMaxPayloadLength();
-    ThreadError SetPayloadLength(uint8_t length);
+    /**
+     * This method sets the Source PAN Identifier.
+     *
+     * @param[in]  aPanId  The Source PAN Identifier.
+     *
+     * @retval kThreadError_None   Successfully set the Source PAN Identifier.
+     *
+     */
+    ThreadError SetSrcPanId(PanId aPanId);
 
-    uint8_t GetChannel() const { return mChannel; }
-    void SetChannel(uint8_t channel) { mChannel = channel; }
+    /**
+     * This method gets the Source Address.
+     *
+     * @param[out]  aAddress  The Source Address.
+     *
+     * @retval kThreadError_None  Successfully retrieved the Source Address.
+     *
+     */
+    ThreadError GetSrcAddr(Address &aAddress);
 
-    int8_t GetPower() const { return mPower; }
+    /**
+     * This method gets the Source Address.
+     *
+     * @param[in]  aShortAddress  The Source Address.
+     *
+     * @retval kThreadError_None  Successfully set the Source Address.
+     *
+     */
+    ThreadError SetSrcAddr(ShortAddress aShortAddress);
+
+    /**
+     * This method gets the Source Address.
+     *
+     * @param[in]  aExtAddress  The Source Address.
+     *
+     * @retval kThreadError_None  Successfully set the Source Address.
+     *
+     */
+    ThreadError SetSrcAddr(const ExtAddress &aExtAddress);
+
+    /**
+     * This method gets the Security Level Identifier.
+     *
+     * @param[out]  aSecurityLevel  The Security Level Identifier.
+     *
+     * @retval kThreadError_None  Successfully retrieved the Security Level Identifier.
+     *
+     */
+    ThreadError GetSecurityLevel(uint8_t &aSecurityLevel);
+
+    /**
+     * This method gets the Frame Counter.
+     *
+     * @param[out]  aFrameCounter  The Frame Counter.
+     *
+     * @retval kThreadError_None  Successfully retrieved the Frame Counter.
+     *
+     */
+    ThreadError GetFrameCounter(uint32_t &aFrameCounter);
+
+    /**
+     * This method sets the Frame Counter.
+     *
+     * @param[in]  aFrameCounter  The Frame Counter.
+     *
+     * @retval kThreadError_None  Successfully set the Frame Counter.
+     *
+     */
+    ThreadError SetFrameCounter(uint32_t aFrameCounter);
+
+    /**
+     * This method gets the Key Identifier.
+     *
+     * @param[out]  aKeyId  The Key Identifier.
+     *
+     * @retval kThreadError_None  Successfully retrieved the Key Identifier.
+     *
+     */
+    ThreadError GetKeyId(uint8_t &aKeyId);
+
+    /**
+     * This method sets the Key Identifier.
+     *
+     * @param[in]  aKeyId  The Key Identifier.
+     *
+     * @retval kThreadError_None  Successfully set the Key Identifier.
+     *
+     */
+    ThreadError SetKeyId(uint8_t aKeyId);
+
+    /**
+     * This method gets the Command ID.
+     *
+     * @param[out]  aCommandId  The Command ID.
+     *
+     * @retval kThreadError_None  Successfully retrieved the Command ID.
+     *
+     */
+    ThreadError GetCommandId(uint8_t &aCommandId);
+
+    /**
+     * This method sets the Command ID.
+     *
+     * @param[in]  aCommandId  The Command ID.
+     *
+     * @retval kThreadError_None  Successfully set the Command ID.
+     *
+     */
+    ThreadError SetCommandId(uint8_t aCommandId);
+
+    /**
+     * This method returns the MAC Frame Length.
+     *
+     * @returns The MAC Frame Length.
+     *
+     */
+    uint8_t GetLength(void) const;
+
+    /**
+     * This method sets the MAC Frame Length.
+     *
+     * @param[in]  aLength  The MAC Frame Length.
+     *
+     * @retval kThreadError_None         Successfully set the MAC Frame Length.
+     * @retval kThreadError_InvalidArgs  The @p aLength value was invalid.
+     *
+     */
+    ThreadError SetLength(uint8_t aLength);
+
+    /**
+     * This method returns the MAC header size.
+     *
+     * @returns The MAC header size.
+     *
+     */
+    uint8_t GetHeaderLength(void);
+
+    /**
+     * This method returns the MAC footer size.
+     *
+     * @returns The MAC footer size.
+     *
+     */
+    uint8_t GetFooterLength(void);
+
+    /**
+     * This method returns the current MAC Payload length.
+     *
+     * @returns The current MAC Payload length.
+     *
+     */
+    uint8_t GetPayloadLength(void);
+
+    /**
+     * This method returns the maximum MAC Payload length for the given MAC header and footer.
+     *
+     * @returns The maximum MAC Payload length for the given MAC header and footer.
+     *
+     */
+    uint8_t GetMaxPayloadLength(void);
+
+    /**
+     * This method sets the MAC Payload length.
+     *
+     * @retval kThreadError_None         Successfully set the MAC Payload length.
+     * @retval kThreadError_InvalidArgs  The @p aLength value was invalid.
+     *
+     */
+    ThreadError SetPayloadLength(uint8_t aLength);
+
+    /**
+     * This method returns the IEEE 802.15.4 channel used for transmission or reception.
+     *
+     * @returns The IEEE 802.15.4 channel used for transmission or reception.
+     *
+     */
+    uint8_t GetChannel(void) const { return mChannel; }
+
+    /**
+     * This method sets the IEEE 802.15.4 channel used for transmission or reception.
+     *
+     * @param[in]  aChannel  The IEEE 802.15.4 channel used for transmission or reception.
+     *
+     */
+    void SetChannel(uint8_t aChannel) { mChannel = aChannel; }
+
+    /**
+     * This method returns the transmit/receive power in dBm used for transmission or reception.
+     *
+     * @returns The transmit/receive power in dBm used for transmission or reception.
+     *
+     */
+    int8_t GetPower(void) const { return mPower; }
+
+    /**
+     * This method sets the transmit/receive power in dBm used for transmission or reception.
+     *
+     * @param[in]  aChannel  The transmit/receive power in dBm used for transmission or reception.
+     *
+     */
     void SetPower(int8_t power) { mPower = power; }
 
-    uint8_t GetPsduLength() const { return mLength; }
-    void SetPsduLength(uint8_t length) { mLength = length; }
+    /**
+     * This method returns the IEEE 802.15.4 PSDU length.
+     *
+     * @returns The IEEE 802.15.4 PSDU length.
+     *
+     */
+    uint8_t GetPsduLength(void) const { return mLength; }
 
-    uint8_t *GetPsdu() { return mPsdu; }
-    uint8_t *GetHeader();
-    uint8_t *GetPayload();
-    uint8_t *GetFooter();
+    /**
+     * This method sets the IEEE 802.15.4 PSDU length.
+     *
+     * @param[in]  aLength  The IEEE 802.15.4 PSDU length.
+     *
+     */
+    void SetPsduLength(uint8_t aLength) { mLength = aLength; }
+
+    /**
+     * This method returns a pointer to the PSDU.
+     *
+     * @returns A pointer to the PSDU.
+     *
+     */
+    uint8_t *GetPsdu(void) { return mPsdu; }
+
+    /**
+     * This method returns a pointer to the MAC Header.
+     *
+     * @returns A pointer to the MAC Header.
+     *
+     */
+    uint8_t *GetHeader(void);
+
+    /**
+     * This method returns a pointer to the MAC Payload.
+     *
+     * @returns A pointer to the MAC Payload.
+     *
+     */
+    uint8_t *GetPayload(void);
+
+    /**
+     * This method returns a pointer to the MAC Footer.
+     *
+     * @returns A pointer to the MAC Footer.
+     *
+     */
+    uint8_t *GetFooter(void);
 
 private:
-    uint8_t *FindSequence();
-    uint8_t *FindDstPanId();
-    uint8_t *FindDstAddr();
-    uint8_t *FindSrcPanId();
-    uint8_t *FindSrcAddr();
-    uint8_t *FindSecurityHeader();
+    uint8_t *FindSequence(void);
+    uint8_t *FindDstPanId(void);
+    uint8_t *FindDstAddr(void);
+    uint8_t *FindSrcPanId(void);
+    uint8_t *FindSrcAddr(void);
+    uint8_t *FindSecurityHeader(void);
 };
 
 /**

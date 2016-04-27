@@ -303,9 +303,9 @@ void *phy_receive_thread(void *arg)
                 break;
             }
 
-            reinterpret_cast<Mac::Frame *>(s_transmit_frame)->GetSequence(tx_sequence);
+            tx_sequence = reinterpret_cast<Mac::Frame *>(s_transmit_frame)->GetSequence();
 
-            reinterpret_cast<Mac::Frame *>(&receive_frame)->GetSequence(rx_sequence);
+            rx_sequence = reinterpret_cast<Mac::Frame *>(&receive_frame)->GetSequence();
 
             if (tx_sequence != rx_sequence)
             {
@@ -352,7 +352,7 @@ void send_ack()
     uint8_t sequence;
     struct sockaddr_in sockaddr;
 
-    reinterpret_cast<Mac::Frame *>(s_receive_frame)->GetSequence(sequence);
+    sequence = reinterpret_cast<Mac::Frame *>(s_receive_frame)->GetSequence();
 
     ack_frame = reinterpret_cast<Mac::Frame *>(&m_ack_packet);
     ack_frame->InitMacHeader(Mac::Frame::kFcfFrameAck, Mac::Frame::kSecNone);
@@ -400,14 +400,14 @@ ThreadError otRadioHandleReceiveDone()
     case 2:
         receive_frame->GetDstPanId(dstpan);
         VerifyOrExit((dstpan == Mac::kShortAddrBroadcast || dstpan == s_panid) &&
-                     (dstaddr.mAddress16 == Mac::kShortAddrBroadcast || dstaddr.mAddress16 == s_short_address),
+                     (dstaddr.mShortAddress == Mac::kShortAddrBroadcast || dstaddr.mShortAddress == s_short_address),
                      error = kThreadError_Abort);
         break;
 
     case 8:
         receive_frame->GetDstPanId(dstpan);
         VerifyOrExit((dstpan == Mac::kShortAddrBroadcast || dstpan == s_panid) &&
-                     memcmp(&dstaddr.mAddress64, s_extended_address, sizeof(dstaddr.mAddress64)) == 0,
+                     memcmp(&dstaddr.mExtAddress, s_extended_address, sizeof(dstaddr.mExtAddress)) == 0,
                      error = kThreadError_Abort);
         break;
 

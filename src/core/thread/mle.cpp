@@ -70,7 +70,7 @@ ThreadError Mle::Init()
     // link-local 64
     memset(&mLinkLocal64, 0, sizeof(mLinkLocal64));
     mLinkLocal64.GetAddress().m16[0] = HostSwap16(0xfe80);
-    memcpy(mLinkLocal64.GetAddress().m8 + 8, mMesh->GetAddress64(), 8);
+    memcpy(mLinkLocal64.GetAddress().m8 + 8, mMesh->GetExtAddress(), 8);
     mLinkLocal64.GetAddress().m8[8] ^= 2;
     mLinkLocal64.mPrefixLength = 64;
     mLinkLocal64.mPreferredLifetime = 0xffffffff;
@@ -361,7 +361,7 @@ const Ip6::Address *Mle::GetRealmLocalAllThreadNodesAddress() const
 
 uint16_t Mle::GetRloc16() const
 {
-    return mMesh->GetAddress16();
+    return mMesh->GetShortAddress();
 }
 
 ThreadError Mle::SetRloc16(uint16_t rloc16)
@@ -382,7 +382,7 @@ ThreadError Mle::SetRloc16(uint16_t rloc16)
         mNetif->RemoveUnicastAddress(mMeshLocal16);
     }
 
-    mMesh->SetAddress16(rloc16);
+    mMesh->SetShortAddress(rloc16);
 
     return kThreadError_None;
 }
@@ -425,7 +425,7 @@ const LeaderDataTlv *Mle::GetLeaderDataTlv()
     return &mLeaderData;
 }
 
-void Mle::GenerateNonce(const Mac::Address64 &macAddr, uint32_t frameCounter, uint8_t securityLevel, uint8_t *nonce)
+void Mle::GenerateNonce(const Mac::ExtAddress &macAddr, uint32_t frameCounter, uint8_t securityLevel, uint8_t *nonce)
 {
     // source address
     for (int i = 0; i < 8; i++)
@@ -1101,7 +1101,7 @@ ThreadError Mle::SendMessage(Message &message, const Ip6::Address &destination)
 
     message.Write(0, header.GetLength(), &header);
 
-    GenerateNonce(*mMesh->GetAddress64(), mKeyManager->GetMleFrameCounter(), Mac::Frame::kSecEncMic32, nonce);
+    GenerateNonce(*mMesh->GetExtAddress(), mKeyManager->GetMleFrameCounter(), Mac::Frame::kSecEncMic32, nonce);
 
     aesEcb.SetKey(mKeyManager->GetCurrentMleKey(), 16);
     aesCcm.Init(aesEcb, 16 + 16 + header.GetHeaderLength(), message.GetLength() - (header.GetLength() - 1),
@@ -1156,7 +1156,7 @@ void Mle::HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo
     uint8_t messageTag[4];
     uint8_t messageTagLength;
     uint8_t nonce[13];
-    Mac::Address64 macAddr;
+    Mac::ExtAddress macAddr;
     Crypto::AesEcb aesEcb;
     Crypto::AesCcm aesCcm;
     uint16_t mleOffset;
@@ -1373,7 +1373,7 @@ exit:
 ThreadError Mle::HandleAdvertisement(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
-    Mac::Address64 macAddr;
+    Mac::ExtAddress macAddr;
     bool isNeighbor;
     Neighbor *neighbor;
     LeaderDataTlv leaderData;
@@ -1643,7 +1643,7 @@ ThreadError Mle::HandleChildIdResponse(const Message &message, const Ip6::Messag
     ThreadError error = kThreadError_None;
     LeaderDataTlv leaderData;
     SourceAddressTlv sourceAddress;
-    Address16Tlv address16;
+    Address16Tlv shortAddress;
     NetworkDataTlv networkData;
     RouteTlv route;
     uint8_t numRouters;
@@ -1660,9 +1660,9 @@ ThreadError Mle::HandleChildIdResponse(const Message &message, const Ip6::Messag
     SuccessOrExit(error = Tlv::GetTlv(message, Tlv::kSourceAddress, sizeof(sourceAddress), sourceAddress));
     VerifyOrExit(sourceAddress.IsValid(), error = kThreadError_Parse);
 
-    // Address16
-    SuccessOrExit(error = Tlv::GetTlv(message, Tlv::kAddress16, sizeof(address16), address16));
-    VerifyOrExit(address16.IsValid(), error = kThreadError_Parse);
+    // ShortAddress
+    SuccessOrExit(error = Tlv::GetTlv(message, Tlv::kAddress16, sizeof(shortAddress), shortAddress));
+    VerifyOrExit(shortAddress.IsValid(), error = kThreadError_Parse);
 
     // Network Data
     SuccessOrExit(error = Tlv::GetTlv(message, Tlv::kNetworkData, sizeof(networkData), networkData));
@@ -1689,7 +1689,7 @@ ThreadError Mle::HandleChildIdResponse(const Message &message, const Ip6::Messag
     }
 
     mParent.mValid.mRloc16 = sourceAddress.GetRloc16();
-    SuccessOrExit(error = SetStateChild(address16.GetRloc16()));
+    SuccessOrExit(error = SetStateChild(shortAddress.GetRloc16()));
 
     // Route
     if (Tlv::GetTlv(message, Tlv::kRoute, sizeof(route), route) == kThreadError_None)
@@ -1804,7 +1804,7 @@ Neighbor *Mle::GetNeighbor(uint16_t address)
     return (mParent.mState == Neighbor::kStateValid && mParent.mValid.mRloc16 == address) ? &mParent : NULL;
 }
 
-Neighbor *Mle::GetNeighbor(const Mac::Address64 &address)
+Neighbor *Mle::GetNeighbor(const Mac::ExtAddress &address)
 {
     return (mParent.mState == Neighbor::kStateValid &&
             memcmp(&mParent.mMacAddr, &address, sizeof(mParent.mMacAddr)) == 0) ? &mParent : NULL;
@@ -1817,11 +1817,11 @@ Neighbor *Mle::GetNeighbor(const Mac::Address &address)
     switch (address.mLength)
     {
     case 2:
-        neighbor = GetNeighbor(address.mAddress16);
+        neighbor = GetNeighbor(address.mShortAddress);
         break;
 
     case 8:
-        neighbor = GetNeighbor(address.mAddress64);
+        neighbor = GetNeighbor(address.mExtAddress);
         break;
     }
 
@@ -1848,7 +1848,7 @@ Router *Mle::GetParent()
     return &mParent;
 }
 
-ThreadError Mle::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6::Header &ip6Header)
+ThreadError Mle::CheckReachability(Mac::ShortAddress meshsrc, Mac::ShortAddress meshdst, Ip6::Header &ip6Header)
 {
     ThreadError error = kThreadError_Drop;
     Ip6::Address dst;
