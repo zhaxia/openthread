@@ -408,10 +408,10 @@ exit:
 ThreadError MleRouter::SendAdvertisement()
 {
     ThreadError error = kThreadError_None;
-    Ip6Address destination;
+    Ip6::Address destination;
     Message *message;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandAdvertisement));
     SuccessOrExit(error = AppendSourceAddress(*message));
     SuccessOrExit(error = AppendLeaderData(*message));
@@ -455,11 +455,11 @@ ThreadError MleRouter::SendLinkRequest(Neighbor *neighbor)
     static const uint8_t routerTlvs[] = {Tlv::kLinkMargin};
     ThreadError error = kThreadError_None;
     Message *message;
-    Ip6Address destination;
+    Ip6::Address destination;
 
     memset(&destination, 0, sizeof(destination));
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandLinkRequest));
     SuccessOrExit(error = AppendVersion(*message));
 
@@ -524,7 +524,7 @@ exit:
     return error;
 }
 
-ThreadError MleRouter::HandleLinkRequest(const Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError MleRouter::HandleLinkRequest(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     Neighbor *neighbor = NULL;
@@ -613,7 +613,7 @@ exit:
     return error;
 }
 
-ThreadError MleRouter::SendLinkAccept(const Ip6MessageInfo &messageInfo, Neighbor *neighbor,
+ThreadError MleRouter::SendLinkAccept(const Ip6::MessageInfo &messageInfo, Neighbor *neighbor,
                                       const TlvRequestTlv &tlvRequest, const ChallengeTlv &challenge)
 {
     ThreadError error = kThreadError_None;
@@ -623,7 +623,7 @@ ThreadError MleRouter::SendLinkAccept(const Ip6MessageInfo &messageInfo, Neighbo
     command = (neighbor == NULL || neighbor->mState == Neighbor::kStateValid) ?
               Header::kCommandLinkAccept : Header::kCommandLinkAcceptAndRequest;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, command));
     SuccessOrExit(error = AppendVersion(*message));
     SuccessOrExit(error = AppendSourceAddress(*message));
@@ -690,21 +690,21 @@ exit:
     return error;
 }
 
-ThreadError MleRouter::HandleLinkAccept(const Message &message, const Ip6MessageInfo &messageInfo,
+ThreadError MleRouter::HandleLinkAccept(const Message &message, const Ip6::MessageInfo &messageInfo,
                                         uint32_t keySequence)
 {
     dprintf("Received link accept\n");
     return HandleLinkAccept(message, messageInfo, keySequence, false);
 }
 
-ThreadError MleRouter::HandleLinkAcceptAndRequest(const Message &message, const Ip6MessageInfo &messageInfo,
+ThreadError MleRouter::HandleLinkAcceptAndRequest(const Message &message, const Ip6::MessageInfo &messageInfo,
                                                   uint32_t keySequence)
 {
     dprintf("Received link accept and request\n");
     return HandleLinkAccept(message, messageInfo, keySequence, true);
 }
 
-ThreadError MleRouter::HandleLinkAccept(const Message &message, const Ip6MessageInfo &messageInfo,
+ThreadError MleRouter::HandleLinkAccept(const Message &message, const Ip6::MessageInfo &messageInfo,
                                         uint32_t keySequence, bool request)
 {
     ThreadError error = kThreadError_None;
@@ -884,12 +884,12 @@ exit:
     return error;
 }
 
-ThreadError MleRouter::SendLinkReject(const Ip6Address &destination)
+ThreadError MleRouter::SendLinkReject(const Ip6::Address &destination)
 {
     ThreadError error = kThreadError_None;
     Message *message;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandLinkReject));
     SuccessOrExit(error = AppendStatus(*message, StatusTlv::kError));
 
@@ -907,7 +907,7 @@ exit:
     return error;
 }
 
-ThreadError MleRouter::HandleLinkReject(const Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError MleRouter::HandleLinkReject(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     Mac::Address64 macAddr;
 
@@ -1009,7 +1009,7 @@ exit:
     return error;
 }
 
-ThreadError MleRouter::HandleAdvertisement(const Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError MleRouter::HandleAdvertisement(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     Mac::Address64 macAddr;
@@ -1301,7 +1301,7 @@ void MleRouter::UpdateRoutes(const RouteTlv &route, uint8_t routerId)
 #endif
 }
 
-ThreadError MleRouter::HandleParentRequest(const Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError MleRouter::HandleParentRequest(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     Mac::Address64 macAddr;
@@ -1478,10 +1478,10 @@ exit:
 ThreadError MleRouter::SendParentResponse(Child *child, const ChallengeTlv &challenge)
 {
     ThreadError error = kThreadError_None;
-    Ip6Address destination;
+    Ip6::Address destination;
     Message *message;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandParentResponse));
     SuccessOrExit(error = AppendSourceAddress(*message));
     SuccessOrExit(error = AppendLeaderData(*message));
@@ -1547,7 +1547,7 @@ ThreadError MleRouter::UpdateChildAddresses(const AddressRegistrationTlv &tlv, C
     return kThreadError_None;
 }
 
-ThreadError MleRouter::HandleChildIdRequest(const Message &message, const Ip6MessageInfo &messageInfo,
+ThreadError MleRouter::HandleChildIdRequest(const Message &message, const Ip6::MessageInfo &messageInfo,
                                             uint32_t keySequence)
 {
     ThreadError error = kThreadError_None;
@@ -1675,7 +1675,7 @@ exit:
     return error;
 }
 
-ThreadError MleRouter::HandleChildUpdateRequest(const Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError MleRouter::HandleChildUpdateRequest(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     Mac::Address64 macAddr;
@@ -1761,7 +1761,7 @@ exit:
 ThreadError MleRouter::HandleNetworkDataUpdateRouter()
 {
     static const uint8_t tlvs[] = {Tlv::kLeaderData, Tlv::kNetworkData};
-    Ip6Address destination;
+    Ip6::Address destination;
 
     VerifyOrExit(mDeviceState == kDeviceStateRouter || mDeviceState == kDeviceStateLeader, ;);
 
@@ -1778,10 +1778,10 @@ exit:
 ThreadError MleRouter::SendChildIdResponse(Child *child)
 {
     ThreadError error = kThreadError_None;
-    Ip6Address destination;
+    Ip6::Address destination;
     Message *message;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandChildIdResponse));
     SuccessOrExit(error = AppendSourceAddress(*message));
     SuccessOrExit(error = AppendLeaderData(*message));
@@ -1836,14 +1836,14 @@ exit:
     return kThreadError_None;
 }
 
-ThreadError MleRouter::SendChildUpdateResponse(Child *child, const Ip6MessageInfo &messageInfo,
+ThreadError MleRouter::SendChildUpdateResponse(Child *child, const Ip6::MessageInfo &messageInfo,
                                                const uint8_t *tlvs, uint8_t tlvslength,
                                                const ChallengeTlv *challenge)
 {
     ThreadError error = kThreadError_None;
     Message *message;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandChildUpdateResponse));
 
     for (int i = 0; i < tlvslength; i++)
@@ -2036,7 +2036,7 @@ Neighbor *MleRouter::GetNeighbor(const Mac::Address &address)
     return rval;
 }
 
-Neighbor *MleRouter::GetNeighbor(const Ip6Address &address)
+Neighbor *MleRouter::GetNeighbor(const Ip6::Address &address)
 {
     Mac::Address macaddr;
     Context context;
@@ -2170,7 +2170,7 @@ ThreadError MleRouter::SetLeaderWeight(uint8_t weight)
 ThreadError MleRouter::HandleMacDataRequest(const Child &child)
 {
     static const uint8_t tlvs[] = {Tlv::kLeaderData, Tlv::kNetworkData};
-    Ip6Address destination;
+    Ip6::Address destination;
 
     VerifyOrExit(child.mState == Neighbor::kStateValid && (child.mMode & kModeRxOnWhenIdle) == 0, ;);
 
@@ -2208,9 +2208,9 @@ Router *MleRouter::GetRouters(uint8_t *numRouters)
     return mRouters;
 }
 
-ThreadError MleRouter::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6Header &ip6Header)
+ThreadError MleRouter::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6::Header &ip6Header)
 {
-    Ip6Address destination;
+    Ip6::Address destination;
 
     if (mDeviceState == kDeviceStateChild)
     {
@@ -2220,12 +2220,12 @@ ThreadError MleRouter::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 
     if (meshdst == mMesh->GetAddress16())
     {
         // mesh destination is this device
-        if (mNetif->IsUnicastAddress(*ip6Header.GetDestination()))
+        if (mNetif->IsUnicastAddress(ip6Header.GetDestination()))
         {
             // IPv6 destination is this device
             return kThreadError_None;
         }
-        else if (GetNeighbor(*ip6Header.GetDestination()) != NULL)
+        else if (GetNeighbor(ip6Header.GetDestination()) != NULL)
         {
             // IPv6 destination is an RFD child
             return kThreadError_None;
@@ -2247,7 +2247,8 @@ ThreadError MleRouter::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 
 
     memcpy(&destination, GetMeshLocal16(), 14);
     destination.m16[7] = HostSwap16(meshsrc);
-    Icmp6::SendError(destination, Icmp6Header::kTypeDstUnreach, Icmp6Header::kCodeDstUnreachNoRoute, ip6Header);
+    Ip6::Icmp::SendError(destination, Ip6::IcmpHeader::kTypeDstUnreach, Ip6::IcmpHeader::kCodeDstUnreachNoRoute,
+                         ip6Header);
 
     return kThreadError_Drop;
 }
@@ -2258,7 +2259,7 @@ ThreadError MleRouter::SendAddressSolicit()
     Coap::Header header;
     ThreadMacAddr64Tlv macAddr64Tlv;
     ThreadRlocTlv rlocTlv;
-    Ip6MessageInfo messageInfo;
+    Ip6::MessageInfo messageInfo;
     Message *message;
 
     for (size_t i = 0; i < sizeof(mCoapToken); i++)
@@ -2275,7 +2276,7 @@ ThreadError MleRouter::SendAddressSolicit()
     header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
 
     macAddr64Tlv.Init();
@@ -2306,7 +2307,7 @@ ThreadError MleRouter::SendAddressRelease()
     Coap::Header header;
     ThreadRlocTlv rlocTlv;
     ThreadMacAddr64Tlv macAddr64Tlv;
-    Ip6MessageInfo messageInfo;
+    Ip6::MessageInfo messageInfo;
     Message *message;
 
     for (size_t i = 0; i < sizeof(mCoapToken); i++)
@@ -2323,7 +2324,7 @@ ThreadError MleRouter::SendAddressRelease()
     header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
 
     rlocTlv.Init();
@@ -2348,10 +2349,10 @@ exit:
 void MleRouter::HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo)
 {
     MleRouter *obj = reinterpret_cast<MleRouter *>(context);
-    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6MessageInfo *>(messageInfo));
+    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6::MessageInfo *>(messageInfo));
 }
 
-void MleRouter::HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo)
+void MleRouter::HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo)
 {
     HandleAddressSolicitResponse(message);
 }
@@ -2422,13 +2423,13 @@ exit:
 }
 
 void MleRouter::HandleAddressSolicit(void *context, Coap::Header &header, Message &message,
-                                     const Ip6MessageInfo &messageInfo)
+                                     const Ip6::MessageInfo &messageInfo)
 {
     MleRouter *obj = reinterpret_cast<MleRouter *>(context);
     obj->HandleAddressSolicit(header, message, messageInfo);
 }
 
-void MleRouter::HandleAddressSolicit(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo)
+void MleRouter::HandleAddressSolicit(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     ThreadMacAddr64Tlv macAddr64Tlv;
@@ -2511,7 +2512,7 @@ exit:
 }
 
 void MleRouter::SendAddressSolicitResponse(const Coap::Header &requestHeader, int routerId,
-                                           const Ip6MessageInfo &messageInfo)
+                                           const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     Coap::Header responseHeader;
@@ -2520,7 +2521,7 @@ void MleRouter::SendAddressSolicitResponse(const Coap::Header &requestHeader, in
     ThreadRlocTlv rlocTlv;
     Message *message;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
     responseHeader.Init();
     responseHeader.SetVersion(1);
     responseHeader.SetType(Coap::Header::kTypeAcknowledgment);
@@ -2569,14 +2570,14 @@ exit:
 }
 
 void MleRouter::HandleAddressRelease(void *context, Coap::Header &header, Message &message,
-                                     const Ip6MessageInfo &messageInfo)
+                                     const Ip6::MessageInfo &messageInfo)
 {
     MleRouter *obj = reinterpret_cast<MleRouter *>(context);
     obj->HandleAddressRelease(header, message, messageInfo);
 }
 
 void MleRouter::HandleAddressRelease(Coap::Header &header, Message &message,
-                                     const Ip6MessageInfo &messageInfo)
+                                     const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     ThreadRlocTlv rlocTlv;
@@ -2606,13 +2607,13 @@ exit:
     {}
 }
 
-void MleRouter::SendAddressReleaseResponse(const Coap::Header &requestHeader, const Ip6MessageInfo &messageInfo)
+void MleRouter::SendAddressReleaseResponse(const Coap::Header &requestHeader, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     Coap::Header responseHeader;
     Message *message;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
     responseHeader.Init();
     responseHeader.SetVersion(1);
     responseHeader.SetType(Coap::Header::kTypeAcknowledgment);

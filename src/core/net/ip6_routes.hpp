@@ -27,28 +27,66 @@
 #include <net/ip6_address.hpp>
 
 namespace Thread {
+namespace Ip6 {
 
 /**
- * @addtogroup core-ipv6
+ * @addtogroup core-ip6-ip6
  *
  * @{
  *
  */
 
-struct Ip6Route
+/**
+ * This structure represents an IPv6 route.
+ *
+ */
+struct Route
 {
-    Ip6Address prefix;
-    uint8_t prefixLength;
-    uint8_t interfaceId;
-    struct Ip6Route *next;
+    Address       mPrefix;        ///< The IPv6 prefix.
+    uint8_t       mPrefixLength;  ///< The IPv6 prefix length.
+    uint8_t       mInterfaceId;   ///< The interface identifier.
+    struct Route *mNext;          ///< A pointer to the next IPv6 route.
 };
 
-class Ip6Routes
+/**
+ * This class implements IPv6 route management.
+ *
+ */
+class Routes
 {
 public:
-    static ThreadError Add(Ip6Route &route);
-    static ThreadError Remove(Ip6Route &route);
-    static int Lookup(const Ip6Address &source, const Ip6Address &destination);
+    /**
+     * This static method adds an IPv6 route.
+     *
+     * @param[in]  aRoute  A reference to the IPv6 route.
+     *
+     * @retval kThreadError_None  Successfully added the route.
+     * @retval kThreadError_Busy  The route was already added.
+     *
+     */
+    static ThreadError Add(Route &aRoute);
+
+    /**
+     * This static method removes an IPv6 route.
+     *
+     * @param[in]  aRoute  A reference to the IPv6 route.
+     *
+     * @retval kThreadError_None         Successfully removed the route.
+     * @retval kThreadError_InvalidArgs  The route was not added.
+     *
+     */
+    static ThreadError Remove(Route &aRoute);
+
+    /**
+     * This static method performs source-destination route lookup.
+     *
+     * @param[in]  aSource       The IPv6 source address.
+     * @param[in]  aDestination  The IPv6 destination address.
+     *
+     * @returns The interface identifier for the best route or -1 if no route is available.
+     *
+     */
+    static int Lookup(const Address &aSource, const Address &aDestination);
 };
 
 /**
@@ -56,6 +94,7 @@ public:
  *
  */
 
+}  // namespace Ip6
 }  // namespace Thread
 
 #endif  // NET_IP6_ROUTES_HPP_

@@ -112,10 +112,10 @@ ThreadError MeshForwarder::SetAddress16(Mac::Address16 address16)
     return kThreadError_None;
 }
 
-void MeshForwarder::HandleResolved(const Ip6Address &eid)
+void MeshForwarder::HandleResolved(const Ip6::Address &eid)
 {
     Message *cur, *next;
-    Ip6Address ip6Dst;
+    Ip6::Address ip6Dst;
 
     for (cur = mResolvingQueue.GetHead(); cur; cur = next)
     {
@@ -126,7 +126,7 @@ void MeshForwarder::HandleResolved(const Ip6Address &eid)
             continue;
         }
 
-        cur->Read(Ip6Header::GetDestinationOffset(), sizeof(ip6Dst), &ip6Dst);
+        cur->Read(Ip6::Header::GetDestinationOffset(), sizeof(ip6Dst), &ip6Dst);
 
         if (memcmp(&ip6Dst, &eid, sizeof(ip6Dst)) == 0)
         {
@@ -179,7 +179,7 @@ ThreadError MeshForwarder::SendMessage(Message &message)
 {
     ThreadError error = kThreadError_None;
     Neighbor *neighbor;
-    Ip6Header ip6Header;
+    Ip6::Header ip6Header;
     uint8_t numChildren;
     Child *children;
     MeshHeader meshHeader;
@@ -189,9 +189,9 @@ ThreadError MeshForwarder::SendMessage(Message &message)
     case Message::kTypeIp6:
         message.Read(0, sizeof(ip6Header), &ip6Header);
 
-        if (!memcmp(ip6Header.GetDestination(), mMle->GetLinkLocalAllThreadNodesAddress(),
-                    sizeof(*ip6Header.GetDestination())) ||
-            !memcmp(ip6Header.GetDestination(), mMle->GetRealmLocalAllThreadNodesAddress(), sizeof(*ip6Header.GetDestination())))
+        if (!memcmp(&ip6Header.GetDestination(), mMle->GetLinkLocalAllThreadNodesAddress(),
+                    sizeof(ip6Header.GetDestination())) ||
+            !memcmp(&ip6Header.GetDestination(), mMle->GetRealmLocalAllThreadNodesAddress(), sizeof(ip6Header.GetDestination())))
         {
             // schedule direct transmission
             message.SetDirectTransmission();
@@ -207,7 +207,7 @@ ThreadError MeshForwarder::SendMessage(Message &message)
                 }
             }
         }
-        else if ((neighbor = mMle->GetNeighbor(*ip6Header.GetDestination())) != NULL &&
+        else if ((neighbor = mMle->GetNeighbor(ip6Header.GetDestination())) != NULL &&
                  (neighbor->mMode & Mle::kModeRxOnWhenIdle) == 0)
         {
             // destined for a sleepy child
@@ -251,10 +251,10 @@ exit:
     return error;
 }
 
-void MeshForwarder::MoveToResolving(const Ip6Address &destination)
+void MeshForwarder::MoveToResolving(const Ip6::Address &destination)
 {
     Message *cur, *next;
-    Ip6Address ip6Dst;
+    Ip6::Address ip6Dst;
 
     for (cur = mSendQueue.GetHead(); cur; cur = next)
     {
@@ -265,7 +265,7 @@ void MeshForwarder::MoveToResolving(const Ip6Address &destination)
             continue;
         }
 
-        cur->Read(Ip6Header::GetDestinationOffset(), sizeof(ip6Dst), &ip6Dst);
+        cur->Read(Ip6::Header::GetDestinationOffset(), sizeof(ip6Dst), &ip6Dst);
 
         if (memcmp(&ip6Dst, &destination, sizeof(ip6Dst)) == 0)
         {
@@ -279,7 +279,7 @@ Message *MeshForwarder::GetDirectTransmission()
 {
     Message *curMessage, *nextMessage;
     ThreadError error = kThreadError_None;
-    Ip6Address ip6Dst;
+    Ip6::Address ip6Dst;
 
     for (curMessage = mSendQueue.GetHead(); curMessage; curMessage = nextMessage)
     {
@@ -310,7 +310,7 @@ Message *MeshForwarder::GetDirectTransmission()
             ExitNow();
 
         case kThreadError_LeaseQuery:
-            curMessage->Read(Ip6Header::GetDestinationOffset(), sizeof(ip6Dst), &ip6Dst);
+            curMessage->Read(Ip6::Header::GetDestinationOffset(), sizeof(ip6Dst), &ip6Dst);
             MoveToResolving(ip6Dst);
             continue;
 
@@ -335,7 +335,7 @@ Message *MeshForwarder::GetIndirectTransmission(const Child &child)
 {
     Message *message = NULL;
     int childIndex = mMle->GetChildIndex(child);
-    Ip6Header ip6Header;
+    Ip6::Header ip6Header;
     MeshHeader meshHeader;
 
     for (message = mSendQueue.GetHead(); message; message = message->GetNext())
@@ -354,11 +354,11 @@ Message *MeshForwarder::GetIndirectTransmission(const Child &child)
         message->Read(0, sizeof(ip6Header), &ip6Header);
 
         mAddMeshHeader = false;
-        GetMacSourceAddress(*ip6Header.GetSource(), mMacsrc);
+        GetMacSourceAddress(ip6Header.GetSource(), mMacsrc);
 
-        if (ip6Header.GetDestination()->IsLinkLocal() || ip6Header.GetDestination()->IsMulticast())
+        if (ip6Header.GetDestination().IsLinkLocal() || ip6Header.GetDestination().IsMulticast())
         {
-            GetMacDestinationAddress(*ip6Header.GetDestination(), mMacdst);
+            GetMacDestinationAddress(ip6Header.GetDestination(), mMacdst);
         }
         else
         {
@@ -422,17 +422,17 @@ exit:
 ThreadError MeshForwarder::UpdateIp6Route(Message &message)
 {
     ThreadError error = kThreadError_None;
-    Ip6Header ip6Header;
+    Ip6::Header ip6Header;
     Neighbor *neighbor;
 
     mAddMeshHeader = false;
 
     message.Read(0, sizeof(ip6Header), &ip6Header);
 
-    if (ip6Header.GetDestination()->IsLinkLocal() || ip6Header.GetDestination()->IsMulticast())
+    if (ip6Header.GetDestination().IsLinkLocal() || ip6Header.GetDestination().IsMulticast())
     {
-        GetMacDestinationAddress(*ip6Header.GetDestination(), mMacdst);
-        GetMacSourceAddress(*ip6Header.GetSource(), mMacsrc);
+        GetMacDestinationAddress(ip6Header.GetDestination(), mMacdst);
+        GetMacSourceAddress(ip6Header.GetSource(), mMacsrc);
     }
     else if (mMle->GetDeviceState() != Mle::kDeviceStateDetached)
     {
@@ -440,21 +440,21 @@ ThreadError MeshForwarder::UpdateIp6Route(Message &message)
         if (mMle->GetDeviceMode() & Mle::kModeFFD)
         {
             // FFD - peform full routing
-            if (mMle->IsRoutingLocator(*ip6Header.GetDestination()))
+            if (mMle->IsRoutingLocator(ip6Header.GetDestination()))
             {
-                mMeshdst = HostSwap16(ip6Header.GetDestination()->m16[7]);
+                mMeshdst = HostSwap16(ip6Header.GetDestination().m16[7]);
             }
-            else if ((neighbor = mMle->GetNeighbor(*ip6Header.GetDestination())) != NULL)
+            else if ((neighbor = mMle->GetNeighbor(ip6Header.GetDestination())) != NULL)
             {
                 mMeshdst = neighbor->mValid.mRloc16;
             }
-            else if (mNetworkData->IsOnMesh(*ip6Header.GetDestination()))
+            else if (mNetworkData->IsOnMesh(ip6Header.GetDestination()))
             {
-                SuccessOrExit(error = mAddressResolver->Resolve(*ip6Header.GetDestination(), mMeshdst));
+                SuccessOrExit(error = mAddressResolver->Resolve(ip6Header.GetDestination(), mMeshdst));
             }
             else
             {
-                mNetworkData->RouteLookup(*ip6Header.GetSource(), *ip6Header.GetDestination(), NULL, &mMeshdst);
+                mNetworkData->RouteLookup(ip6Header.GetSource(), ip6Header.GetDestination(), NULL, &mMeshdst);
                 dprintf("found external route = %04x\n", mMeshdst);
                 assert(mMeshdst != Mac::kShortAddrInvalid);
             }
@@ -473,9 +473,9 @@ ThreadError MeshForwarder::UpdateIp6Route(Message &message)
             mMacdst.mLength = 2;
             mMacdst.mAddress16 = mMeshdst;
 
-            if (mNetif->IsUnicastAddress(*ip6Header.GetSource()))
+            if (mNetif->IsUnicastAddress(ip6Header.GetSource()))
             {
-                GetMacSourceAddress(*ip6Header.GetSource(), mMacsrc);
+                GetMacSourceAddress(ip6Header.GetSource(), mMacsrc);
             }
             else
             {
@@ -562,7 +562,7 @@ void MeshForwarder::HandlePollTimer()
     mPollTimer.Start(mPollPeriod);
 }
 
-ThreadError MeshForwarder::GetMacSourceAddress(const Ip6Address &ipaddr, Mac::Address &macaddr)
+ThreadError MeshForwarder::GetMacSourceAddress(const Ip6::Address &ipaddr, Mac::Address &macaddr)
 {
     assert(!ipaddr.IsMulticast());
 
@@ -579,7 +579,7 @@ ThreadError MeshForwarder::GetMacSourceAddress(const Ip6Address &ipaddr, Mac::Ad
     return kThreadError_None;
 }
 
-ThreadError MeshForwarder::GetMacDestinationAddress(const Ip6Address &ipaddr, Mac::Address &macaddr)
+ThreadError MeshForwarder::GetMacDestinationAddress(const Ip6::Address &ipaddr, Mac::Address &macaddr)
 {
     if (ipaddr.IsMulticast())
     {
@@ -737,8 +737,8 @@ ThreadError MeshForwarder::SendFragment(Message &message, Mac::Frame &frame)
     uint16_t fcf;
     FragmentHeader *fragmentHeader;
     MeshHeader *meshHeader;
-    Ip6Header ip6Header;
-    UdpHeader udpHeader;
+    Ip6::Header ip6Header;
+    Ip6::UdpHeader udpHeader;
     uint8_t *payload;
     int headerLength;
     int payloadLength;
@@ -773,7 +773,7 @@ ThreadError MeshForwarder::SendFragment(Message &message, Mac::Frame &frame)
 
     message.Read(0, sizeof(ip6Header), &ip6Header);
 
-    if (ip6Header.GetNextHeader() == kProtoUdp)
+    if (ip6Header.GetNextHeader() == Ip6::kProtoUdp)
     {
         message.Read(sizeof(ip6Header), sizeof(udpHeader), &udpHeader);
 
@@ -970,7 +970,7 @@ void MeshForwarder::HandleReceivedFrame(Mac::Frame &frame, ThreadError error)
     Mac::Address macsrc;
     uint8_t *payload;
     uint8_t payloadLength;
-    Ip6Address destination;
+    Ip6::Address destination;
     uint8_t commandId;
 
 #if 0
@@ -1113,7 +1113,7 @@ ThreadError MeshForwarder::CheckReachability(uint8_t *frame, uint8_t frameLength
                                              const Mac::Address &meshsrc, const Mac::Address &meshdst)
 {
     ThreadError error = kThreadError_None;
-    Ip6Header ip6Header;
+    Ip6::Header ip6Header;
 
     // skip mesh header
     frame += 5;
@@ -1158,8 +1158,8 @@ void MeshForwarder::HandleFragment(uint8_t *frame, uint8_t frameLength,
         frameLength -= headerLength;
 
         VerifyOrExit(message->SetLength(datagramLength) == kThreadError_None, Message::Free(*message));
-        datagramLength = HostSwap16(datagramLength - sizeof(Ip6Header));
-        message->Write(Ip6Header::GetPayloadLengthOffset(), sizeof(datagramLength), &datagramLength);
+        datagramLength = HostSwap16(datagramLength - sizeof(Ip6::Header));
+        message->Write(Ip6::Header::GetPayloadLengthOffset(), sizeof(datagramLength), &datagramLength);
         message->SetDatagramTag(datagramTag);
         message->SetTimeout(kReassemblyTimeout);
 
@@ -1196,7 +1196,7 @@ void MeshForwarder::HandleFragment(uint8_t *frame, uint8_t frameLength,
     VerifyOrExit(message->GetOffset() >= message->GetLength(), ;);
 
     mReassemblyList.Dequeue(*message);
-    Ip6::HandleDatagram(*message, mNetif, mNetif->GetInterfaceId(), &messageInfo, false);
+    Ip6::Ip6::HandleDatagram(*message, mNetif, mNetif->GetInterfaceId(), &messageInfo, false);
 
 exit:
     {}
@@ -1253,11 +1253,11 @@ void MeshForwarder::HandleLowpanHC(uint8_t *frame, uint8_t frameLength,
 
     SuccessOrExit(error = message->SetLength(message->GetLength() + frameLength));
 
-    ip6PayloadLength = HostSwap16(message->GetLength() - sizeof(Ip6Header));
-    message->Write(Ip6Header::GetPayloadLengthOffset(), sizeof(ip6PayloadLength), &ip6PayloadLength);
+    ip6PayloadLength = HostSwap16(message->GetLength() - sizeof(Ip6::Header));
+    message->Write(Ip6::Header::GetPayloadLengthOffset(), sizeof(ip6PayloadLength), &ip6PayloadLength);
 
     message->Write(message->GetOffset(), frameLength, frame);
-    Ip6::HandleDatagram(*message, mNetif, mNetif->GetInterfaceId(), &messageInfo, false);
+    Ip6::Ip6::HandleDatagram(*message, mNetif, mNetif->GetInterfaceId(), &messageInfo, false);
 
 exit:
 

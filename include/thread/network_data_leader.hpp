@@ -59,11 +59,11 @@ public:
     uint32_t GetContextIdReuseDelay() const;
     ThreadError SetContextIdReuseDelay(uint32_t delay);
 
-    ThreadError GetContext(const Ip6Address &address, Context &context);
+    ThreadError GetContext(const Ip6::Address &address, Context &context);
     ThreadError GetContext(uint8_t contextId, Context &context);
 
-    bool IsOnMesh(const Ip6Address &address);
-    ThreadError RouteLookup(const Ip6Address &source, const Ip6Address &destination,
+    bool IsOnMesh(const Ip6::Address &address);
+    ThreadError RouteLookup(const Ip6::Address &source, const Ip6::Address &destination,
                             uint8_t *prefixMatch, uint16_t *rloc);
     ThreadError SetNetworkData(uint8_t version, uint8_t stableVersion, bool stable_only,
                                const uint8_t *data, uint8_t dataLength);
@@ -71,9 +71,9 @@ public:
 
 private:
     static void HandleServerData(void *context, Coap::Header &header, Message &message,
-                                 const Ip6MessageInfo &messageInfo);
-    void HandleServerData(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo);
-    void SendServerDataResponse(const Coap::Header &requestHeader, const Ip6MessageInfo &messageInfo,
+                                 const Ip6::MessageInfo &messageInfo);
+    void HandleServerData(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
+    void SendServerDataResponse(const Coap::Header &requestHeader, const Ip6::MessageInfo &messageInfo,
                                 const uint8_t *tlvs, uint8_t tlvsLength);
 
     static void HandleTimer(void *context);
@@ -100,7 +100,7 @@ private:
     ThreadError RemoveRloc(PrefixTlv &prefix, HasRouteTlv &hasRoute, uint16_t rloc);
     ThreadError RemoveRloc(PrefixTlv &prefix, BorderRouterTlv &borderRouter, uint16_t rloc);
 
-    ThreadError ExternalRouteLookup(uint8_t domainId, const Ip6Address &destination,
+    ThreadError ExternalRouteLookup(uint8_t domainId, const Ip6::Address &destination,
                                     uint8_t *prefixMatch, uint16_t *rloc);
     ThreadError DefaultRouteLookup(PrefixTlv &prefix, uint16_t *rloc);
 
@@ -108,7 +108,7 @@ private:
     uint8_t mStableVersion;
     uint8_t mVersion;
 
-    NetifUnicastAddress mAddresses[4];
+    Ip6::NetifUnicastAddress mAddresses[4];
 
     enum
     {
@@ -122,7 +122,7 @@ private:
     Timer mTimer;
 
     Coap::Server *mCoapServer;
-    Netif *mNetif;
+    Ip6::Netif *mNetif;
     Mle::MleRouter *mMle;
 };
 

@@ -31,17 +31,18 @@
 #include <net/udp6.hpp>
 
 namespace Thread {
+namespace Ip6 {
 
-static Ip6Mpl sIp6Mpl;
+static Mpl sMpl;
 static Ip6::NcpReceivedDatagramHandler sNcpReceivedHandler = NULL;
 static void *sNcpReceivedHandlerContext = NULL;
 
-static ThreadError ForwardMessage(Message &message, Ip6MessageInfo &messageInfo);
+static ThreadError ForwardMessage(Message &message, MessageInfo &messageInfo);
 
 Message *Ip6::NewMessage(uint16_t reserved)
 {
     return Message::New(Message::kTypeIp6,
-                        sizeof(Ip6Header) + sizeof(Ip6HopByHopHeader) + sizeof(Ip6OptionMpl) + reserved);
+                        sizeof(Header) + sizeof(HopByHopHeader) + sizeof(OptionMpl) + reserved);
 }
 
 uint16_t Ip6::UpdateChecksum(uint16_t checksum, uint16_t val)
@@ -62,12 +63,12 @@ uint16_t Ip6::UpdateChecksum(uint16_t checksum, const void *buf, uint16_t len)
     return checksum;
 }
 
-uint16_t Ip6::UpdateChecksum(uint16_t checksum, const Ip6Address &address)
+uint16_t Ip6::UpdateChecksum(uint16_t checksum, const Address &address)
 {
     return Ip6::UpdateChecksum(checksum, address.m8, sizeof(address));
 }
 
-uint16_t Ip6::ComputePseudoheaderChecksum(const Ip6Address &src, const Ip6Address &dst, uint16_t length, IpProto proto)
+uint16_t Ip6::ComputePseudoheaderChecksum(const Address &src, const Address &dst, uint16_t length, IpProto proto)
 {
     uint16_t checksum;
 
@@ -85,72 +86,72 @@ void Ip6::SetNcpReceivedHandler(NcpReceivedDatagramHandler handler, void *contex
     sNcpReceivedHandlerContext = context;
 }
 
-ThreadError AddMplOption(Message &message, Ip6Header &ip6Header, IpProto nextHeader, uint16_t payloadLength)
+ThreadError AddMplOption(Message &message, Header &header, IpProto nextHeader, uint16_t payloadLength)
 {
     ThreadError error = kThreadError_None;
-    Ip6HopByHopHeader hbhHeader;
-    Ip6OptionMpl mplOption;
+    HopByHopHeader hbhHeader;
+    OptionMpl mplOption;
 
     hbhHeader.SetNextHeader(nextHeader);
     hbhHeader.SetLength(0);
-    sIp6Mpl.InitOption(mplOption, HostSwap16(ip6Header.GetSource()->m16[7]));
+    sMpl.InitOption(mplOption, HostSwap16(header.GetSource().m16[7]));
     SuccessOrExit(error = message.Prepend(&mplOption, sizeof(mplOption)));
     SuccessOrExit(error = message.Prepend(&hbhHeader, sizeof(hbhHeader)));
-    ip6Header.SetPayloadLength(sizeof(hbhHeader) + sizeof(mplOption) + payloadLength);
-    ip6Header.SetNextHeader(kProtoHopOpts);
+    header.SetPayloadLength(sizeof(hbhHeader) + sizeof(mplOption) + payloadLength);
+    header.SetNextHeader(kProtoHopOpts);
 exit:
     return error;
 }
 
-ThreadError Ip6::SendDatagram(Message &message, Ip6MessageInfo &messageInfo, IpProto ipproto)
+ThreadError Ip6::SendDatagram(Message &message, MessageInfo &messageInfo, IpProto ipproto)
 {
     ThreadError error = kThreadError_None;
-    Ip6Header ip6Header;
+    Header header;
     uint16_t payloadLength = message.GetLength();
     uint16_t checksum;
     const NetifUnicastAddress *source;
 
-    ip6Header.Init();
-    ip6Header.SetPayloadLength(payloadLength);
-    ip6Header.SetNextHeader(ipproto);
-    ip6Header.SetHopLimit(messageInfo.mHopLimit ? messageInfo.mHopLimit : kDefaultHopLimit);
+    header.Init();
+    header.SetPayloadLength(payloadLength);
+    header.SetNextHeader(ipproto);
+    header.SetHopLimit(messageInfo.mHopLimit ? messageInfo.mHopLimit : kDefaultHopLimit);
 
     if (messageInfo.GetSockAddr().IsUnspecified())
     {
         VerifyOrExit((source = Netif::SelectSourceAddress(messageInfo)) != NULL, error = kThreadError_Error);
-        ip6Header.SetSource(source->GetAddress());
+        header.SetSource(source->GetAddress());
     }
     else
     {
-        ip6Header.SetSource(messageInfo.GetSockAddr());
+        header.SetSource(messageInfo.GetSockAddr());
     }
 
-    ip6Header.SetDestination(messageInfo.GetPeerAddr());
+    header.SetDestination(messageInfo.GetPeerAddr());
 
-    if (ip6Header.GetDestination()->IsLinkLocal() || ip6Header.GetDestination()->IsLinkLocalMulticast())
+    if (header.GetDestination().IsLinkLocal() || header.GetDestination().IsLinkLocalMulticast())
     {
         VerifyOrExit(messageInfo.mInterfaceId != 0, error = kThreadError_Drop);
     }
 
     if (messageInfo.GetPeerAddr().IsRealmLocalMulticast())
     {
-        SuccessOrExit(error = AddMplOption(message, ip6Header, ipproto, payloadLength));
+        SuccessOrExit(error = AddMplOption(message, header, ipproto, payloadLength));
     }
 
-    SuccessOrExit(error = message.Prepend(&ip6Header, sizeof(ip6Header)));
+    SuccessOrExit(error = message.Prepend(&header, sizeof(header)));
 
     // compute checksum
-    checksum = ComputePseudoheaderChecksum(*ip6Header.GetSource(), *ip6Header.GetDestination(),
+    checksum = ComputePseudoheaderChecksum(header.GetSource(), header.GetDestination(),
                                            payloadLength, ipproto);
 
     switch (ipproto)
     {
     case kProtoUdp:
-        SuccessOrExit(error = Udp6::UpdateChecksum(message, checksum));
+        SuccessOrExit(error = Udp::UpdateChecksum(message, checksum));
         break;
 
     case kProtoIcmp6:
-        SuccessOrExit(error = Icmp6::UpdateChecksum(message, checksum));
+        SuccessOrExit(error = Icmp::UpdateChecksum(message, checksum));
         break;
 
     default:
@@ -174,8 +175,8 @@ exit:
 ThreadError HandleOptions(Message &message)
 {
     ThreadError error = kThreadError_None;
-    Ip6HopByHopHeader hbhHeader;
-    Ip6OptionHeader optionHeader;
+    HopByHopHeader hbhHeader;
+    OptionHeader optionHeader;
     uint16_t endOffset;
 
     message.Read(message.GetOffset(), sizeof(hbhHeader), &hbhHeader);
@@ -189,24 +190,24 @@ ThreadError HandleOptions(Message &message)
 
         switch (optionHeader.GetType())
         {
-        case Ip6OptionMpl::kType:
-            SuccessOrExit(error = sIp6Mpl.ProcessOption(message));
+        case OptionMpl::kType:
+            SuccessOrExit(error = sMpl.ProcessOption(message));
             break;
 
         default:
             switch (optionHeader.GetAction())
             {
-            case Ip6OptionHeader::kActionSkip:
+            case OptionHeader::kActionSkip:
                 break;
 
-            case Ip6OptionHeader::kActionDiscard:
+            case OptionHeader::kActionDiscard:
                 ExitNow(error = kThreadError_Drop);
 
-            case Ip6OptionHeader::kActionForceIcmp:
+            case OptionHeader::kActionForceIcmp:
                 // TODO: send icmp error
                 ExitNow(error = kThreadError_Drop);
 
-            case Ip6OptionHeader::kActionIcmp:
+            case OptionHeader::kActionIcmp:
                 // TODO: send icmp error
                 ExitNow(error = kThreadError_Drop);
 
@@ -225,7 +226,7 @@ exit:
 ThreadError HandleFragment(Message &message)
 {
     ThreadError error = kThreadError_None;
-    Ip6FragmentHeader fragmentHeader;
+    FragmentHeader fragmentHeader;
 
     message.Read(message.GetOffset(), sizeof(fragmentHeader), &fragmentHeader);
 
@@ -241,7 +242,7 @@ exit:
 ThreadError HandleExtensionHeaders(Message &message, uint8_t &nextHeader, bool receive)
 {
     ThreadError error = kThreadError_None;
-    Ip6ExtensionHeader extensionHeader;
+    ExtensionHeader extensionHeader;
 
     while (receive == true || nextHeader == kProtoHopOpts)
     {
@@ -279,17 +280,17 @@ exit:
     return error;
 }
 
-ThreadError HandlePayload(Message &message, Ip6MessageInfo &messageInfo, uint8_t ipproto)
+ThreadError HandlePayload(Message &message, MessageInfo &messageInfo, uint8_t ipproto)
 {
     ThreadError error = kThreadError_None;
 
     switch (ipproto)
     {
     case kProtoUdp:
-        ExitNow(error = Udp6::HandleMessage(message, messageInfo));
+        ExitNow(error = Udp::HandleMessage(message, messageInfo));
 
     case kProtoIcmp6:
-        ExitNow(error = Icmp6::HandleMessage(message, messageInfo));
+        ExitNow(error = Icmp::HandleMessage(message, messageInfo));
     }
 
 exit:
@@ -300,8 +301,8 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, uint8_t interfac
                                 bool fromNcpHost)
 {
     ThreadError error = kThreadError_Drop;
-    Ip6MessageInfo messageInfo;
-    Ip6Header ip6Header;
+    MessageInfo messageInfo;
+    Header header;
     uint16_t payloadLength;
     bool receive = false;
     bool forward = false;
@@ -315,33 +316,33 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, uint8_t interfac
 #endif
 
     // check message length
-    VerifyOrExit(message.GetLength() >= sizeof(ip6Header), ;);
-    message.Read(0, sizeof(ip6Header), &ip6Header);
-    payloadLength = ip6Header.GetPayloadLength();
+    VerifyOrExit(message.GetLength() >= sizeof(header), ;);
+    message.Read(0, sizeof(header), &header);
+    payloadLength = header.GetPayloadLength();
 
     // check Version
-    VerifyOrExit(ip6Header.IsVersion6(), ;);
+    VerifyOrExit(header.IsVersion6(), ;);
 
     // check Payload Length
-    VerifyOrExit(sizeof(ip6Header) + payloadLength == message.GetLength() &&
-                 sizeof(ip6Header) + payloadLength <= Ip6::kMaxDatagramLength, ;);
+    VerifyOrExit(sizeof(header) + payloadLength == message.GetLength() &&
+                 sizeof(header) + payloadLength <= Ip6::kMaxDatagramLength, ;);
 
     memset(&messageInfo, 0, sizeof(messageInfo));
-    messageInfo.GetPeerAddr() = *ip6Header.GetSource();
-    messageInfo.GetSockAddr() = *ip6Header.GetDestination();
+    messageInfo.GetPeerAddr() = header.GetSource();
+    messageInfo.GetSockAddr() = header.GetDestination();
     messageInfo.mInterfaceId = interfaceId;
-    messageInfo.mHopLimit = ip6Header.GetHopLimit();
+    messageInfo.mHopLimit = header.GetHopLimit();
     messageInfo.mLinkInfo = linkMessageInfo;
 
     // determine destination of packet
-    if (ip6Header.GetDestination()->IsMulticast())
+    if (header.GetDestination().IsMulticast())
     {
-        if (netif != NULL && netif->IsMulticastSubscribed(*ip6Header.GetDestination()))
+        if (netif != NULL && netif->IsMulticastSubscribed(header.GetDestination()))
         {
             receive = true;
         }
 
-        if (ip6Header.GetDestination()->GetScope() > Ip6Address::kLinkLocalScope)
+        if (header.GetDestination().GetScope() > Address::kLinkLocalScope)
         {
             forward = true;
         }
@@ -352,11 +353,11 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, uint8_t interfac
     }
     else
     {
-        if (Netif::IsUnicastAddress(*ip6Header.GetDestination()))
+        if (Netif::IsUnicastAddress(header.GetDestination()))
         {
             receive = true;
         }
-        else if (!ip6Header.GetDestination()->IsLinkLocal())
+        else if (!header.GetDestination().IsLinkLocal())
         {
             forward = true;
         }
@@ -366,10 +367,10 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, uint8_t interfac
         }
     }
 
-    message.SetOffset(sizeof(ip6Header));
+    message.SetOffset(sizeof(header));
 
     // process IPv6 Extension Headers
-    nextHeader = ip6Header.GetNextHeader();
+    nextHeader = header.GetNextHeader();
     SuccessOrExit(HandleExtensionHeaders(message, nextHeader, receive));
 
     // process IPv6 Payload
@@ -388,17 +389,17 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, uint8_t interfac
     {
         if (netif != NULL)
         {
-            ip6Header.SetHopLimit(ip6Header.GetHopLimit() - 1);
+            header.SetHopLimit(header.GetHopLimit() - 1);
         }
 
-        if (ip6Header.GetHopLimit() == 0)
+        if (header.GetHopLimit() == 0)
         {
             // send time exceeded
         }
         else
         {
-            hopLimit = ip6Header.GetHopLimit();
-            message.Write(Ip6Header::GetHopLimitOffset(), Ip6Header::GetHopLimitSize(), &hopLimit);
+            hopLimit = header.GetHopLimit();
+            message.Write(Header::GetHopLimitOffset(), Header::GetHopLimitSize(), &hopLimit);
             SuccessOrExit(ForwardMessage(message, messageInfo));
             ExitNow(error = kThreadError_None);
         }
@@ -414,7 +415,7 @@ exit:
     return kThreadError_None;
 }
 
-ThreadError ForwardMessage(Message &message, Ip6MessageInfo &messageInfo)
+ThreadError ForwardMessage(Message &message, MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     int interfaceId;
@@ -435,7 +436,7 @@ ThreadError ForwardMessage(Message &message, Ip6MessageInfo &messageInfo)
         // on-link global address
         ;
     }
-    else if ((interfaceId = Ip6Routes::Lookup(messageInfo.GetPeerAddr(), messageInfo.GetSockAddr())) > 0)
+    else if ((interfaceId = Routes::Lookup(messageInfo.GetPeerAddr(), messageInfo.GetSockAddr())) > 0)
     {
         // route
         ;
@@ -454,4 +455,5 @@ exit:
     return error;
 }
 
+}  // namespace Ip6
 }  // namespace Thread

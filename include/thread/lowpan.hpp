@@ -66,21 +66,21 @@ public:
     explicit Lowpan(ThreadNetif &netif);
     int Compress(Message &message, const Mac::Address &macsrc, const Mac::Address &macdst, uint8_t *buf);
     int CompressExtensionHeader(Message &message, uint8_t *buf, uint8_t &nextHeader);
-    int CompressSourceIid(const Mac::Address &macaddr, const Ip6Address &ipaddr, const Context &context,
+    int CompressSourceIid(const Mac::Address &macaddr, const Ip6::Address &ipaddr, const Context &context,
                           uint16_t &hcCtl, uint8_t *buf);
-    int CompressDestinationIid(const Mac::Address &macaddr, const Ip6Address &ipaddr, const Context &context,
+    int CompressDestinationIid(const Mac::Address &macaddr, const Ip6::Address &ipaddr, const Context &context,
                                uint16_t &hcCtl, uint8_t *buf);
-    int CompressMulticast(const Ip6Address &ipaddr, uint16_t &hcCtl, uint8_t *buf);
+    int CompressMulticast(const Ip6::Address &ipaddr, uint16_t &hcCtl, uint8_t *buf);
 
     int CompressUdp(Message &message, uint8_t *buf);
 
     int Decompress(Message &message, const Mac::Address &macsrc, const Mac::Address &macdst,
                    const uint8_t *buf, uint16_t bufLen, uint16_t datagramLen);
-    int DecompressBaseHeader(Ip6Header &header, const Mac::Address &macsrc, const Mac::Address &macdst,
+    int DecompressBaseHeader(Ip6::Header &header, const Mac::Address &macsrc, const Mac::Address &macdst,
                              const uint8_t *buf);
     int DecompressExtensionHeader(Message &message, const uint8_t *buf, uint16_t bufLength);
     int DecompressUdpHeader(Message &message, const uint8_t *buf, uint16_t bufLength, uint16_t datagramLength);
-    ThreadError DispatchToNextHeader(uint8_t dispatch, IpProto &nextHeader);
+    ThreadError DispatchToNextHeader(uint8_t dispatch, Ip6::IpProto &nextHeader);
 
 private:
     enum

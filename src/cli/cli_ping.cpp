@@ -32,7 +32,7 @@ static const char kName[] = "ping";
 
 Ping::Ping(Server &server):
     Command(server),
-    mIcmp6Echo(&HandleEchoResponse, this)
+    mIcmpEcho(&HandleEchoResponse, this)
 {
 }
 
@@ -61,7 +61,7 @@ void Ping::EchoRequest()
         buf[i] = i;
     }
 
-    mIcmp6Echo.SendEchoRequest(mSockAddr, buf, mLength);
+    mIcmpEcho.SendEchoRequest(mSockAddr, buf, mLength);
 }
 
 void Ping::Run(int argc, char *argv[], Server &server)
@@ -71,7 +71,7 @@ void Ping::Run(int argc, char *argv[], Server &server)
     char *end = cur + sizeof(buf);
     char *endptr;
 
-    Netif *netif;
+    Ip6::Netif *netif;
 
     mServer = &server;
     mLength = 0;
@@ -86,7 +86,7 @@ void Ping::Run(int argc, char *argv[], Server &server)
         else if (strcmp(argv[i], "-I") == 0)
         {
             VerifyOrExit(++i < argc, ;);
-            VerifyOrExit((netif = Netif::GetNetifByName(argv[i])) != NULL, ;);
+            VerifyOrExit((netif = Ip6::Netif::GetNetifByName(argv[i])) != NULL, ;);
             mSockAddr.mScopeId = netif->GetInterfaceId();
         }
         else if (strcmp(argv[i], "-s") == 0)
@@ -110,19 +110,19 @@ exit:
     server.Output(buf, cur - buf);
 }
 
-void Ping::HandleEchoResponse(void *context, Message &message, const Ip6MessageInfo &messageInfo)
+void Ping::HandleEchoResponse(void *context, Message &message, const Ip6::MessageInfo &messageInfo)
 {
     Ping *obj = reinterpret_cast<Ping *>(context);
     obj->HandleEchoResponse(message, messageInfo);
 }
 
-void Ping::HandleEchoResponse(Message &message, const Ip6MessageInfo &messageInfo)
+void Ping::HandleEchoResponse(Message &message, const Ip6::MessageInfo &messageInfo)
 {
     char buf[256];
     char *cur = buf;
     char *end = cur + sizeof(buf);
-    Icmp6Header icmp6Header;
-    Netif *netif;
+    Ip6::IcmpHeader icmp6Header;
+    Ip6::Netif *netif;
 
     message.Read(message.GetOffset(), sizeof(icmp6Header), &icmp6Header);
 
@@ -132,7 +132,7 @@ void Ping::HandleEchoResponse(Message &message, const Ip6MessageInfo &messageInf
     messageInfo.GetPeerAddr().ToString(cur, end - cur);
     cur += strlen(cur);
 
-    netif = Netif::GetNetifById(messageInfo.mInterfaceId);
+    netif = Ip6::Netif::GetNetifById(messageInfo.mInterfaceId);
     snprintf(cur, end - cur, "%%%s: icmp_seq=%d hlim=%d",
              netif->GetName(), icmp6Header.GetSequence(), messageInfo.mHopLimit);
     cur += strlen(cur);

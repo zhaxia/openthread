@@ -506,7 +506,7 @@ uint16_t Message::UpdateChecksum(uint16_t aChecksum, uint16_t aOffset, uint16_t 
             bytesToCover = aLength;
         }
 
-        aChecksum = Ip6::UpdateChecksum(aChecksum, GetFirstData() + aOffset, bytesToCover);
+        aChecksum = Ip6::Ip6::UpdateChecksum(aChecksum, GetFirstData() + aOffset, bytesToCover);
 
         aLength -= bytesToCover;
         bytesCovered += bytesToCover;
@@ -541,7 +541,7 @@ uint16_t Message::UpdateChecksum(uint16_t aChecksum, uint16_t aOffset, uint16_t 
             bytesToCover = aLength;
         }
 
-        aChecksum = Ip6::UpdateChecksum(aChecksum, curBuffer->GetData() + aOffset, bytesToCover);
+        aChecksum = Ip6::Ip6::UpdateChecksum(aChecksum, curBuffer->GetData() + aOffset, bytesToCover);
 
         aLength -= bytesToCover;
         bytesCovered += bytesToCover;
@@ -574,7 +574,7 @@ ThreadError MessageQueue::AddToList(int aList, Message &aMessage)
     MessageList *list;
 
     assert(aMessage.GetMessageList(aList).mNext == NULL &&
-	   aMessage.GetMessageList(aList).mPrev == NULL &&
+           aMessage.GetMessageList(aList).mPrev == NULL &&
            aMessage.GetMessageList(aList).mList != NULL);
 
     list = aMessage.GetMessageList(aList).mList;
@@ -603,8 +603,8 @@ ThreadError MessageQueue::RemoveFromList(int aList, Message &aMessage)
     list = aMessage.GetMessageList(aList).mList;
 
     assert(list->mHead == &aMessage ||
-	   aMessage.GetMessageList(aList).mNext != NULL ||
-	   aMessage.GetMessageList(aList).mPrev != NULL);
+           aMessage.GetMessageList(aList).mNext != NULL ||
+           aMessage.GetMessageList(aList).mPrev != NULL);
 
     if (aMessage.GetMessageList(aList).mPrev)
     {

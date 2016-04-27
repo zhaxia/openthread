@@ -126,7 +126,7 @@ exit:
 ThreadError Mle::Start()
 {
     ThreadError error = kThreadError_None;
-    SockAddr sockaddr = {};
+    Ip6::SockAddr sockaddr = {};
 
     // memcpy(&sockaddr.mAddr, &mLinkLocal64.GetAddress(), sizeof(sockaddr.mAddr));
     sockaddr.mPort = kUdpPort;
@@ -349,12 +349,12 @@ const uint16_t Mle::GetRloc16(uint8_t routerId) const
     return static_cast<uint16_t>(routerId) << kRouterIdOffset;
 }
 
-const Ip6Address *Mle::GetLinkLocalAllThreadNodesAddress() const
+const Ip6::Address *Mle::GetLinkLocalAllThreadNodesAddress() const
 {
     return &mLinkLocalAllThreadNodes.GetAddress();
 }
 
-const Ip6Address *Mle::GetRealmLocalAllThreadNodesAddress() const
+const Ip6::Address *Mle::GetRealmLocalAllThreadNodesAddress() const
 {
     return &mRealmLocalAllThreadNodes.GetAddress();
 }
@@ -392,17 +392,17 @@ uint8_t Mle::GetLeaderId() const
     return mLeaderData.GetRouterId();
 }
 
-const Ip6Address *Mle::GetMeshLocal16() const
+const Ip6::Address *Mle::GetMeshLocal16() const
 {
     return &mMeshLocal16.GetAddress();
 }
 
-const Ip6Address *Mle::GetMeshLocal64() const
+const Ip6::Address *Mle::GetMeshLocal64() const
 {
     return &mMeshLocal64.GetAddress();
 }
 
-ThreadError Mle::GetLeaderAddress(Ip6Address &address) const
+ThreadError Mle::GetLeaderAddress(Ip6::Address &address) const
 {
     ThreadError error = kThreadError_None;
 
@@ -654,7 +654,7 @@ ThreadError Mle::AppendIp6Address(Message &message)
     tlv.SetType(Tlv::kAddressRegistration);
 
     // compute size of TLV
-    for (const NetifUnicastAddress *addr = mNetif->GetUnicastAddresses(); addr; addr = addr->GetNext())
+    for (const Ip6::NetifUnicastAddress *addr = mNetif->GetUnicastAddresses(); addr; addr = addr->GetNext())
     {
         if (addr->GetAddress().IsLinkLocal() || addr->GetAddress() == mMeshLocal16.GetAddress())
         {
@@ -677,7 +677,7 @@ ThreadError Mle::AppendIp6Address(Message &message)
     SuccessOrExit(error = message.Append(&tlv, sizeof(tlv)));
 
     // write entries to message
-    for (const NetifUnicastAddress *addr = mNetif->GetUnicastAddresses(); addr; addr = addr->GetNext())
+    for (const Ip6::NetifUnicastAddress *addr = mNetif->GetUnicastAddresses(); addr; addr = addr->GetNext())
     {
         if (addr->GetAddress().IsLinkLocal() || addr->GetAddress() == mMeshLocal16.GetAddress())
         {
@@ -846,14 +846,14 @@ ThreadError Mle::SendParentRequest()
     ThreadError error = kThreadError_None;
     Message *message;
     uint8_t scanMask = 0;
-    Ip6Address destination;
+    Ip6::Address destination;
 
     for (uint8_t i = 0; i < sizeof(mParentRequest.mChallenge); i++)
     {
         mParentRequest.mChallenge[i] = otRandomGet();
     }
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandParentRequest));
     SuccessOrExit(error = AppendMode(*message, mDeviceMode));
     SuccessOrExit(error = AppendChallenge(*message, mParentRequest.mChallenge, sizeof(mParentRequest.mChallenge)));
@@ -911,9 +911,9 @@ ThreadError Mle::SendChildIdRequest()
     ThreadError error = kThreadError_None;
     uint8_t tlvs[] = {Tlv::kAddress16, Tlv::kNetworkData, Tlv::kRoute};
     Message *message;
-    Ip6Address destination;
+    Ip6::Address destination;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandChildIdRequest));
     SuccessOrExit(error = AppendResponse(*message, mChildIdRequest.mChallenge, mChildIdRequest.mChallengeLength));
     SuccessOrExit(error = AppendLinkFrameCounter(*message));
@@ -952,12 +952,12 @@ exit:
     return error;
 }
 
-ThreadError Mle::SendDataRequest(const Ip6Address &destination, const uint8_t *tlvs, uint8_t tlvsLength)
+ThreadError Mle::SendDataRequest(const Ip6::Address &destination, const uint8_t *tlvs, uint8_t tlvsLength)
 {
     ThreadError error = kThreadError_None;
     Message *message;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandDataRequest));
     SuccessOrExit(error = AppendTlvRequest(*message, tlvs, tlvsLength));
 
@@ -975,14 +975,14 @@ exit:
     return error;
 }
 
-ThreadError Mle::SendDataResponse(const Ip6Address &destination, const uint8_t *tlvs, uint8_t tlvsLength)
+ThreadError Mle::SendDataResponse(const Ip6::Address &destination, const uint8_t *tlvs, uint8_t tlvsLength)
 {
     ThreadError error = kThreadError_None;
     Message *message;
     Neighbor *neighbor;
     bool stableOnly;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandDataResponse));
 
     neighbor = mMleRouter->GetNeighbor(destination);
@@ -1019,10 +1019,10 @@ exit:
 ThreadError Mle::SendChildUpdateRequest()
 {
     ThreadError error = kThreadError_None;
-    Ip6Address destination;
+    Ip6::Address destination;
     Message *message;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, ;);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
     SuccessOrExit(error = AppendSecureHeader(*message, Header::kCommandChildUpdateRequest));
     SuccessOrExit(error = AppendMode(*message, mDeviceMode));
 
@@ -1079,7 +1079,7 @@ exit:
     return error;
 }
 
-ThreadError Mle::SendMessage(Message &message, const Ip6Address &destination)
+ThreadError Mle::SendMessage(Message &message, const Ip6::Address &destination)
 {
     ThreadError error = kThreadError_None;
     Header header;
@@ -1091,7 +1091,7 @@ ThreadError Mle::SendMessage(Message &message, const Ip6Address &destination)
     Crypto::AesCcm aesCcm;
     uint8_t buf[64];
     int length;
-    Ip6MessageInfo messageInfo;
+    Ip6::MessageInfo messageInfo;
 
     message.Read(0, sizeof(header), &header);
     header.SetFrameCounter(mKeyManager->GetMleFrameCounter());
@@ -1143,10 +1143,10 @@ exit:
 void Mle::HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo)
 {
     Mle *obj = reinterpret_cast<Mle *>(context);
-    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6MessageInfo *>(messageInfo));
+    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6::MessageInfo *>(messageInfo));
 }
 
-void Mle::HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo)
+void Mle::HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo)
 {
     Header header;
     uint32_t keySequence;
@@ -1370,7 +1370,7 @@ exit:
     {}
 }
 
-ThreadError Mle::HandleAdvertisement(const Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError Mle::HandleAdvertisement(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     Mac::Address64 macAddr;
@@ -1431,7 +1431,7 @@ exit:
     return error;
 }
 
-ThreadError Mle::HandleDataRequest(const Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError Mle::HandleDataRequest(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     TlvRequestTlv tlvRequest;
@@ -1448,7 +1448,7 @@ exit:
     return error;
 }
 
-ThreadError Mle::HandleDataResponse(const Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError Mle::HandleDataResponse(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     LeaderDataTlv leaderData;
@@ -1493,7 +1493,7 @@ uint8_t Mle::LinkMarginToQuality(uint8_t linkMargin)
     }
 }
 
-ThreadError Mle::HandleParentResponse(const Message &message, const Ip6MessageInfo &messageInfo,
+ThreadError Mle::HandleParentResponse(const Message &message, const Ip6::MessageInfo &messageInfo,
                                       uint32_t keySequence)
 {
     ThreadError error = kThreadError_None;
@@ -1638,7 +1638,7 @@ exit:
     return error;
 }
 
-ThreadError Mle::HandleChildIdResponse(const Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError Mle::HandleChildIdResponse(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     LeaderDataTlv leaderData;
@@ -1714,7 +1714,7 @@ exit:
     return error;
 }
 
-ThreadError Mle::HandleChildUpdateResponse(const Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError Mle::HandleChildUpdateResponse(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     StatusTlv status;
@@ -1828,7 +1828,7 @@ Neighbor *Mle::GetNeighbor(const Mac::Address &address)
     return neighbor;
 }
 
-Neighbor *Mle::GetNeighbor(const Ip6Address &address)
+Neighbor *Mle::GetNeighbor(const Ip6::Address &address)
 {
     return NULL;
 }
@@ -1838,7 +1838,7 @@ uint16_t Mle::GetNextHop(uint16_t destination) const
     return (mParent.mState == Neighbor::kStateValid) ? mParent.mValid.mRloc16 : Mac::kShortAddrInvalid;
 }
 
-bool Mle::IsRoutingLocator(const Ip6Address &address) const
+bool Mle::IsRoutingLocator(const Ip6::Address &address) const
 {
     return memcmp(&mMeshLocal16, &address, 14) == 0;
 }
@@ -1848,24 +1848,24 @@ Router *Mle::GetParent()
     return &mParent;
 }
 
-ThreadError Mle::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6Header &ip6Header)
+ThreadError Mle::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6::Header &ip6Header)
 {
     ThreadError error = kThreadError_Drop;
-    Ip6Address dst;
+    Ip6::Address dst;
 
     if (meshdst != GetRloc16())
     {
         ExitNow(error = kThreadError_None);
     }
 
-    if (mNetif->IsUnicastAddress(*ip6Header.GetDestination()))
+    if (mNetif->IsUnicastAddress(ip6Header.GetDestination()))
     {
         ExitNow(error = kThreadError_None);
     }
 
     memcpy(&dst, GetMeshLocal16(), 14);
     dst.m16[7] = HostSwap16(meshsrc);
-    Icmp6::SendError(dst, Icmp6Header::kTypeDstUnreach, Icmp6Header::kCodeDstUnreachNoRoute, ip6Header);
+    Ip6::Icmp::SendError(dst, Ip6::IcmpHeader::kTypeDstUnreach, Ip6::IcmpHeader::kCodeDstUnreachNoRoute, ip6Header);
 
 exit:
     return error;

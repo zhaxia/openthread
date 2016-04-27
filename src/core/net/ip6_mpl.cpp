@@ -24,30 +24,31 @@
 #include <net/ip6_mpl.hpp>
 
 namespace Thread {
+namespace Ip6 {
 
-Ip6Mpl::Ip6Mpl():
+Mpl::Mpl():
     mTimer(&HandleTimer, this)
 {
     memset(mEntries, 0, sizeof(mEntries));
 }
 
-void Ip6Mpl::InitOption(Ip6OptionMpl &option, uint16_t seed)
+void Mpl::InitOption(OptionMpl &aOption, uint16_t aSeed)
 {
-    option.Init();
-    option.SetSeedLength(Ip6OptionMpl::kSeedLength2);
-    option.SetSequence(mSequence++);
-    option.SetSeed(seed);
+    aOption.Init();
+    aOption.SetSeedLength(OptionMpl::kSeedLength2);
+    aOption.SetSequence(mSequence++);
+    aOption.SetSeed(aSeed);
 }
 
-ThreadError Ip6Mpl::ProcessOption(const Message &message)
+ThreadError Mpl::ProcessOption(const Message &aMessage)
 {
     ThreadError error = kThreadError_None;
-    Ip6OptionMpl option;
+    OptionMpl option;
     MplEntry *entry = NULL;
     int8_t diff;
 
-    VerifyOrExit(message.Read(message.GetOffset(), sizeof(option), &option) == sizeof(option) &&
-                 option.GetLength() == sizeof(Ip6OptionMpl) - sizeof(Ip6OptionHeader),
+    VerifyOrExit(aMessage.Read(aMessage.GetOffset(), sizeof(option), &option) == sizeof(option) &&
+                 option.GetLength() == sizeof(OptionMpl) - sizeof(OptionHeader),
                  error = kThreadError_Drop);
 
     for (int i = 0; i < kNumEntries; i++)
@@ -81,13 +82,13 @@ exit:
     return error;
 }
 
-void Ip6Mpl::HandleTimer(void *context)
+void Mpl::HandleTimer(void *aContext)
 {
-    Ip6Mpl *obj = reinterpret_cast<Ip6Mpl *>(context);
+    Mpl *obj = reinterpret_cast<Mpl *>(aContext);
     obj->HandleTimer();
 }
 
-void Ip6Mpl::HandleTimer()
+void Mpl::HandleTimer()
 {
     bool startTimer = false;
 
@@ -106,4 +107,5 @@ void Ip6Mpl::HandleTimer()
     }
 }
 
+}  // namespace Ip6
 }  // namespace Thread

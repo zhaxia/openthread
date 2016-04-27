@@ -93,15 +93,15 @@ bool ThreadNetif::IsUp() const
     return mIsUp;
 }
 
-ThreadError ThreadNetif::GetLinkAddress(LinkAddress &address) const
+ThreadError ThreadNetif::GetLinkAddress(Ip6::LinkAddress &address) const
 {
-    address.mType = LinkAddress::kEui64;
+    address.mType = Ip6::LinkAddress::kEui64;
     address.mLength = 8;
     memcpy(&address.mAddress64, mMac.GetAddress64(), address.mLength);
     return kThreadError_None;
 }
 
-ThreadError ThreadNetif::RouteLookup(const Ip6Address &source, const Ip6Address &destination, uint8_t *prefixMatch)
+ThreadError ThreadNetif::RouteLookup(const Ip6::Address &source, const Ip6::Address &destination, uint8_t *prefixMatch)
 {
     return mNetworkDataLeader.RouteLookup(source, destination, prefixMatch, NULL);
 }

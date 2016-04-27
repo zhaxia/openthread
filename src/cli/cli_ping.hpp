@@ -36,15 +36,15 @@ public:
     void Run(int argc, char *argv[], Server &server) final;
 
 private:
-    static void HandleEchoResponse(void *context, Message &message, const Ip6MessageInfo &messageInfo);
-    void HandleEchoResponse(Message &message, const Ip6MessageInfo &messageInfo);
+    static void HandleEchoResponse(void *context, Message &message, const Ip6::MessageInfo &messageInfo);
+    void HandleEchoResponse(Message &message, const Ip6::MessageInfo &messageInfo);
 
     int PrintUsage(char *buf, uint16_t bufLength);
     void EchoRequest();
 
-    SockAddr mSockAddr;
+    Ip6::SockAddr mSockAddr;
     Server *mServer;
-    Icmp6Echo mIcmp6Echo;
+    Ip6::IcmpEcho mIcmpEcho;
     uint16_t mLength = 0;
 };
 

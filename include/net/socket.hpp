@@ -26,34 +26,36 @@
 #include <net/ip6_address.hpp>
 
 namespace Thread {
+namespace Ip6 {
 
 /**
- * @addtogroup core-ipv6
+ * @addtogroup core-ip6-ip6
  *
  * @{
  *
  */
 
-class Ip6MessageInfo: public otMessageInfo
+class MessageInfo: public otMessageInfo
 {
 public:
-    Ip6Address &GetSockAddr() { return *static_cast<Ip6Address *>(&mSockAddr);}
-    const Ip6Address &GetSockAddr() const { return *static_cast<const Ip6Address *>(&mSockAddr);}
-    Ip6Address &GetPeerAddr() { return *static_cast<Ip6Address *>(&mPeerAddr);}
-    const Ip6Address &GetPeerAddr() const { return *static_cast<const Ip6Address *>(&mPeerAddr);}
+    Address &GetSockAddr() { return *static_cast<Address *>(&mSockAddr);}
+    const Address &GetSockAddr() const { return *static_cast<const Address *>(&mSockAddr);}
+    Address &GetPeerAddr() { return *static_cast<Address *>(&mPeerAddr);}
+    const Address &GetPeerAddr() const { return *static_cast<const Address *>(&mPeerAddr);}
 };
 
 class SockAddr: public otSockAddr
 {
 public:
-    Ip6Address &GetAddress() { return *static_cast<Ip6Address *>(&mAddress); }
-    const Ip6Address &GetAddress() const { return *static_cast<const Ip6Address *>(&mAddress); }
+    Address &GetAddress() { return *static_cast<Address *>(&mAddress); }
+    const Address &GetAddress() const { return *static_cast<const Address *>(&mAddress); }
 };
 
 /**
  * @}
  */
 
+}  // namespace Ip6
 }  // namespace Thread
 
 #endif  // NET_SOCKET_HPP_

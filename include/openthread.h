@@ -928,7 +928,7 @@ typedef void *otMessage;
  *
  * @retval kThreadErrorNone  Successfully freed the message buffer.
  *
- * @sa otNewUdp6Message
+ * @sa otNewUdpMessage
  * @sa otAppendMessage
  * @sa otGetMessageLength
  * @sa otSetMessageLength
@@ -946,7 +946,7 @@ ThreadError otFreeMessage(otMessage aMessage);
  *
  * @returns The message length in bytes.
  *
- * @sa otNewUdp6Message
+ * @sa otNewUdpMessage
  * @sa otFreeMessage
  * @sa otAppendMessage
  * @sa otSetMessageLength
@@ -967,7 +967,7 @@ uint16_t otGetMessageLength(otMessage aMessage);
  * @retval kThreadErrorNone    Successfully set the message length.
  * @retval kThreadErrorNoBufs  No available buffers to grow the message.
  *
- * @sa otNewUdp6Message
+ * @sa otNewUdpMessage
  * @sa otFreeMessage
  * @sa otAppendMessage
  * @sa otGetMessageLength
@@ -985,7 +985,7 @@ ThreadError otSetMessageLength(otMessage aMessage, uint16_t aLength);
  *
  * @returns The message offset value.
  *
- * @sa otNewUdp6Message
+ * @sa otNewUdpMessage
  * @sa otFreeMessage
  * @sa otAppendMessage
  * @sa otGetMessageLength
@@ -1005,7 +1005,7 @@ uint16_t otGetMessageOffset(otMessage aMessage);
  * @retval kThreadErrorNone        Successfully set the message offset.
  * @retval kThreadErrorInvalidArg  The offset is beyond the message length.
  *
- * @sa otNewUdp6Message
+ * @sa otNewUdpMessage
  * @sa otFreeMessage
  * @sa otAppendMessage
  * @sa otGetMessageLength
@@ -1025,7 +1025,7 @@ ThreadError otSetMessageOffset(otMessage aMessage, uint16_t aOffset);
  *
  * @retuns The number of bytes appended.
  *
- * @sa otNewUdp6Message
+ * @sa otNewUdpMessage
  * @sa otFreeMessage
  * @sa otGetMessageLength
  * @sa otSetMessageLength
@@ -1045,7 +1045,7 @@ int otAppendMessage(otMessage aMessage, const void *aBuf, uint16_t aLength);
  *
  * @returns The number of bytes read.
  *
- * @sa otNewUdp6Message
+ * @sa otNewUdpMessage
  * @sa otFreeMessage
  * @sa otAppendMessage
  * @sa otGetMessageLength
@@ -1065,7 +1065,7 @@ int otReadMessage(otMessage aMessage, uint16_t aOffset, void *aBuf, uint16_t aLe
  *
  * @returns The number of bytes written.
  *
- * @sa otNewUdp6Message
+ * @sa otNewUdpMessage
  * @sa otFreeMessage
  * @sa otAppendMessage
  * @sa otGetMessageLength
@@ -1118,19 +1118,19 @@ typedef struct otMessageInfo
 /**
  * This callback allows OpenThread to inform the application of a received UDP message.
  */
-typedef void (*otUdp6Receive)(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
+typedef void (*otUdpReceive)(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
 
 /**
  * This structure represents a UDP socket.
  */
-typedef struct otUdp6Socket
+typedef struct otUdpSocket
 {
     otSockAddr           mSockName;  ///< The local IPv6 socket address.
     otSockAddr           mPeerName;  ///< The peer IPv6 socket address.
-    otUdp6Receive        mHandler;   ///< A function pointer to the application callback.
+    otUdpReceive        mHandler;   ///< A function pointer to the application callback.
     void                *mContext;   ///< A pointer to application-specific context.
-    struct otUdp6Socket *mNext;
-} otUdp6Socket;
+    struct otUdpSocket *mNext;
+} otUdpSocket;
 
 /**
  * Allocate a new message buffer for sending a UDP message.
@@ -1139,7 +1139,7 @@ typedef struct otUdp6Socket
  *
  * @sa otFreeMessage
  */
-otMessage otNewUdp6Message();
+otMessage otNewUdpMessage();
 
 /**
  * Open a UDP/IPv6 socket.
@@ -1151,12 +1151,12 @@ otMessage otNewUdp6Message();
  * @retval kThreadErrorNone  Successfully openned the socket.
  * @retval kThreadErrorBusy  Socket is already openned.
  *
- * @sa otNewUdp6Message
- * @sa otCloseUdp6Socket
- * @sa otBindUdp6Socket
- * @sa otSendUdp6
+ * @sa otNewUdpMessage
+ * @sa otCloseUdpSocket
+ * @sa otBindUdpSocket
+ * @sa otSendUdp
  */
-ThreadError otOpenUdp6Socket(otUdp6Socket *aSocket, otUdp6Receive aCallback, void *aContext);
+ThreadError otOpenUdpSocket(otUdpSocket *aSocket, otUdpReceive aCallback, void *aContext);
 
 /**
  * Close a UDP/IPv6 socket.
@@ -1165,12 +1165,12 @@ ThreadError otOpenUdp6Socket(otUdp6Socket *aSocket, otUdp6Receive aCallback, voi
  *
  * @retval kThreadErrorNone  Successfully closed the socket.
  *
- * @sa otNewUdp6Message
- * @sa otOpenUdp6Socket
- * @sa otBindUdp6Socket
- * @sa otSendUdp6
+ * @sa otNewUdpMessage
+ * @sa otOpenUdpSocket
+ * @sa otBindUdpSocket
+ * @sa otSendUdp
  */
-ThreadError otCloseUdp6Socket(otUdp6Socket *aSocket);
+ThreadError otCloseUdpSocket(otUdpSocket *aSocket);
 
 /**
  * Bind a UDP/IPv6 socket.
@@ -1180,12 +1180,12 @@ ThreadError otCloseUdp6Socket(otUdp6Socket *aSocket);
  *
  * @retval kThreadErrorNone  Bind operation was successful.
  *
- * @sa otNewUdp6Message
- * @sa otOpenUdp6Socket
- * @sa otCloseUdp6Socket
- * @sa otSendUdp6
+ * @sa otNewUdpMessage
+ * @sa otOpenUdpSocket
+ * @sa otCloseUdpSocket
+ * @sa otSendUdp
  */
-ThreadError otBindUdp6Socket(otUdp6Socket *aSocket, otSockAddr *aSockName);
+ThreadError otBindUdpSocket(otUdpSocket *aSocket, otSockAddr *aSockName);
 
 /**
  * Send a UDP/IPv6 message.
@@ -1194,13 +1194,13 @@ ThreadError otBindUdp6Socket(otUdp6Socket *aSocket, otSockAddr *aSockName);
  * @param[in]  aMessage      A pointer to a message buffer.
  * @param[in]  aMessageInfo  A pointer to a message info structure.
  *
- * @sa otNewUdp6Message
- * @sa otOpenUdp6Socket
- * @sa otCloseUdp6Socket
- * @sa otBindUdp6Socket
- * @sa otSendUdp6
+ * @sa otNewUdpMessage
+ * @sa otOpenUdpSocket
+ * @sa otCloseUdpSocket
+ * @sa otBindUdpSocket
+ * @sa otSendUdp
  */
-ThreadError otSendUdp6(otUdp6Socket *socket, otMessage aMessage, const otMessageInfo *aMessageInfo);
+ThreadError otSendUdp(otUdpSocket *socket, otMessage aMessage, const otMessageInfo *aMessageInfo);
 
 /**
  * @}

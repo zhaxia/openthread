@@ -433,8 +433,8 @@ public:
     const uint8_t *GetIid() const { return mIid; }
     void SetIid(const uint8_t *iid) { memcpy(mIid, iid, sizeof(mIid)); }
 
-    const Ip6Address *GetIp6Address() const { return &mIp6Address; }
-    void SetIp6Address(const Ip6Address &address) { mIp6Address = address; }
+    const Ip6::Address *GetIp6Address() const { return &mIp6Address; }
+    void SetIp6Address(const Ip6::Address &address) { mIp6Address = address; }
 
 private:
     enum
@@ -447,7 +447,7 @@ private:
     union
     {
         uint8_t mIid[8];
-        Ip6Address mIp6Address;
+        Ip6::Address mIp6Address;
     };
 } __attribute__((packed));
 

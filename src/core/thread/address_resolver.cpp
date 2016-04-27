@@ -39,7 +39,7 @@ AddressResolver::AddressResolver(ThreadNetif &netif) :
     mAddressError("a/ae", &HandleAddressError, this),
     mAddressQuery("a/aq", &HandleAddressQuery, this),
     mAddressNotification("a/an", &HandleAddressNotification, this),
-    mIcmp6Handler(&HandleDstUnreach, this),
+    mIcmpHandler(&HandleDstUnreach, this),
     mTimer(&HandleTimer, this)
 {
     memset(&mCache, 0, sizeof(mCache));
@@ -53,7 +53,7 @@ AddressResolver::AddressResolver(ThreadNetif &netif) :
     mCoapServer->AddResource(mAddressNotification);
     mCoapMessageId = otRandomGet();
 
-    Icmp6::RegisterCallbacks(mIcmp6Handler);
+    Ip6::Icmp::RegisterCallbacks(mIcmpHandler);
 }
 
 ThreadError AddressResolver::Clear()
@@ -75,7 +75,7 @@ ThreadError AddressResolver::Remove(uint8_t routerId)
     return kThreadError_None;
 }
 
-ThreadError AddressResolver::Resolve(const Ip6Address &dst, Mac::Address16 &rloc)
+ThreadError AddressResolver::Resolve(const Ip6::Address &dst, Mac::Address16 &rloc)
 {
     ThreadError error = kThreadError_None;
     Cache *entry = NULL;
@@ -123,14 +123,14 @@ exit:
     return error;
 }
 
-ThreadError AddressResolver::SendAddressQuery(const Ip6Address &eid)
+ThreadError AddressResolver::SendAddressQuery(const Ip6::Address &eid)
 {
     ThreadError error;
-    SockAddr sockaddr = {};
+    Ip6::SockAddr sockaddr = {};
     Message *message;
     Coap::Header header;
     ThreadTargetTlv targetTlv;
-    Ip6MessageInfo messageInfo;
+    Ip6::MessageInfo messageInfo;
 
     sockaddr.mPort = kCoapUdpPort;
     mSocket.Open(&HandleUdpReceive, this);
@@ -141,7 +141,7 @@ ThreadError AddressResolver::SendAddressQuery(const Ip6Address &eid)
         mCoapToken[i] = otRandomGet();
     }
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
     header.SetVersion(1);
     header.SetType(Coap::Header::kTypeNonConfirmable);
@@ -182,14 +182,14 @@ void AddressResolver::HandleUdpReceive(void *context, otMessage message, const o
 }
 
 void AddressResolver::HandleAddressNotification(void *context, Coap::Header &header, Message &message,
-                                                const Ip6MessageInfo &messageInfo)
+                                                const Ip6::MessageInfo &messageInfo)
 {
     AddressResolver *obj = reinterpret_cast<AddressResolver *>(context);
     obj->HandleAddressNotification(header, message, messageInfo);
 }
 
 void AddressResolver::HandleAddressNotification(Coap::Header &header, Message &message,
-                                                const Ip6MessageInfo &messageInfo)
+                                                const Ip6::MessageInfo &messageInfo)
 {
     ThreadTargetTlv targetTlv;
     ThreadMeshLocalIidTlv mlIidTlv;
@@ -240,14 +240,14 @@ exit:
 }
 
 void AddressResolver::SendAddressNotificationResponse(const Coap::Header &requestHeader,
-                                                      const Ip6MessageInfo &requestInfo)
+                                                      const Ip6::MessageInfo &requestInfo)
 {
     ThreadError error;
     Message *message;
     Coap::Header responseHeader;
-    Ip6MessageInfo responseInfo;
+    Ip6::MessageInfo responseInfo;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
     responseHeader.Init();
     responseHeader.SetVersion(1);
@@ -273,13 +273,13 @@ exit:
 }
 
 ThreadError AddressResolver::SendAddressError(const ThreadTargetTlv &target, const ThreadMeshLocalIidTlv &eid,
-                                              const Ip6Address *destination)
+                                              const Ip6::Address *destination)
 {
     ThreadError error;
     Message *message;
     Coap::Header header;
-    Ip6MessageInfo messageInfo;
-    SockAddr sockaddr = {};
+    Ip6::MessageInfo messageInfo;
+    Ip6::SockAddr sockaddr = {};
 
     sockaddr.mPort = kCoapUdpPort;
     mSocket.Open(&HandleUdpReceive, this);
@@ -290,7 +290,7 @@ ThreadError AddressResolver::SendAddressError(const ThreadTargetTlv &target, con
         mCoapToken[i] = otRandomGet();
     }
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
     header.SetVersion(1);
     header.SetType(Coap::Header::kTypeNonConfirmable);
@@ -334,14 +334,14 @@ exit:
 }
 
 void AddressResolver::HandleAddressError(void *context, Coap::Header &header,
-                                         Message &message, const Ip6MessageInfo &messageInfo)
+                                         Message &message, const Ip6::MessageInfo &messageInfo)
 {
     AddressResolver *obj = reinterpret_cast<AddressResolver *>(context);
     obj->HandleAddressError(header, message, messageInfo);
 }
 
 void AddressResolver::HandleAddressError(Coap::Header &header, Message &message,
-                                         const Ip6MessageInfo &messageInfo)
+                                         const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
     ThreadTargetTlv targetTlv;
@@ -349,7 +349,7 @@ void AddressResolver::HandleAddressError(Coap::Header &header, Message &message,
     Child *children;
     uint8_t numChildren;
     Mac::Address64 macAddr;
-    Ip6Address destination;
+    Ip6::Address destination;
 
     VerifyOrExit(header.GetCode() == Coap::Header::kCodePost, error = kThreadError_Drop);
 
@@ -361,7 +361,7 @@ void AddressResolver::HandleAddressError(Coap::Header &header, Message &message,
     SuccessOrExit(error = ThreadTlv::GetTlv(message, ThreadTlv::kMeshLocalIid, sizeof(mlIidTlv), mlIidTlv));
     VerifyOrExit(mlIidTlv.IsValid(), error = kThreadError_Parse);
 
-    for (const NetifUnicastAddress *address = mNetif->GetUnicastAddresses(); address; address = address->GetNext())
+    for (const Ip6::NetifUnicastAddress *address = mNetif->GetUnicastAddresses(); address; address = address->GetNext())
     {
         if (memcmp(&address->mAddress, targetTlv.GetTarget(), sizeof(address->mAddress)) == 0 &&
             memcmp(mMle->GetMeshLocal64()->m8 + 8, mlIidTlv.GetIid(), 8))
@@ -408,14 +408,14 @@ exit:
 }
 
 void AddressResolver::HandleAddressQuery(void *context, Coap::Header &header, Message &message,
-                                         const Ip6MessageInfo &messageInfo)
+                                         const Ip6::MessageInfo &messageInfo)
 {
     AddressResolver *obj = reinterpret_cast<AddressResolver *>(context);
     obj->HandleAddressQuery(header, message, messageInfo);
 }
 
 void AddressResolver::HandleAddressQuery(Coap::Header &header, Message &message,
-                                         const Ip6MessageInfo &messageInfo)
+                                         const Ip6::MessageInfo &messageInfo)
 {
     ThreadTargetTlv targetTlv;
     ThreadMeshLocalIidTlv mlIidTlv;
@@ -474,15 +474,15 @@ exit:
 void AddressResolver::SendAddressQueryResponse(const ThreadTargetTlv &targetTlv,
                                                const ThreadMeshLocalIidTlv &mlIidTlv,
                                                const ThreadLastTransactionTimeTlv *lastTransactionTimeTlv,
-                                               const Ip6Address &destination)
+                                               const Ip6::Address &destination)
 {
     ThreadError error;
     Message *message;
     Coap::Header header;
     ThreadRlocTlv rlocTlv;
-    Ip6MessageInfo messageInfo;
+    Ip6::MessageInfo messageInfo;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
     header.Init();
     header.SetVersion(1);
@@ -573,25 +573,25 @@ const AddressResolver::Cache *AddressResolver::GetCacheEntries(uint16_t *numEntr
     return mCache;
 }
 
-void AddressResolver::HandleDstUnreach(void *context, Message &message, const Ip6MessageInfo &messageInfo,
-                                       const Icmp6Header &icmp6Header)
+void AddressResolver::HandleDstUnreach(void *context, Message &message, const Ip6::MessageInfo &messageInfo,
+                                       const Ip6::IcmpHeader &icmp6Header)
 {
     AddressResolver *obj = reinterpret_cast<AddressResolver *>(context);
     obj->HandleDstUnreach(message, messageInfo, icmp6Header);
 }
 
-void AddressResolver::HandleDstUnreach(Message &message, const Ip6MessageInfo &messageInfo,
-                                       const Icmp6Header &icmp6Header)
+void AddressResolver::HandleDstUnreach(Message &message, const Ip6::MessageInfo &messageInfo,
+                                       const Ip6::IcmpHeader &icmp6Header)
 {
-    VerifyOrExit(icmp6Header.GetCode() == Icmp6Header::kCodeDstUnreachNoRoute, ;);
+    VerifyOrExit(icmp6Header.GetCode() == Ip6::IcmpHeader::kCodeDstUnreachNoRoute, ;);
 
-    Ip6Header ip6Header;
+    Ip6::Header ip6Header;
     VerifyOrExit(message.Read(message.GetOffset(), sizeof(ip6Header), &ip6Header) == sizeof(ip6Header), ;);
 
     for (int i = 0; i < kCacheEntries; i++)
     {
         if (mCache[i].mState != Cache::kStateInvalid &&
-            memcmp(&mCache[i].mTarget, ip6Header.GetDestination(), sizeof(mCache[i].mTarget)) == 0)
+            memcmp(&mCache[i].mTarget, &ip6Header.GetDestination(), sizeof(mCache[i].mTarget)) == 0)
         {
             mCache[i].mState = Cache::kStateInvalid;
             dprintf("cache entry removed!\n");

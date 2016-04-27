@@ -64,7 +64,7 @@ public:
 
     Mac::Address16 GetAddress16() const;
     ThreadError SetAddress16(Mac::Address16 address16);
-    void HandleResolved(const Ip6Address &eid);
+    void HandleResolved(const Ip6::Address &eid);
 
     bool GetRxOnWhenIdle();
     ThreadError SetRxOnWhenIdle(bool rx_on_when_idle);
@@ -73,8 +73,8 @@ public:
 private:
     ThreadError CheckReachability(uint8_t *frame, uint8_t frameLength,
                                   const Mac::Address &meshsrc, const Mac::Address &meshdst);
-    ThreadError GetMacDestinationAddress(const Ip6Address &ipaddr, Mac::Address &macaddr);
-    ThreadError GetMacSourceAddress(const Ip6Address &ipaddr, Mac::Address &macaddr);
+    ThreadError GetMacDestinationAddress(const Ip6::Address &ipaddr, Mac::Address &macaddr);
+    ThreadError GetMacSourceAddress(const Ip6::Address &ipaddr, Mac::Address &macaddr);
     Message *GetDirectTransmission();
     Message *GetIndirectTransmission(const Child &child);
     void HandleMesh(uint8_t *frame, uint8_t payloadLength,
@@ -84,7 +84,7 @@ private:
     void HandleLowpanHC(uint8_t *frame, uint8_t payloadLength, const Mac::Address &macsrc, const Mac::Address &macdst,
                         const ThreadMessageInfo &messageInfo);
     void HandleDataRequest(const Mac::Address &macsrc);
-    void MoveToResolving(const Ip6Address &destination);
+    void MoveToResolving(const Ip6::Address &destination);
     ThreadError SendPoll(Message &message, Mac::Frame &frame);
     ThreadError SendMesh(Message &message, Mac::Frame &frame);
     ThreadError SendFragment(Message &message, Mac::Frame &frame);
@@ -134,7 +134,7 @@ private:
     bool mEnabled = false;
 
     Lowpan *mLowpan;
-    Netif *mNetif;
+    Ip6::Netif *mNetif;
     AddressResolver *mAddressResolver;
     Mac::Mac *mMac;
     NetworkData::Leader *mNetworkData;

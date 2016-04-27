@@ -255,24 +255,24 @@ public:
     const uint8_t GetRouterId(uint16_t rloc16) const;
     const uint16_t GetRloc16(uint8_t routerId) const;
 
-    const Ip6Address *GetLinkLocalAllThreadNodesAddress() const;
-    const Ip6Address *GetRealmLocalAllThreadNodesAddress() const;
+    const Ip6::Address *GetLinkLocalAllThreadNodesAddress() const;
+    const Ip6::Address *GetRealmLocalAllThreadNodesAddress() const;
 
     Router *GetParent();
 
-    bool IsRoutingLocator(const Ip6Address &address) const;
+    bool IsRoutingLocator(const Ip6::Address &address) const;
 
     uint32_t GetTimeout() const;
     ThreadError SetTimeout(uint32_t timeout);
 
     uint16_t GetRloc16() const;
-    const Ip6Address *GetMeshLocal16() const;
-    const Ip6Address *GetMeshLocal64() const;
+    const Ip6::Address *GetMeshLocal16() const;
+    const Ip6::Address *GetMeshLocal64() const;
 
     ThreadError HandleNetworkDataUpdate();
 
     uint8_t GetLeaderId() const;
-    ThreadError GetLeaderAddress(Ip6Address &address) const;
+    ThreadError GetLeaderAddress(Ip6::Address &address) const;
     const LeaderDataTlv *GetLeaderDataTlv();
 
 protected:
@@ -293,47 +293,47 @@ protected:
     ThreadError AppendLinkMargin(Message &message, uint8_t linkMargin);
     ThreadError AppendVersion(Message &message);
     ThreadError AppendIp6Address(Message &message);
-    ThreadError CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6Header &ip6Header);
+    ThreadError CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6::Header &ip6Header);
     void GenerateNonce(const Mac::Address64 &macAddr, uint32_t frameCounter, uint8_t securityLevel, uint8_t *nonce);
     Neighbor *GetNeighbor(const Mac::Address &address);
     Neighbor *GetNeighbor(Mac::Address16 address);
     Neighbor *GetNeighbor(const Mac::Address64 &address);
-    Neighbor *GetNeighbor(const Ip6Address &address);
+    Neighbor *GetNeighbor(const Ip6::Address &address);
     Mac::Address16 GetNextHop(Mac::Address16 destination) const;
     static void HandleUnicastAddressesChanged(void *context);
     void HandleUnicastAddressesChanged();
     static void HandleParentRequestTimer(void *context);
     void HandleParentRequestTimer();
     static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
-    void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
-    ThreadError HandleAdvertisement(const Message &message, const Ip6MessageInfo &messageInfo);
-    ThreadError HandleDataRequest(const Message &message, const Ip6MessageInfo &messageInfo);
-    ThreadError HandleDataResponse(const Message &message, const Ip6MessageInfo &messageInfo);
-    ThreadError HandleParentResponse(const Message &message, const Ip6MessageInfo &messageInfo,
+    void HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo);
+    ThreadError HandleAdvertisement(const Message &message, const Ip6::MessageInfo &messageInfo);
+    ThreadError HandleDataRequest(const Message &message, const Ip6::MessageInfo &messageInfo);
+    ThreadError HandleDataResponse(const Message &message, const Ip6::MessageInfo &messageInfo);
+    ThreadError HandleParentResponse(const Message &message, const Ip6::MessageInfo &messageInfo,
                                      uint32_t keySequence);
-    ThreadError HandleChildIdResponse(const Message &message, const Ip6MessageInfo &messageInfo);
-    ThreadError HandleChildUpdateResponse(const Message &message, const Ip6MessageInfo &messageInfo);
+    ThreadError HandleChildIdResponse(const Message &message, const Ip6::MessageInfo &messageInfo);
+    ThreadError HandleChildUpdateResponse(const Message &message, const Ip6::MessageInfo &messageInfo);
     uint8_t LinkMarginToQuality(uint8_t linkMargin);
     ThreadError SendParentRequest();
     ThreadError SendChildIdRequest();
-    ThreadError SendDataRequest(const Ip6Address &destination, const uint8_t *tlvs, uint8_t tlvsLength);
-    ThreadError SendDataResponse(const Ip6Address &destination, const uint8_t *tlvs, uint8_t tlvsLength);
+    ThreadError SendDataRequest(const Ip6::Address &destination, const uint8_t *tlvs, uint8_t tlvsLength);
+    ThreadError SendDataResponse(const Ip6::Address &destination, const uint8_t *tlvs, uint8_t tlvsLength);
     ThreadError SendChildUpdateRequest();
-    ThreadError SendMessage(Message &message, const Ip6Address &destination);
+    ThreadError SendMessage(Message &message, const Ip6::Address &destination);
     ThreadError SetRloc16(uint16_t rloc16);
     ThreadError SetStateDetached();
     ThreadError SetStateChild(uint16_t rloc16);
 
-    NetifHandler mNetifHandler;
+    Ip6::NetifHandler mNetifHandler;
     Timer mParentRequestTimer;
 
-    Udp6Socket mSocket;
-    NetifUnicastAddress mLinkLocal16;
-    NetifUnicastAddress mLinkLocal64;
-    NetifUnicastAddress mMeshLocal64;
-    NetifUnicastAddress mMeshLocal16;
-    NetifMulticastAddress mLinkLocalAllThreadNodes;
-    NetifMulticastAddress mRealmLocalAllThreadNodes;
+    Ip6::UdpSocket mSocket;
+    Ip6::NetifUnicastAddress mLinkLocal16;
+    Ip6::NetifUnicastAddress mLinkLocal64;
+    Ip6::NetifUnicastAddress mMeshLocal64;
+    Ip6::NetifUnicastAddress mMeshLocal16;
+    Ip6::NetifMulticastAddress mLinkLocalAllThreadNodes;
+    Ip6::NetifMulticastAddress mRealmLocalAllThreadNodes;
 
     AddressResolver *mAddressResolver;
     KeyManager *mKeyManager;

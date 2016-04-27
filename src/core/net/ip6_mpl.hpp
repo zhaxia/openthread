@@ -28,15 +28,23 @@
 #include <net/ip6.hpp>
 
 namespace Thread {
+namespace Ip6 {
 
 /**
- * @addtogroup core-ipv6
+ * @addtogroup core-ip6-mpl
+ *
+ * @brief
+ *   This module includes definitions for MPL.
  *
  * @{
  *
  */
 
-class Ip6OptionMpl: public Ip6OptionHeader
+/**
+ * This class implements MPL header generation and parsing.
+ *
+ */
+class OptionMpl: public OptionHeader
 {
 public:
     enum
@@ -44,30 +52,92 @@ public:
         kType = 0x6d,    /* 01 1 01101 */
     };
 
+    /**
+     * This method initializes the MPL header.
+     *
+     */
     void Init() {
-        Ip6OptionHeader::SetType(kType);
-        Ip6OptionHeader::SetLength(sizeof(*this) - sizeof(Ip6OptionHeader));
+        OptionHeader::SetType(kType);
+        OptionHeader::SetLength(sizeof(*this) - sizeof(OptionHeader));
     }
 
+    /**
+     * MPL Seed lengths.
+     */
     enum SeedLength
     {
-        kSeedLength0 = 0 << 6,
-        kSeedLength2 = 1 << 6,
-        kSeedLength8 = 2 << 6,
-        kSeedLength16 = 3 << 6,
+        kSeedLength0  = 0 << 6,  ///< 0-byte MPL Seed Length.
+        kSeedLength2  = 1 << 6,  ///< 2-byte MPL Seed Length.
+        kSeedLength8  = 2 << 6,  ///< 8-byte MPL Seed Length.
+        kSeedLength16 = 3 << 6,  ///< 16-byte MPL Seed Length.
     };
-    SeedLength GetSeedLength() { return static_cast<SeedLength>(mControl & kSeedLengthMask); }
-    void SetSeedLength(SeedLength seedLength) { mControl = (mControl & ~kSeedLengthMask) | seedLength; }
 
+    /**
+     * This method returns the MPL Seed Length value.
+     *
+     * @returns The MPL Seed Length value.
+     *
+     */
+    SeedLength GetSeedLength() { return static_cast<SeedLength>(mControl & kSeedLengthMask); }
+
+    /**
+     * This method sets the MPL Seed Length value.
+     *
+     * @param[in]  aSeedLength  The MPL Seed Length.
+     *
+     */
+    void SetSeedLength(SeedLength aSeedLength) { mControl = (mControl & ~kSeedLengthMask) | aSeedLength; }
+
+    /**
+     * This method indicates whether or not the MPL M flag is set.
+     *
+     * @retval TRUE   If the MPL M flag is set.
+     * @retval FALSE  If the MPL M flag is not set.
+     *
+     */
     bool IsMaxFlagSet() { return mControl & kMaxFlag; }
+
+    /**
+     * This method clears the MPL M flag.
+     *
+     */
     void ClearMaxFlag() { mControl &= ~kMaxFlag; }
+
+    /**
+     * This method sets the MPL M flag.
+     *
+     */
     void SetMaxFlag() { mControl |= kMaxFlag; }
 
+    /**
+     * This method returns the MPL Sequence value.
+     *
+     * @returns The MPL Sequence value.
+     *
+     */
     uint8_t GetSequence() const { return mSequence; }
-    void SetSequence(uint8_t sequence) { mSequence = sequence; }
 
+    /**
+     * This method sets the MPL Sequence value.
+     *
+     * @param[in]  aSequence  The MPL Sequence value.
+     */
+    void SetSequence(uint8_t aSequence) { mSequence = aSequence; }
+
+    /**
+     * This method returns the MPL Seed value.
+     *
+     * @returns The MPL Seed value.
+     *
+     */
     uint16_t GetSeed() const { return HostSwap16(mSeed); }
-    void SetSeed(uint16_t seed) { mSeed = HostSwap16(seed); }
+
+    /**
+     * This method sets the MPL Seed value.
+     *
+     * @param[in]  aSeed  The MPL Seed value.
+     */
+    void SetSeed(uint16_t aSeed) { mSeed = HostSwap16(aSeed); }
 
 private:
     enum
@@ -75,17 +145,43 @@ private:
         kSeedLengthMask = 3 << 6,
         kMaxFlag = 1 << 5,
     };
-    uint8_t mControl;
-    uint8_t mSequence;
+    uint8_t  mControl;
+    uint8_t  mSequence;
     uint16_t mSeed;
 } __attribute__((packed));
 
-class Ip6Mpl
+/**
+ * This class implements MPL message processing.
+ *
+ */
+class Mpl
 {
 public:
-    Ip6Mpl();
-    void InitOption(Ip6OptionMpl &option, uint16_t seed);
-    ThreadError ProcessOption(const Message &message);
+    /**
+     * This constructor initializes the MPL object.
+     *
+     */
+    Mpl(void);
+
+    /**
+     * This method initializes the MPL option.
+     *
+     * @param[in]  aOption  A reference to the MPL header to initialize.
+     * @param[in]  aSeed    The MPL Seed value to use.
+     *
+     */
+    void InitOption(OptionMpl &aOption, uint16_t aSeed);
+
+    /**
+     * This method processes an MPL option.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     *
+     * @retval kThreadError_None  Successfully processed the MPL option.
+     * @retval kThreadError_Drop  The MPL message is a duplicate and should be dropped.
+     *
+     */
+    ThreadError ProcessOption(const Message &aMessage);
 
 private:
     enum
@@ -114,6 +210,7 @@ private:
  *
  */
 
+}  // namespace Ip6
 }  // namespace Thread
 
 #endif  // NET_IP6_MPL_HPP_

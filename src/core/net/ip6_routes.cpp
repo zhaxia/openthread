@@ -25,66 +25,67 @@
 #include <common/message.hpp>
 
 namespace Thread {
+namespace Ip6 {
 
-static Ip6Route *sRoutes = NULL;
+static Route *sRoutes = NULL;
 
-ThreadError Ip6Routes::Add(Ip6Route &route)
+ThreadError Routes::Add(Route &aRoute)
 {
     ThreadError error = kThreadError_None;
 
-    for (Ip6Route *cur = sRoutes; cur; cur = cur->next)
+    for (Route *cur = sRoutes; cur; cur = cur->mNext)
     {
-        VerifyOrExit(cur != &route, error = kThreadError_Busy);
+        VerifyOrExit(cur != &aRoute, error = kThreadError_Busy);
     }
 
-    route.next = sRoutes;
-    sRoutes = &route;
+    aRoute.mNext = sRoutes;
+    sRoutes = &aRoute;
 
 exit:
     return error;
 }
 
-ThreadError Ip6Routes::Remove(Ip6Route &route)
+ThreadError Routes::Remove(Route &aRoute)
 {
-    if (&route == sRoutes)
+    if (&aRoute == sRoutes)
     {
-        sRoutes = route.next;
+        sRoutes = aRoute.mNext;
     }
     else
     {
-        for (Ip6Route *cur = sRoutes; cur; cur = cur->next)
+        for (Route *cur = sRoutes; cur; cur = cur->mNext)
         {
-            if (cur->next == &route)
+            if (cur->mNext == &aRoute)
             {
-                cur->next = route.next;
+                cur->mNext = aRoute.mNext;
                 break;
             }
         }
     }
 
-    route.next = NULL;
+    aRoute.mNext = NULL;
 
     return kThreadError_None;
 }
 
-int Ip6Routes::Lookup(const Ip6Address &source, const Ip6Address &destination)
+int Routes::Lookup(const Address &aSource, const Address &aDestination)
 {
     int maxPrefixMatch = -1;
     uint8_t prefixMatch;
     int rval = -1;
 
-    for (Ip6Route *cur = sRoutes; cur; cur = cur->next)
+    for (Route *cur = sRoutes; cur; cur = cur->mNext)
     {
-        prefixMatch = cur->prefix.PrefixMatch(destination);
+        prefixMatch = cur->mPrefix.PrefixMatch(aDestination);
 
-        if (prefixMatch < cur->prefixLength)
+        if (prefixMatch < cur->mPrefixLength)
         {
             continue;
         }
 
-        if (prefixMatch > cur->prefixLength)
+        if (prefixMatch > cur->mPrefixLength)
         {
-            prefixMatch = cur->prefixLength;
+            prefixMatch = cur->mPrefixLength;
         }
 
         if (maxPrefixMatch > prefixMatch)
@@ -93,12 +94,12 @@ int Ip6Routes::Lookup(const Ip6Address &source, const Ip6Address &destination)
         }
 
         maxPrefixMatch = prefixMatch;
-        rval = cur->interfaceId;
+        rval = cur->mInterfaceId;
     }
 
     for (Netif *netif = Netif::GetNetifList(); netif; netif = netif->GetNext())
     {
-        if (netif->RouteLookup(source, destination, &prefixMatch) == kThreadError_None &&
+        if (netif->RouteLookup(aSource, aDestination, &prefixMatch) == kThreadError_None &&
             prefixMatch > maxPrefixMatch)
         {
             maxPrefixMatch = prefixMatch;
@@ -109,4 +110,5 @@ int Ip6Routes::Lookup(const Ip6Address &source, const Ip6Address &destination)
     return rval;
 }
 
+}  // namespace Ip6
 }  // namespace Thread

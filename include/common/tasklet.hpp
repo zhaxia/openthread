@@ -38,7 +38,7 @@ namespace Thread {
 
 /**
  * This class is used to represent a tasklet.
- * 
+ *
  */
 class Tasklet
 {
