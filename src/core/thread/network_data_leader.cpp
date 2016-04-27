@@ -529,9 +529,9 @@ void Leader::HandleServerData(Coap::Header &header, Message &message,
 
     message.Read(message.GetOffset(), tlvsLength, tlvs);
     rloc16 = HostSwap16(messageInfo.mPeerAddr.m16[7]);
-    RegisterNetworkData(rloc16, tlvs, tlvsLength);
 
     SendServerDataResponse(header, messageInfo, tlvs, tlvsLength);
+    RegisterNetworkData(rloc16, tlvs, tlvsLength);
 }
 
 void Leader::SendServerDataResponse(const Coap::Header &requestHeader, const Ip6::MessageInfo &messageInfo,
