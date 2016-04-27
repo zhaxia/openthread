@@ -30,15 +30,16 @@
 using Thread::Encoding::BigEndian::HostSwap16;
 
 namespace Thread {
+namespace Ip6 {
 
-static Udp6Socket *sSockets = NULL;
+static UdpSocket *sSockets = NULL;
 static uint16_t sEphemeralPort = 49152;
 
-ThreadError Udp6Socket::Open(otUdp6Receive handler, void *context)
+ThreadError UdpSocket::Open(otUdpReceive aHandler, void *aContext)
 {
     ThreadError error = kThreadError_None;
 
-    for (Udp6Socket *cur = sSockets; cur; cur = cur->GetNext())
+    for (UdpSocket *cur = sSockets; cur; cur = cur->GetNext())
     {
         if (cur == this)
         {
@@ -48,8 +49,8 @@ ThreadError Udp6Socket::Open(otUdp6Receive handler, void *context)
 
     memset(&mSockName, 0, sizeof(mSockName));
     memset(&mPeerName, 0, sizeof(mPeerName));
-    mHandler = handler;
-    mContext = context;
+    mHandler = aHandler;
+    mContext = aContext;
 
     SetNext(sSockets);
     sSockets = this;
@@ -58,13 +59,13 @@ exit:
     return error;
 }
 
-ThreadError Udp6Socket::Bind(const SockAddr &sockname)
+ThreadError UdpSocket::Bind(const SockAddr &aSockAddr)
 {
-    mSockName = sockname;
+    mSockName = aSockAddr;
     return kThreadError_None;
 }
 
-ThreadError Udp6Socket::Close()
+ThreadError UdpSocket::Close(void)
 {
     if (sSockets == this)
     {
@@ -72,7 +73,7 @@ ThreadError Udp6Socket::Close()
     }
     else
     {
-        for (Udp6Socket *socket = sSockets; socket; socket = socket->GetNext())
+        for (UdpSocket *socket = sSockets; socket; socket = socket->GetNext())
         {
             if (socket->GetNext() == this)
             {
@@ -89,13 +90,13 @@ ThreadError Udp6Socket::Close()
     return kThreadError_None;
 }
 
-ThreadError Udp6Socket::SendTo(Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo)
 {
     ThreadError error = kThreadError_None;
-    Ip6MessageInfo messageInfoLocal;
+    MessageInfo messageInfoLocal;
     UdpHeader udpHeader;
 
-    messageInfoLocal = messageInfo;
+    messageInfoLocal = aMessageInfo;
 
     if (messageInfoLocal.GetSockAddr().IsUnspecified())
     {
@@ -109,47 +110,47 @@ ThreadError Udp6Socket::SendTo(Message &message, const Ip6MessageInfo &messageIn
 
     udpHeader.SetSourcePort(GetSockName().mPort);
     udpHeader.SetDestinationPort(messageInfoLocal.mPeerPort);
-    udpHeader.SetLength(sizeof(udpHeader) + message.GetLength());
+    udpHeader.SetLength(sizeof(udpHeader) + aMessage.GetLength());
     udpHeader.SetChecksum(0);
 
-    SuccessOrExit(error = message.Prepend(&udpHeader, sizeof(udpHeader)));
-    message.SetOffset(0);
-    SuccessOrExit(error = Ip6::SendDatagram(message, messageInfoLocal, kProtoUdp));
+    SuccessOrExit(error = aMessage.Prepend(&udpHeader, sizeof(udpHeader)));
+    aMessage.SetOffset(0);
+    SuccessOrExit(error = Ip6::SendDatagram(aMessage, messageInfoLocal, kProtoUdp));
 
 exit:
     return error;
 }
 
-Message *Udp6::NewMessage(uint16_t reserved)
+Message *Udp::NewMessage(uint16_t aReserved)
 {
-    return Ip6::NewMessage(sizeof(UdpHeader) + reserved);
+    return Ip6::NewMessage(sizeof(UdpHeader) + aReserved);
 }
 
-ThreadError Udp6::HandleMessage(Message &message, Ip6MessageInfo &messageInfo)
+ThreadError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
 {
     ThreadError error = kThreadError_None;
     UdpHeader udpHeader;
     uint16_t payloadLength;
     uint16_t checksum;
 
-    payloadLength = message.GetLength() - message.GetOffset();
+    payloadLength = aMessage.GetLength() - aMessage.GetOffset();
 
     // check length
     VerifyOrExit(payloadLength >= sizeof(UdpHeader), error = kThreadError_Parse);
 
     // verify checksum
-    checksum = Ip6::ComputePseudoheaderChecksum(messageInfo.GetPeerAddr(), messageInfo.GetSockAddr(),
+    checksum = Ip6::ComputePseudoheaderChecksum(aMessageInfo.GetPeerAddr(), aMessageInfo.GetSockAddr(),
                                                 payloadLength, kProtoUdp);
-    checksum = message.UpdateChecksum(checksum, message.GetOffset(), payloadLength);
+    checksum = aMessage.UpdateChecksum(checksum, aMessage.GetOffset(), payloadLength);
     VerifyOrExit(checksum == 0xffff, ;);
 
-    message.Read(message.GetOffset(), sizeof(udpHeader), &udpHeader);
-    message.MoveOffset(sizeof(udpHeader));
-    messageInfo.mPeerPort = udpHeader.GetSourcePort();
-    messageInfo.mSockPort = udpHeader.GetDestinationPort();
+    aMessage.Read(aMessage.GetOffset(), sizeof(udpHeader), &udpHeader);
+    aMessage.MoveOffset(sizeof(udpHeader));
+    aMessageInfo.mPeerPort = udpHeader.GetSourcePort();
+    aMessageInfo.mSockPort = udpHeader.GetDestinationPort();
 
     // find socket
-    for (Udp6Socket *socket = sSockets; socket; socket = socket->GetNext())
+    for (UdpSocket *socket = sSockets; socket; socket = socket->GetNext())
     {
         if (socket->GetSockName().mPort != udpHeader.GetDestinationPort())
         {
@@ -157,14 +158,14 @@ ThreadError Udp6::HandleMessage(Message &message, Ip6MessageInfo &messageInfo)
         }
 
         if (socket->GetSockName().mScopeId != 0 &&
-            socket->GetSockName().mScopeId != messageInfo.mInterfaceId)
+            socket->GetSockName().mScopeId != aMessageInfo.mInterfaceId)
         {
             continue;
         }
 
-        if (!messageInfo.GetSockAddr().IsMulticast() &&
+        if (!aMessageInfo.GetSockAddr().IsMulticast() &&
             !socket->GetSockName().GetAddress().IsUnspecified() &&
-            socket->GetSockName().GetAddress() != messageInfo.GetSockAddr())
+            socket->GetSockName().GetAddress() != aMessageInfo.GetSockAddr())
         {
             continue;
         }
@@ -178,31 +179,32 @@ ThreadError Udp6::HandleMessage(Message &message, Ip6MessageInfo &messageInfo)
             }
 
             if (!socket->GetPeerName().GetAddress().IsUnspecified() &&
-                socket->GetPeerName().GetAddress() != messageInfo.GetPeerAddr())
+                socket->GetPeerName().GetAddress() != aMessageInfo.GetPeerAddr())
             {
                 continue;
             }
         }
 
-        socket->HandleUdpReceive(message, messageInfo);
+        socket->HandleUdpReceive(aMessage, aMessageInfo);
     }
 
 exit:
     return error;
 }
 
-ThreadError Udp6::UpdateChecksum(Message &message, uint16_t checksum)
+ThreadError Udp::UpdateChecksum(Message &aMessage, uint16_t aChecksum)
 {
-    checksum = message.UpdateChecksum(checksum, message.GetOffset(), message.GetLength() - message.GetOffset());
+    aChecksum = aMessage.UpdateChecksum(aChecksum, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
 
-    if (checksum != 0xffff)
+    if (aChecksum != 0xffff)
     {
-        checksum = ~checksum;
+        aChecksum = ~aChecksum;
     }
 
-    checksum = HostSwap16(checksum);
-    message.Write(message.GetOffset() + UdpHeader::GetChecksumOffset(), sizeof(checksum), &checksum);
+    aChecksum = HostSwap16(aChecksum);
+    aMessage.Write(aMessage.GetOffset() + UdpHeader::GetChecksumOffset(), sizeof(aChecksum), &aChecksum);
     return kThreadError_None;
 }
 
+}  // namespace Ip6
 }  // namespace Thread

@@ -42,7 +42,7 @@ class Resource
 
 public:
     typedef void (*CoapMessageHandler)(void *context, Header &header, Message &message,
-                                       const Ip6MessageInfo &messageInfo);
+                                       const Ip6::MessageInfo &messageInfo);
     Resource(const char *uriPath, CoapMessageHandler handler, void *context) {
         mUriPath = uriPath;
         mHandler = handler;
@@ -63,13 +63,13 @@ public:
     ThreadError Start();
     ThreadError Stop();
     ThreadError AddResource(Resource &resource);
-    ThreadError SendMessage(Message &message, const Ip6MessageInfo &messageInfo);
+    ThreadError SendMessage(Message &message, const Ip6::MessageInfo &messageInfo);
 
 private:
     static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
-    void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo);
 
-    Udp6Socket mSocket;
+    Ip6::UdpSocket mSocket;
     uint16_t mPort;
     Resource *mResources = NULL;
 };

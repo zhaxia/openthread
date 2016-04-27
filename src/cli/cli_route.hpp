@@ -40,7 +40,7 @@ private:
     int PrintUsage(char *buf, uint16_t bufLength);
     int AddRoute(int argc, char *argv[], char *buf, uint16_t bufLength);
 
-    Ip6Route mRoute;
+    Ip6::Route mRoute;
 };
 
 }  // namespace Cli

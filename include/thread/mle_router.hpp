@@ -84,13 +84,13 @@ public:
     Neighbor *GetNeighbor(uint16_t address);
     Neighbor *GetNeighbor(const Mac::Address64 &address);
     Neighbor *GetNeighbor(const Mac::Address &address);
-    Neighbor *GetNeighbor(const Ip6Address &address);
+    Neighbor *GetNeighbor(const Ip6::Address &address);
     Router *GetRouters(uint8_t *numRouters);
 
     ThreadError HandleMacDataRequest(const Child &child);
-    ThreadError CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6Header &ip6Header);
+    ThreadError CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6::Header &ip6Header);
 
-    ThreadError SendLinkReject(const Ip6Address &destination);
+    ThreadError SendLinkReject(const Ip6::Address &destination);
 
 private:
     ThreadError AppendConnectivity(Message &message);
@@ -99,33 +99,33 @@ private:
     uint8_t GetLinkCost(uint8_t routerId);
     ThreadError HandleDetachStart();
     ThreadError HandleChildStart(otMleAttachFilter filter);
-    ThreadError HandleLinkRequest(const Message &message, const Ip6MessageInfo &messageInfo);
-    ThreadError HandleLinkAccept(const Message &message, const Ip6MessageInfo &messageInfo, uint32_t keySequence);
-    ThreadError HandleLinkAccept(const Message &message, const Ip6MessageInfo &messageInfo, uint32_t keySequence,
+    ThreadError HandleLinkRequest(const Message &message, const Ip6::MessageInfo &messageInfo);
+    ThreadError HandleLinkAccept(const Message &message, const Ip6::MessageInfo &messageInfo, uint32_t keySequence);
+    ThreadError HandleLinkAccept(const Message &message, const Ip6::MessageInfo &messageInfo, uint32_t keySequence,
                                  bool request);
-    ThreadError HandleLinkAcceptAndRequest(const Message &message, const Ip6MessageInfo &messageInfo,
+    ThreadError HandleLinkAcceptAndRequest(const Message &message, const Ip6::MessageInfo &messageInfo,
                                            uint32_t keySequence);
-    ThreadError HandleLinkReject(const Message &message, const Ip6MessageInfo &messageInfo);
-    ThreadError HandleAdvertisement(const Message &message, const Ip6MessageInfo &messageInfo);
-    ThreadError HandleParentRequest(const Message &message, const Ip6MessageInfo &messageInfo);
-    ThreadError HandleChildIdRequest(const Message &message, const Ip6MessageInfo &messageInfo,
+    ThreadError HandleLinkReject(const Message &message, const Ip6::MessageInfo &messageInfo);
+    ThreadError HandleAdvertisement(const Message &message, const Ip6::MessageInfo &messageInfo);
+    ThreadError HandleParentRequest(const Message &message, const Ip6::MessageInfo &messageInfo);
+    ThreadError HandleChildIdRequest(const Message &message, const Ip6::MessageInfo &messageInfo,
                                      uint32_t keySequence);
-    ThreadError HandleChildUpdateRequest(const Message &message, const Ip6MessageInfo &messageInfo);
+    ThreadError HandleChildUpdateRequest(const Message &message, const Ip6::MessageInfo &messageInfo);
     ThreadError HandleNetworkDataUpdateRouter();
 
     ThreadError ProcessRouteTlv(const RouteTlv &route);
     ThreadError ResetAdvertiseInterval();
     ThreadError SendAddressSolicit();
     ThreadError SendAddressRelease();
-    void SendAddressSolicitResponse(const Coap::Header &request, int routerId, const Ip6MessageInfo &messageInfo);
-    void SendAddressReleaseResponse(const Coap::Header &requestHeader, const Ip6MessageInfo &messageInfo);
+    void SendAddressSolicitResponse(const Coap::Header &request, int routerId, const Ip6::MessageInfo &messageInfo);
+    void SendAddressReleaseResponse(const Coap::Header &requestHeader, const Ip6::MessageInfo &messageInfo);
     ThreadError SendAdvertisement();
     ThreadError SendLinkRequest(Neighbor *neighbor);
-    ThreadError SendLinkAccept(const Ip6MessageInfo &messageInfo, Neighbor *neighbor,
+    ThreadError SendLinkAccept(const Ip6::MessageInfo &messageInfo, Neighbor *neighbor,
                                const TlvRequestTlv &tlv_request, const ChallengeTlv &challenge);
     ThreadError SendParentResponse(Child *child, const ChallengeTlv &challenge);
     ThreadError SendChildIdResponse(Child *child);
-    ThreadError SendChildUpdateResponse(Child *child, const Ip6MessageInfo &messageInfo,
+    ThreadError SendChildUpdateResponse(Child *child, const Ip6::MessageInfo &messageInfo,
                                         const uint8_t *tlvs, uint8_t tlvsLength,  const ChallengeTlv *challenge);
     ThreadError SetStateRouter(uint16_t rloc);
     ThreadError SetStateLeader(uint16_t rloc);
@@ -133,14 +133,14 @@ private:
     void UpdateRoutes(const RouteTlv &tlv, uint8_t routerId);
 
     static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
-    void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo);
     void HandleAddressSolicitResponse(Message &message);
     static void HandleAddressRelease(void *context, Coap::Header &header, Message &message,
-                                     const Ip6MessageInfo &messageInfo);
-    void HandleAddressRelease(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo);
+                                     const Ip6::MessageInfo &messageInfo);
+    void HandleAddressRelease(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
     static void HandleAddressSolicit(void *context, Coap::Header &header, Message &message,
-                                     const Ip6MessageInfo &messageInfo);
-    void HandleAddressSolicit(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo);
+                                     const Ip6::MessageInfo &messageInfo);
+    void HandleAddressSolicit(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
 
     Child *NewChild();
     Child *FindChild(const Mac::Address64 &macAddr);
@@ -157,7 +157,7 @@ private:
     Timer mAdvertiseTimer;
     Timer mStateUpdateTimer;
 
-    Udp6Socket mSocket;
+    Ip6::UdpSocket mSocket;
     Coap::Resource mAddressSolicit;
     Coap::Resource mAddressRelease;
 

@@ -39,7 +39,7 @@ ThreadError NcpBase::Init()
 ThreadError NcpBase::Start()
 {
     mNetif.RegisterHandler(mNetifHandler);
-    Ip6::SetNcpReceivedHandler(&HandleReceivedDatagram, this);
+    Ip6::Ip6::SetNcpReceivedHandler(&HandleReceivedDatagram, this);
     return kThreadError_None;
 }
 
@@ -637,7 +637,7 @@ void NcpBase::RunUpdateAddressesTask()
 
     thread_ip6_addresses__init(&message.addresses);
 
-    for (const NetifUnicastAddress *address = mNetif.GetUnicastAddresses(); address; address = address->GetNext())
+    for (const Ip6::NetifUnicastAddress *address = mNetif.GetUnicastAddresses(); address; address = address->GetNext())
     {
         unsigned n = message.addresses.n_address;
         message.addresses.address[n].len = sizeof(message.addresses.address[n].data);
@@ -682,9 +682,9 @@ void NcpBase::HandleReceive(uint8_t protocol, uint8_t *buf, uint16_t bufLength)
 
     case kNcpChannel_ThreadData:
         Message *message;
-        VerifyOrExit((message = Ip6::NewMessage(0)) != NULL, ;);
+        VerifyOrExit((message = Ip6::Ip6::NewMessage(0)) != NULL, ;);
         SuccessOrExit(message->Append(buf, bufLength));
-        Ip6::HandleDatagram(*message, NULL, mNetif.GetInterfaceId(), NULL, true);
+        Ip6::Ip6::HandleDatagram(*message, NULL, mNetif.GetInterfaceId(), NULL, true);
         break;
     }
 

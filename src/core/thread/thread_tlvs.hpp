@@ -70,11 +70,11 @@ public:
     void Init() { SetType(kTarget); SetLength(sizeof(*this) - sizeof(ThreadTlv)); }
     bool IsValid() const { return GetLength() == sizeof(*this) - sizeof(ThreadTlv); }
 
-    const Ip6Address *GetTarget() const { return &mTarget; }
-    void SetTarget(const Ip6Address &target) { mTarget = target; }
+    const Ip6::Address *GetTarget() const { return &mTarget; }
+    void SetTarget(const Ip6::Address &target) { mTarget = target; }
 
 private:
-    Ip6Address mTarget;
+    Ip6::Address mTarget;
 } __attribute__((packed));
 
 class ThreadMacAddr64Tlv: public ThreadTlv

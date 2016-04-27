@@ -236,7 +236,7 @@ ThreadError otRemoveExternalRoute(const otIp6Prefix *aPrefix)
 
 ThreadError otSendServerData(void)
 {
-    Ip6Address destination;
+    Ip6::Address destination;
     sThreadNetif.GetMle()->GetLeaderAddress(destination);
     return sThreadNetif.GetNetworkDataLocal()->Register(destination);
 }
@@ -416,12 +416,12 @@ uint8_t otGetStableNetworkDataVersion()
 
 bool otIsIp6AddressEqual(const otIp6Address *a, const otIp6Address *b)
 {
-    return *static_cast<const Ip6Address *>(a) == *static_cast<const Ip6Address *>(b);
+    return *static_cast<const Ip6::Address *>(a) == *static_cast<const Ip6::Address *>(b);
 }
 
 ThreadError otIp6AddressFromString(const char *str, otIp6Address *address)
 {
-    return static_cast<Ip6Address *>(address)->FromString(str);
+    return static_cast<Ip6::Address *>(address)->FromString(str);
 }
 
 const otNetifAddress *otGetUnicastAddresses()
@@ -431,12 +431,12 @@ const otNetifAddress *otGetUnicastAddresses()
 
 ThreadError otAddUnicastAddress(otNetifAddress *address)
 {
-    return sThreadNetif.AddUnicastAddress(*static_cast<NetifUnicastAddress *>(address));
+    return sThreadNetif.AddUnicastAddress(*static_cast<Ip6::NetifUnicastAddress *>(address));
 }
 
 ThreadError otRemoveUnicastAddress(otNetifAddress *address)
 {
-    return sThreadNetif.RemoveUnicastAddress(*static_cast<NetifUnicastAddress *>(address));
+    return sThreadNetif.RemoveUnicastAddress(*static_cast<Ip6::NetifUnicastAddress *>(address));
 }
 
 ThreadError otEnable(void)
@@ -449,9 +449,9 @@ ThreadError otDisable(void)
     return sThreadNetif.Down();
 }
 
-otMessage otNewUdp6Message()
+otMessage otNewUdpMessage()
 {
-    return Udp6::NewMessage(0);
+    return Ip6::Udp::NewMessage(0);
 }
 
 ThreadError otFreeMessage(otMessage aMessage)
@@ -501,29 +501,29 @@ int otWriteMessage(otMessage aMessage, uint16_t aOffset, const void *aBuf, uint1
     return message->Write(aOffset, aLength, aBuf);
 }
 
-ThreadError otOpenUdp6Socket(otUdp6Socket *aSocket, otUdp6Receive aCallback, void *aContext)
+ThreadError otOpenUdpSocket(otUdpSocket *aSocket, otUdpReceive aCallback, void *aContext)
 {
-    Udp6Socket *socket = reinterpret_cast<Udp6Socket *>(aSocket);
+    Ip6::UdpSocket *socket = reinterpret_cast<Ip6::UdpSocket *>(aSocket);
     return socket->Open(aCallback, aContext);
 }
 
-ThreadError otCloseUdp6Socket(otUdp6Socket *aSocket)
+ThreadError otCloseUdpSocket(otUdpSocket *aSocket)
 {
-    Udp6Socket *socket = reinterpret_cast<Udp6Socket *>(aSocket);
+    Ip6::UdpSocket *socket = reinterpret_cast<Ip6::UdpSocket *>(aSocket);
     return socket->Close();
 }
 
-ThreadError otBindUdp6Socket(otUdp6Socket *aSocket, otSockAddr *aSockName)
+ThreadError otBindUdpSocket(otUdpSocket *aSocket, otSockAddr *aSockName)
 {
-    Udp6Socket *socket = reinterpret_cast<Udp6Socket *>(aSocket);
-    return socket->Bind(*reinterpret_cast<const SockAddr *>(aSockName));
+    Ip6::UdpSocket *socket = reinterpret_cast<Ip6::UdpSocket *>(aSocket);
+    return socket->Bind(*reinterpret_cast<const Ip6::SockAddr *>(aSockName));
 }
 
-ThreadError otSendUdp6Message(otUdp6Socket *aSocket, otMessage aMessage, const otMessageInfo *aMessageInfo)
+ThreadError otSendUdpMessage(otUdpSocket *aSocket, otMessage aMessage, const otMessageInfo *aMessageInfo)
 {
-    Udp6Socket *socket = reinterpret_cast<Udp6Socket *>(aSocket);
+    Ip6::UdpSocket *socket = reinterpret_cast<Ip6::UdpSocket *>(aSocket);
     return socket->SendTo(*reinterpret_cast<Message *>(aMessage),
-                          *reinterpret_cast<const Ip6MessageInfo *>(aMessageInfo));
+                          *reinterpret_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
 #ifdef __cplusplus

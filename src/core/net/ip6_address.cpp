@@ -31,62 +31,63 @@ using Thread::Encoding::BigEndian::HostSwap16;
 using Thread::Encoding::BigEndian::HostSwap32;
 
 namespace Thread {
+namespace Ip6 {
 
-bool Ip6Address::IsUnspecified() const
+bool Address::IsUnspecified(void) const
 {
     return (m32[0] == 0 && m32[1] == 0 && m32[2] == 0 && m32[3] == 0);
 }
 
-bool Ip6Address::IsLoopback() const
+bool Address::IsLoopback(void) const
 {
     return (m32[0] == 0 && m32[1] == 0 && m32[2] == 0 && m32[3] == HostSwap32(1));
 }
 
-bool Ip6Address::IsLinkLocal() const
+bool Address::IsLinkLocal(void) const
 {
     return (m8[0] == 0xfe) && ((m8[1] & 0xc0) == 0x80);
 }
 
-bool Ip6Address::IsMulticast() const
+bool Address::IsMulticast(void) const
 {
     return m8[0] == 0xff;
 }
 
-bool Ip6Address::IsLinkLocalMulticast() const
+bool Address::IsLinkLocalMulticast(void) const
 {
     return IsMulticast() && (GetScope() == kLinkLocalScope);
 }
 
-bool Ip6Address::IsLinkLocalAllNodesMulticast() const
+bool Address::IsLinkLocalAllNodesMulticast(void) const
 {
     return (m32[0] == HostSwap32(0xff020000) && m32[1] == 0 &&
             m32[2] == 0 && m32[3] == HostSwap32(0x01));
 }
 
-bool Ip6Address::IsLinkLocalAllRoutersMulticast() const
+bool Address::IsLinkLocalAllRoutersMulticast(void) const
 {
     return (m32[0] == HostSwap32(0xff020000) && m32[1] == 0 &&
             m32[2] == 0 && m32[3] == HostSwap32(0x02));
 }
 
-bool Ip6Address::IsRealmLocalMulticast() const
+bool Address::IsRealmLocalMulticast(void) const
 {
     return IsMulticast() && (GetScope() == kRealmLocalScope);
 }
 
-bool Ip6Address::IsRealmLocalAllNodesMulticast() const
+bool Address::IsRealmLocalAllNodesMulticast(void) const
 {
     return (m32[0] == HostSwap32(0xff030000) && m32[1] == 0 &&
             m32[2] == 0 && m32[3] == HostSwap32(0x01));
 }
 
-bool Ip6Address::IsRealmLocalAllRoutersMulticast() const
+bool Address::IsRealmLocalAllRoutersMulticast(void) const
 {
     return (m32[0] == HostSwap32(0xff030000) && m32[1] == 0 &&
             m32[2] == 0 && m32[3] == HostSwap32(0x02));
 }
 
-uint8_t Ip6Address::GetScope() const
+uint8_t Address::GetScope(void) const
 {
     if (IsMulticast())
     {
@@ -104,14 +105,14 @@ uint8_t Ip6Address::GetScope() const
     return kGlobalScope;
 }
 
-uint8_t Ip6Address::PrefixMatch(const Ip6Address &other) const
+uint8_t Address::PrefixMatch(const Address &aOther) const
 {
     uint8_t rval = 0;
     uint8_t diff;
 
-    for (uint8_t i = 0; i < sizeof(Ip6Address); i++)
+    for (uint8_t i = 0; i < sizeof(Address); i++)
     {
-        diff = m8[i] ^ other.m8[i];
+        diff = m8[i] ^ aOther.m8[i];
 
         if (diff == 0)
         {
@@ -132,17 +133,17 @@ uint8_t Ip6Address::PrefixMatch(const Ip6Address &other) const
     return rval;
 }
 
-bool Ip6Address::operator==(const Ip6Address &other) const
+bool Address::operator==(const Address &aOther) const
 {
-    return memcmp(m8, other.m8, sizeof(m8)) == 0;
+    return memcmp(m8, aOther.m8, sizeof(m8)) == 0;
 }
 
-bool Ip6Address::operator!=(const Ip6Address &other) const
+bool Address::operator!=(const Address &aOther) const
 {
-    return memcmp(m8, other.m8, sizeof(m8)) != 0;
+    return memcmp(m8, aOther.m8, sizeof(m8)) != 0;
 }
 
-ThreadError Ip6Address::FromString(const char *buf)
+ThreadError Address::FromString(const char *aBuf)
 {
     ThreadError error = kThreadError_None;
     uint8_t *dst = reinterpret_cast<uint8_t *>(m8);
@@ -160,7 +161,7 @@ ThreadError Ip6Address::FromString(const char *buf)
 
     for (;;)
     {
-        ch = *buf++;
+        ch = *aBuf++;
         d = ch & 0xf;
 
         if (('a' <= ch && ch <= 'f') || ('A' <= ch && ch <= 'F'))
@@ -215,14 +216,15 @@ exit:
     return error;
 }
 
-const char *Ip6Address::ToString(char *buf, uint16_t size) const
+const char *Address::ToString(char *aBuf, uint16_t aSize) const
 {
-    snprintf(buf, size, "%x:%x:%x:%x:%x:%x:%x:%x",
+    snprintf(aBuf, aSize, "%x:%x:%x:%x:%x:%x:%x:%x",
              HostSwap16(m16[0]), HostSwap16(m16[1]),
              HostSwap16(m16[2]), HostSwap16(m16[3]),
              HostSwap16(m16[4]), HostSwap16(m16[5]),
              HostSwap16(m16[6]), HostSwap16(m16[7]));
-    return buf;
+    return aBuf;
 }
 
+}  // namespace Ip6
 }  // namespace Thread

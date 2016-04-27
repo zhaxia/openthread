@@ -57,7 +57,7 @@ namespace NetworkData {
  * @addtogroup core-netdata-core
  *
  * @brief
- *   This module includes definitions for managing Thread Network Data.  
+ *   This module includes definitions for managing Thread Network Data.
  *
  * @{
  */

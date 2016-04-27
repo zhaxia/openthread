@@ -76,12 +76,12 @@ int Route::AddRoute(int argc, char *argv[], char *buf, uint16_t bufLength)
 
     *prefixLength++ = '\0';
 
-    if (mRoute.prefix.FromString(argv[argcur]) != kThreadError_None)
+    if (mRoute.mPrefix.FromString(argv[argcur]) != kThreadError_None)
     {
         ExitNow();
     }
 
-    mRoute.prefixLength = strtol(prefixLength, &endptr, 0);
+    mRoute.mPrefixLength = strtol(prefixLength, &endptr, 0);
 
     if (*endptr != '\0')
     {
@@ -93,12 +93,12 @@ int Route::AddRoute(int argc, char *argv[], char *buf, uint16_t bufLength)
         ExitNow();
     }
 
-    for (Netif *netif = Netif::GetNetifList(); netif; netif = netif->GetNext())
+    for (Ip6::Netif *netif = Ip6::Netif::GetNetifList(); netif; netif = netif->GetNext())
     {
         if (strcmp(netif->GetName(), argv[argcur]) == 0)
         {
-            mRoute.interfaceId = netif->GetInterfaceId();
-            Ip6Routes::Add(mRoute);
+            mRoute.mInterfaceId = netif->GetInterfaceId();
+            Ip6::Routes::Add(mRoute);
             ExitNow(error = kThreadError_None);
         }
     }

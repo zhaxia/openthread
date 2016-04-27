@@ -34,7 +34,7 @@ Server::Server(uint16_t port)
 ThreadError Server::Start()
 {
     ThreadError error;
-    SockAddr sockaddr = {};
+    Ip6::SockAddr sockaddr = {};
     sockaddr.mPort = mPort;
 
     SuccessOrExit(error = mSocket.Open(&HandleUdpReceive, this));
@@ -68,10 +68,10 @@ exit:
 void Server::HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo)
 {
     Server *obj = reinterpret_cast<Server *>(context);
-    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6MessageInfo *>(messageInfo));
+    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6::MessageInfo *>(messageInfo));
 }
 
-void Server::HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo)
+void Server::HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo)
 {
     Header header;
     char uriPath[32];
@@ -119,7 +119,7 @@ exit:
     {}
 }
 
-ThreadError Server::SendMessage(Message &message, const Ip6MessageInfo &messageInfo)
+ThreadError Server::SendMessage(Message &message, const Ip6::MessageInfo &messageInfo)
 {
     return mSocket.SendTo(message, messageInfo);
 }

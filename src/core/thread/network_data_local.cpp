@@ -182,12 +182,12 @@ ThreadError Local::UpdateRloc(BorderRouterTlv &border_router)
     return kThreadError_None;
 }
 
-ThreadError Local::Register(const Ip6Address &destination)
+ThreadError Local::Register(const Ip6::Address &destination)
 {
     ThreadError error = kThreadError_None;
     Coap::Header header;
     Message *message;
-    Ip6MessageInfo messageInfo;
+    Ip6::MessageInfo messageInfo;
 
     UpdateRloc();
     mSocket.Open(&HandleUdpReceive, this);
@@ -206,7 +206,7 @@ ThreadError Local::Register(const Ip6Address &destination)
     header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
     SuccessOrExit(error = message->Append(mTlvs, mLength));
 
@@ -230,10 +230,10 @@ exit:
 void Local::HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo)
 {
     Local *obj = reinterpret_cast<Local *>(context);
-    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6MessageInfo *>(messageInfo));
+    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6::MessageInfo *>(messageInfo));
 }
 
-void Local::HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo)
+void Local::HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo)
 {
     Coap::Header header;
 

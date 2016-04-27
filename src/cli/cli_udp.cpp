@@ -36,8 +36,8 @@ ThreadError Udp::Start()
     otSockAddr sockaddr = {};
     sockaddr.mPort = 7335;
 
-    SuccessOrExit(error = otOpenUdp6Socket(&mSocket, &HandleUdpReceive, this));
-    SuccessOrExit(error = otBindUdp6Socket(&mSocket, &sockaddr));
+    SuccessOrExit(error = otOpenUdpSocket(&mSocket, &HandleUdpReceive, this));
+    SuccessOrExit(error = otBindUdpSocket(&mSocket, &sockaddr));
 
 exit:
     return error;
@@ -89,10 +89,10 @@ void Udp::HandleUdpReceive(otMessage message, const otMessageInfo *messageInfo)
             cur += strlen(cur);
         }
 
-        VerifyOrExit((reply = otNewUdp6Message()) != NULL, error = kThreadError_NoBufs);
+        VerifyOrExit((reply = otNewUdpMessage()) != NULL, error = kThreadError_NoBufs);
         otAppendMessage(reply, buf, cur - buf);
 
-        SuccessOrExit(error = otSendUdp6(&mSocket, reply, &mPeer));
+        SuccessOrExit(error = otSendUdp(&mSocket, reply, &mPeer));
     }
     else
     {
@@ -130,10 +130,10 @@ ThreadError Udp::Output(const char *buf, uint16_t bufLength)
     ThreadError error = kThreadError_None;
     otMessage message;
 
-    VerifyOrExit((message = otNewUdp6Message()) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = otNewUdpMessage()) != NULL, error = kThreadError_NoBufs);
     SuccessOrExit(error = otSetMessageLength(message, bufLength));
     otWriteMessage(message, 0, buf, bufLength);
-    SuccessOrExit(error = otSendUdp6(&mSocket, message, &mPeer));
+    SuccessOrExit(error = otSendUdp(&mSocket, message, &mPeer));
 
 exit:
 

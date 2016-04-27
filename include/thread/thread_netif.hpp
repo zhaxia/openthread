@@ -43,7 +43,7 @@ namespace Thread {
  * @{
  */
 
-class ThreadNetif: public Netif
+class ThreadNetif: public Ip6::Netif
 {
 public:
     ThreadNetif();
@@ -53,9 +53,9 @@ public:
     bool IsUp() const;
 
     const char *GetName() const final;
-    ThreadError GetLinkAddress(LinkAddress &address) const final;
+    ThreadError GetLinkAddress(Ip6::LinkAddress &address) const final;
     ThreadError SendMessage(Message &message) final;
-    ThreadError RouteLookup(const Ip6Address &source, const Ip6Address &destination, uint8_t *prefixMatch) final;
+    ThreadError RouteLookup(const Ip6::Address &source, const Ip6::Address &destination, uint8_t *prefixMatch) final;
 
     AddressResolver *GetAddressResolver();
     Coap::Server *GetCoapServer();

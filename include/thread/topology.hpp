@@ -72,7 +72,7 @@ public:
     {
         kMaxIp6AddressPerChild = 4,
     };
-    Ip6Address mIp6Address[kMaxIp6AddressPerChild];
+    Ip6::Address mIp6Address[kMaxIp6AddressPerChild];
     uint32_t mTimeout;
     uint16_t mFragmentOffset;
     uint8_t mRequestTlvs[4];

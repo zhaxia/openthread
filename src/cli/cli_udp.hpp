@@ -41,7 +41,7 @@ private:
     static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
     void HandleUdpReceive(otMessage message, const otMessageInfo *messageInfo);
 
-    otUdp6Socket mSocket;
+    otUdpSocket mSocket;
     otMessageInfo mPeer;
 };
 

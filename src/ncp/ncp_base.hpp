@@ -88,7 +88,7 @@ private:
     static void RunUpdateAddressesTask(void *context);
 
     ThreadNetif mNetif;
-    NetifHandler mNetifHandler;
+    Ip6::NetifHandler mNetifHandler;
 
     bool mSending;
 

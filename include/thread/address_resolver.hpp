@@ -52,7 +52,7 @@ public:
     class Cache
     {
     public:
-        Ip6Address mTarget;
+        Ip6::Address mTarget;
         uint8_t mIid[8];
         Mac::Address16 mRloc;
         uint8_t mTimeout;
@@ -70,7 +70,7 @@ public:
     explicit AddressResolver(ThreadNetif &netif);
     ThreadError Clear();
     ThreadError Remove(uint8_t routerId);
-    ThreadError Resolve(const Ip6Address &eid, Mac::Address16 &rloc);
+    ThreadError Resolve(const Ip6::Address &eid, Mac::Address16 &rloc);
 
     const Cache *GetCacheEntries(uint16_t *numEntries) const;
 
@@ -81,31 +81,31 @@ private:
         kDiscoverTimeout = 3,  // seconds
     };
 
-    ThreadError SendAddressQuery(const Ip6Address &eid);
+    ThreadError SendAddressQuery(const Ip6::Address &eid);
     ThreadError SendAddressError(const ThreadTargetTlv &target, const ThreadMeshLocalIidTlv &eid,
-                                 const Ip6Address *destination);
+                                 const Ip6::Address *destination);
     void SendAddressQueryResponse(const ThreadTargetTlv &targetTlv, const ThreadMeshLocalIidTlv &mlIidTlv,
                                   const ThreadLastTransactionTimeTlv *lastTransactionTimeTlv,
-                                  const Ip6Address &destination);
-    void SendAddressNotificationResponse(const Coap::Header &requestHeader, const Ip6MessageInfo &messageInfo);
+                                  const Ip6::Address &destination);
+    void SendAddressNotificationResponse(const Coap::Header &requestHeader, const Ip6::MessageInfo &messageInfo);
 
     static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
 
     static void HandleAddressError(void *context, Coap::Header &header,
-                                   Message &message, const Ip6MessageInfo &messageInfo);
-    void HandleAddressError(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo);
+                                   Message &message, const Ip6::MessageInfo &messageInfo);
+    void HandleAddressError(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
 
     static void HandleAddressQuery(void *context, Coap::Header &header,
-                                   Message &message, const Ip6MessageInfo &messageInfo);
-    void HandleAddressQuery(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo);
+                                   Message &message, const Ip6::MessageInfo &messageInfo);
+    void HandleAddressQuery(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
 
     static void HandleAddressNotification(void *context, Coap::Header &header,
-                                          Message &message, const Ip6MessageInfo &messageInfo);
-    void HandleAddressNotification(Coap::Header &header, Message &message, const Ip6MessageInfo &messageInfo);
+                                          Message &message, const Ip6::MessageInfo &messageInfo);
+    void HandleAddressNotification(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
 
-    static void HandleDstUnreach(void *context, Message &message, const Ip6MessageInfo &messageInfo,
-                                 const Icmp6Header &icmp6Header);
-    void HandleDstUnreach(Message &message, const Ip6MessageInfo &messageInfo, const Icmp6Header &icmp6Header);
+    static void HandleDstUnreach(void *context, Message &message, const Ip6::MessageInfo &messageInfo,
+                                 const Ip6::IcmpHeader &icmp6Header);
+    void HandleDstUnreach(Message &message, const Ip6::MessageInfo &messageInfo, const Ip6::IcmpHeader &icmp6Header);
 
     static void HandleTimer(void *context);
     void HandleTimer();
@@ -116,14 +116,14 @@ private:
     Cache mCache[kCacheEntries];
     uint16_t mCoapMessageId;
     uint8_t mCoapToken[2];
-    Icmp6Handler mIcmp6Handler;
-    Udp6Socket mSocket;
+    Ip6::IcmpHandler mIcmpHandler;
+    Ip6::UdpSocket mSocket;
     Timer mTimer;
 
     MeshForwarder *mMeshForwarder;
     Coap::Server *mCoapServer;
     Mle::MleRouter *mMle;
-    Netif *mNetif;
+    Ip6::Netif *mNetif;
 };
 
 /**

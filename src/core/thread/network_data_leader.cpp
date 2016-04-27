@@ -87,7 +87,7 @@ ThreadError Leader::SetContextIdReuseDelay(uint32_t delay)
     return kThreadError_None;
 }
 
-ThreadError Leader::GetContext(const Ip6Address &address, Context &context)
+ThreadError Leader::GetContext(const Ip6::Address &address, Context &context)
 {
     PrefixTlv *prefix;
     ContextTlv *contextTlv;
@@ -272,7 +272,7 @@ exit:
     return kThreadError_None;
 }
 
-bool Leader::IsOnMesh(const Ip6Address &address)
+bool Leader::IsOnMesh(const Ip6::Address &address)
 {
     PrefixTlv *prefix;
     bool rval = false;
@@ -310,7 +310,7 @@ exit:
     return rval;
 }
 
-ThreadError Leader::RouteLookup(const Ip6Address &source, const Ip6Address &destination,
+ThreadError Leader::RouteLookup(const Ip6::Address &source, const Ip6::Address &destination,
                                 uint8_t *prefix_match, uint16_t *rloc)
 {
     ThreadError error = kThreadError_NoRoute;
@@ -350,7 +350,7 @@ exit:
     return error;
 }
 
-ThreadError Leader::ExternalRouteLookup(uint8_t domain_id, const Ip6Address &destination,
+ThreadError Leader::ExternalRouteLookup(uint8_t domain_id, const Ip6::Address &destination,
                                         uint8_t *prefix_match, uint16_t *rloc)
 {
     ThreadError error = kThreadError_NoRoute;
@@ -510,14 +510,14 @@ ThreadError Leader::RemoveBorderRouter(uint16_t rloc)
 }
 
 void Leader::HandleServerData(void *context, Coap::Header &header, Message &message,
-                              const Ip6MessageInfo &messageInfo)
+                              const Ip6::MessageInfo &messageInfo)
 {
     Leader *obj = reinterpret_cast<Leader *>(context);
     obj->HandleServerData(header, message, messageInfo);
 }
 
 void Leader::HandleServerData(Coap::Header &header, Message &message,
-                              const Ip6MessageInfo &messageInfo)
+                              const Ip6::MessageInfo &messageInfo)
 {
     uint8_t tlvsLength;
     uint8_t tlvs[256];
@@ -534,14 +534,14 @@ void Leader::HandleServerData(Coap::Header &header, Message &message,
     SendServerDataResponse(header, messageInfo, tlvs, tlvsLength);
 }
 
-void Leader::SendServerDataResponse(const Coap::Header &requestHeader, const Ip6MessageInfo &messageInfo,
+void Leader::SendServerDataResponse(const Coap::Header &requestHeader, const Ip6::MessageInfo &messageInfo,
                                     const uint8_t *tlvs, uint8_t tlvsLength)
 {
     ThreadError error = kThreadError_None;
     Coap::Header responseHeader;
     Message *message;
 
-    VerifyOrExit((message = Udp6::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
+    VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, error = kThreadError_NoBufs);
     responseHeader.Init();
     responseHeader.SetVersion(1);
     responseHeader.SetType(Coap::Header::kTypeAcknowledgment);

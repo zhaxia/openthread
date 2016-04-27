@@ -130,7 +130,7 @@ public:
      *
      */
     uint32_t Gett0(void) const { return mT0; }
-    
+
     /**
      * This method returns the delta time in milliseconds for the timer.
      *

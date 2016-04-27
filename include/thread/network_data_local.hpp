@@ -51,18 +51,18 @@ public:
     ThreadError AddHasRoutePrefix(const uint8_t *prefix, uint8_t prefixLength, int8_t prf, bool stable);
     ThreadError RemoveHasRoutePrefix(const uint8_t *prefix, uint8_t prefixLength);
 
-    ThreadError Register(const Ip6Address &destination);
+    ThreadError Register(const Ip6::Address &destination);
 
 private:
     static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
-    void HandleUdpReceive(Message &message, const Ip6MessageInfo &messageInfo);
+    void HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo);
 
     ThreadError UpdateRloc();
     ThreadError UpdateRloc(PrefixTlv &prefix);
     ThreadError UpdateRloc(HasRouteTlv &hasRoute);
     ThreadError UpdateRloc(BorderRouterTlv &borderRouter);
 
-    Udp6Socket mSocket;
+    Ip6::UdpSocket mSocket;
     uint8_t mCoapToken[2];
     uint16_t mCoapMessageId;
 
