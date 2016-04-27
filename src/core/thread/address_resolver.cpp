@@ -504,7 +504,7 @@ void AddressResolver::SendAddressQueryResponse(const ThreadTargetTlv &targetTlv,
 
     if (lastTransactionTimeTlv != NULL)
     {
-        SuccessOrExit(error = message->Append(&lastTransactionTimeTlv, sizeof(*lastTransactionTimeTlv)));
+        SuccessOrExit(error = message->Append(lastTransactionTimeTlv, sizeof(*lastTransactionTimeTlv)));
     }
 
     memset(&messageInfo, 0, sizeof(messageInfo));

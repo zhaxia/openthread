@@ -54,7 +54,7 @@ class Lowpan
 public:
     enum
     {
-        kHopsLeft = 15,
+        kHopsLeft = 14,
     };
 
     enum
