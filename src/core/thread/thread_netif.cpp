@@ -48,9 +48,7 @@ ThreadNetif::ThreadNetif():
     mKeyManager(*this),
     mLowpan(*this),
     mMeshForwarder(*this),
-    mMleRouter(*this),
-    mNetworkDataLocal(*this),
-    mNetworkDataLeader(*this)
+    mMleRouter(*this)
 {
 }
 
@@ -64,6 +62,8 @@ ThreadError ThreadNetif::Init()
     mKeyManager.SetMasterKey(kThreadMasterKey, sizeof(kThreadMasterKey));
     mMac.Init(*this);
     mMleRouter.Init();
+    mNetworkDataLocal.Init(*this);
+    mNetworkDataLeader.Init(*this);
     return kThreadError_None;
 }
 

@@ -41,30 +41,98 @@ class ThreadNetif;
 
 namespace NetworkData {
 
+/**
+ * This class implements the Thread Network Data contributed by the local device.
+ *
+ */
 class Local: public NetworkData
 {
 public:
-    explicit Local(ThreadNetif &netif);
-    ThreadError AddOnMeshPrefix(const uint8_t *prefix, uint8_t prefixLength, int8_t prf, uint8_t flags, bool stable);
-    ThreadError RemoveOnMeshPrefix(const uint8_t *prefix, uint8_t prefixLength);
+    /**
+     * This method initializes the local Network Data.
+     *
+     * @param[in]  aNetif  A reference to the Thread network interface.
+     *
+     */
+    void Init(ThreadNetif &aNetif);
 
-    ThreadError AddHasRoutePrefix(const uint8_t *prefix, uint8_t prefixLength, int8_t prf, bool stable);
-    ThreadError RemoveHasRoutePrefix(const uint8_t *prefix, uint8_t prefixLength);
+    /**
+     * This method adds a Border Router entry to the Thread Network Data.
+     *
+     * @param[in]  aPrefix        A pointer to the prefix.
+     * @param[in]  aPrefixLength  The length of @p aPrefix in bytes.
+     * @param[in]  aPrf           The preference value.
+     * @param[in]  aFlags         The Border Router Flags value.
+     * @param[in]  aStable        The Stable value.
+     *
+     * @retval kThreadError_None    Successfully added the Border Router entry.
+     * @retval kThreadError_NoBufs  Insufficient space to add the Border Router entry.
+     *
+     */
+    ThreadError AddOnMeshPrefix(const uint8_t *aPrefix, uint8_t aPrefixLength, int8_t aPrf, uint8_t aFlags,
+                                bool aStable);
 
-    ThreadError Register(const Ip6::Address &destination);
+    /**
+     * This method removes a Border Router entry from the Thread Network Data.
+     *
+     * @param[in]  aPrefix        A pointer to the prefix.
+     * @param[in[  aPrefixLength  The length of @p aPrefix in bytes.
+     *
+     * @retval kThreadError_None      Successfully removed the Border Router entry.
+     * @retval kThreadError_NotFound  Could not find the Border Router entry.
+     *
+     */
+    ThreadError RemoveOnMeshPrefix(const uint8_t *aPrefix, uint8_t aPrefixLength);
+
+    /**
+     * This method adds a Has Route entry to the Thread Network data.
+     *
+     * @param[in]  aPrefix        A pointer to the prefix.
+     * @param[in]  aPrefixLength  The length of @p aPrefix in bytes.
+     * @param[in]  aPrf           The preference value.
+     * @param[in]  aStable        The Stable value.
+     *
+     * @retval kThreadError_None    Successfully added the Has Route entry.
+     * @retval kThreadError_NoBufs  Insufficient space to add the Has Route entry.
+     *
+     */
+    ThreadError AddHasRoutePrefix(const uint8_t *aPrefix, uint8_t aPrefixLength, int8_t aPrf, bool aStable);
+
+    /**
+     * This method removes a Border Router entry from the Thread Network Data.
+     *
+     * @param[in]  aPrefix        A pointer to the prefix.
+     * @param[in]  aPrefixLength  The length of @p aPrefix in bytes.
+     *
+     * @retval kThreadError_None      Successfully removed the Border Router entry.
+     * @retval kThreadError_NotFound  Could not find the Border Router entry.
+     *
+     */
+    ThreadError RemoveHasRoutePrefix(const uint8_t *aPrefix, uint8_t aPrefixLength);
+
+    /**
+     * This method sends a Server Data Registration message to the Leader.
+     *
+     * @param[in]  aDestination  The IPv6 destination.
+     *
+     * @retval kThreadError_None    Successfully enqueued the registration message.
+     * @retval kThreadError_NoBufs  Insufficient message buffers to generate the registration message.
+     *
+     */
+    ThreadError Register(const Ip6::Address &aDestination);
 
 private:
-    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
-    void HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo);
+    static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
+    void HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
-    ThreadError UpdateRloc();
-    ThreadError UpdateRloc(PrefixTlv &prefix);
-    ThreadError UpdateRloc(HasRouteTlv &hasRoute);
-    ThreadError UpdateRloc(BorderRouterTlv &borderRouter);
+    ThreadError UpdateRloc(void);
+    ThreadError UpdateRloc(PrefixTlv &aPrefix);
+    ThreadError UpdateRloc(HasRouteTlv &aHasRoute);
+    ThreadError UpdateRloc(BorderRouterTlv &aBorderRouter);
 
-    Ip6::UdpSocket mSocket;
-    uint8_t mCoapToken[2];
-    uint16_t mCoapMessageId;
+    Ip6::UdpSocket  mSocket;
+    uint8_t         mCoapToken[2];
+    uint16_t        mCoapMessageId;
 
     Mle::MleRouter *mMle;
 };

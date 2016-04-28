@@ -42,34 +42,102 @@ namespace NetworkData {
  *
  */
 
+/**
+ * This class implements Thread Network Data TLV generation and parsing.
+ *
+ */
 class NetworkDataTlv
 {
 public:
-    void Init() { mTyle = 0; mLength = 0; }
+    /**
+     * This method initializes TLV.
+     *
+     */
+    void Init() { mType = 0; mLength = 0; }
 
+    /**
+     * Thread Network Data Type values.
+     *
+     */
     enum Type
     {
-        kTypeHasRoute = 0,
-        kTypePrefix = 1,
-        kTypeBorderRouter = 2,
-        kTypeContext = 3,
-        kTypeCommissioningData = 4,
+        kTypeHasRoute          = 0,  ///< Has Route TLV
+        kTypePrefix            = 1,  ///< Prefix TLV
+        kTypeBorderRouter      = 2,  ///< Border Router TLV
+        kTypeContext           = 3,  ///< Context TLV
+        kTypeCommissioningData = 4,  ///< Commissioning Dataset TLV
     };
-    Type GetType() const { return static_cast<Type>(mTyle >> kTypeOffset); }
-    void SetType(Type type) { mTyle = (mTyle & ~kTypeMask) | (static_cast<uint8_t>(type) << kTypeOffset); }
 
+    /**
+     * This method returns the Type value.
+     *
+     * @returns The Type value.
+     *
+     */
+    Type GetType() const { return static_cast<Type>(mType >> kTypeOffset); }
+
+    /**
+     * This method sets the Type value.
+     *
+     * @param[in]  aType  The Type value.
+     *
+     */
+    void SetType(Type aType) { mType = (mType & ~kTypeMask) | (static_cast<uint8_t>(aType) << kTypeOffset); }
+
+    /**
+     * This method returns the Length value.
+     *
+     * @returns The Length value.
+     *
+     */
     uint8_t GetLength() const { return mLength; }
-    void SetLength(uint8_t length) { mLength = length; }
-    void AdjustLength(int diff) { mLength += diff; }
 
+    /**
+     * This method sets the Length value.
+     *
+     * @param[in]  aLength  The Length value.
+     *
+     */
+    void SetLength(uint8_t aLength) { mLength = aLength; }
+
+    /**
+     * This method returns a pointer to the Value.
+     *
+     * @returns A pointer to the value.
+     *
+     */
     uint8_t *GetValue() { return reinterpret_cast<uint8_t *>(this) + sizeof(NetworkDataTlv); }
+
+    /**
+     * This method returns a pointer to the next Network Data TLV.
+     *
+     * @returns A pointer to the next Newtork Data TLV.
+     *
+     */
     NetworkDataTlv *GetNext() {
         return reinterpret_cast<NetworkDataTlv *>(reinterpret_cast<uint8_t *>(this) + sizeof(*this) + mLength);
     }
 
-    void ClearStable() { mTyle &= ~kStableMask; }
-    bool IsStable() const { return (mTyle & kStableMask); }
-    void SetStable() { mTyle |= kStableMask; }
+    /**
+     * This method clears the Stable bit.
+     *
+     */
+    void ClearStable() { mType &= ~kStableMask; }
+
+    /**
+     * This method indicates whether or not the Stable bit is set.
+     *
+     * @retval TRUE   If the Stable bit is set.
+     * @retval FALSE  If the Stable bit is not set.
+     *
+     */
+    bool IsStable() const { return (mType & kStableMask); }
+
+    /**
+     * This method sets the Stable bit.
+     *
+     */
+    void SetStable() { mType |= kStableMask; }
 
 private:
     enum
@@ -78,66 +146,173 @@ private:
         kTypeMask = 0x7f << kTypeOffset,
         kStableMask = 1 << 0,
     };
-    uint8_t mTyle;
+    uint8_t mType;
     uint8_t mLength;
 } __attribute__((packed));
 
+/**
+ * This class implements Has Route TLV entry generation and parsing.
+ *
+ */
 class HasRouteEntry
 {
 public:
+    /**
+     * This method initializes the header.
+     *
+     */
+    void Init() { SetRloc(0xfffe); mFlags = 0; }
+
+    /**
+     * This method returns the RLOC16 value.
+     *
+     * @returns The RLOC16 value.
+     */
+    uint16_t GetRloc() const { return HostSwap16(mRloc); }
+
+    /**
+     * This method sets the RLOC16 value.
+     *
+     * @param[in]  aRloc16  The RLOC16 value.
+     *
+     */
+    void SetRloc(uint16_t aRloc16) { mRloc = HostSwap16(aRloc16); }
+
+    /**
+     * This method returns the Preference value.
+     *
+     * @returns The preference value.
+     *
+     */
+    int8_t GetPreference() const { return static_cast<int8_t>(mFlags) >> kPreferenceOffset; }
+
+    /**
+     * This method sets the Preference value.
+     *
+     * @param[in]  aPrf  The Preference value.
+     *
+     */
+    void SetPreference(int8_t aPrf) { mFlags = (mFlags & ~kPreferenceMask) | (aPrf << kPreferenceOffset); }
+
+private:
     enum
     {
         kPreferenceOffset = 6,
         kPreferenceMask = 3 << kPreferenceOffset,
     };
 
-    void Init() { SetRloc(0xfffe); mFlags = 0; }
-
-    uint16_t GetRloc() const { return HostSwap16(mRloc); }
-    void SetRloc(uint16_t rloc) { mRloc = HostSwap16(rloc); }
-
-    int8_t GetPreference() const { return static_cast<int8_t>(mFlags) >> kPreferenceOffset; }
-    void SetPreference(int8_t prf) { mFlags = (mFlags & ~kPreferenceMask) | (prf << kPreferenceOffset); }
-
-private:
     uint16_t mRloc;
     uint8_t mFlags;
 } __attribute__((packed));
 
+/**
+ * This class implements Has Route TLV generation and parsing.
+ *
+ */
 class HasRouteTlv: public NetworkDataTlv
 {
 public:
+    /**
+     * This method initializes the TLV.
+     *
+     */
     void Init() { NetworkDataTlv::Init(); SetType(kTypeHasRoute); SetLength(0); }
 
+    /**
+     * This method returns the number of HasRoute entries.
+     *
+     * @returns The number of HasRoute entries.
+     *
+     */
     uint8_t GetNumEntries() const { return GetLength() / sizeof(HasRouteEntry); }
 
+    /**
+     * This method returns a pointer to the i'th HasRoute entry.
+     *
+     * @param[in]  i  An index.
+     *
+     * @returns A pointer to the i'th HasRoute entry.
+     *
+     */
     HasRouteEntry *GetEntry(int i) {
         return reinterpret_cast<HasRouteEntry *>(GetValue() + (i * sizeof(HasRouteEntry)));
     }
 } __attribute__((packed));
 
+/**
+ * This class implements Prefix TLV generation and parsing.
+ *
+ */
 class PrefixTlv: public NetworkDataTlv
 {
 public:
-    void Init(uint8_t domain_id, uint8_t prefixLength, const uint8_t *prefix) {
+    /**
+     * This method initializes the TLV.
+     *
+     * @param[in]  aDomainId      The Domain ID.
+     * @param[in]  aPrefixLength  The Prefix Length
+     * @param[in]  aPrefix        A pointer to the prefix.
+     *
+     */
+    void Init(uint8_t aDomainId, uint8_t aPrefixLength, const uint8_t *aPrefix) {
         NetworkDataTlv::Init();
         SetType(kTypePrefix);
-        mDomainId = domain_id;
-        mPrefixLength = prefixLength;
-        memcpy(GetPrefix(), prefix, (prefixLength + 7) / 8);
+        mDomainId = aDomainId;
+        mPrefixLength = aPrefixLength;
+        memcpy(GetPrefix(), aPrefix, (aPrefixLength + 7) / 8);
         SetSubTlvsLength(0);
     }
 
+    /**
+     * This method returns the Domain ID value.
+     *
+     * @returns The Domain ID value.
+     *
+     */
     uint8_t GetDomainId() const { return mDomainId; }
+
+    /**
+     * This method returns the Prefix Length value.
+     *
+     * @returns The Prefix Length value.
+     *
+     */
     uint8_t GetPrefixLength() const { return mPrefixLength; }
+
+    /**
+     * This method returns a pointer to the Prefix.
+     *
+     * @returns A pointer to the Prefix.
+     *
+     */
     uint8_t *GetPrefix() { return reinterpret_cast<uint8_t *>(this) + sizeof(*this); }
 
+    /**
+     * This method returns a pointer to the Sub-TLVs.
+     *
+     * @returns A pointer to the Sub-TLVs.
+     *
+     */
     uint8_t *GetSubTlvs() { return GetPrefix() + (mPrefixLength + 7) / 8; }
+
+    /**
+     * This method returns the Sub-TLVs length in bytes.
+     *
+     * @returns The Sub-TLVs length in bytes.
+     *
+     */
     uint8_t GetSubTlvsLength() const {
         return GetLength() - (sizeof(*this) - sizeof(NetworkDataTlv) + (mPrefixLength + 7) / 8);
     }
-    void SetSubTlvsLength(int length) {
-        SetLength(sizeof(*this) - sizeof(NetworkDataTlv) + (mPrefixLength + 7) / 8 + length);
+
+    /**
+     * This method sets the Sub-TLVs length in bytes.
+     *
+     * @param[in]  aLength  The Sub-TLVs length in bytes.
+     *
+     */
+    void SetSubTlvsLength(int aLength) {
+        SetLength(sizeof(*this) - sizeof(NetworkDataTlv) + (mPrefixLength + 7) / 8 + aLength);
     }
 
 private:
@@ -145,6 +320,10 @@ private:
     uint8_t mPrefixLength;
 } __attribute__((packed));
 
+/**
+ * This class implements Border Router Entry generation and parsing.
+ *
+ */
 class BorderRouterEntry
 {
 public:
@@ -159,35 +338,162 @@ public:
         kDefaultRouteFlag = 1 << 1,
     };
 
+    /**
+     * This method initializes the TLV.
+     *
+     */
     void Init() { SetRloc(0xfffe); mFlags = 0; mReserved = 0; }
 
+    /**
+     * This method returns the RLOC16 value.
+     *
+     * @returns The RLOC16 value.
+     */
     uint16_t GetRloc() const { return HostSwap16(mRloc); }
-    void SetRloc(uint16_t rloc) { mRloc = HostSwap16(rloc); }
 
+    /**
+     * This method sets the RLOC16 value.
+     *
+     * @param[in]  aRloc16  The RLOC16 value.
+     *
+     */
+    void SetRloc(uint16_t aRloc16) { mRloc = HostSwap16(aRloc16); }
+
+    /**
+     * This method returns the Flags byte value.
+     *
+     * @returns The Flags byte value.
+     *
+     */
     uint8_t GetFlags() const { return mFlags & ~kPreferenceMask; }
+
+    /**
+     * This method sets the Flags byte value.
+     *
+     * @param[in]  aFlags  The Flags byte value.
+     *
+     */
     void SetFlags(uint8_t flags) { mFlags = (mFlags & kPreferenceMask) | (flags & ~kPreferenceMask); }
 
+    /**
+     * This method returns the Preference value.
+     *
+     * @returns the Preference value.
+     *
+     */
     int8_t GetPreference() const { return static_cast<int8_t>(mFlags) >> kPreferenceOffset; }
-    void SetPreference(int8_t prf) { mFlags = (mFlags & ~kPreferenceMask) | (prf << kPreferenceOffset); }
 
+    /**
+     * This method sets the Preference value.
+     *
+     * @param[in]  aPrf  The Preference value.
+     *
+     */
+    void SetPreference(int8_t aPrf) { mFlags = (mFlags & ~kPreferenceMask) | (aPrf << kPreferenceOffset); }
+
+    /**
+     * This method indicates whether or not the Preferred flag is set.
+     *
+     * @retval TRUE   If the Preferred flag is set.
+     * @retval FALSE  If the Preferred flag is not set.
+     *
+     */
     bool IsPreferred() const { return (mFlags & kPreferredFlag) != 0; }
+
+    /**
+     * This method clears the Preferred flag.
+     *
+     */
     void ClearPreferred() { mFlags &= ~kPreferredFlag; }
+
+    /**
+     * This method sets the Preferred flag.
+     *
+     */
     void SetPreferred() { mFlags |= kPreferredFlag; }
 
+    /**
+     * This method indicates whether or not the Valid flag is set.
+     *
+     * @retval TRUE   If the Valid flag is set.
+     * @retval FALSE  If the Valid flag is not set.
+     *
+     */
     bool IsValid() const { return (mFlags & kValidFlag) != 0; }
+
+    /**
+     * This method clears the Valid flag.
+     *
+     */
     void ClearValid() { mFlags &= ~kValidFlag; }
+
+    /**
+     * This method sets the Valid flag.
+     *
+     */
     void SetValid() { mFlags |= kValidFlag; }
 
+    /**
+     * This method indicates whether or not the DHCP flag is set.
+     *
+     * @retval TRUE   If the DHCP flag is set.
+     * @retval FALSE  If the DHCP flag is not set.
+     *
+     */
     bool IsDhcp() const { return (mFlags & kDhcpFlag) != 0; }
+
+    /**
+     * This method clears the DHCP flag.
+     *
+     */
     void ClearDhcp() { mFlags &= ~kDhcpFlag; }
+
+    /**
+     * This method sets the DHCP flag.
+     *
+     */
     void SetDhcp() { mFlags |= kDhcpFlag; }
 
+    /**
+     * This method indicates whether or not the Configure flag is set.
+     *
+     * @retval TRUE   If the Configure flag is set.
+     * @retval FALSE  If the Configure flag is not set.
+     *
+     */
     bool IsConfigure() const { return (mFlags & kConfigureFlag) != 0; }
+
+    /**
+     * This method clears the Configure flag.
+     *
+     */
     void ClearConfigure() { mFlags &= ~kConfigureFlag; }
+
+    /**
+     * This method sets the Configure flag.
+     *
+     */
     void SetConfigure() { mFlags |= kConfigureFlag; }
 
+    /**
+     * This method indicates whether or not the Default Route flag is set.
+     *
+     * @retval TRUE   If the Default Route flag is set.
+     * @retval FALSE  If the Default Route flag is not set.
+     *
+     */
     bool IsDefaultRoute() const { return (mFlags & kDefaultRouteFlag) != 0; }
+
+    /**
+     * This method clears the Default Route flag.
+     *
+     */
     void ClearDefaultRoute() { mFlags &= ~kDefaultRouteFlag; }
+
+    /**
+     * This method sets the Default Route flag.
+     *
+     */
     void SetDefaultRoute() { mFlags |= kDefaultRouteFlag; }
 
 private:
@@ -196,32 +502,105 @@ private:
     uint8_t mReserved;
 } __attribute__((packed));
 
+/**
+ * This class implements Border Router TLV generation and parsing.
+ *
+ */
 class BorderRouterTlv: public NetworkDataTlv
 {
 public:
+    /**
+     * This method initializes the TLV.
+     *
+     */
     void Init() { NetworkDataTlv::Init(); SetType(kTypeBorderRouter); SetLength(0); }
 
+    /**
+     * This method returns the number of Border Router entries.
+     *
+     * @returns The number of Border Router entries.
+     *
+     */
     uint8_t GetNumEntries() const { return GetLength() / sizeof(BorderRouterEntry); }
 
+    /**
+     * This method returns a pointer to the i'th Border Router entry.
+     *
+     * @param[in]  i  The index.
+     *
+     * @returns A pointer to the i'th Border Router entry.
+     *
+     */
     BorderRouterEntry *GetEntry(int i) {
         return reinterpret_cast<BorderRouterEntry *>(GetValue() + (i * sizeof(BorderRouterEntry)));
     }
 } __attribute__((packed));
 
+/**
+ * This class implements Context TLV generation and processing.
+ *
+ */
 class ContextTlv: public NetworkDataTlv
 {
 public:
+    /**
+     * This method initializes the TLV.
+     *
+     */
     void Init() { NetworkDataTlv::Init(); SetType(kTypeContext); SetLength(2); mFlags = 0; mContextLength = 0; }
 
+    /**
+     * This method indicates whether or not the Compress flag is set.
+     *
+     * @retval TRUE   The Compress flag is set.
+     * @retval FALSE  The Compress flags is not set.
+     *
+     */
     bool IsCompress() const { return (mFlags & kCompressFlag) != 0; }
+
+    /**
+     * This method clears the Compress flag.
+     *
+     */
     void ClearCompress() { mFlags &= ~kCompressFlag; }
+
+    /**
+     * This method sets the Compress flag.
+     *
+     */
     void SetCompress() { mFlags |= kCompressFlag; }
 
+    /**
+     * This method returns the Context ID value.
+     *
+     * @returns The Context ID value.
+     *
+     */
     uint8_t GetContextId() const { return mFlags & kContextIdMask; }
-    void SetContextId(uint8_t cid) { mFlags = (mFlags & ~kContextIdMask) | (cid << kContextIdOffset); }
 
+    /**
+     * This method sets the Context ID value.
+     *
+     * @param[in]  aContextId  The Context ID value.
+     *
+     */
+    void SetContextId(uint8_t aContextId) { mFlags = (mFlags & ~kContextIdMask) | (aContextId << kContextIdOffset); }
+
+    /**
+     * This method returns the Context Length value.
+     *
+     * @returns The Context Length value.
+     *
+     */
     uint8_t GetContextLength() const { return mContextLength; }
-    void SetContextLength(uint8_t length) { mContextLength = length; }
+
+    /**
+     * This method sets the Context Length value.
+     *
+     * @param[in]  aLength  The Context Length value.
+     *
+     */
+    void SetContextLength(uint8_t aLength) { mContextLength = aLength; }
 
 private:
     enum

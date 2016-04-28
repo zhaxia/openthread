@@ -26,24 +26,22 @@
 namespace Thread {
 namespace NetworkData {
 
-ThreadError NetworkData::GetNetworkData(bool stable, uint8_t *data, uint8_t &dataLength)
+void NetworkData::GetNetworkData(bool aStable, uint8_t *aData, uint8_t &aDataLength)
 {
-    assert(data != NULL);
+    assert(aData != NULL);
 
-    memcpy(data, mTlvs, mLength);
-    dataLength = mLength;
+    memcpy(aData, mTlvs, mLength);
+    aDataLength = mLength;
 
-    if (stable)
+    if (aStable)
     {
-        RemoveTemporaryData(data, dataLength);
+        RemoveTemporaryData(aData, aDataLength);
     }
-
-    return kThreadError_None;
 }
 
-ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength)
+void NetworkData::RemoveTemporaryData(uint8_t *aData, uint8_t &aDataLength)
 {
-    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(data);
+    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(aData);
     NetworkDataTlv *end;
     PrefixTlv *prefix;
     uint8_t length;
@@ -52,7 +50,7 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength)
 
     while (1)
     {
-        end = reinterpret_cast<NetworkDataTlv *>(data + dataLength);
+        end = reinterpret_cast<NetworkDataTlv *>(aData + aDataLength);
 
         if (cur >= end)
         {
@@ -64,15 +62,15 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength)
         case NetworkDataTlv::kTypePrefix:
         {
             prefix = reinterpret_cast<PrefixTlv *>(cur);
-            RemoveTemporaryData(data, dataLength, *prefix);
+            RemoveTemporaryData(aData, aDataLength, *prefix);
 
             if (prefix->GetSubTlvsLength() == 0)
             {
                 length = sizeof(NetworkDataTlv) + cur->GetLength();
                 dst = reinterpret_cast<uint8_t *>(cur);
                 src = reinterpret_cast<uint8_t *>(cur->GetNext());
-                memmove(dst, src, dataLength - (src - data));
-                dataLength -= length;
+                memmove(dst, src, aDataLength - (src - aData));
+                aDataLength -= length;
                 continue;
             }
 
@@ -88,8 +86,8 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength)
                 length = sizeof(NetworkDataTlv) + cur->GetLength();
                 dst = reinterpret_cast<uint8_t *>(cur);
                 src = reinterpret_cast<uint8_t *>(cur->GetNext());
-                memmove(dst, src, dataLength - (src - data));
-                dataLength -= length;
+                memmove(dst, src, aDataLength - (src - aData));
+                aDataLength -= length;
                 continue;
             }
 
@@ -100,14 +98,12 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength)
         cur = cur->GetNext();
     }
 
-    dump("remove done", data, dataLength);
-
-    return kThreadError_None;
+    dump("remove done", aData, aDataLength);
 }
 
-ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength, PrefixTlv &prefix)
+void NetworkData::RemoveTemporaryData(uint8_t *aData, uint8_t &aDataLength, PrefixTlv &aPrefix)
 {
-    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
+    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs());
     NetworkDataTlv *end;
     BorderRouterTlv *borderRouter;
     HasRouteTlv *hasRoute;
@@ -121,7 +117,7 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength,
 
     while (1)
     {
-        end = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs() + prefix.GetSubTlvsLength());
+        end = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs() + aPrefix.GetSubTlvsLength());
 
         if (cur >= end)
         {
@@ -134,8 +130,8 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength,
             {
             case NetworkDataTlv::kTypeBorderRouter:
             {
-                borderRouter = FindBorderRouter(prefix);
-                context = FindContext(prefix);
+                borderRouter = FindBorderRouter(aPrefix);
+                context = FindContext(aPrefix);
                 contextId = context->GetContextId();
 
                 // replace p_border_router_16
@@ -158,7 +154,7 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength,
 
             case NetworkDataTlv::kTypeHasRoute:
             {
-                hasRoute = FindHasRoute(prefix);
+                hasRoute = FindHasRoute(aPrefix);
 
                 // replace r_border_router_16
                 for (int j = 0; j < hasRoute->GetNumEntries(); j++)
@@ -185,20 +181,18 @@ ThreadError NetworkData::RemoveTemporaryData(uint8_t *data, uint8_t &dataLength,
             length = sizeof(NetworkDataTlv) + cur->GetLength();
             dst = reinterpret_cast<uint8_t *>(cur);
             src = reinterpret_cast<uint8_t *>(cur->GetNext());
-            memmove(dst, src, dataLength - (src - data));
-            prefix.SetSubTlvsLength(prefix.GetSubTlvsLength() - length);
-            dataLength -= length;
+            memmove(dst, src, aDataLength - (src - aData));
+            aPrefix.SetSubTlvsLength(aPrefix.GetSubTlvsLength() - length);
+            aDataLength -= length;
         }
     }
-
-    return kThreadError_None;
 }
 
-BorderRouterTlv *NetworkData::FindBorderRouter(PrefixTlv &prefix)
+BorderRouterTlv *NetworkData::FindBorderRouter(PrefixTlv &aPrefix)
 {
     BorderRouterTlv *rval = NULL;
-    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
-    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs() + prefix.GetSubTlvsLength());
+    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs());
+    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs() + aPrefix.GetSubTlvsLength());
 
     while (cur < end)
     {
@@ -214,16 +208,16 @@ exit:
     return rval;
 }
 
-BorderRouterTlv *NetworkData::FindBorderRouter(PrefixTlv &prefix, bool stable)
+BorderRouterTlv *NetworkData::FindBorderRouter(PrefixTlv &aPrefix, bool aStable)
 {
     BorderRouterTlv *rval = NULL;
-    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
-    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs() + prefix.GetSubTlvsLength());
+    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs());
+    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs() + aPrefix.GetSubTlvsLength());
 
     while (cur < end)
     {
         if (cur->GetType() == NetworkDataTlv::kTypeBorderRouter &&
-            cur->IsStable() == stable)
+            cur->IsStable() == aStable)
         {
             ExitNow(rval = reinterpret_cast<BorderRouterTlv *>(cur));
         }
@@ -235,11 +229,11 @@ exit:
     return rval;
 }
 
-HasRouteTlv *NetworkData::FindHasRoute(PrefixTlv &prefix)
+HasRouteTlv *NetworkData::FindHasRoute(PrefixTlv &aPrefix)
 {
     HasRouteTlv *rval = NULL;
-    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
-    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs() + prefix.GetSubTlvsLength());
+    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs());
+    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs() + aPrefix.GetSubTlvsLength());
 
     while (cur < end)
     {
@@ -255,16 +249,16 @@ exit:
     return rval;
 }
 
-HasRouteTlv *NetworkData::FindHasRoute(PrefixTlv &prefix, bool stable)
+HasRouteTlv *NetworkData::FindHasRoute(PrefixTlv &aPrefix, bool aStable)
 {
     HasRouteTlv *rval = NULL;
-    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
-    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs() + prefix.GetSubTlvsLength());
+    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs());
+    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs() + aPrefix.GetSubTlvsLength());
 
     while (cur < end)
     {
         if (cur->GetType() == NetworkDataTlv::kTypeHasRoute &&
-            cur->IsStable() == stable)
+            cur->IsStable() == aStable)
         {
             ExitNow(rval = reinterpret_cast<HasRouteTlv *>(cur));
         }
@@ -276,11 +270,11 @@ exit:
     return rval;
 }
 
-ContextTlv *NetworkData::FindContext(PrefixTlv &prefix)
+ContextTlv *NetworkData::FindContext(PrefixTlv &aPrefix)
 {
     ContextTlv *rval = NULL;
-    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
-    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs() + prefix.GetSubTlvsLength());
+    NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs());
+    NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs() + aPrefix.GetSubTlvsLength());
 
     while (cur < end)
     {
@@ -296,7 +290,7 @@ exit:
     return rval;
 }
 
-PrefixTlv *NetworkData::FindPrefix(const uint8_t *prefix, uint8_t prefixLength)
+PrefixTlv *NetworkData::FindPrefix(const uint8_t *aPrefix, uint8_t aPrefixLength)
 {
     NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(mTlvs);
     NetworkDataTlv *end = reinterpret_cast<NetworkDataTlv *>(mTlvs + mLength);
@@ -308,8 +302,8 @@ PrefixTlv *NetworkData::FindPrefix(const uint8_t *prefix, uint8_t prefixLength)
         {
             compare = reinterpret_cast<PrefixTlv *>(cur);
 
-            if (compare->GetPrefixLength() == prefixLength &&
-                PrefixMatch(compare->GetPrefix(), prefix, prefixLength) >= prefixLength)
+            if (compare->GetPrefixLength() == aPrefixLength &&
+                PrefixMatch(compare->GetPrefix(), aPrefix, aPrefixLength) >= aPrefixLength)
             {
                 return compare;
             }
@@ -321,10 +315,10 @@ PrefixTlv *NetworkData::FindPrefix(const uint8_t *prefix, uint8_t prefixLength)
     return NULL;
 }
 
-int8_t NetworkData::PrefixMatch(const uint8_t *a, const uint8_t *b, uint8_t length)
+int8_t NetworkData::PrefixMatch(const uint8_t *a, const uint8_t *b, uint8_t aLength)
 {
     uint8_t rval = 0;
-    uint8_t bytes = (length + 7) / 8;
+    uint8_t bytes = (aLength + 7) / 8;
     uint8_t diff;
 
     for (uint8_t i = 0; i < bytes; i++)
@@ -347,26 +341,26 @@ int8_t NetworkData::PrefixMatch(const uint8_t *a, const uint8_t *b, uint8_t leng
         }
     }
 
-    return (rval >= length) ? rval : -1;
+    return (rval >= aLength) ? rval : -1;
 }
 
-ThreadError NetworkData::Insert(uint8_t *start, uint8_t length)
+ThreadError NetworkData::Insert(uint8_t *aStart, uint8_t aLength)
 {
-    assert(length + mLength <= sizeof(mTlvs) &&
-           mTlvs <= start &&
-           start <= mTlvs + mLength);
-    memmove(start + length, start, mLength - (start - mTlvs));
-    mLength += length;
+    assert(aLength + mLength <= sizeof(mTlvs) &&
+           mTlvs <= aStart &&
+           aStart <= mTlvs + mLength);
+    memmove(aStart + aLength, aStart, mLength - (aStart - mTlvs));
+    mLength += aLength;
     return kThreadError_None;
 }
 
-ThreadError NetworkData::Remove(uint8_t *start, uint8_t length)
+ThreadError NetworkData::Remove(uint8_t *aStart, uint8_t aLength)
 {
-    assert(length <= mLength &&
-           mTlvs <= start &&
-           (start - mTlvs) + length <= mLength);
-    memmove(start, start + length, mLength - ((start - mTlvs) + length));
-    mLength -= length;
+    assert(aLength <= mLength &&
+           mTlvs <= aStart &&
+           (aStart - mTlvs) + aLength <= mLength);
+    memmove(aStart, aStart + aLength, mLength - ((aStart - mTlvs) + aLength));
+    mLength -= aLength;
     return kThreadError_None;
 }
 
