@@ -29,33 +29,34 @@
 namespace Thread {
 namespace NetworkData {
 
-Local::Local(ThreadNetif &netif)
+void Local::Init(ThreadNetif &netif)
 {
+    NetworkData::Init();
     mMle = netif.GetMle();
 }
 
-ThreadError Local::AddOnMeshPrefix(const uint8_t *prefix, uint8_t prefixLength, int8_t prf,
-                                   uint8_t flags, bool stable)
+ThreadError Local::AddOnMeshPrefix(const uint8_t *aPrefix, uint8_t aPrefixLength, int8_t aPrf,
+                                   uint8_t aFlags, bool aStable)
 {
     PrefixTlv *prefixTlv;
     BorderRouterTlv *brTlv;
 
-    RemoveOnMeshPrefix(prefix, prefixLength);
+    RemoveOnMeshPrefix(aPrefix, aPrefixLength);
 
     prefixTlv = reinterpret_cast<PrefixTlv *>(mTlvs + mLength);
     Insert(reinterpret_cast<uint8_t *>(prefixTlv),
-           sizeof(PrefixTlv) + (prefixLength + 7) / 8 + sizeof(BorderRouterTlv) + sizeof(BorderRouterEntry));
-    prefixTlv->Init(0, prefixLength, prefix);
+           sizeof(PrefixTlv) + (aPrefixLength + 7) / 8 + sizeof(BorderRouterTlv) + sizeof(BorderRouterEntry));
+    prefixTlv->Init(0, aPrefixLength, aPrefix);
     prefixTlv->SetSubTlvsLength(sizeof(BorderRouterTlv) + sizeof(BorderRouterEntry));
 
     brTlv = reinterpret_cast<BorderRouterTlv *>(prefixTlv->GetSubTlvs());
     brTlv->Init();
     brTlv->SetLength(brTlv->GetLength() + sizeof(BorderRouterEntry));
     brTlv->GetEntry(0)->Init();
-    brTlv->GetEntry(0)->SetPreference(prf);
-    brTlv->GetEntry(0)->SetFlags(flags);
+    brTlv->GetEntry(0)->SetPreference(aPrf);
+    brTlv->GetEntry(0)->SetFlags(aFlags);
 
-    if (stable)
+    if (aStable)
     {
         prefixTlv->SetStable();
         brTlv->SetStable();
@@ -65,12 +66,12 @@ ThreadError Local::AddOnMeshPrefix(const uint8_t *prefix, uint8_t prefixLength, 
     return kThreadError_None;
 }
 
-ThreadError Local::RemoveOnMeshPrefix(const uint8_t *prefix, uint8_t prefixLength)
+ThreadError Local::RemoveOnMeshPrefix(const uint8_t *aPrefix, uint8_t aPrefixLength)
 {
     ThreadError error = kThreadError_None;
     PrefixTlv *tlv;
 
-    VerifyOrExit((tlv = FindPrefix(prefix, prefixLength)) != NULL, error = kThreadError_Error);
+    VerifyOrExit((tlv = FindPrefix(aPrefix, aPrefixLength)) != NULL, error = kThreadError_Error);
     VerifyOrExit(FindBorderRouter(*tlv) != NULL, error = kThreadError_Error);
     Remove(reinterpret_cast<uint8_t *>(tlv), sizeof(NetworkDataTlv) + tlv->GetLength());
 
@@ -79,26 +80,26 @@ exit:
     return error;
 }
 
-ThreadError Local::AddHasRoutePrefix(const uint8_t *prefix, uint8_t prefixLength, int8_t prf, bool stable)
+ThreadError Local::AddHasRoutePrefix(const uint8_t *aPrefix, uint8_t aPrefixLength, int8_t aPrf, bool aStable)
 {
     PrefixTlv *prefixTlv;
     HasRouteTlv *hasRouteTlv;
 
-    RemoveHasRoutePrefix(prefix, prefixLength);
+    RemoveHasRoutePrefix(aPrefix, aPrefixLength);
 
     prefixTlv = reinterpret_cast<PrefixTlv *>(mTlvs + mLength);
     Insert(reinterpret_cast<uint8_t *>(prefixTlv),
-           sizeof(PrefixTlv) + (prefixLength + 7) / 8 + sizeof(HasRouteTlv) + sizeof(HasRouteEntry));
-    prefixTlv->Init(0, prefixLength, prefix);
+           sizeof(PrefixTlv) + (aPrefixLength + 7) / 8 + sizeof(HasRouteTlv) + sizeof(HasRouteEntry));
+    prefixTlv->Init(0, aPrefixLength, aPrefix);
     prefixTlv->SetSubTlvsLength(sizeof(HasRouteTlv) + sizeof(HasRouteEntry));
 
     hasRouteTlv = reinterpret_cast<HasRouteTlv *>(prefixTlv->GetSubTlvs());
     hasRouteTlv->Init();
     hasRouteTlv->SetLength(hasRouteTlv->GetLength() + sizeof(HasRouteEntry));
     hasRouteTlv->GetEntry(0)->Init();
-    hasRouteTlv->GetEntry(0)->SetPreference(prf);
+    hasRouteTlv->GetEntry(0)->SetPreference(aPrf);
 
-    if (stable)
+    if (aStable)
     {
         prefixTlv->SetStable();
         hasRouteTlv->SetStable();
@@ -108,12 +109,12 @@ ThreadError Local::AddHasRoutePrefix(const uint8_t *prefix, uint8_t prefixLength
     return kThreadError_None;
 }
 
-ThreadError Local::RemoveHasRoutePrefix(const uint8_t *prefix, uint8_t prefixLength)
+ThreadError Local::RemoveHasRoutePrefix(const uint8_t *aPrefix, uint8_t aPrefixLength)
 {
     ThreadError error = kThreadError_None;
     PrefixTlv *tlv;
 
-    VerifyOrExit((tlv = FindPrefix(prefix, prefixLength)) != NULL, error = kThreadError_Error);
+    VerifyOrExit((tlv = FindPrefix(aPrefix, aPrefixLength)) != NULL, error = kThreadError_Error);
     VerifyOrExit(FindHasRoute(*tlv) != NULL, error = kThreadError_Error);
     Remove(reinterpret_cast<uint8_t *>(tlv), sizeof(NetworkDataTlv) + tlv->GetLength());
 
@@ -122,7 +123,7 @@ exit:
     return error;
 }
 
-ThreadError Local::UpdateRloc()
+ThreadError Local::UpdateRloc(void)
 {
     for (NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(mTlvs);
          cur < reinterpret_cast<NetworkDataTlv *>(mTlvs + mLength);
@@ -143,10 +144,10 @@ ThreadError Local::UpdateRloc()
     return kThreadError_None;
 }
 
-ThreadError Local::UpdateRloc(PrefixTlv &prefix)
+ThreadError Local::UpdateRloc(PrefixTlv &aPrefix)
 {
-    for (NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs());
-         cur < reinterpret_cast<NetworkDataTlv *>(prefix.GetSubTlvs() + prefix.GetSubTlvsLength());
+    for (NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs());
+         cur < reinterpret_cast<NetworkDataTlv *>(aPrefix.GetSubTlvs() + aPrefix.GetSubTlvsLength());
          cur = cur->GetNext())
     {
         switch (cur->GetType())
@@ -168,21 +169,21 @@ ThreadError Local::UpdateRloc(PrefixTlv &prefix)
     return kThreadError_None;
 }
 
-ThreadError Local::UpdateRloc(HasRouteTlv &hasRoute)
+ThreadError Local::UpdateRloc(HasRouteTlv &aHasRoute)
 {
-    HasRouteEntry *entry = hasRoute.GetEntry(0);
+    HasRouteEntry *entry = aHasRoute.GetEntry(0);
     entry->SetRloc(mMle->GetRloc16());
     return kThreadError_None;
 }
 
-ThreadError Local::UpdateRloc(BorderRouterTlv &border_router)
+ThreadError Local::UpdateRloc(BorderRouterTlv &aBorderRouter)
 {
-    BorderRouterEntry *entry = border_router.GetEntry(0);
+    BorderRouterEntry *entry = aBorderRouter.GetEntry(0);
     entry->SetRloc(mMle->GetRloc16());
     return kThreadError_None;
 }
 
-ThreadError Local::Register(const Ip6::Address &destination)
+ThreadError Local::Register(const Ip6::Address &aDestination)
 {
     ThreadError error = kThreadError_None;
     Coap::Header header;
@@ -211,7 +212,7 @@ ThreadError Local::Register(const Ip6::Address &destination)
     SuccessOrExit(error = message->Append(mTlvs, mLength));
 
     memset(&messageInfo, 0, sizeof(messageInfo));
-    memcpy(&messageInfo.mPeerAddr, &destination, sizeof(messageInfo.mPeerAddr));
+    memcpy(&messageInfo.mPeerAddr, &aDestination, sizeof(messageInfo.mPeerAddr));
     messageInfo.mPeerPort = kCoapUdpPort;
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
 
@@ -227,17 +228,17 @@ exit:
     return error;
 }
 
-void Local::HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo)
+void Local::HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo)
 {
-    Local *obj = reinterpret_cast<Local *>(context);
-    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6::MessageInfo *>(messageInfo));
+    Local *obj = reinterpret_cast<Local *>(aContext);
+    obj->HandleUdpReceive(*static_cast<Message *>(aMessage), *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
-void Local::HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo)
+void Local::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     Coap::Header header;
 
-    SuccessOrExit(header.FromMessage(message));
+    SuccessOrExit(header.FromMessage(aMessage));
     VerifyOrExit(header.GetType() == Coap::Header::kTypeAcknowledgment &&
                  header.GetCode() == Coap::Header::kCodeChanged &&
                  header.GetMessageId() == mCoapMessageId &&

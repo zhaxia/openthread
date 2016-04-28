@@ -589,7 +589,7 @@ ThreadError Mle::AppendNetworkData(Message &message, bool stableOnly)
     uint8_t length;
 
     tlv.Init();
-    SuccessOrExit(error = mNetworkData->GetNetworkData(stableOnly, tlv.GetNetworkData(), length));
+    mNetworkData->GetNetworkData(stableOnly, tlv.GetNetworkData(), length);
     tlv.SetLength(length);
 
     SuccessOrExit(error = message.Append(&tlv, sizeof(Tlv) + tlv.GetLength()));
@@ -1464,10 +1464,9 @@ ThreadError Mle::HandleDataResponse(const Message &message, const Ip6::MessageIn
     diff = leaderData.GetDataVersion() - mNetworkData->GetVersion();
     VerifyOrExit(diff > 0, ;);
 
-    SuccessOrExit(error = mNetworkData->SetNetworkData(leaderData.GetDataVersion(),
-                                                       leaderData.GetStableDataVersion(),
-                                                       (mDeviceMode & kModeFullNetworkData) == 0,
-                                                       networkData.GetNetworkData(), networkData.GetLength()));
+    mNetworkData->SetNetworkData(leaderData.GetDataVersion(), leaderData.GetStableDataVersion(),
+                                 (mDeviceMode & kModeFullNetworkData) == 0,
+                                 networkData.GetNetworkData(), networkData.GetLength());
 
 exit:
     return error;
@@ -1666,10 +1665,9 @@ ThreadError Mle::HandleChildIdResponse(const Message &message, const Ip6::Messag
 
     // Network Data
     SuccessOrExit(error = Tlv::GetTlv(message, Tlv::kNetworkData, sizeof(networkData), networkData));
-    SuccessOrExit(error = mNetworkData->SetNetworkData(leaderData.GetDataVersion(),
-                                                       leaderData.GetStableDataVersion(),
-                                                       (mDeviceMode & kModeFullNetworkData) == 0,
-                                                       networkData.GetNetworkData(), networkData.GetLength()));
+    mNetworkData->SetNetworkData(leaderData.GetDataVersion(), leaderData.GetStableDataVersion(),
+                                 (mDeviceMode & kModeFullNetworkData) == 0,
+                                 networkData.GetNetworkData(), networkData.GetLength());
 
     // Parent Attach Success
     mParentRequestTimer.Stop();

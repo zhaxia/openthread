@@ -45,70 +45,179 @@ namespace NetworkData {
  * @{
  */
 
+/**
+ * This class implements the Thread Network Data maintained by the Leader.
+ */
 class Leader: public NetworkData
 {
 public:
-    explicit Leader(ThreadNetif &netif);
-    ThreadError Init();
-    ThreadError Start();
-    ThreadError Stop();
+    Leader(void);
 
-    uint8_t GetVersion() const;
-    uint8_t GetStableVersion() const;
+    /**
+     * This method initializes the object.
+     *
+     * @param[in]  aNetif  A reference to the Thread network interface.
+     *
+     */
+    ThreadError Init(ThreadNetif &aNetif);
 
-    uint32_t GetContextIdReuseDelay() const;
-    ThreadError SetContextIdReuseDelay(uint32_t delay);
+    /**
+     * This method reset the Thread Network Data.
+     *
+     */
+    void Reset(void);
 
-    ThreadError GetContext(const Ip6::Address &address, Context &context);
-    ThreadError GetContext(uint8_t contextId, Context &context);
+    /**
+     * This method starts the Leader services.
+     *
+     */
+    void Start(void);
 
-    bool IsOnMesh(const Ip6::Address &address);
-    ThreadError RouteLookup(const Ip6::Address &source, const Ip6::Address &destination,
-                            uint8_t *prefixMatch, uint16_t *rloc);
-    ThreadError SetNetworkData(uint8_t version, uint8_t stableVersion, bool stable_only,
-                               const uint8_t *data, uint8_t dataLength);
-    ThreadError RemoveBorderRouter(uint16_t rloc);
+    /**
+     * This method stops the Leader services.
+     *
+     */
+    void Stop(void);
+
+    /**
+     * This method returns the Thread Network Data version.
+     *
+     * @returns The Thread Network Data version.
+     *
+     */
+    uint8_t GetVersion(void) const;
+
+    /**
+     * This method returns the Thread Network Data stable version.
+     *
+     * @returns The Thread Network Data stable version.
+     *
+     */
+    uint8_t GetStableVersion(void) const;
+
+    /**
+     * This method returns CONTEXT_ID_RESUSE_DELAY value.
+     *
+     * @returns The CONTEXT_ID_REUSE_DELAY value.
+     *
+     */
+    uint32_t GetContextIdReuseDelay(void) const;
+
+    /**
+     * This method sets CONTEXT_ID_RESUSE_DELAY value.
+     *
+     * @warning This method should only be used for testing.
+     *
+     * @param[in]  aDelay  The CONTEXT_ID_REUSE_DELAY value.
+     *
+     */
+    ThreadError SetContextIdReuseDelay(uint32_t aDelay);
+
+    /**
+     * This method retrieves the 6LoWPAN Context information based on a given IPv6 address.
+     *
+     * @param[in]   aAddress  A reference to an IPv6 address.
+     * @param[out]  aContext  A reference to 6LoWPAN Context information.
+     *
+     * @retval kThreadError_None      Successfully retrieved 6LoWPAN Context information.
+     * @retval kThreadError_NotFound  Could not find the 6LoWPAN Context information.
+     *
+     */
+    ThreadError GetContext(const Ip6::Address &aAddress, Context &aContext);
+
+    /**
+     * This method retrieves the 6LoWPAN Context information based on a given Context ID.
+     *
+     * @param[in]   aContextId  The Context ID value.
+     * @param[out]  aCountext   A reference to the 6LoWPAN Context information.
+     *
+     * @retval kThreadError_None      Successfully retrieved 6LoWPAN Context information.
+     * @retval kThreadError_NotFound  Could not find the 6LoWPAN Context information.
+     *
+     */
+    ThreadError GetContext(uint8_t aContextId, Context &aContext);
+
+    /**
+     * This method indicates whether or not the given IPv6 address is on-mesh.
+     *
+     * @param[in]  aAddress  A reference to an IPv6 address.
+     *
+     * @retval TRUE   If @p aAddress is on-link.
+     * @retval FALSE  If @p aAddress if not on-link.
+     *
+     */
+    bool IsOnMesh(const Ip6::Address &aAddress);
+
+    /**
+     * This method performs a route lookup using the Network Data.
+     *
+     * @param[in]   aSource       A reference to the IPv6 source address.
+     * @param[in]   aDestination  A reference to the IPv6 destination address.
+     * @param[out]  aPrefixMatch  A pointer to the longest prefix match length in bits.
+     * @param[out]  aRloc16       A pointer to the RLOC16 for the selected route.
+     *
+     * @retval kThreadError_None     Successfully found a route.
+     * @retval kThreadError_NoRoute  No valid route was found.
+     *
+     */
+    ThreadError RouteLookup(const Ip6::Address &aSource, const Ip6::Address &aDestination,
+                            uint8_t *aPrefixMatch, uint16_t *aRloc16);
+
+    /**
+     * This method is used by non-Leader devices to set newly received Network Data from the Leader.
+     *
+     * @param[in]  aVersion        The Version value.
+     * @param[in]  aStableVersion  The Stable Version value.
+     * @param[in]  aStableOnly     TRUE if storing only the stable data, FALSE otherwise.
+     * @param[in]  aData           A pointer to the Network Data.
+     * @param[in]  aDataLength     The length of the Network Data in bytes.
+     *
+     */
+    void SetNetworkData(uint8_t aVersion, uint8_t aStableVersion, bool aStableOnly, const uint8_t *aData,
+                        uint8_t aDataLength);
+
+    /**
+     * This method removes Network Data associated with a given RLOC16.
+     *
+     * @param[in]  aRloc16  A RLOC16 value.
+     *
+     */
+    void RemoveBorderRouter(uint16_t aRloc16);
 
 private:
-    static void HandleServerData(void *context, Coap::Header &header, Message &message,
-                                 const Ip6::MessageInfo &messageInfo);
-    void HandleServerData(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
-    void SendServerDataResponse(const Coap::Header &requestHeader, const Ip6::MessageInfo &messageInfo,
-                                const uint8_t *tlvs, uint8_t tlvsLength);
+    static void HandleServerData(void *aContext, Coap::Header &aHeader, Message &aMessage,
+                                 const Ip6::MessageInfo &aMessageInfo);
+    void HandleServerData(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    void SendServerDataResponse(const Coap::Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo,
+                                const uint8_t *aTlvs, uint8_t aTlvsLength);
 
-    static void HandleTimer(void *context);
-    void HandleTimer();
+    static void HandleTimer(void *aContext);
+    void HandleTimer(void);
 
-    ThreadError RegisterNetworkData(uint16_t rloc, uint8_t *tlvs, uint8_t tlvsLength);
+    ThreadError RegisterNetworkData(uint16_t aRloc16, uint8_t *aTlvs, uint8_t aTlvsLength);
 
-    ThreadError AddHasRoute(PrefixTlv &prefix, HasRouteTlv &src);
-    ThreadError AddBorderRouter(PrefixTlv &prefix, BorderRouterTlv &src);
-    ThreadError AddNetworkData(uint8_t *tlv, uint8_t tlvLength);
-    ThreadError AddPrefix(PrefixTlv &tlv);
+    ThreadError AddHasRoute(PrefixTlv &aPrefix, HasRouteTlv &aHasRoute);
+    ThreadError AddBorderRouter(PrefixTlv &aPrefix, BorderRouterTlv &aBorderRouter);
+    ThreadError AddNetworkData(uint8_t *aTlv, uint8_t aTlvLength);
+    ThreadError AddPrefix(PrefixTlv &aTlv);
 
-    int AllocateContext();
-    ThreadError FreeContext(uint8_t contextId);
+    int AllocateContext(void);
+    ThreadError FreeContext(uint8_t aContextId);
 
-    ThreadError ConfigureAddresses();
-    ThreadError ConfigureAddress(PrefixTlv &prefix);
+    ThreadError ConfigureAddresses(void);
+    ThreadError ConfigureAddress(PrefixTlv &aPrefix);
 
-    ThreadError RemoveContext(uint8_t contextId);
-    ThreadError RemoveContext(PrefixTlv &prefix, uint8_t contextId);
+    ThreadError RemoveContext(uint8_t aContextId);
+    ThreadError RemoveContext(PrefixTlv &aPrefix, uint8_t aContextId);
 
-    ThreadError RemoveRloc(uint16_t rloc);
-    ThreadError RemoveRloc(PrefixTlv &prefix, uint16_t rloc);
-    ThreadError RemoveRloc(PrefixTlv &prefix, HasRouteTlv &hasRoute, uint16_t rloc);
-    ThreadError RemoveRloc(PrefixTlv &prefix, BorderRouterTlv &borderRouter, uint16_t rloc);
+    ThreadError RemoveRloc(uint16_t aRloc16);
+    ThreadError RemoveRloc(PrefixTlv &aPrefix, uint16_t aRloc16);
+    ThreadError RemoveRloc(PrefixTlv &aPrefix, HasRouteTlv &aHasRoute, uint16_t aRloc16);
+    ThreadError RemoveRloc(PrefixTlv &aPrefix, BorderRouterTlv &aBorderRouter, uint16_t aRloc16);
 
-    ThreadError ExternalRouteLookup(uint8_t domainId, const Ip6::Address &destination,
-                                    uint8_t *prefixMatch, uint16_t *rloc);
-    ThreadError DefaultRouteLookup(PrefixTlv &prefix, uint16_t *rloc);
-
-    Coap::Resource mServerData;
-    uint8_t mStableVersion;
-    uint8_t mVersion;
-
-    Ip6::NetifUnicastAddress mAddresses[4];
+    ThreadError ExternalRouteLookup(uint8_t aDomainId, const Ip6::Address &destination,
+                                    uint8_t *aPrefixMatch, uint16_t *aRloc16);
+    ThreadError DefaultRouteLookup(PrefixTlv &aPrefix, uint16_t *aRloc16);
 
     enum
     {
@@ -121,8 +230,14 @@ private:
     uint32_t mContextIdReuseDelay = kContextIdReuseDelay;
     Timer mTimer;
 
-    Coap::Server *mCoapServer;
-    Ip6::Netif *mNetif;
+    Ip6::NetifUnicastAddress mAddresses[4];
+
+    Coap::Resource  mServerData;
+    uint8_t         mStableVersion;
+    uint8_t         mVersion;
+
+    Coap::Server   *mCoapServer;
+    Ip6::Netif     *mNetif;
     Mle::MleRouter *mMle;
 };
 

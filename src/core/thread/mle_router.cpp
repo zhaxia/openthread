@@ -217,7 +217,7 @@ ThreadError MleRouter::BecomeLeader()
     mLeaderData.SetWeighting(mLeaderWeight);
     mLeaderData.SetRouterId(mRouterId);
 
-    mNetworkData->Init();
+    mNetworkData->Reset();
 
     SuccessOrExit(error = SetStateLeader(mRouterId << 10));
 
@@ -805,10 +805,9 @@ ThreadError MleRouter::HandleLinkAccept(const Message &message, const Ip6::Messa
 
         // Network Data
         SuccessOrExit(error = Tlv::GetTlv(message, Tlv::kNetworkData, sizeof(networkData), networkData));
-        SuccessOrExit(error = mNetworkData->SetNetworkData(leaderData.GetDataVersion(),
-                                                           leaderData.GetStableDataVersion(),
-                                                           (mDeviceMode & kModeFullNetworkData) == 0,
-                                                           networkData.GetNetworkData(), networkData.GetLength()));
+        mNetworkData->SetNetworkData(leaderData.GetDataVersion(), leaderData.GetStableDataVersion(),
+                                     (mDeviceMode & kModeFullNetworkData) == 0,
+                                     networkData.GetNetworkData(), networkData.GetLength());
 
         if (mLeaderData.GetRouterId() == GetRouterId(GetRloc16()))
         {
