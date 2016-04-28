@@ -54,7 +54,7 @@ public:
     public:
         Ip6::Address mTarget;
         uint8_t mIid[8];
-        Mac::Address16 mRloc;
+        Mac::ShortAddress mRloc;
         uint8_t mTimeout;
         uint8_t mFailureCount : 4;
         enum State
@@ -70,7 +70,7 @@ public:
     explicit AddressResolver(ThreadNetif &netif);
     ThreadError Clear();
     ThreadError Remove(uint8_t routerId);
-    ThreadError Resolve(const Ip6::Address &eid, Mac::Address16 &rloc);
+    ThreadError Resolve(const Ip6::Address &eid, Mac::ShortAddress &rloc);
 
     const Cache *GetCacheEntries(uint16_t *numEntries) const;
 

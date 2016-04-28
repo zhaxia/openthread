@@ -60,14 +60,14 @@ public:
 
     ThreadError SendMessage(Message &message);
 
-    const Mac::Address64 *GetAddress64() const;
+    const Mac::ExtAddress *GetExtAddress() const;
 
-    Mac::Address16 GetAddress16() const;
-    ThreadError SetAddress16(Mac::Address16 address16);
+    uint16_t GetShortAddress() const;
+    ThreadError SetShortAddress(uint16_t address16);
     void HandleResolved(const Ip6::Address &eid);
 
     bool GetRxOnWhenIdle();
-    ThreadError SetRxOnWhenIdle(bool rx_on_when_idle);
+    void SetRxOnWhenIdle(bool rx_on_when_idle);
     ThreadError SetPollPeriod(uint32_t period);
 
 private:

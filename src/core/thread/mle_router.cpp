@@ -211,7 +211,7 @@ ThreadError MleRouter::BecomeLeader()
     mRouterId = (mPreviousRouterId != kMaxRouterId) ? AllocateRouterId(mPreviousRouterId) : AllocateRouterId();
     VerifyOrExit(mRouterId >= 0, error = kThreadError_NoBufs);
 
-    memcpy(&mRouters[mRouterId].mMacAddr, mMesh->GetAddress64(), sizeof(mRouters[mRouterId].mMacAddr));
+    memcpy(&mRouters[mRouterId].mMacAddr, mMesh->GetExtAddress(), sizeof(mRouters[mRouterId].mMacAddr));
 
     mLeaderData.SetPartitionId(otRandomGet());
     mLeaderData.SetWeighting(mLeaderWeight);
@@ -528,7 +528,7 @@ ThreadError MleRouter::HandleLinkRequest(const Message &message, const Ip6::Mess
 {
     ThreadError error = kThreadError_None;
     Neighbor *neighbor = NULL;
-    Mac::Address64 macAddr;
+    Mac::ExtAddress macAddr;
     ChallengeTlv challenge;
     VersionTlv version;
     LeaderDataTlv leaderData;
@@ -709,7 +709,7 @@ ThreadError MleRouter::HandleLinkAccept(const Message &message, const Ip6::Messa
 {
     ThreadError error = kThreadError_None;
     Neighbor *neighbor = NULL;
-    Mac::Address64 macAddr;
+    Mac::ExtAddress macAddr;
     VersionTlv version;
     ResponseTlv response;
     SourceAddressTlv sourceAddress;
@@ -909,7 +909,7 @@ exit:
 
 ThreadError MleRouter::HandleLinkReject(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
-    Mac::Address64 macAddr;
+    Mac::ExtAddress macAddr;
 
     dprintf("Received link reject\n");
 
@@ -932,7 +932,7 @@ Child *MleRouter::NewChild()
     return NULL;
 }
 
-Child *MleRouter::FindChild(const Mac::Address64 &address)
+Child *MleRouter::FindChild(const Mac::ExtAddress &address)
 {
     Child *rval = NULL;
 
@@ -1012,7 +1012,7 @@ exit:
 ThreadError MleRouter::HandleAdvertisement(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
-    Mac::Address64 macAddr;
+    Mac::ExtAddress macAddr;
     SourceAddressTlv sourceAddress;
     LeaderDataTlv leaderData;
     RouteTlv route;
@@ -1304,7 +1304,7 @@ void MleRouter::UpdateRoutes(const RouteTlv &route, uint8_t routerId)
 ThreadError MleRouter::HandleParentRequest(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
-    Mac::Address64 macAddr;
+    Mac::ExtAddress macAddr;
     VersionTlv version;
     ScanMaskTlv scanMask;
     ChallengeTlv challenge;
@@ -1551,7 +1551,7 @@ ThreadError MleRouter::HandleChildIdRequest(const Message &message, const Ip6::M
                                             uint32_t keySequence)
 {
     ThreadError error = kThreadError_None;
-    Mac::Address64 macAddr;
+    Mac::ExtAddress macAddr;
     ResponseTlv response;
     LinkFrameCounterTlv linkFrameCounter;
     MleFrameCounterTlv mleFrameCounter;
@@ -1678,7 +1678,7 @@ exit:
 ThreadError MleRouter::HandleChildUpdateRequest(const Message &message, const Ip6::MessageInfo &messageInfo)
 {
     ThreadError error = kThreadError_None;
-    Mac::Address64 macAddr;
+    Mac::ExtAddress macAddr;
     ModeTlv mode;
     ChallengeTlv challenge;
     AddressRegistrationTlv address;
@@ -1786,7 +1786,7 @@ ThreadError MleRouter::SendChildIdResponse(Child *child)
     SuccessOrExit(error = AppendSourceAddress(*message));
     SuccessOrExit(error = AppendLeaderData(*message));
 
-    child->mValid.mRloc16 = mMesh->GetAddress16() | mNextChildId;
+    child->mValid.mRloc16 = mMesh->GetShortAddress() | mNextChildId;
 
     mNextChildId++;
 
@@ -1907,7 +1907,7 @@ Child *MleRouter::GetChild(uint16_t address)
     return NULL;
 }
 
-Child *MleRouter::GetChild(const Mac::Address64 &address)
+Child *MleRouter::GetChild(const Mac::ExtAddress &address)
 {
     for (int i = 0; i < kMaxChildren; i++)
     {
@@ -1926,10 +1926,10 @@ Child *MleRouter::GetChild(const Mac::Address &address)
     switch (address.mLength)
     {
     case 2:
-        return GetChild(address.mAddress16);
+        return GetChild(address.mShortAddress);
 
     case 8:
-        return GetChild(address.mAddress64);
+        return GetChild(address.mExtAddress);
     }
 
     return NULL;
@@ -1984,7 +1984,7 @@ exit:
     return rval;
 }
 
-Neighbor *MleRouter::GetNeighbor(const Mac::Address64 &address)
+Neighbor *MleRouter::GetNeighbor(const Mac::ExtAddress &address)
 {
     Neighbor *rval = NULL;
 
@@ -2022,11 +2022,11 @@ Neighbor *MleRouter::GetNeighbor(const Mac::Address &address)
     switch (address.mLength)
     {
     case 2:
-        rval = GetNeighbor(address.mAddress16);
+        rval = GetNeighbor(address.mShortAddress);
         break;
 
     case 8:
-        rval = GetNeighbor(address.mAddress64);
+        rval = GetNeighbor(address.mExtAddress);
         break;
 
     default:
@@ -2051,13 +2051,13 @@ Neighbor *MleRouter::GetNeighbor(const Ip6::Address &address)
             address.m16[6] == HostSwap16(0xfe00))
         {
             macaddr.mLength = 2;
-            macaddr.mAddress16 = HostSwap16(address.m16[7]);
+            macaddr.mShortAddress = HostSwap16(address.m16[7]);
         }
         else
         {
             macaddr.mLength = 8;
-            memcpy(macaddr.mAddress64.mBytes, address.m8 + 8, sizeof(macaddr.mAddress64));
-            macaddr.mAddress64.mBytes[0] ^= 0x02;
+            memcpy(macaddr.mExtAddress.mBytes, address.m8 + 8, sizeof(macaddr.mExtAddress));
+            macaddr.mExtAddress.mBytes[0] ^= 0x02;
         }
 
         ExitNow(rval = GetNeighbor(macaddr));
@@ -2208,7 +2208,7 @@ Router *MleRouter::GetRouters(uint8_t *numRouters)
     return mRouters;
 }
 
-ThreadError MleRouter::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 meshdst, Ip6::Header &ip6Header)
+ThreadError MleRouter::CheckReachability(Mac::ShortAddress meshsrc, Mac::ShortAddress meshdst, Ip6::Header &ip6Header)
 {
     Ip6::Address destination;
 
@@ -2217,7 +2217,7 @@ ThreadError MleRouter::CheckReachability(Mac::Address16 meshsrc, Mac::Address16 
         return Mle::CheckReachability(meshsrc, meshdst, ip6Header);
     }
 
-    if (meshdst == mMesh->GetAddress16())
+    if (meshdst == mMesh->GetShortAddress())
     {
         // mesh destination is this device
         if (mNetif->IsUnicastAddress(ip6Header.GetDestination()))
@@ -2280,7 +2280,7 @@ ThreadError MleRouter::SendAddressSolicit()
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
 
     macAddr64Tlv.Init();
-    macAddr64Tlv.SetMacAddr(*mMesh->GetAddress64());
+    macAddr64Tlv.SetMacAddr(*mMesh->GetExtAddress());
     SuccessOrExit(error = message->Append(&macAddr64Tlv, sizeof(macAddr64Tlv)));
 
     if (mPreviousRouterId != kMaxRouterId)
@@ -2332,7 +2332,7 @@ ThreadError MleRouter::SendAddressRelease()
     SuccessOrExit(error = message->Append(&rlocTlv, sizeof(rlocTlv)));
 
     macAddr64Tlv.Init();
-    macAddr64Tlv.SetMacAddr(*mMesh->GetAddress64());
+    macAddr64Tlv.SetMacAddr(*mMesh->GetExtAddress());
     SuccessOrExit(error = message->Append(&macAddr64Tlv, sizeof(macAddr64Tlv)));
 
     memset(&messageInfo, 0, sizeof(messageInfo));

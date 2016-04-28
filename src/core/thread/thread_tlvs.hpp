@@ -83,11 +83,11 @@ public:
     void Init() { SetType(kMacAddr64); SetLength(sizeof(*this) - sizeof(ThreadTlv)); }
     bool IsValid() const { return GetLength() == sizeof(*this) - sizeof(ThreadTlv); }
 
-    const Mac::Address64 *GetMacAddr() const { return &mMacAddr; }
-    void SetMacAddr(const Mac::Address64 &macaddr) { mMacAddr = macaddr; }
+    const Mac::ExtAddress *GetMacAddr() const { return &mMacAddr; }
+    void SetMacAddr(const Mac::ExtAddress &macaddr) { mMacAddr = macaddr; }
 
 private:
-    Mac::Address64 mMacAddr;
+    Mac::ExtAddress mMacAddr;
 };
 
 class ThreadRlocTlv: public ThreadTlv

@@ -72,10 +72,10 @@ int Mac::PrintWhitelist(char *buf, uint16_t bufLength)
     char *cur = buf;
     char *end = cur + bufLength;
 
-    Thread::Mac::Whitelist *whitelist = mMac->GetWhitelist();
-    int length = whitelist->GetMaxEntries();
+    Thread::Mac::Whitelist &whitelist = mMac->GetWhitelist();
+    const Thread::Mac::Whitelist::Entry *entries = whitelist.GetEntries();
 
-    if (whitelist->IsEnabled())
+    if (whitelist.IsEnabled())
     {
         snprintf(cur, end - cur, "Enabled\r\n");
     }
@@ -86,14 +86,9 @@ int Mac::PrintWhitelist(char *buf, uint16_t bufLength)
 
     cur += strlen(cur);
 
-    for (int i = 0; i < length; i++)
+    for (int i = 0; i < whitelist.GetMaxEntries(); i++)
     {
-        const uint8_t *addr = whitelist->GetAddress(i);
-
-        if (addr == NULL)
-        {
-            continue;
-        }
+        const uint8_t *addr = reinterpret_cast<const uint8_t *>(entries[i].mExtAddress.mBytes);
 
         snprintf(cur, end - cur, "%02x%02x%02x%02x%02x%02x%02x%02x\r\n",
                  addr[0], addr[1], addr[2], addr[3],
@@ -150,7 +145,7 @@ int Mac::ProcessWhitelist(int argc, char *argv[], char *buf, uint16_t bufLength)
     {
         VerifyOrExit(++argcur < argc, rval = -1);
         VerifyOrExit(hex2bin(argv[argcur], extAddr, sizeof(extAddr)) == sizeof(extAddr), rval = -1);
-        VerifyOrExit(otRemoveMacWhitelist(extAddr) == kThreadError_None, rval = -1);
+        otRemoveMacWhitelist(extAddr);
     }
 
     rval = cur - buf;
@@ -297,7 +292,7 @@ void Mac::HandleActiveScanResult(Thread::Mac::ActiveScanResult *result)
                  bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7]);
         cur += strlen(cur);
 
-        snprintf(cur, end - cur, "| %04x ", result->mPanid);
+        snprintf(cur, end - cur, "| %04x ", result->mPanId);
         cur += strlen(cur);
 
         bytes = result->mExtAddr;

@@ -54,7 +54,7 @@ public :
     };
     HardwareType   mType;       ///< Link address type.
     uint8_t        mLength;     ///< Length of link address.
-    Mac::Address64 mAddress64;  ///< Link address.
+    Mac::ExtAddress mExtAddress;  ///< Link address.
 };
 
 /**

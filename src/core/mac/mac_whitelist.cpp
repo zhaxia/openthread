@@ -25,41 +25,46 @@
 namespace Thread {
 namespace Mac {
 
-Whitelist::Whitelist()
+void Whitelist::Init(void)
 {
+    mEnabled = false;
+
     for (int i = 0; i < kMaxEntries; i++)
     {
         mWhitelist[i].mValid = false;
     }
 }
 
-ThreadError Whitelist::Enable()
+void Whitelist::Enable(void)
 {
     mEnabled = true;
-    return kThreadError_None;
 }
 
-ThreadError Whitelist::Disable()
+void Whitelist::Disable(void)
 {
     mEnabled = false;
-    return kThreadError_None;
 }
 
-bool Whitelist::IsEnabled() const
+bool Whitelist::IsEnabled(void) const
 {
     return mEnabled;
 }
 
-int Whitelist::GetMaxEntries() const
+int Whitelist::GetMaxEntries(void) const
 {
     return kMaxEntries;
 }
 
-int Whitelist::Add(const Address64 &address)
+const Whitelist::Entry *Whitelist::GetEntries(void) const
 {
-    int rval = -1;
+    return mWhitelist;
+}
 
-    VerifyOrExit((rval = Find(address)) < 0, ;);
+Whitelist::Entry *Whitelist::Add(const ExtAddress &address)
+{
+    Entry *rval;
+
+    VerifyOrExit((rval = Find(address)) == NULL, ;);
 
     for (int i = 0; i < kMaxEntries; i++)
     {
@@ -70,39 +75,36 @@ int Whitelist::Add(const Address64 &address)
 
         memcpy(&mWhitelist[i], &address, sizeof(mWhitelist[i]));
         mWhitelist[i].mValid = true;
-        mWhitelist[i].mRssiValid = false;
-        ExitNow(rval = i);
+        mWhitelist[i].mConstantRssi = false;
+        ExitNow(rval = &mWhitelist[i]);
     }
 
 exit:
     return rval;
 }
 
-ThreadError Whitelist::Clear()
+void Whitelist::Clear(void)
 {
     for (int i = 0; i < kMaxEntries; i++)
     {
         mWhitelist[i].mValid = false;
     }
-
-    return kThreadError_None;
 }
 
-ThreadError Whitelist::Remove(const Address64 &address)
+void Whitelist::Remove(const ExtAddress &address)
 {
-    ThreadError error = kThreadError_None;
-    int i;
+    Entry *entry;
 
-    VerifyOrExit((i = Find(address)) >= 0, ;);
-    memset(&mWhitelist[i], 0, sizeof(mWhitelist[i]));
+    VerifyOrExit((entry = Find(address)) != NULL, ;);
+    memset(entry, 0, sizeof(*entry));
 
 exit:
-    return error;
+    {}
 }
 
-int Whitelist::Find(const Address64 &address) const
+Whitelist::Entry *Whitelist::Find(const ExtAddress &address)
 {
-    int rval = -1;
+    Entry *rval = NULL;
 
     for (int i = 0; i < kMaxEntries; i++)
     {
@@ -111,9 +113,9 @@ int Whitelist::Find(const Address64 &address) const
             continue;
         }
 
-        if (memcmp(&mWhitelist[i].mAddr64, &address, sizeof(mWhitelist[i].mAddr64)) == 0)
+        if (memcmp(&mWhitelist[i].mExtAddress, &address, sizeof(mWhitelist[i].mExtAddress)) == 0)
         {
-            ExitNow(rval = i);
+            ExitNow(rval = &mWhitelist[i]);
         }
     }
 
@@ -121,51 +123,26 @@ exit:
     return rval;
 }
 
-const uint8_t *Whitelist::GetAddress(uint8_t entry) const
+void Whitelist::ClearConstantRssi(Entry &aEntry)
 {
-    const uint8_t *rval;
-
-    VerifyOrExit(entry < kMaxEntries, rval = NULL);
-    rval = mWhitelist[entry].mAddr64.mBytes;
-
-exit:
-    return rval;
+    aEntry.mConstantRssi = false;
 }
 
-ThreadError Whitelist::ClearRssi(uint8_t entry)
+ThreadError Whitelist::GetConstantRssi(Entry &aEntry, int8_t &rssi) const
 {
     ThreadError error = kThreadError_None;
 
-    VerifyOrExit(entry < kMaxEntries, error = kThreadError_Error);
-    mWhitelist[entry].mRssiValid = false;
+    VerifyOrExit(aEntry.mValid && aEntry.mConstantRssi, error = kThreadError_Error);
+    rssi = aEntry.mRssi;
 
 exit:
     return error;
 }
 
-ThreadError Whitelist::GetRssi(uint8_t entry, int8_t &rssi) const
+void Whitelist::SetConstantRssi(Entry &aEntry, int8_t aRssi)
 {
-    ThreadError error = kThreadError_None;
-
-    VerifyOrExit(entry < kMaxEntries && mWhitelist[entry].mValid && mWhitelist[entry].mRssiValid,
-                 error = kThreadError_Error);
-
-    rssi = mWhitelist[entry].mRssi;
-
-exit:
-    return error;
-}
-
-ThreadError Whitelist::SetRssi(uint8_t entry, int8_t rssi)
-{
-    ThreadError error = kThreadError_None;
-
-    VerifyOrExit(entry < kMaxEntries, error = kThreadError_Error);
-    mWhitelist[entry].mRssiValid = true;
-    mWhitelist[entry].mRssi = rssi;
-
-exit:
-    return error;
+    aEntry.mConstantRssi = true;
+    aEntry.mRssi = aRssi;
 }
 
 }  // namespace Mac

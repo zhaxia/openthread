@@ -47,7 +47,6 @@ ThreadNetif::ThreadNetif():
     mAddressResolver(*this),
     mKeyManager(*this),
     mLowpan(*this),
-    mMac(this),
     mMeshForwarder(*this),
     mMleRouter(*this),
     mNetworkDataLocal(*this),
@@ -63,7 +62,7 @@ const char *ThreadNetif::GetName() const
 ThreadError ThreadNetif::Init()
 {
     mKeyManager.SetMasterKey(kThreadMasterKey, sizeof(kThreadMasterKey));
-    mMac.Init();
+    mMac.Init(*this);
     mMleRouter.Init();
     return kThreadError_None;
 }
@@ -97,7 +96,7 @@ ThreadError ThreadNetif::GetLinkAddress(Ip6::LinkAddress &address) const
 {
     address.mType = Ip6::LinkAddress::kEui64;
     address.mLength = 8;
-    memcpy(&address.mAddress64, mMac.GetAddress64(), address.mLength);
+    memcpy(&address.mExtAddress, mMac.GetExtAddress(), address.mLength);
     return kThreadError_None;
 }
 
