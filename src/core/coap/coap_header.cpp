@@ -27,28 +27,27 @@
 namespace Thread {
 namespace Coap {
 
-ThreadError Header::Init()
+void Header::Init(void)
 {
     mHeaderLength = 4;
     mOptionLast = 0;
     mNextOptionOffset = 0;
     mOption = {0, 0, NULL};
     memset(mHeader, 0, sizeof(mHeader));
-    return kThreadError_None;
 }
 
-ThreadError Header::FromMessage(const Message &message)
+ThreadError Header::FromMessage(const Message &aMessage)
 {
     ThreadError error = kThreadError_Parse;
-    uint16_t offset = message.GetOffset();
-    uint16_t length = message.GetLength() - message.GetOffset();
+    uint16_t offset = aMessage.GetOffset();
+    uint16_t length = aMessage.GetLength() - aMessage.GetOffset();
     uint8_t tokenLength;
     bool firstOption = true;
     uint16_t optionDelta;
     uint16_t optionLength;
 
     VerifyOrExit(length >= kTokenOffset, error = kThreadError_Parse);
-    message.Read(offset, kTokenOffset, mHeader);
+    aMessage.Read(offset, kTokenOffset, mHeader);
     mHeaderLength = kTokenOffset;
     offset += kTokenOffset;
     length -= kTokenOffset;
@@ -57,14 +56,14 @@ ThreadError Header::FromMessage(const Message &message)
 
     tokenLength = GetTokenLength();
     VerifyOrExit(tokenLength <= kMaxTokenLength && tokenLength < length, error = kThreadError_Parse);
-    message.Read(offset, tokenLength, mHeader + mHeaderLength);
+    aMessage.Read(offset, tokenLength, mHeader + mHeaderLength);
     mHeaderLength += tokenLength;
     offset += tokenLength;
     length -= tokenLength;
 
     while (length > 0)
     {
-        message.Read(offset, 5, mHeader + mHeaderLength);
+        aMessage.Read(offset, 5, mHeader + mHeaderLength);
 
         if (mHeader[mHeaderLength] == 0xff)
         {
@@ -136,7 +135,7 @@ ThreadError Header::FromMessage(const Message &message)
         }
 
         VerifyOrExit(optionLength <= length, error = kThreadError_Parse);
-        message.Read(offset, optionLength, mHeader + mHeaderLength);
+        aMessage.Read(offset, optionLength, mHeader + mHeaderLength);
         mHeaderLength += optionLength;
         offset += optionLength;
         length -= optionLength;
@@ -146,77 +145,11 @@ exit:
     return error;
 }
 
-uint8_t Header::GetVersion() const
-{
-    return (mHeader[0] & kVersionMask) >> kVersionOffset;
-}
-
-ThreadError Header::SetVersion(uint8_t version)
-{
-    mHeader[0] &= ~kVersionMask;
-    mHeader[0] |= version << kVersionOffset;
-    return kThreadError_None;
-}
-
-Header::Type Header::GetType() const
-{
-    return static_cast<Header::Type>(mHeader[0] & kTypeMask);
-}
-
-ThreadError Header::SetType(Header::Type type)
-{
-    mHeader[0] &= ~kTypeMask;
-    mHeader[0] |= type;
-    return kThreadError_None;
-}
-
-Header::Code Header::GetCode() const
-{
-    return static_cast<Header::Code>(mHeader[1]);
-}
-
-ThreadError Header::SetCode(Header::Code code)
-{
-    mHeader[1] = code;
-    return kThreadError_None;
-}
-
-uint16_t Header::GetMessageId() const
-{
-    return (static_cast<uint16_t>(mHeader[2]) << 8) | mHeader[3];
-}
-
-ThreadError Header::SetMessageId(uint16_t message_id)
-{
-    mHeader[2] = message_id >> 8;
-    mHeader[3] = message_id;
-    return kThreadError_None;
-}
-
-const uint8_t *Header::GetToken() const
-{
-    return mHeader + kTokenOffset;
-}
-
-uint8_t Header::GetTokenLength() const
-{
-    return (mHeader[0] & kTokenLengthMask) >> kTokenLengthOffset;
-}
-
-ThreadError Header::SetToken(const uint8_t *token, uint8_t tokenLength)
-{
-    mHeader[0] &= ~kTokenLengthMask;
-    mHeader[0] |= tokenLength << kTokenLengthOffset;
-    memcpy(mHeader + kTokenOffset, token, tokenLength);
-    mHeaderLength += tokenLength;
-    return kThreadError_None;
-}
-
-ThreadError Header::AppendOption(const Option &option)
+ThreadError Header::AppendOption(const Option &aOption)
 {
     uint8_t *buf = mHeader + mHeaderLength;
     uint8_t *cur = buf + 1;
-    uint16_t optionDelta = option.mNumber - mOptionLast;
+    uint16_t optionDelta = aOption.mNumber - mOptionLast;
     uint16_t optionLength;
 
     if (optionDelta < 13)
@@ -236,35 +169,35 @@ ThreadError Header::AppendOption(const Option &option)
         *cur++ = optionDelta;
     }
 
-    if (option.mLength < 13)
+    if (aOption.mLength < 13)
     {
-        *buf |= option.mLength;
+        *buf |= aOption.mLength;
     }
-    else if (option.mLength < 269)
+    else if (aOption.mLength < 269)
     {
         *buf |= 13;
-        *cur++ = option.mLength - 13;
+        *cur++ = aOption.mLength - 13;
     }
     else
     {
         *buf |= 14;
-        optionLength = option.mLength - 269;
+        optionLength = aOption.mLength - 269;
         *cur++ = optionLength >> 8;
         *cur++ = optionLength;
     }
 
-    memcpy(cur, option.mValue, option.mLength);
-    cur += option.mLength;
+    memcpy(cur, aOption.mValue, aOption.mLength);
+    cur += aOption.mLength;
 
     mHeaderLength += cur - buf;
-    mOptionLast = option.mNumber;
+    mOptionLast = aOption.mNumber;
 
     return kThreadError_None;
 }
 
-ThreadError Header::AppendUriPathOptions(const char *uri_path)
+ThreadError Header::AppendUriPathOptions(const char *aUriPath)
 {
-    const char *cur = uri_path;
+    const char *cur = aUriPath;
     const char *end;
     Header::Option coapOption;
 
@@ -285,9 +218,10 @@ ThreadError Header::AppendUriPathOptions(const char *uri_path)
     return kThreadError_None;
 }
 
-ThreadError Header::AppendContentFormatOption(uint8_t type)
+ThreadError Header::AppendContentFormatOption(MediaType aType)
 {
     Option coapOption;
+    uint8_t type = aType;
 
     coapOption.mNumber = Option::kOptionContentFormat;
     coapOption.mLength = 1;
@@ -297,12 +231,12 @@ ThreadError Header::AppendContentFormatOption(uint8_t type)
     return kThreadError_None;
 }
 
-const Header::Option *Header::GetCurrentOption() const
+const Header::Option *Header::GetCurrentOption(void) const
 {
     return &mOption;
 }
 
-const Header::Option *Header::GetNextOption()
+const Header::Option *Header::GetNextOption(void)
 {
     Option *rval = NULL;
     uint16_t optionDelta;
@@ -362,22 +296,6 @@ const Header::Option *Header::GetNextOption()
 
 exit:
     return rval;
-}
-
-ThreadError Header::Finalize()
-{
-    mHeader[mHeaderLength++] = 0xff;
-    return kThreadError_None;
-}
-
-const uint8_t *Header::GetBytes() const
-{
-    return mHeader;
-}
-
-uint8_t Header::GetLength() const
-{
-    return mHeaderLength;
 }
 
 }  // namespace Coap

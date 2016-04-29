@@ -51,63 +51,115 @@ struct ThreadMessageInfo;
  * @{
  */
 
+/**
+ * This class implements mesh forwarding within Thread.
+ *
+ */
 class MeshForwarder
 {
 public:
-    explicit MeshForwarder(ThreadNetif &netif);
-    ThreadError Start();
-    ThreadError Stop();
+    explicit MeshForwarder(ThreadNetif &aNetif);
 
-    ThreadError SendMessage(Message &message);
+    /**
+     * This method enables mesh forwarding and the IEEE 802.15.4 MAC layer.
+     *
+     * @retval kThreadError_None          Successfully enabled the mesh forwarder.
+     * @retval kThreadError_InvalidState  The mesh forwarder was already enabled.
+     *
+     */
+    ThreadError Start(void);
 
-    const Mac::ExtAddress *GetExtAddress() const;
+    /**
+     * This method disables mesh forwarding and the IEEE 802.15.4 MAC layer.
+     *
+     * @retval kThreadError_None          Successfully disabled the mesh forwarder.
+     * @retval kThreadError_InvalidState  The mesh forwarder was already disabled.
+     *
+     */
+    ThreadError Stop(void);
 
-    uint16_t GetShortAddress() const;
-    ThreadError SetShortAddress(uint16_t address16);
-    void HandleResolved(const Ip6::Address &eid);
+    /**
+     * This method submits a message to the mesh forwarder for forwarding.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     *
+     * @retval kThreadError_None  Successfully enqueued the message.
+     *
+     */
+    ThreadError SendMessage(Message &aMessage);
 
-    bool GetRxOnWhenIdle();
-    void SetRxOnWhenIdle(bool rx_on_when_idle);
-    ThreadError SetPollPeriod(uint32_t period);
+    /**
+     * This method is called by the address resolver when an EID-to-RLOC mapping has been resolved.
+     *
+     * @param[in]  aEid  A reference to the EID that has been resolved.
+     *
+     */
+    void HandleResolved(const Ip6::Address &aEid);
+
+    /**
+     * This method indicates whether or not rx-on-when-idle mode is enabled.
+     *
+     * @retval TRUE   The rx-on-when-idle mode is enabled.
+     * @retval FALSE  The rx-on-when-idle-mode is disabled.
+     *
+     */
+    bool GetRxOnWhenIdle(void);
+
+    /**
+     * This method sets the rx-on-when-idle mode
+     *
+     * @param[in]  aRxOnWhenIdle  TRUE to enable, FALSE otherwise.
+     *
+     */
+    void SetRxOnWhenIdle(bool aRxOnWhenIdle);
+
+    /**
+     * This method sets the Data Poll period.
+     *
+     * @param[in]  aPeriod  The Data Poll period in milliseconds.
+     *
+     */
+    void SetPollPeriod(uint32_t aPeriod);
 
 private:
-    ThreadError CheckReachability(uint8_t *frame, uint8_t frameLength,
-                                  const Mac::Address &meshsrc, const Mac::Address &meshdst);
-    ThreadError GetMacDestinationAddress(const Ip6::Address &ipaddr, Mac::Address &macaddr);
-    ThreadError GetMacSourceAddress(const Ip6::Address &ipaddr, Mac::Address &macaddr);
-    Message *GetDirectTransmission();
-    Message *GetIndirectTransmission(const Child &child);
-    void HandleMesh(uint8_t *frame, uint8_t payloadLength,
-                    const Mac::Address &macsrc, const Mac::Address &macdst, const ThreadMessageInfo &messageInfo);
-    void HandleFragment(uint8_t *frame, uint8_t payloadLength, const Mac::Address &macsrc, const Mac::Address &macdst,
-                        const ThreadMessageInfo &messageInfo);
-    void HandleLowpanHC(uint8_t *frame, uint8_t payloadLength, const Mac::Address &macsrc, const Mac::Address &macdst,
-                        const ThreadMessageInfo &messageInfo);
-    void HandleDataRequest(const Mac::Address &macsrc);
-    void MoveToResolving(const Ip6::Address &destination);
-    ThreadError SendPoll(Message &message, Mac::Frame &frame);
-    ThreadError SendMesh(Message &message, Mac::Frame &frame);
-    ThreadError SendFragment(Message &message, Mac::Frame &frame);
-    void UpdateFramePending();
-    ThreadError UpdateIp6Route(Message &message);
-    ThreadError UpdateMeshRoute(Message &message);
+    ThreadError CheckReachability(uint8_t *aFrame, uint8_t aFrameLength,
+                                  const Mac::Address &aMeshSource, const Mac::Address &aMeshDest);
+    ThreadError GetMacDestinationAddress(const Ip6::Address &aIp6Addr, Mac::Address &aMacAddr);
+    ThreadError GetMacSourceAddress(const Ip6::Address &aIp6Addr, Mac::Address &aMacAddr);
+    Message *GetDirectTransmission(void);
+    Message *GetIndirectTransmission(const Child &aChild);
+    void HandleMesh(uint8_t *aFrame, uint8_t aPayloadLength, const ThreadMessageInfo &aMessageInfo);
+    void HandleFragment(uint8_t *aFrame, uint8_t aPayloadLength,
+			const Mac::Address &aMacSource, const Mac::Address &aMacDest,
+			const ThreadMessageInfo &aMessageInfo);
+    void HandleLowpanHC(uint8_t *aFrame, uint8_t aPayloadLength,
+			const Mac::Address &aMacSource, const Mac::Address &aMacDest,
+			const ThreadMessageInfo &aMessageInfo);
+    void HandleDataRequest(const Mac::Address &aMacSource);
+    void MoveToResolving(const Ip6::Address &aDestination);
+    ThreadError SendPoll(Message &aMessage, Mac::Frame &aFrame);
+    ThreadError SendMesh(Message &aMessage, Mac::Frame &aFrame);
+    ThreadError SendFragment(Message &aMessage, Mac::Frame &aFrame);
+    void UpdateFramePending(void);
+    ThreadError UpdateIp6Route(Message &aMessage);
+    ThreadError UpdateMeshRoute(Message &aMessage);
 
-    static void HandleReceivedFrame(void *context, Mac::Frame &frame, ThreadError error);
-    void HandleReceivedFrame(Mac::Frame &frame, ThreadError error);
+    static void HandleReceivedFrame(void *aContext, Mac::Frame &aFrame, ThreadError aError);
+    void HandleReceivedFrame(Mac::Frame &aFrame, ThreadError aError);
 
-    static ThreadError HandleFrameRequest(void *context, Mac::Frame &frame);
-    ThreadError HandleFrameRequest(Mac::Frame &frame);
+    static ThreadError HandleFrameRequest(void *aContext, Mac::Frame &aFrame);
+    ThreadError HandleFrameRequest(Mac::Frame &aFrame);
 
-    static void HandleSentFrame(void *context, Mac::Frame &frame);
-    void HandleSentFrame(Mac::Frame &frame);
+    static void HandleSentFrame(void *aContext, Mac::Frame &aFrame);
+    void HandleSentFrame(Mac::Frame &aFrame);
 
-    static void HandleReassemblyTimer(void *context);
-    void HandleReassemblyTimer();
-    static void HandlePollTimer(void *context);
-    void HandlePollTimer();
+    static void HandleReassemblyTimer(void *aContext);
+    void HandleReassemblyTimer(void);
+    static void HandlePollTimer(void *aContext);
+    void HandlePollTimer(void);
 
-    static void ScheduleTransmissionTask(void *context);
-    void ScheduleTransmissionTask();
+    static void ScheduleTransmissionTask(void *aContext);
+    void ScheduleTransmissionTask(void);
 
     Mac::Receiver mMacReceiver;
     Mac::Sender mMacSender;
@@ -119,21 +171,21 @@ private:
     MessageQueue mResolvingQueue;
     uint16_t mFragTag;
     uint16_t mMessageNextOffset;
-    uint32_t mPollPeriod = 0;
-    Message *mSendMessage = NULL;
+    uint32_t mPollPeriod;
+    Message *mSendMessage;
 
-    Mac::Address mMacsrc;
-    Mac::Address mMacdst;
-    uint16_t mMeshsrc;
-    uint16_t mMeshdst;
+    Mac::Address mMacSource;
+    Mac::Address mMacDest;
+    uint16_t mMeshSource;
+    uint16_t mMeshDest;
     bool mAddMeshHeader;
 
-    bool mSendBusy = false;
+    bool mSendBusy;
 
     Tasklet mScheduleTransmissionTask;
-    bool mEnabled = false;
+    bool mEnabled;
 
-    Lowpan *mLowpan;
+    Lowpan::Lowpan *mLowpan;
     Ip6::Netif *mNetif;
     AddressResolver *mAddressResolver;
     Mac::Mac *mMac;

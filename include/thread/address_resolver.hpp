@@ -33,12 +33,12 @@ namespace Thread {
 
 class MeshForwarder;
 class ThreadLastTransactionTimeTlv;
-class ThreadMeshLocalIidTlv;
+class ThreadMeshLocalEidTlv;
 class ThreadNetif;
 class ThreadTargetTlv;
 
 /**
- * @addtogroup core-arp EID-to-RLOC
+ * @addtogroup core-arp
  *
  * @brief
  *   This module includes definitions for Thread EID-to-RLOC mapping and caching.
@@ -46,15 +46,53 @@ class ThreadTargetTlv;
  * @{
  */
 
+/**
+ * This class implements the EID-to-RLOC mapping and caching.
+ *
+ */
 class AddressResolver
 {
 public:
-    class Cache
+    explicit AddressResolver(ThreadNetif &netif);
+
+    /**
+     * This method clears the EID-to-RLOC cache.
+     *
+     */
+    void Clear(void);
+
+    /**
+     * This method removes a Router ID from the EID-to-RLOC cache.
+     *
+     * @param[in]  aRouterId  The Router ID.
+     *
+     */
+    void Remove(uint8_t aRouterId);
+
+    /**
+     * This method returns the RLOC16 for a given EID, or initiates an Address Query if the mapping is not known.
+     *
+     * @param[in]   aEid     A reference to the EID.
+     * @param[out]  aRloc16  The RLOC16 corresponding to @p aEid.
+     *
+     * @retval kTheradError_None          Successfully provided the RLOC16.
+     * @retval kThreadError_AddressQuery  Initiated an Address Query.
+     *
+     */
+    ThreadError Resolve(const Ip6::Address &aEid, Mac::ShortAddress &aRloc16);
+
+private:
+    enum
     {
-    public:
+        kCacheEntries = 8,
+        kDiscoverTimeout = 3,  // seconds
+    };
+
+    struct Cache
+    {
         Ip6::Address mTarget;
         uint8_t mIid[8];
-        Mac::ShortAddress mRloc;
+        Mac::ShortAddress mRloc16;
         uint8_t mTimeout;
         uint8_t mFailureCount : 4;
         enum State
@@ -67,48 +105,34 @@ public:
         State mState : 2;
     };
 
-    explicit AddressResolver(ThreadNetif &netif);
-    ThreadError Clear();
-    ThreadError Remove(uint8_t routerId);
-    ThreadError Resolve(const Ip6::Address &eid, Mac::ShortAddress &rloc);
+    ThreadError SendAddressQuery(const Ip6::Address &aEid);
+    ThreadError SendAddressError(const ThreadTargetTlv &aTarget, const ThreadMeshLocalEidTlv &aEid,
+                                 const Ip6::Address *aDestination);
+    void SendAddressQueryResponse(const ThreadTargetTlv &aTargetTlv, const ThreadMeshLocalEidTlv &aMlEidTlv,
+                                  const ThreadLastTransactionTimeTlv *aLastTransactionTimeTlv,
+                                  const Ip6::Address &aDestination);
+    void SendAddressNotificationResponse(const Coap::Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo);
 
-    const Cache *GetCacheEntries(uint16_t *numEntries) const;
+    static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
 
-private:
-    enum
-    {
-        kCacheEntries = 8,
-        kDiscoverTimeout = 3,  // seconds
-    };
+    static void HandleAddressError(void *aContext, Coap::Header &aHeader,
+                                   Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    void HandleAddressError(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
-    ThreadError SendAddressQuery(const Ip6::Address &eid);
-    ThreadError SendAddressError(const ThreadTargetTlv &target, const ThreadMeshLocalIidTlv &eid,
-                                 const Ip6::Address *destination);
-    void SendAddressQueryResponse(const ThreadTargetTlv &targetTlv, const ThreadMeshLocalIidTlv &mlIidTlv,
-                                  const ThreadLastTransactionTimeTlv *lastTransactionTimeTlv,
-                                  const Ip6::Address &destination);
-    void SendAddressNotificationResponse(const Coap::Header &requestHeader, const Ip6::MessageInfo &messageInfo);
+    static void HandleAddressQuery(void *aContext, Coap::Header &aHeader,
+                                   Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    void HandleAddressQuery(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
-    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
+    static void HandleAddressNotification(void *aContext, Coap::Header &aHeader,
+                                          Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    void HandleAddressNotification(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
-    static void HandleAddressError(void *context, Coap::Header &header,
-                                   Message &message, const Ip6::MessageInfo &messageInfo);
-    void HandleAddressError(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
+    static void HandleDstUnreach(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo,
+                                 const Ip6::IcmpHeader &aIcmpHeader);
+    void HandleDstUnreach(Message &aMessage, const Ip6::MessageInfo &aMessageInfo, const Ip6::IcmpHeader &aIcmpHeader);
 
-    static void HandleAddressQuery(void *context, Coap::Header &header,
-                                   Message &message, const Ip6::MessageInfo &messageInfo);
-    void HandleAddressQuery(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
-
-    static void HandleAddressNotification(void *context, Coap::Header &header,
-                                          Message &message, const Ip6::MessageInfo &messageInfo);
-    void HandleAddressNotification(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
-
-    static void HandleDstUnreach(void *context, Message &message, const Ip6::MessageInfo &messageInfo,
-                                 const Ip6::IcmpHeader &icmp6Header);
-    void HandleDstUnreach(Message &message, const Ip6::MessageInfo &messageInfo, const Ip6::IcmpHeader &icmp6Header);
-
-    static void HandleTimer(void *context);
-    void HandleTimer();
+    static void HandleTimer(void *aContext);
+    void HandleTimer(void);
 
     Coap::Resource mAddressError;
     Coap::Resource mAddressQuery;

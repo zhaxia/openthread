@@ -40,7 +40,7 @@ typedef enum ThreadError
     kThreadError_Parse = 6,
     kThreadError_InvalidArgs = 7,
     kThreadError_Security = 8,
-    kThreadError_LeaseQuery = 9,
+    kThreadError_AddressQuery = 9,
     kThreadError_NoAddress = 10,
     kThreadError_NotReceiving = 11,
     kThreadError_Abort = 12,

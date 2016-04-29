@@ -42,7 +42,7 @@ static const uint8_t kThreadMasterKey[] =
 
 static const char name[] = "thread";
 
-ThreadNetif::ThreadNetif():
+ThreadNetif::ThreadNetif(void):
     mCoapServer(kCoapUdpPort),
     mAddressResolver(*this),
     mKeyManager(*this),
@@ -51,12 +51,12 @@ ThreadNetif::ThreadNetif():
 {
 }
 
-const char *ThreadNetif::GetName() const
+const char *ThreadNetif::GetName(void) const
 {
     return name;
 }
 
-ThreadError ThreadNetif::Init()
+ThreadError ThreadNetif::Init(void)
 {
     mKeyManager.SetMasterKey(kThreadMasterKey, sizeof(kThreadMasterKey));
     mMac.Init(*this);
@@ -66,7 +66,7 @@ ThreadError ThreadNetif::Init()
     return kThreadError_None;
 }
 
-ThreadError ThreadNetif::Up()
+ThreadError ThreadNetif::Up(void)
 {
     Netif::AddNetif();
     mMeshForwarder.Start();
@@ -76,7 +76,7 @@ ThreadError ThreadNetif::Up()
     return kThreadError_None;
 }
 
-ThreadError ThreadNetif::Down()
+ThreadError ThreadNetif::Down(void)
 {
     mCoapServer.Stop();
     mMleRouter.Stop();
@@ -86,7 +86,7 @@ ThreadError ThreadNetif::Down()
     return kThreadError_None;
 }
 
-bool ThreadNetif::IsUp() const
+bool ThreadNetif::IsUp(void) const
 {
     return mIsUp;
 }
@@ -102,51 +102,6 @@ ThreadError ThreadNetif::GetLinkAddress(Ip6::LinkAddress &address) const
 ThreadError ThreadNetif::RouteLookup(const Ip6::Address &source, const Ip6::Address &destination, uint8_t *prefixMatch)
 {
     return mNetworkDataLeader.RouteLookup(source, destination, prefixMatch, NULL);
-}
-
-AddressResolver *ThreadNetif::GetAddressResolver()
-{
-    return &mAddressResolver;
-}
-
-Coap::Server *ThreadNetif::GetCoapServer()
-{
-    return &mCoapServer;
-}
-
-KeyManager *ThreadNetif::GetKeyManager()
-{
-    return &mKeyManager;
-}
-
-Lowpan *ThreadNetif::GetLowpan()
-{
-    return &mLowpan;
-}
-
-Mac::Mac *ThreadNetif::GetMac()
-{
-    return &mMac;
-}
-
-Mle::MleRouter *ThreadNetif::GetMle()
-{
-    return &mMleRouter;
-}
-
-MeshForwarder *ThreadNetif::GetMeshForwarder()
-{
-    return &mMeshForwarder;
-}
-
-NetworkData::Local *ThreadNetif::GetNetworkDataLocal()
-{
-    return &mNetworkDataLocal;
-}
-
-NetworkData::Leader *ThreadNetif::GetNetworkDataLeader()
-{
-    return &mNetworkDataLeader;
 }
 
 ThreadError ThreadNetif::SendMessage(Message &message)
