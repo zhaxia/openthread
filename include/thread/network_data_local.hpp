@@ -76,7 +76,7 @@ public:
      * This method removes a Border Router entry from the Thread Network Data.
      *
      * @param[in]  aPrefix        A pointer to the prefix.
-     * @param[in[  aPrefixLength  The length of @p aPrefix in bytes.
+     * @param[in]  aPrefixLength  The length of @p aPrefix in bytes.
      *
      * @retval kThreadError_None      Successfully removed the Border Router entry.
      * @retval kThreadError_NotFound  Could not find the Border Router entry.

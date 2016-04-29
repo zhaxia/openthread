@@ -103,7 +103,7 @@ private:
 };
 
 /**
- * This class implements core UDP message handling..
+ * This class implements core UDP message handling.
  *
  */
 class Udp
@@ -117,7 +117,7 @@ public:
      * @returns A pointer to the message or NULL if no buffers are available.
      *
      */
-    static Message *NewMessage(uint16_t reserved);
+    static Message *NewMessage(uint16_t aReserved);
 
     /**
      * This static method handles a received UDP message.
@@ -135,7 +135,7 @@ public:
      * This static method updates the UDP checksum.
      *
      * @param[in]  aMessage               A reference to the UDP message.
-     * @param[in]  aPsuedoHeaderChecksum  The pseudo-header checksum value.
+     * @param[in]  aPseudoHeaderChecksum  The pseudo-header checksum value.
      *
      * @retval kThreadError_None         Successfully updated the UDP checksum.
      * @retval kThreadError_InvalidArgs  The message was invalid.
@@ -194,7 +194,7 @@ public:
     /**
      * This method sets the UDP Length.
      *
-     * @param[in]  aPort  The UDP Length.
+     * @param[in]  aLength  The UDP Length.
      *
      */
     void SetLength(uint16_t aLength) { mLength = HostSwap16(aLength); }
@@ -210,7 +210,7 @@ public:
     /**
      * This method sets the UDP Checksum.
      *
-     * @param[in]  aPort  The UDP Checksum.
+     * @param[in]  aChecksum  The UDP Checksum.
      *
      */
     void SetChecksum(uint16_t aChecksum) { mChecksum = HostSwap16(aChecksum); }

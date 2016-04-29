@@ -129,7 +129,7 @@ public:
      * This method retrieves the 6LoWPAN Context information based on a given Context ID.
      *
      * @param[in]   aContextId  The Context ID value.
-     * @param[out]  aCountext   A reference to the 6LoWPAN Context information.
+     * @param[out]  aContext    A reference to the 6LoWPAN Context information.
      *
      * @retval kThreadError_None      Successfully retrieved 6LoWPAN Context information.
      * @retval kThreadError_NotFound  Could not find the 6LoWPAN Context information.

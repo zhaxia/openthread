@@ -468,10 +468,10 @@ public:
     /**
      * This method sets the transmit/receive power in dBm used for transmission or reception.
      *
-     * @param[in]  aChannel  The transmit/receive power in dBm used for transmission or reception.
+     * @param[in]  aPower  The transmit/receive power in dBm used for transmission or reception.
      *
      */
-    void SetPower(int8_t power) { mPower = power; }
+    void SetPower(int8_t aPower) { mPower = aPower; }
 
     /**
      * This method returns the IEEE 802.15.4 PSDU length.

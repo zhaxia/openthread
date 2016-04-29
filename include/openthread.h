@@ -831,13 +831,17 @@ uint8_t otGetStableNetworkDataVersion();
  *
  */
 
+/**
+ * This structure represents an IPv6 network interface address.
+ *
+ */
 typedef struct otNetifAddress
 {
-    otIp6Address mAddress;
-    uint32_t mPreferredLifetime;
-    uint32_t mValidLifetime;
-    uint8_t mPrefixLength;
-    struct otNetifAddress *mNext;
+    otIp6Address           mAddress;            ///< The IPv6 address.
+    uint32_t               mPreferredLifetime;  ///< The Preferred Lifetime.
+    uint32_t               mValidLifetime;      ///< The Valid lifetime.
+    uint8_t                mPrefixLength;       ///< The Prefix length.
+    struct otNetifAddress *mNext;               ///< A pointer to the next network interface address.
 } otNetifAddress;
 
 /**
@@ -1020,7 +1024,7 @@ ThreadError otSetMessageOffset(otMessage aMessage, uint16_t aOffset);
  * @param[in]  aBuf      A pointer to the data to append.
  * @param[in]  aLength   Number of bytes to append.
  *
- * @retuns The number of bytes appended.
+ * @returns The number of bytes appended.
  *
  * @sa otNewUdpMessage
  * @sa otFreeMessage
@@ -1037,6 +1041,7 @@ int otAppendMessage(otMessage aMessage, const void *aBuf, uint16_t aLength);
  * Read bytes from a message.
  *
  * @param[in]  aMessage  A pointer to a message buffer.
+ * @param[in]  aOffset   An offset in bytes.
  * @param[in]  aBuf      A pointer to a buffer that message bytes are read to.
  * @param[in]  aLength   Number of bytes to read.
  *
@@ -1124,9 +1129,9 @@ typedef struct otUdpSocket
 {
     otSockAddr           mSockName;  ///< The local IPv6 socket address.
     otSockAddr           mPeerName;  ///< The peer IPv6 socket address.
-    otUdpReceive        mHandler;   ///< A function pointer to the application callback.
+    otUdpReceive         mHandler;   ///< A function pointer to the application callback.
     void                *mContext;   ///< A pointer to application-specific context.
-    struct otUdpSocket *mNext;
+    struct otUdpSocket *mNext;       ///< A pointer to the next UDP socket.
 } otUdpSocket;
 
 /**
@@ -1197,7 +1202,7 @@ ThreadError otBindUdpSocket(otUdpSocket *aSocket, otSockAddr *aSockName);
  * @sa otBindUdpSocket
  * @sa otSendUdp
  */
-ThreadError otSendUdp(otUdpSocket *socket, otMessage aMessage, const otMessageInfo *aMessageInfo);
+ThreadError otSendUdp(otUdpSocket *aSocket, otMessage aMessage, const otMessageInfo *aMessageInfo);
 
 /**
  * @}

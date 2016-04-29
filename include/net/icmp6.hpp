@@ -150,7 +150,7 @@ public:
      * @param[in]  aSequence  The ICMPv6 message sequence.
      *
      */
-    void SetSequence(uint16_t sequence) { mData.m16[1] = HostSwap16(sequence); }
+    void SetSequence(uint16_t aSequence) { mData.m16[1] = HostSwap16(aSequence); }
 
     /**
      * This static method returns the byte offset of the Checksum field in the ICMPv6 header.
@@ -218,7 +218,7 @@ public:
      *
      * @param[in]  aDestination    The socket address of the destination.
      * @param[in]  aPayload        A pointer to the data payload to send.
-     * @param[in]  aPaylaodLength  The number of data payoad bytes.
+     * @param[in]  aPayloadLength  The number of data payoad bytes.
      *
      * @retval kThreadError_None    An ICMPv6 Echo Request message was enqueued.
      * @retval kThreadError_NoBufs  Insufficient buffers available to generate an ICMPv6 Echo Request message.
@@ -333,13 +333,13 @@ public:
      * This static method updates the ICMPv6 checksum.
      *
      * @param[in]  aMessage               A reference to the ICMPv6 message.
-     * @param[in]  aPsuedoHeaderChecksum  The pseudo-header checksum value.
+     * @param[in]  aPseudoHeaderChecksum  The pseudo-header checksum value.
      *
      * @retval kThreadError_None         Successfully updated the ICMPv6 checksum.
      * @retval kThreadError_InvalidArgs  The message was invalid.
      *
      */
-    static ThreadError UpdateChecksum(Message &aMessage, uint16_t aPseudoheaderChecksum);
+    static ThreadError UpdateChecksum(Message &aMessage, uint16_t aPseudoHeaderChecksum);
 
 private:
     static ThreadError HandleDstUnreach(Message &aMessage, const MessageInfo &aMessageInfo,

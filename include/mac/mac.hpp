@@ -236,7 +236,7 @@ public:
     /**
      * This method sets the rx-on-when-idle mode.
      *
-     * @param[in]  aRxOnWhenIdel  The rx-on-when-idle mode.
+     * @param[in]  aRxOnWhenIdle  The rx-on-when-idle mode.
      *
      */
     void SetRxOnWhenIdle(bool aRxOnWhenIdle);
@@ -250,7 +250,7 @@ public:
      * @retval kThreadError_Busy  The receiver was already registered.
      *
      */
-    ThreadError RegisterReceiver(Receiver &receiver);
+    ThreadError RegisterReceiver(Receiver &aReceiver);
 
     /**
      * This method registers a new MAC sender client.
@@ -369,8 +369,21 @@ public:
      */
     Whitelist &GetWhitelist(void);
 
-    static void ReceiveDoneTask(void *context);
-    static void TransmitDoneTask(void *context);
+    /**
+     * This method is called to handle receive events.
+     *
+     * @param[in]  aContext  A pointer to arbitrary context information.
+     *
+     */
+    static void ReceiveDoneTask(void *aContext);
+
+    /**
+     * This method is called to handle transmit events.
+     *
+     * @param[in]  aContext  A pointer to arbitrary context information.
+     *
+     */
+    static void TransmitDoneTask(void *aContext);
 
 private:
     void GenerateNonce(const ExtAddress &address, uint32_t frameCounter, uint8_t securityLevel, uint8_t *nonce);
