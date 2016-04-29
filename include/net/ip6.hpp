@@ -551,7 +551,7 @@ public:
      * @param[in]  aContext  A pointer to arbitrary context information.
      *
      */
-    static void SetNcpReceivedHandler(NcpReceivedDatagramHandler handler, void *context);
+    static void SetNcpReceivedHandler(NcpReceivedDatagramHandler aHandler, void *aContext);
 };
 
 /**

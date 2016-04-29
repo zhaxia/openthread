@@ -201,14 +201,14 @@ ThreadError MeshForwarder::SendMessage(Message &message)
 
             for (int i = 0; i < numChildren; i++)
             {
-                if (children[i].mState == Neighbor::kStateValid && (children[i].mMode & Mle::kModeRxOnWhenIdle) == 0)
+                if (children[i].mState == Neighbor::kStateValid && (children[i].mMode & Mle::ModeTlv::kModeRxOnWhenIdle) == 0)
                 {
                     message.SetChildMask(i);
                 }
             }
         }
         else if ((neighbor = mMle->GetNeighbor(ip6Header.GetDestination())) != NULL &&
-                 (neighbor->mMode & Mle::kModeRxOnWhenIdle) == 0)
+                 (neighbor->mMode & Mle::ModeTlv::kModeRxOnWhenIdle) == 0)
         {
             // destined for a sleepy child
             message.SetChildMask(mMle->GetChildIndex(*reinterpret_cast<Child *>(neighbor)));
@@ -225,7 +225,7 @@ ThreadError MeshForwarder::SendMessage(Message &message)
         message.Read(0, sizeof(meshHeader), &meshHeader);
 
         if ((neighbor = mMle->GetNeighbor(meshHeader.GetDestination())) != NULL &&
-            (neighbor->mMode & Mle::kModeRxOnWhenIdle) == 0)
+            (neighbor->mMode & Mle::ModeTlv::kModeRxOnWhenIdle) == 0)
         {
             // destined for a sleepy child
             message.SetChildMask(mMle->GetChildIndex(*reinterpret_cast<Child *>(neighbor)));
@@ -437,7 +437,7 @@ ThreadError MeshForwarder::UpdateIp6Route(Message &message)
     else if (mMle->GetDeviceState() != Mle::kDeviceStateDetached)
     {
         // non-link-local unicast
-        if (mMle->GetDeviceMode() & Mle::kModeFFD)
+        if (mMle->GetDeviceMode() & Mle::ModeTlv::kModeFFD)
         {
             // FFD - peform full routing
             if (mMle->IsRoutingLocator(ip6Header.GetDestination()))

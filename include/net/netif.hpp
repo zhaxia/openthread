@@ -48,6 +48,10 @@ namespace Ip6 {
 class LinkAddress
 {
 public :
+    /**
+     * Hardware types.
+     *
+     */
     enum HardwareType
     {
         kEui64 = 27,
@@ -132,9 +136,8 @@ public:
      */
     const NetifMulticastAddress *GetNext(void) const { return mNext; }
 
-    Address mAddress;
-
 private:
+    Address mAddress;
     NetifMulticastAddress *mNext;
 };
 
@@ -261,7 +264,7 @@ public:
      * @retval FALSE  If the network interface is not subscribed to @p aAddress.
      *
      */
-    bool IsMulticastSubscribed(const Address &address) const;
+    bool IsMulticastSubscribed(const Address &aAddress) const;
 
     /**
      * This method subscribes the network interface to the link-local and realm-local all routers address.
@@ -305,7 +308,7 @@ public:
      * @retval kThreadError_None   Successfully registered the handler.
      * @retval kThreadError_Busy   The handler was already registered.
      */
-    ThreadError RegisterHandler(NetifHandler &handler);
+    ThreadError RegisterHandler(NetifHandler &aHandler);
 
     /**
      * This virtual method enqueues an IPv6 messages on this network interface.
@@ -315,7 +318,7 @@ public:
      * @retval kThreadError_None  Successfully enqueued the IPv6 message.
      *
      */
-    virtual ThreadError SendMessage(Message &message) = 0;
+    virtual ThreadError SendMessage(Message &aMessage) = 0;
 
     /**
      * This virtual method returns a NULL-termianted string that names the network interface.
@@ -375,7 +378,7 @@ public:
      * @returns A pointer to the network interface or NULL if none is found.
      *
      */
-    static Netif *GetNetifByName(char *name);
+    static Netif *GetNetifByName(char *aName);
 
     /**
      * This static method indicates whether or not @p aAddress is assigned to a network interfacfe.
@@ -409,7 +412,7 @@ public:
     static int GetOnLinkNetif(const Address &aAddress);
 
 private:
-    static void HandleUnicastChangedTask(void *context);
+    static void HandleUnicastChangedTask(void *aContext);
     void HandleUnicastChangedTask(void);
 
     NetifHandler *mHandlers = NULL;

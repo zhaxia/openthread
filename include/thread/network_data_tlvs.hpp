@@ -373,7 +373,7 @@ public:
      * @param[in]  aFlags  The Flags byte value.
      *
      */
-    void SetFlags(uint8_t flags) { mFlags = (mFlags & kPreferenceMask) | (flags & ~kPreferenceMask); }
+    void SetFlags(uint8_t aFlags) { mFlags = (mFlags & kPreferenceMask) | (aFlags & ~kPreferenceMask); }
 
     /**
      * This method returns the Preference value.

@@ -26,29 +26,29 @@
 namespace Thread {
 namespace Mle {
 
-ThreadError Tlv::GetTlv(const Message &message, Type type, uint16_t maxLength, Tlv &tlv)
+ThreadError Tlv::GetTlv(const Message &aMessage, Type aType, uint16_t aMaxLength, Tlv &aTlv)
 {
     ThreadError error = kThreadError_Parse;
-    uint16_t offset = message.GetOffset();
-    uint16_t end = message.GetLength();
+    uint16_t offset = aMessage.GetOffset();
+    uint16_t end = aMessage.GetLength();
 
     while (offset < end)
     {
-        message.Read(offset, sizeof(Tlv), &tlv);
+        aMessage.Read(offset, sizeof(Tlv), &aTlv);
 
-        if (tlv.GetType() == type && (offset + sizeof(tlv) + tlv.GetLength()) <= end)
+        if (aTlv.GetType() == aType && (offset + sizeof(aTlv) + aTlv.GetLength()) <= end)
         {
-            if (maxLength > sizeof(tlv) + tlv.GetLength())
+            if (aMaxLength > sizeof(aTlv) + aTlv.GetLength())
             {
-                maxLength = sizeof(tlv) + tlv.GetLength();
+                aMaxLength = sizeof(aTlv) + aTlv.GetLength();
             }
 
-            message.Read(offset, maxLength, &tlv);
+            aMessage.Read(offset, aMaxLength, &aTlv);
 
             ExitNow(error = kThreadError_None);
         }
 
-        offset += sizeof(tlv) + tlv.GetLength();
+        offset += sizeof(aTlv) + aTlv.GetLength();
     }
 
 exit:

@@ -379,7 +379,7 @@ void AddressResolver::HandleAddressError(Coap::Header &header, Message &message,
 
     for (int i = 0; i < Mle::kMaxChildren; i++)
     {
-        if (children[i].mState != Neighbor::kStateValid || (children[i].mMode & Mle::kModeFFD) != 0)
+        if (children[i].mState != Neighbor::kStateValid || (children[i].mMode & Mle::ModeTlv::kModeFFD) != 0)
         {
             continue;
         }
@@ -446,7 +446,7 @@ void AddressResolver::HandleAddressQuery(Coap::Header &header, Message &message,
 
     for (int i = 0; i < Mle::kMaxChildren; i++)
     {
-        if (children[i].mState != Neighbor::kStateValid || (children[i].mMode & Mle::kModeFFD) != 0)
+        if (children[i].mState != Neighbor::kStateValid || (children[i].mMode & Mle::ModeTlv::kModeFFD) != 0)
         {
             continue;
         }

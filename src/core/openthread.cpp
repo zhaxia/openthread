@@ -383,22 +383,22 @@ otDeviceRole otGetDeviceRole()
 
 uint8_t otGetLeaderRouterId()
 {
-    return sThreadNetif.GetMle()->GetLeaderDataTlv()->GetRouterId();
+    return sThreadNetif.GetMle()->GetLeaderDataTlv().GetLeaderRouterId();
 }
 
 uint8_t otGetLeaderWeight()
 {
-    return sThreadNetif.GetMle()->GetLeaderDataTlv()->GetWeighting();
+    return sThreadNetif.GetMle()->GetLeaderDataTlv().GetWeighting();
 }
 
 uint8_t otGetNetworkDataVersion()
 {
-    return sThreadNetif.GetMle()->GetLeaderDataTlv()->GetDataVersion();
+    return sThreadNetif.GetMle()->GetLeaderDataTlv().GetDataVersion();
 }
 
 uint32_t otGetPartitionId()
 {
-    return sThreadNetif.GetMle()->GetLeaderDataTlv()->GetPartitionId();
+    return sThreadNetif.GetMle()->GetLeaderDataTlv().GetPartitionId();
 }
 
 uint16_t otGetRloc16(void)
@@ -413,7 +413,7 @@ uint8_t otGetRouterIdSequence()
 
 uint8_t otGetStableNetworkDataVersion()
 {
-    return sThreadNetif.GetMle()->GetLeaderDataTlv()->GetStableDataVersion();
+    return sThreadNetif.GetMle()->GetLeaderDataTlv().GetStableDataVersion();
 }
 
 bool otIsIp6AddressEqual(const otIp6Address *a, const otIp6Address *b)

@@ -49,12 +49,16 @@ public:
         kMaxEntries = 32,
     };
 
+    /**
+     * This structure represents a whitelist entry.
+     *
+     */
     struct Entry
     {
-        ExtAddress mExtAddress;
-        int8_t mRssi;
-        bool mValid : 1;
-        bool mConstantRssi : 1;
+        ExtAddress mExtAddress;        ///< The IEEE 802.15.4 Extended Address.
+        int8_t     mRssi;              ///< The constant RSSI value.
+        bool       mValid : 1;         ///< TRUE if the entry is valid, FALSE otherwise.
+        bool       mConstantRssi : 1;  ///< TRUE if the constant RSSI value is used, FALSE otherwise.
     };
 
     /**
@@ -108,7 +112,7 @@ public:
      * @returns A pointer to the whitelist entry or NULL if there are no available entries.
      *
      */
-    Entry *Add(const ExtAddress &address);
+    Entry *Add(const ExtAddress &aAddress);
 
     /**
      * This method removes an Extended Address to the whitelist filter.
@@ -116,7 +120,7 @@ public:
      * @param[in]  aAddress  A reference to the Extended Address.
      *
      */
-    void Remove(const ExtAddress &address);
+    void Remove(const ExtAddress &aAddress);
 
     /**
      * This method removes all entries from the whitelist filter.
@@ -132,7 +136,7 @@ public:
      * @returns A pointer to the whitelist entry or NULL if the entry could not be found.
      *
      */
-    Entry *Find(const ExtAddress &address);
+    Entry *Find(const ExtAddress &aAddress);
 
     /**
      * This method clears the constant RSSI value and uses the measured value provided by the radio instead.

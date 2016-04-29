@@ -35,19 +35,67 @@ namespace Ip6 {
  *
  */
 
+/**
+ * This class implements message information for an IPv6 message.
+ *
+ */
 class MessageInfo: public otMessageInfo
 {
 public:
+    /**
+     * This method returns a reference to the local socket address.
+     *
+     * @returns A reference to the local socket address.
+     *
+     */
     Address &GetSockAddr() { return *static_cast<Address *>(&mSockAddr);}
+
+    /**
+     * This method returns a reference to the local socket address.
+     *
+     * @returns A reference to the local socket address.
+     *
+     */
     const Address &GetSockAddr() const { return *static_cast<const Address *>(&mSockAddr);}
+
+    /**
+     * This method returns a reference to the peer socket address.
+     *
+     * @returns A reference to the peer socket address.
+     *
+     */
     Address &GetPeerAddr() { return *static_cast<Address *>(&mPeerAddr);}
+
+    /**
+     * This method returns a reference to the peer socket address.
+     *
+     * @returns A reference to the peer socket address.
+     *
+     */
     const Address &GetPeerAddr() const { return *static_cast<const Address *>(&mPeerAddr);}
 };
 
+/**
+ * This class implements a socket address.
+ *
+ */
 class SockAddr: public otSockAddr
 {
 public:
+    /**
+     * This method returns a reference to the IPv6 address.
+     *
+     * @returns A reference to the IPv6 address.
+     *
+     */
     Address &GetAddress() { return *static_cast<Address *>(&mAddress); }
+
+    /**
+     * This method returns a reference to the IPv6 address.
+     *
+     * @returns A reference to the IPv6 address.
+     *
+     */
     const Address &GetAddress() const { return *static_cast<const Address *>(&mAddress); }
 };
 

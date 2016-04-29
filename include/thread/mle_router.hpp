@@ -47,112 +47,331 @@ class NetworkDataLeader;
  * @{
  */
 
+/**
+ * This class implements MLE functionality required by the Thread Router and Leader roles.
+ *
+ */
 class MleRouter: public Mle
 {
     friend class Mle;
 
 public:
-    explicit MleRouter(ThreadNetif &netif);
+    MleRouter(void);
 
-    ThreadError BecomeRouter();
-    ThreadError BecomeLeader();
+    /**
+     * This method initializes the object.
+     *
+     */
+    ThreadError Init(ThreadNetif &aNetif);
 
-    uint32_t GetLeaderAge() const;
+    /**
+     * This method generates an Address Solicit request for a Router ID.
+     *
+     * @retval kThreadError_None          Successfully generated an Address Solicit message.
+     * @retval kThreadError_InvalidState  Not currently an End Device.
+     *
+     */
+    ThreadError BecomeRouter(void);
 
-    uint8_t GetLeaderWeight() const;
-    ThreadError SetLeaderWeight(uint8_t weight);
+    /**
+     * This method causes the Thread interface to become a Leader and start a new partition.
+     *
+     * @retval kThreadError_None          Successfully become a Leader and started a new partition.
+     * @retval kThreadError_InvalidState  Either MLE is disabled or the interface is already a Leader.
+     *
+     */
+    ThreadError BecomeLeader(void);
 
-    uint16_t GetNextHop(uint16_t destination) const;
+    /**
+     * This method returns the time in seconds since the last Router ID Sequence update.
+     *
+     * @returns The time in seconds since the last Router ID Sequence update.
+     *
+     */
+    uint32_t GetLeaderAge(void) const;
 
-    uint8_t GetNetworkIdTimeout() const;
-    ThreadError SetNetworkIdTimeout(uint8_t timeout);
+    /**
+     * This method returns the Leader Weighting value for this Thread interface.
+     *
+     * @returns The Leader Weighting value for this Thread interface.
+     *
+     */
+    uint8_t GetLeaderWeight(void) const;
 
-    uint8_t GetRouteCost(uint16_t rloc) const;
+    /**
+     * This method sets the Leader Weighting value for this Thread interface.
+     *
+     * @param[in]  aWeight  The Leader Weighting value.
+     *
+     */
+    void SetLeaderWeight(uint8_t aWeight);
 
-    uint8_t GetRouterIdSequence() const;
+    /**
+     * This method returns the next hop towards an RLOC16 destination.
+     *
+     * @param[in]  aDestination  The RLOC16 of the destination.
+     *
+     * @retuns A RLOC16 of the next hop if a route is known, kInvalidRloc16 otherwise.
+     *
+     */
+    uint16_t GetNextHop(uint16_t aDestination) const;
 
-    uint8_t GetRouterUpgradeThreshold() const;
-    ThreadError SetRouterUpgradeThreshold(uint8_t threshold);
+    /**
+     * This method returns the NETWORK_ID_TIMEOUT value.
+     *
+     * @returns The NETWORK_ID_TIMEOUT value.
+     *
+     */
+    uint8_t GetNetworkIdTimeout(void) const;
 
+    /**
+     * This method sets the NETWORK_ID_TIMEOUT value.
+     *
+     * @param[in]  aTimeout  The NETWORK_ID_TIMEOUT value.
+     *
+     */
+    void SetNetworkIdTimeout(uint8_t aTimeout);
+
+    /**
+     * This method returns the route cost to a RLOC16.
+     *
+     * @param[in]  aRloc16  The RLOC16 of the destination.
+     *
+     * @returns The route cost to a RLOC16.
+     *
+     */
+    uint8_t GetRouteCost(uint16_t aRloc16) const;
+
+    /**
+     * This method returns the current Router ID Sequence value.
+     *
+     * @returns The current Router ID Sequence value.
+     *
+     */
+    uint8_t GetRouterIdSequence(void) const;
+
+    /**
+     * This method returns the ROUTER_UPGRADE_THRESHOLD value.
+     *
+     * @returns The ROUTER_UPGRADE_THRESHOLD value.
+     *
+     */
+    uint8_t GetRouterUpgradeThreshold(void) const;
+
+    /**
+     * This method sets the ROUTER_UPGRADE_THRESHOLD value.
+     *
+     * @returns The ROUTER_UPGRADE_THRESHOLD value.
+     *
+     */
+    void SetRouterUpgradeThreshold(uint8_t aThreshold);
+
+    /**
+     * This method release a given Router ID.
+     *
+     * @param[in]  aRouterId  The Router ID to release.
+     *
+     * @retval kThreadError_None          Successfully released the Router ID.
+     * @retval kThreadError_InvalidState  The Router ID was not allocated.
+     *
+     */
     ThreadError ReleaseRouterId(uint8_t routerId);
 
+    /**
+     * This method returns a pointer to a Child object.
+     *
+     * @param[in]  aAddress  The address of the Child.
+     *
+     * @returns A pointer to the Child object.
+     *
+     */
     Child *GetChild(uint16_t address);
-    Child *GetChild(const Mac::ExtAddress &address);
-    Child *GetChild(const Mac::Address &address);
-    int GetChildIndex(const Child &child);
-    Child *GetChildren(uint8_t *numChildren);
+
+    /**
+     * This method returns a pointer to a Child object.
+     *
+     * @param[in]  aAddress  A reference to the address of the Child.
+     *
+     * @returns A pointer to the Child object.
+     *
+     */
+    Child *GetChild(const Mac::ExtAddress &aAddress);
+
+    /**
+     * This method returns a pointer to a Child object.
+     *
+     * @param[in]  aAddress  A reference to the address of the Child.
+     *
+     * @returns A pointer to the Child corresponding to @p aAddress, NULL otherwise.
+     *
+     */
+    Child *GetChild(const Mac::Address &aAddress);
+
+    /**
+     * This method returns a child index for the Child object.
+     *
+     * @param[in]  aChild  A reference to the Child object.
+     *
+     * @returns A pointer to the Child corresponding to @p aAddress, NULL otherwise.
+     *
+     */
+    int GetChildIndex(const Child &aChild);
+
+    /**
+     * This method returns a pointer to a Child array.
+     *
+     * @param[out]  aNumChildren  A pointer to output the number of children.
+     *
+     * @returns A pointer to the Child array.
+     *
+     */
+    Child *GetChildren(uint8_t *aNumChildren);
+
+    /**
+     * This method returns a pointer to a Neighbor object.
+     *
+     * @param[in]  aAddress  The address of the Neighbor.
+     *
+     * @returns A pointer to the Neighbor corresponding to @p aAddress, NULL otherwise.
+     *
+     */
     Neighbor *GetNeighbor(uint16_t address);
-    Neighbor *GetNeighbor(const Mac::ExtAddress &address);
-    Neighbor *GetNeighbor(const Mac::Address &address);
-    Neighbor *GetNeighbor(const Ip6::Address &address);
-    Router *GetRouters(uint8_t *numRouters);
 
-    ThreadError HandleMacDataRequest(const Child &child);
-    ThreadError CheckReachability(Mac::ShortAddress meshsrc, Mac::ShortAddress meshdst, Ip6::Header &ip6Header);
+    /**
+     * This method returns a pointer to a Neighbor object.
+     *
+     * @param[in]  aAddress  The address of the Neighbor.
+     *
+     * @returns A pointer to the Neighbor corresponding to @p aAddress, NULL otherwise.
+     *
+     */
+    Neighbor *GetNeighbor(const Mac::ExtAddress &aAddress);
 
-    ThreadError SendLinkReject(const Ip6::Address &destination);
+    /**
+     * This method returns a pointer to a Neighbor object.
+     *
+     * @param[in]  aAddress  The address of the Neighbor.
+     *
+     * @returns A pointer to the Neighbor corresponding to @p aAddress, NULL otherwise.
+     *
+     */
+    Neighbor *GetNeighbor(const Mac::Address &aAddress);
+
+    /**
+     * This method returns a pointer to a Neighbor object.
+     *
+     * @param[in]  aAddress  The address of the Neighbor.
+     *
+     * @returns A pointer to the Neighbor corresponding to @p aAddress, NULL otherwise.
+     *
+     */
+    Neighbor *GetNeighbor(const Ip6::Address &aAddress);
+
+    /**
+     * This method returns a pointer to a Router array.
+     *
+     * @param[out]  aNumRouters  A pointer to output the number of routers.
+     *
+     * @returns A pointer to the Router array.
+     *
+     */
+    Router *GetRouters(uint8_t *aNumRouters);
+
+    /**
+     * This method handles MAC Data Poll messages.
+     *
+     * @param[in]  aChild  The Child that sent the MAC Data Poll message.
+     *
+     */
+    void HandleMacDataRequest(const Child &aChild);
+
+    /**
+     * This method checks if the destination is reachable.
+     *
+     * @param[in]  aMeshSource  The RLOC16 of the source.
+     * @param[in]  aMeshDest    The RLOC16 of the destination.
+     * @param[in]  aIp6Header   A reference to the IPv6 header of the message.
+     *
+     * @retval kThreadError_None  The destination is reachable.
+     * @retval kThreadError_Drop  The destination is not reachable and the message should be dropped.
+     *
+     */
+    ThreadError CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, Ip6::Header &aIp6Header);
+
+    /**
+     * This method generates an MLE Link Reject.
+     *
+     * @param[in]  aDestination  A reference to the destination.
+     *
+     * @retval kThreadError_None    Successfully generated the MLE Link Reject message.
+     * @retval kThreadError_NoBufs  Insufficient buffers to generate the MLE Link Reject message.
+     *
+     */
+    ThreadError SendLinkReject(const Ip6::Address &aDestination);
 
 private:
-    ThreadError AppendConnectivity(Message &message);
-    ThreadError AppendChildAddresses(Message &message, Child &child);
-    ThreadError AppendRoute(Message &message);
-    uint8_t GetLinkCost(uint8_t routerId);
-    ThreadError HandleDetachStart();
-    ThreadError HandleChildStart(otMleAttachFilter filter);
-    ThreadError HandleLinkRequest(const Message &message, const Ip6::MessageInfo &messageInfo);
-    ThreadError HandleLinkAccept(const Message &message, const Ip6::MessageInfo &messageInfo, uint32_t keySequence);
-    ThreadError HandleLinkAccept(const Message &message, const Ip6::MessageInfo &messageInfo, uint32_t keySequence,
+    ThreadError AppendConnectivity(Message &aMessage);
+    ThreadError AppendChildAddresses(Message &aMessage, Child &aChild);
+    ThreadError AppendRoute(Message &aMessage);
+    uint8_t GetLinkCost(uint8_t aRouterId);
+    ThreadError HandleDetachStart(void);
+    ThreadError HandleChildStart(otMleAttachFilter aFilter);
+    ThreadError HandleLinkRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError HandleLinkAccept(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo, uint32_t aKeySequence);
+    ThreadError HandleLinkAccept(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo, uint32_t aKeySequence,
                                  bool request);
-    ThreadError HandleLinkAcceptAndRequest(const Message &message, const Ip6::MessageInfo &messageInfo,
-                                           uint32_t keySequence);
-    ThreadError HandleLinkReject(const Message &message, const Ip6::MessageInfo &messageInfo);
-    ThreadError HandleAdvertisement(const Message &message, const Ip6::MessageInfo &messageInfo);
-    ThreadError HandleParentRequest(const Message &message, const Ip6::MessageInfo &messageInfo);
-    ThreadError HandleChildIdRequest(const Message &message, const Ip6::MessageInfo &messageInfo,
-                                     uint32_t keySequence);
-    ThreadError HandleChildUpdateRequest(const Message &message, const Ip6::MessageInfo &messageInfo);
-    ThreadError HandleNetworkDataUpdateRouter();
+    ThreadError HandleLinkAcceptAndRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo,
+                                           uint32_t aKeySequence);
+    ThreadError HandleLinkReject(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError HandleAdvertisement(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError HandleParentRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError HandleChildIdRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo,
+                                     uint32_t aKeySequence);
+    ThreadError HandleChildUpdateRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError HandleNetworkDataUpdateRouter(void);
 
-    ThreadError ProcessRouteTlv(const RouteTlv &route);
-    ThreadError ResetAdvertiseInterval();
-    ThreadError SendAddressSolicit();
-    ThreadError SendAddressRelease();
-    void SendAddressSolicitResponse(const Coap::Header &request, int routerId, const Ip6::MessageInfo &messageInfo);
-    void SendAddressReleaseResponse(const Coap::Header &requestHeader, const Ip6::MessageInfo &messageInfo);
-    ThreadError SendAdvertisement();
-    ThreadError SendLinkRequest(Neighbor *neighbor);
-    ThreadError SendLinkAccept(const Ip6::MessageInfo &messageInfo, Neighbor *neighbor,
-                               const TlvRequestTlv &tlv_request, const ChallengeTlv &challenge);
-    ThreadError SendParentResponse(Child *child, const ChallengeTlv &challenge);
-    ThreadError SendChildIdResponse(Child *child);
-    ThreadError SendChildUpdateResponse(Child *child, const Ip6::MessageInfo &messageInfo,
-                                        const uint8_t *tlvs, uint8_t tlvsLength,  const ChallengeTlv *challenge);
-    ThreadError SetStateRouter(uint16_t rloc);
-    ThreadError SetStateLeader(uint16_t rloc);
-    ThreadError UpdateChildAddresses(const AddressRegistrationTlv &tlv, Child &child);
-    void UpdateRoutes(const RouteTlv &tlv, uint8_t routerId);
+    ThreadError ProcessRouteTlv(const RouteTlv &aRoute);
+    ThreadError ResetAdvertiseInterval(void);
+    ThreadError SendAddressSolicit(void);
+    ThreadError SendAddressRelease(void);
+    void SendAddressSolicitResponse(const Coap::Header &aRequest, int aRouterId, const Ip6::MessageInfo &aMessageInfo);
+    void SendAddressReleaseResponse(const Coap::Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError SendAdvertisement(void);
+    ThreadError SendLinkRequest(Neighbor *aNeighbor);
+    ThreadError SendLinkAccept(const Ip6::MessageInfo &aMessageInfo, Neighbor *aNeighbor,
+                               const TlvRequestTlv &aTlvRequest, const ChallengeTlv &aChallenge);
+    ThreadError SendParentResponse(Child *aChild, const ChallengeTlv &aChallenge);
+    ThreadError SendChildIdResponse(Child *aChild);
+    ThreadError SendChildUpdateResponse(Child *aChild, const Ip6::MessageInfo &aMessageInfo,
+                                        const uint8_t *aTlvs, uint8_t aTlvsLength,  const ChallengeTlv *challenge);
+    ThreadError SetStateRouter(uint16_t aRloc16);
+    ThreadError SetStateLeader(uint16_t aRloc16);
+    ThreadError UpdateChildAddresses(const AddressRegistrationTlv &aTlv, Child &aChild);
+    void UpdateRoutes(const RouteTlv &aTlv, uint8_t aRouterId);
 
-    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
-    void HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo);
-    void HandleAddressSolicitResponse(Message &message);
-    static void HandleAddressRelease(void *context, Coap::Header &header, Message &message,
-                                     const Ip6::MessageInfo &messageInfo);
-    void HandleAddressRelease(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
-    static void HandleAddressSolicit(void *context, Coap::Header &header, Message &message,
-                                     const Ip6::MessageInfo &messageInfo);
-    void HandleAddressSolicit(Coap::Header &header, Message &message, const Ip6::MessageInfo &messageInfo);
+    static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
+    void HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    void HandleAddressSolicitResponse(Message &aMessage);
+    static void HandleAddressRelease(void *aContext, Coap::Header &aHeader, Message &aMessage,
+                                     const Ip6::MessageInfo &aMessageInfo);
+    void HandleAddressRelease(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    static void HandleAddressSolicit(void *aContext, Coap::Header &aHeader, Message &aMessage,
+                                     const Ip6::MessageInfo &aMessageInfo);
+    void HandleAddressSolicit(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
-    Child *NewChild();
-    Child *FindChild(const Mac::ExtAddress &macAddr);
+    static uint8_t LqiToCost(uint8_t aLqi);
 
-    int AllocateRouterId();
-    int AllocateRouterId(uint8_t routerId);
-    bool InRouterIdMask(uint8_t routerId);
+    Child *NewChild(void);
+    Child *FindChild(const Mac::ExtAddress &aMacAddr);
 
-    static void HandleAdvertiseTimer(void *context);
-    void HandleAdvertiseTimer();
-    static void HandleStateUpdateTimer(void *context);
-    void HandleStateUpdateTimer();
+    int AllocateRouterId(void);
+    int AllocateRouterId(uint8_t aRouterId);
+    bool InRouterIdMask(uint8_t aRouterId);
+
+    static void HandleAdvertiseTimer(void *aContext);
+    void HandleAdvertiseTimer(void);
+    static void HandleStateUpdateTimer(void *aContext);
+    void HandleStateUpdateTimer(void);
 
     Timer mAdvertiseTimer;
     Timer mStateUpdateTimer;
@@ -168,15 +387,15 @@ private:
 
     uint8_t mChallenge[8];
     uint16_t mNextChildId;
-    uint8_t mNetworkIdTimeout = kNetworkIdTimeout;
-    uint8_t mRouterUpgradeThreshold = kRouterUpgradeThreadhold;
-    uint8_t mLeaderWeight = 0;
+    uint8_t mNetworkIdTimeout;
+    uint8_t mRouterUpgradeThreshold;
+    uint8_t mLeaderWeight;
 
-    int8_t mRouterId = kMaxRouterId;
-    int8_t mPreviousRouterId = kMaxRouterId;
-    uint32_t mAdvertiseInterval = kAdvertiseIntervalMin;
+    int8_t mRouterId;
+    int8_t mPreviousRouterId;
+    uint32_t mAdvertiseInterval;
 
-    Coap::Server *mCoapServer = NULL;
+    Coap::Server *mCoapServer;
     uint8_t mCoapToken[2];
     uint16_t mCoapMessageId;
 };

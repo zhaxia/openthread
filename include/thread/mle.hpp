@@ -77,91 +77,156 @@ class MleRouter;
 
 enum
 {
-    kVersion                    = 1,
-    kUdpPort                    = 19788,
     kMaxChildren                = 5,
+};
+
+enum
+{
+    kVersion                    = 1,     ///< MLE Version
+    kUdpPort                    = 19788, ///< MLE UDP Port
     kParentRequestRouterTimeout = 1000,  // milliseconds
     kParentRequestChildTimeout  = 2000,  // milliseconds
-    kReedAdvertiseInterval      = 10,  // seconds
-    kReedAdvertiseJitter        = 2,  // seconds
     kChildIdMask                = 0x1ff,
     kRouterIdOffset             = 10,
 };
 
+/**
+ * Routing Protocol Parameters and Contstants
+ *
+ */
 enum
 {
-    kAdvertiseIntervalMin       = 1,  // seconds
-    kAdvertiseIntervalMax       = 32,  // seconds
-    kRouterIdReuseDelay         = 100,  // seconds
-    kRouterIdSequencePeriod     = 10,  // seconds
-    kMaxNeighborAge             = 100,  // seconds
-    kMaxRouteCost               = 16,
-    kMaxRouterId                = 62,
-    kMaxRouters                 = 32,
-    kMinDowngradeNeighbors      = 7,
-    kNetworkIdTimeout           = 120,  // seconds
-    kParentRouteToLeaderTimeout = 20,  // seconds
-    kRouterSelectionJitter      = 120,  // seconds
-    kRouterDowngradeThreshold   = 23,
-    kRouterUpgradeThreadhold    = 16,
-    kMaxLeaderToRouterTimeout   = 90,  // seconds
+    kAdvertiseIntervalMin       = 1,    ///< ADVERTISEMENT_I_MIN (seconds)
+    kAdvertiseIntervalMax       = 32,   ///< ADVERTISEMENT_I_MAX (seconds)
+    kRouterIdReuseDelay         = 100,  ///< ID_REUSE_DELAY (seconds)
+    kRouterIdSequencePeriod     = 10,   ///< ID_SEQUENCE_PERIOD (seconds)
+    kMaxNeighborAge             = 100,  ///< MAX_NEIGHBOR_AGE (seconds)
+    kMaxRouteCost               = 16,   ///< MAX_ROUTE_COST
+    kMaxRouterId                = 62,   ///< MAX_ROUTER_ID
+    kMaxRouters                 = 32,   ///< MAX_ROUTERS
+    kMinDowngradeNeighbors      = 7,    ///< MIN_DOWNGRADE_NEIGHBORS
+    kNetworkIdTimeout           = 120,  ///< NETWORK_ID_TIMEOUT (seconds)
+    kParentRouteToLeaderTimeout = 20,   ///< PARENT_ROUTE_TO_LEADER_TIMEOUT (seconds)
+    kRouterSelectionJitter      = 120,  ///< ROUTER_SELECTION_JITTER (seconds)
+    kRouterDowngradeThreshold   = 23,   ///< ROUTER_DOWNGRADE_THRESHOLD (routers)
+    kRouterUpgradeThreadhold    = 16,   ///< ROUTER_UPGRADE_THRESHOLD (routers)
+    kMaxLeaderToRouterTimeout   = 90,   ///< INFINITE_COST_TIMEOUT (seconds)
+    kReedAdvertiseInterval      = 570,  ///< REED_ADVERTISEMENT_INTERVAL (seconds)
+    kReedAdvertiseJitter        = 60,   ///< REED_ADVERTISEMENT_JITTER (seconds)
 };
 
-enum
-{
-    kModeRxOnWhenIdle      = 1 << 3,
-    kModeSecureDataRequest = 1 << 2,
-    kModeFFD               = 1 << 1,
-    kModeFullNetworkData   = 1 << 0,
-};
-
+/**
+ * MLE Device states
+ *
+ */
 enum DeviceState
 {
-    kDeviceStateDisabled = 0,
-    kDeviceStateDetached = 1,
-    kDeviceStateChild    = 2,
-    kDeviceStateRouter   = 3,
-    kDeviceStateLeader   = 4,
+    kDeviceStateDisabled = 0,   ///< Thread interface is disabled.
+    kDeviceStateDetached = 1,   ///< Thread interface is not attached to a partition.
+    kDeviceStateChild    = 2,   ///< Thread interface participating as a Child.
+    kDeviceStateRouter   = 3,   ///< Thread interface participating as a Router.
+    kDeviceStateLeader   = 4,   ///< Thread interface participating as a Leader.
 };
 
+/**
+ * This class implements MLE Header generation and parsing.
+ *
+ */
 class Header
 {
 public:
-    void Init() { mSecuritySuite = 0; mSecurityControl = Mac::Frame::kSecEncMic32; }
-    bool IsValid() const {
+    /**
+     * This method initializes the MLE header.
+     *
+     */
+    void Init(void) { mSecuritySuite = 0; mSecurityControl = Mac::Frame::kSecEncMic32; }
+
+    /**
+     * This method indicates whether or not the TLV appears to be well-formed.
+     *
+     * @retval TRUE   If the TLV appears to be well-formed.
+     * @retval FALSE  If the TLV does not appear to be well-formed.
+     *
+     */
+    bool IsValid(void) const {
         return mSecuritySuite == 0 &&
                (mSecurityControl == (Mac::Frame::kKeyIdMode1 | Mac::Frame::kSecEncMic32) ||
                 mSecurityControl == (Mac::Frame::kKeyIdMode5 | Mac::Frame::kSecEncMic32));
     }
 
-    uint8_t GetLength() const {
+    /**
+     * This method returns the MLE header and Command Type length.
+     *
+     * @returns The MLE header and Command Type length.
+     *
+     */
+    uint8_t GetLength(void) const {
         return sizeof(mSecuritySuite) + sizeof(mSecurityControl) + sizeof(mFrameCounter) +
                (IsKeyIdMode1() ? 1 : 5) + sizeof(mCommand);
     }
 
-    uint8_t GetHeaderLength() const {
+    /**
+     * This method returns the MLE header length (excluding the Command Type).
+     *
+     * @returns The MLE header length (excluding the Command Type).
+     *
+     */
+    uint8_t GetHeaderLength(void) const {
         return sizeof(mSecurityControl) + sizeof(mFrameCounter) + (IsKeyIdMode1() ? 1 : 5);
     }
 
-    const uint8_t *GetBytes() const {
+    /**
+     * This method returns a pointer to first byte of the MLE header.
+     *
+     * @returns A pointer to the first byte of the MLE header.
+     *
+     */
+    const uint8_t *GetBytes(void) const {
         return reinterpret_cast<const uint8_t *>(&mSecuritySuite);
     }
 
-    uint8_t GetSecurityControl() const { return mSecurityControl; }
+    /**
+     * This method returns the Security Control value.
+     *
+     * @returns The Security Control value.
+     *
+     */
+    uint8_t GetSecurityControl(void) const { return mSecurityControl; }
 
-    bool IsKeyIdMode1() const {
+    /**
+     * This method indicates whether or not the Key ID Mode is set to 1.
+     *
+     * @retval TRUE   If the Key ID Mode is set to 1.
+     * @retval FALSE  If the Key ID Mode is not set to 1.
+     *
+     */
+    bool IsKeyIdMode1(void) const {
         return (mSecurityControl & Mac::Frame::kKeyIdModeMask) == Mac::Frame::kKeyIdMode1;
     }
 
-    void SetKeyIdMode1() {
+    /**
+     * This method sets the Key ID Mode to 1.
+     *
+     */
+    void SetKeyIdMode1(void) {
         mSecurityControl = (mSecurityControl & ~Mac::Frame::kKeyIdModeMask) | Mac::Frame::kKeyIdMode1;
     }
 
-    void SetKeyIdMode2() {
+    /**
+     * This method sets the Key ID Mode to 2.
+     *
+     */
+    void SetKeyIdMode2(void) {
         mSecurityControl = (mSecurityControl & ~Mac::Frame::kKeyIdModeMask) | Mac::Frame::kKeyIdMode5;
     }
 
-    uint32_t GetKeyId() const {
+    /**
+     * This method returns the Key ID value.
+     *
+     * @returns The Key ID value.
+     *
+     */
+    uint32_t GetKeyId(void) const {
         return IsKeyIdMode1() ? mKeyIdentifier[0] - 1 :
                static_cast<uint32_t>(mKeyIdentifier[3]) << 0 |
                static_cast<uint32_t>(mKeyIdentifier[2]) << 8 |
@@ -169,59 +234,97 @@ public:
                static_cast<uint32_t>(mKeyIdentifier[0]) << 24;
     }
 
-    void SetKeyId(uint32_t keySequence) {
+    /**
+     * This method sets the Key ID value.
+     *
+     * @param[in]  aKeySequence  The Key ID value.
+     *
+     */
+    void SetKeyId(uint32_t aKeySequence) {
         if (IsKeyIdMode1()) {
-            mKeyIdentifier[0] = (keySequence & 0x7f) + 1;
+            mKeyIdentifier[0] = (aKeySequence & 0x7f) + 1;
         }
         else {
-            mKeyIdentifier[4] = (keySequence & 0x7f) + 1;
-            mKeyIdentifier[3] = keySequence >> 0;
-            mKeyIdentifier[2] = keySequence >> 8;
-            mKeyIdentifier[1] = keySequence >> 16;
-            mKeyIdentifier[0] = keySequence >> 24;
+            mKeyIdentifier[4] = (aKeySequence & 0x7f) + 1;
+            mKeyIdentifier[3] = aKeySequence >> 0;
+            mKeyIdentifier[2] = aKeySequence >> 8;
+            mKeyIdentifier[1] = aKeySequence >> 16;
+            mKeyIdentifier[0] = aKeySequence >> 24;
         }
     }
 
-    uint32_t GetFrameCounter() const {
+    /**
+     * This method returns the Frame Counter value.
+     *
+     * @returns The Frame Counter value.
+     *
+     */
+    uint32_t GetFrameCounter(void) const {
         return Encoding::LittleEndian::HostSwap32(mFrameCounter);
     }
 
-    void SetFrameCounter(uint32_t frameCounter) {
-        mFrameCounter = Encoding::LittleEndian::HostSwap32(frameCounter);
+    /**
+     * This method sets the Frame Counter value.
+     *
+     * @param[in]  aFrameCounter  The Frame Counter value.
+     *
+     */
+    void SetFrameCounter(uint32_t aFrameCounter) {
+        mFrameCounter = Encoding::LittleEndian::HostSwap32(aFrameCounter);
     }
 
+    /**
+     * MLE Command Types.
+     *
+     */
     enum Command
     {
-        kCommandLinkRequest          = 0,
-        kCommandLinkAccept           = 1,
-        kCommandLinkAcceptAndRequest = 2,
-        kCommandLinkReject           = 3,
-        kCommandAdvertisement        = 4,
-        kCommandUpdate               = 5,
-        kCommandUpdateRequest        = 6,
-        kCommandDataRequest          = 7,
-        kCommandDataResponse         = 8,
-        kCommandParentRequest        = 9,
-        kCommandParentResponse       = 10,
-        kCommandChildIdRequest       = 11,
-        kCommandChildIdResponse      = 12,
-        kCommandChildUpdateRequest   = 13,
-        kCommandChildUpdateResponse  = 14,
+        kCommandLinkRequest          = 0,    ///< Link Reject
+        kCommandLinkAccept           = 1,    ///< Link Accept
+        kCommandLinkAcceptAndRequest = 2,    ///< Link Accept and Reject
+        kCommandLinkReject           = 3,    ///< Link Reject
+        kCommandAdvertisement        = 4,    ///< Advertisement
+        kCommandUpdate               = 5,    ///< Update
+        kCommandUpdateRequest        = 6,    ///< Update Request
+        kCommandDataRequest          = 7,    ///< Data Request
+        kCommandDataResponse         = 8,    ///< Data Response
+        kCommandParentRequest        = 9,    ///< Parent Request
+        kCommandParentResponse       = 10,   ///< Parent Response
+        kCommandChildIdRequest       = 11,   ///< Child ID Request
+        kCommandChildIdResponse      = 12,   ///< Child ID Response
+        kCommandChildUpdateRequest   = 13,   ///< Child Update Request
+        kCommandChildUpdateResponse  = 14,   ///< Child Update Response
     };
-    Command GetCommand() const {
+
+    /**
+     * This method returns the Command Type value.
+     *
+     * @returns The Command Type value.
+     *
+     */
+    Command GetCommand(void) const {
         const uint8_t *command = mKeyIdentifier + (IsKeyIdMode1() ? 1 : 5);
         return static_cast<Command>(*command);
     }
 
-    void SetCommand(Command command) {
+    /**
+     * This method sets the Command Type value.
+     *
+     * @param[in]  aCommand  The Command Type value.
+     *
+     */
+    void SetCommand(Command aCommand) {
         uint8_t *commandField = mKeyIdentifier + (IsKeyIdMode1() ? 1 : 5);
-        *commandField = static_cast<uint8_t>(command);
+        *commandField = static_cast<uint8_t>(aCommand);
     }
 
+    /**
+     * Security suite identifiers.
+     *
+     */
     enum SecuritySuite
     {
-        kSecurityEnabled  = 0x00,
-        kSecurityDisabled = 0xff,
+        kSecurityEnabled  = 0x00,  ///< IEEE 802.15.4-2006 security
     };
 
 private:
@@ -232,138 +335,640 @@ private:
     uint8_t mCommand;
 } __attribute__((packed));
 
+/**
+ * This class implements MLE functionality required by the Thread EndDevices, Router, and Leader roles.
+ *
+ */
 class Mle
 {
 public:
-    explicit Mle(ThreadNetif &netif);
-    ThreadError Init();
-    ThreadError Start();
-    ThreadError Stop();
+    Mle();
 
-    ThreadError BecomeDetached();
-    ThreadError BecomeChild(otMleAttachFilter filter);
+    /**
+     * This method initializes the MLE object.
+     *
+     * @param[in]  aNetif  A reference to the Thread network interface.
+     *
+     * @retval kThreadError_None  Successfully initialized the object.
+     * @retval kThreadError_Busy  The object was already initialized.
+     *
+     */
+    ThreadError Init(ThreadNetif &aNetif);
 
-    DeviceState GetDeviceState() const;
+    /**
+     * This method starts the MLE protocol operation.
+     *
+     * @retval kThreadError_None  Successfully started the protocol operation.
+     * @retval kThreadError_Busy  The protocol operation was already started.
+     *
+     */
+    ThreadError Start(void);
 
-    uint8_t GetDeviceMode() const;
-    ThreadError SetDeviceMode(uint8_t mode);
+    /**
+     * This method stops the MLE protocol operation.
+     *
+     * @retval kThreadError_None  Successfully stopped the protocol operation.
+     * @retval kThreadError_Busy  The protocol operation was already stopped.
+     *
+     */
+    ThreadError Stop(void);
 
-    const uint8_t *GetMeshLocalPrefix() const;
-    ThreadError SetMeshLocalPrefix(const uint8_t *prefix);
+    /**
+     * This method causes the Thread interface to detach from the Thread network.
+     *
+     * @retval kThreadError_None  Successfully detached from the Thread network.
+     * @retval kThreadError_Busy  The protocol operation was stopped.
+     *
+     */
+    ThreadError BecomeDetached(void);
 
-    const uint8_t GetChildId(uint16_t rloc16) const;
-    const uint8_t GetRouterId(uint16_t rloc16) const;
-    const uint16_t GetRloc16(uint8_t routerId) const;
+    /**
+     * This method causes the Thread interface to attempt an MLE attach.
+     *
+     * @param[in]  aFilter  Indicates what partitions to attach to.
+     *
+     * @retval kThreadError_None  Successfully began the attach process.
+     * @retval kThreadError_Busy  An attach process is in progress or the protocol operation was stopped.
+     *
+     */
+    ThreadError BecomeChild(otMleAttachFilter aFilter);
 
-    const Ip6::Address *GetLinkLocalAllThreadNodesAddress() const;
-    const Ip6::Address *GetRealmLocalAllThreadNodesAddress() const;
+    /**
+     * This method returns the current Thread interface state.
+     *
+     * @returns The current Thread interface state.
+     *
+     */
+    DeviceState GetDeviceState(void) const;
 
-    Router *GetParent();
+    /**
+     * This method returns the Device Mode as reported in the Mode TLV.
+     *
+     * @returns The Device Mode as reported in the Mode TLV.
+     *
+     */
+    uint8_t GetDeviceMode(void) const;
 
-    bool IsRoutingLocator(const Ip6::Address &address) const;
+    /**
+     * This method sets the Device Mode as reported in the Mode TLV.
+     *
+     * @retval kThreadError_None         Successfully set the Mode TLV.
+     * @retval kThreadError_InvalidArgs  The mode combination specified in @p aMode is invalid.
+     *
+     */
+    ThreadError SetDeviceMode(uint8_t aMode);
 
-    uint32_t GetTimeout() const;
-    ThreadError SetTimeout(uint32_t timeout);
+    /**
+     * This method returns a pointer to the Mesh Local Prefix.
+     *
+     * @returns A pointer to the Mesh Local Prefix.
+     *
+     */
+    const uint8_t *GetMeshLocalPrefix(void) const;
 
-    uint16_t GetRloc16() const;
-    const Ip6::Address *GetMeshLocal16() const;
-    const Ip6::Address *GetMeshLocal64() const;
+    /**
+     * This method sets the Mesh Local Prefix.
+     *
+     * @param[in]  aPrefix  A pointer to the Mesh Local Prefix.
+     *
+     * @retval kThreadError_None  Successfully set the Mesh Local Prefix.
+     *
+     */
+    ThreadError SetMeshLocalPrefix(const uint8_t *aPrefix);
 
-    ThreadError HandleNetworkDataUpdate();
+    /**
+     * This method returns the Child ID portion of an RLOC16.
+     *
+     * @param[in]  aRloc16  The RLOC16 value.
+     *
+     * @returns The Child ID portion of an RLOC16.
+     *
+     */
+    const uint8_t GetChildId(uint16_t aRloc16) const;
 
-    uint8_t GetLeaderId() const;
+    /**
+     * This method returns the Router ID portion of an RLOC16.
+     *
+     * @param[in]  aRloc16  The RLOC16 value.
+     *
+     * @returns The Router ID portion of an RLOC16.
+     *
+     */
+    const uint8_t GetRouterId(uint16_t aRloc16) const;
+
+    /**
+     * This method returns the RLOC16 of a given Router ID.
+     *
+     * @param[in]  aRouterId  The Router ID value..
+     *
+     * @returns The RLOC16 of the given Router ID.
+     *
+     */
+    const uint16_t GetRloc16(uint8_t aRouterId) const;
+
+    /**
+     * This method returns a pointer to the link-local all Thread nodes multicast address.
+     *
+     * @returns A pointer to the link-local all Thread nodes multicast address.
+     *
+     */
+    const Ip6::Address *GetLinkLocalAllThreadNodesAddress(void) const;
+
+    /**
+     * This method returns a pointer to the realm-local all Thread nodes multicast address.
+     *
+     * @returns A pointer to the realm-local all Thread nodes multicast address.
+     *
+     */
+    const Ip6::Address *GetRealmLocalAllThreadNodesAddress(void) const;
+
+    /**
+     * This method returns a pointer to the parent when operating in End Device mode.
+     *
+     * @returns A pointer to the parent.
+     *
+     */
+    Router *GetParent(void);
+
+    /**
+     * This method indicates whether or not an IPv6 address is an RLOC.
+     *
+     * @retval TRUE   If @p aAddress is an RLOC.
+     * @retval FALSE  If @p aAddress is not an RLOC.
+     *
+     */
+    bool IsRoutingLocator(const Ip6::Address &aAddress) const;
+
+    /**
+     * This method returns the MLE Timeout value.
+     *
+     * @returns The MLE Timeout value.
+     *
+     */
+    uint32_t GetTimeout(void) const;
+
+    /**
+     * This method sets the MLE Timeout value.
+     *
+     */
+    ThreadError SetTimeout(uint32_t aTimeout);
+
+    /**
+     * This method returns the RLOC16 assigned to the Thread interface.
+     *
+     * @returns The RLOC16 assigned to the Thread interface.
+     *
+     */
+    uint16_t GetRloc16(void) const;
+
+    /**
+     * This method returns a pointer to the RLOC assigned to the Thread interface.
+     *
+     * @returns A pointer to the RLOC assigned to the Thread interface.
+     *
+     */
+    const Ip6::Address *GetMeshLocal16(void) const;
+
+    /**
+     * This method returns a pointer to the ML-EID assigned to the Thread interface.
+     *
+     * @returns A pointer to the ML-EID assigned to the Thread interface.
+     *
+     */
+    const Ip6::Address *GetMeshLocal64(void) const;
+
+    /**
+     * This method notifes MLE that the Network Data has changed.
+     *
+     */
+    void HandleNetworkDataUpdate(void);
+
+    /**
+     * This method returns the Router ID of the Leader.
+     *
+     * @returns The Router ID of the Leader.
+     *
+     */
+    uint8_t GetLeaderId(void) const;
+
+    /**
+     * This method retrieves the Leader's RLOC.
+     *
+     * @param[out]  aAddress  A reference to the Leader's RLOC.
+     *
+     * @retval kThreadError_None   Successfully retrieved the Leader's RLOC.
+     * @retval kThreadError_Error  The Thread interface is not currently attached to a Thread Partition.
+     *
+     */
     ThreadError GetLeaderAddress(Ip6::Address &address) const;
-    const LeaderDataTlv *GetLeaderDataTlv();
+
+    /**
+     * This method returns the most recently received Leader Data TLV.
+     *
+     * @returns  A reference to the most recently receievd Leader Data TLV.
+     *
+     */
+    const LeaderDataTlv &GetLeaderDataTlv(void);
 
 protected:
-    ThreadError AppendSecureHeader(Message &message, Header::Command command);
-    ThreadError AppendSourceAddress(Message &message);
-    ThreadError AppendMode(Message &message, uint8_t mode);
-    ThreadError AppendTimeout(Message &message, uint32_t timeout);
-    ThreadError AppendChallenge(Message &message, const uint8_t *challenge, uint8_t challengeLength);
-    ThreadError AppendResponse(Message &message, const uint8_t *response, uint8_t responseLength);
-    ThreadError AppendLinkFrameCounter(Message &message);
-    ThreadError AppendMleFrameCounter(Message &message);
-    ThreadError AppendAddress16(Message &message, uint16_t rloc16);
-    ThreadError AppendNetworkData(Message &message, bool stable_only);
-    ThreadError AppendTlvRequest(Message &message, const uint8_t *tlvs, uint8_t tlvsLength);
-    ThreadError AppendLeaderData(Message &message);
-    ThreadError AppendScanMask(Message &message, uint8_t scanMask);
-    ThreadError AppendStatus(Message &message, StatusTlv::Status status);
-    ThreadError AppendLinkMargin(Message &message, uint8_t linkMargin);
-    ThreadError AppendVersion(Message &message);
-    ThreadError AppendIp6Address(Message &message);
-    ThreadError CheckReachability(Mac::ShortAddress meshsrc, Mac::ShortAddress meshdst, Ip6::Header &ip6Header);
-    void GenerateNonce(const Mac::ExtAddress &macAddr, uint32_t frameCounter, uint8_t securityLevel, uint8_t *nonce);
-    Neighbor *GetNeighbor(const Mac::Address &address);
-    Neighbor *GetNeighbor(Mac::ShortAddress address);
-    Neighbor *GetNeighbor(const Mac::ExtAddress &address);
-    Neighbor *GetNeighbor(const Ip6::Address &address);
-    Mac::ShortAddress GetNextHop(Mac::ShortAddress destination) const;
-    static void HandleUnicastAddressesChanged(void *context);
-    void HandleUnicastAddressesChanged();
-    static void HandleParentRequestTimer(void *context);
-    void HandleParentRequestTimer();
-    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
-    void HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo);
-    ThreadError HandleAdvertisement(const Message &message, const Ip6::MessageInfo &messageInfo);
-    ThreadError HandleDataRequest(const Message &message, const Ip6::MessageInfo &messageInfo);
-    ThreadError HandleDataResponse(const Message &message, const Ip6::MessageInfo &messageInfo);
-    ThreadError HandleParentResponse(const Message &message, const Ip6::MessageInfo &messageInfo,
-                                     uint32_t keySequence);
-    ThreadError HandleChildIdResponse(const Message &message, const Ip6::MessageInfo &messageInfo);
-    ThreadError HandleChildUpdateResponse(const Message &message, const Ip6::MessageInfo &messageInfo);
-    uint8_t LinkMarginToQuality(uint8_t linkMargin);
-    ThreadError SendParentRequest();
-    ThreadError SendChildIdRequest();
-    ThreadError SendDataRequest(const Ip6::Address &destination, const uint8_t *tlvs, uint8_t tlvsLength);
-    ThreadError SendDataResponse(const Ip6::Address &destination, const uint8_t *tlvs, uint8_t tlvsLength);
-    ThreadError SendChildUpdateRequest();
-    ThreadError SendMessage(Message &message, const Ip6::Address &destination);
-    ThreadError SetRloc16(uint16_t rloc16);
-    ThreadError SetStateDetached();
-    ThreadError SetStateChild(uint16_t rloc16);
+    /**
+     * This method appends an MLE header to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     * @param[in]  aCommand  The MLE Command Type.
+     *
+     * @retval kThreadError_None    Successfully appended the header.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the header.
+     *
+     */
+    ThreadError AppendHeader(Message &aMessage, Header::Command aCommand);
 
-    Ip6::NetifHandler mNetifHandler;
-    Timer mParentRequestTimer;
+    /**
+     * This method appends a Source Address TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     *
+     * @retval kThreadError_None    Successfully appended the Source Address TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Source Address TLV.
+     *
+     */
+    ThreadError AppendSourceAddress(Message &aMessage);
 
-    Ip6::UdpSocket mSocket;
-    Ip6::NetifUnicastAddress mLinkLocal16;
-    Ip6::NetifUnicastAddress mLinkLocal64;
-    Ip6::NetifUnicastAddress mMeshLocal64;
-    Ip6::NetifUnicastAddress mMeshLocal16;
-    Ip6::NetifMulticastAddress mLinkLocalAllThreadNodes;
-    Ip6::NetifMulticastAddress mRealmLocalAllThreadNodes;
+    /**
+     * This method appends a Mode TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     * @param[in]  aMode     The Device Mode value.
+     *
+     * @retval kThreadError_None    Successfully appended the Mode TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Mode TLV.
+     *
+     */
+    ThreadError AppendMode(Message &aMessage, uint8_t aMode);
 
-    AddressResolver *mAddressResolver;
-    KeyManager *mKeyManager;
-    MeshForwarder *mMesh;
-    MleRouter *mMleRouter;
-    NetworkData::Leader *mNetworkData;
-    ThreadNetif *mNetif;
+    /**
+     * This method appends a Timeout TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     * @param[in]  aTimeout  The Timeout value.
+     *
+     * @retval kThreadError_None    Successfully appended the Timeout TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Timeout TLV.
+     *
+     */
+    ThreadError AppendTimeout(Message &aMessage, uint32_t aTimeout);
 
-    LeaderDataTlv mLeaderData;
-    DeviceState mDeviceState = kDeviceStateDisabled;
-    Router mParent;
-    uint8_t mDeviceMode = kModeRxOnWhenIdle | kModeSecureDataRequest | kModeFFD | kModeFullNetworkData;
-    uint32_t mTimeout = kMaxNeighborAge;
+    /**
+     * This method appends a Challenge TLV to a message.
+     *
+     * @param[in]  aMessage          A reference to the message.
+     * @param[in]  aChallenge        A pointer to the Challenge value.
+     * @param[in]  aChallengeLength  The length of the Challenge value in bytes.
+     *
+     * @retval kThreadError_None    Successfully appended the Challenge TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Challenge TLV.
+     *
+     */
+    ThreadError AppendChallenge(Message &aMessage, const uint8_t *aChallenge, uint8_t aChallengeLength);
 
+    /**
+     * This method appends a Response TLV to a message.
+     *
+     * @param[in]  aMessage         A reference to the message.
+     * @param[in]  aResponse        A pointer to the Response value.
+     * @param[in]  aResponseLength  The length of the Response value in bytes.
+     *
+     * @retval kThreadError_None    Successfully appended the Response TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Response TLV.
+     *
+     */
+    ThreadError AppendResponse(Message &aMessage, const uint8_t *aResponse, uint8_t aResponseLength);
+
+    /**
+     * This method appends a Link Frame Counter TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     *
+     * @retval kThreadError_None    Successfully appended the Link Frame Counter TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Link Frame Counter TLV.
+     *
+     */
+    ThreadError AppendLinkFrameCounter(Message &aMessage);
+
+    /**
+     * This method appends an MLE Frame Counter TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     *
+     * @retval kThreadError_None    Successfully appended the Frame Counter TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the MLE Frame Counter TLV.
+     *
+     */
+    ThreadError AppendMleFrameCounter(Message &aMessage);
+
+    /**
+     * This method appends an Address16 TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     * @param[in]  aRloc16   The RLOC16 value.
+     *
+     * @retval kThreadError_None    Successfully appended the Address16 TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Address16 TLV.
+     *
+     */
+    ThreadError AppendAddress16(Message &aMessage, uint16_t aRloc16);
+
+    /**
+     * This method appends a Network Data TLV to the message.
+     *
+     * @param[in]  aMessage     A reference to the message.
+     * @param[in]  aStableOnly  TRUE to append stable data, FALSE otherwise.
+     *
+     * @retval kThreadError_None    Successfully appended the Network Data TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Network Data TLV.
+     *
+     */
+    ThreadError AppendNetworkData(Message &aMessage, bool aStableOnly);
+
+    /**
+     * This method appends a TLV Request TLV to a message.
+     *
+     * @param[in]  aMessage     A reference to the message.
+     * @param[in]  aTlvs        A pointer to the list of TLV types.
+     * @param[in]  aTlvsLength  The number of TLV types in @p aTlvs
+     *
+     * @retval kThreadError_None    Successfully appended the TLV Request TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the TLV Request TLV.
+     *
+     */
+    ThreadError AppendTlvRequest(Message &aMessage, const uint8_t *aTlvs, uint8_t aTlvsLength);
+
+    /**
+     * This method appends a Leader Data TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     *
+     * @retval kThreadError_None    Successfully appended the Leader Data TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Leader Data TLV.
+     *
+     */
+    ThreadError AppendLeaderData(Message &aMessage);
+
+    /**
+     * This method appends a Scan Mask TLV to a message.
+     *
+     * @param[in]  aMessage   A reference to the message.
+     * @param[in]  aScanMask  The Scan Mask value.
+     *
+     * @retval kThreadError_None    Successfully appended the Scan Mask TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Scan Mask TLV.
+     *
+     */
+    ThreadError AppendScanMask(Message &aMessage, uint8_t aScanMask);
+
+    /**
+     * This method appends a Status TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     * @param[in]  aStatus   The Status value.
+     *
+     * @retval kThreadError_None    Successfully appended the Status TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Status TLV.
+     *
+     */
+    ThreadError AppendStatus(Message &aMessage, StatusTlv::Status aStatus);
+
+    /**
+     * This method appends a Link Margin TLV to a message.
+     *
+     * @param[in]  aMessage     A reference to the message.
+     * @param[in]  aLinkMargin  The Link Margin value.
+     *
+     * @retval kThreadError_None    Successfully appended the Link Margin TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Link Margin TLV.
+     *
+     */
+    ThreadError AppendLinkMargin(Message &aMessage, uint8_t aLinkMargin);
+
+    /**
+     * This method appends a Version TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     *
+     * @retval kThreadError_None    Successfully appended the Version TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Version TLV.
+     *
+     */
+    ThreadError AppendVersion(Message &aMessage);
+
+    /**
+     * This method appends an Address Registration TLV to a message.
+     *
+     * @param[in]  aMessage  A reference to the message.
+     *
+     * @retval kThreadError_None    Successfully appended the Address Registration TLV.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to append the Address Registration TLV.
+     *
+     */
+    ThreadError AppendAddressRegistration(Message &aMessage);
+
+    /**
+     * This method checks if the destination is reachable.
+     *
+     * @param[in]  aMeshSource  The RLOC16 of the source.
+     * @param[in]  aMeshDest    The RLOC16 of the destination.
+     * @param[in]  aIp6Header   The IPv6 header of the message.
+     *
+     * @retval kThreadError_None  The destination is reachable.
+     * @retval kThreadError_Drop  The destination is not reachable and the message should be dropped.
+     *
+     */
+    ThreadError CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, Ip6::Header &aIp6Header);
+
+    /**
+     * This method returns a pointer to the neighbor object.
+     *
+     * @param[in]  aAddress  A reference to the MAC address.
+     *
+     * @returns A pointer to the neighbor object.
+     *
+     */
+    Neighbor *GetNeighbor(const Mac::Address &aAddress);
+
+    /**
+     * This method returns a pointer to the neighbor object.
+     *
+     * @param[in]  aAddress  A reference to the MAC short address.
+     *
+     * @returns A pointer to the neighbor object.
+     *
+     */
+    Neighbor *GetNeighbor(Mac::ShortAddress aAddress);
+
+    /**
+     * This method returns a pointer to the neighbor object.
+     *
+     * @param[in]  aAddress  A reference to the MAC extended address.
+     *
+     * @returns A pointer to the neighbor object.
+     *
+     */
+    Neighbor *GetNeighbor(const Mac::ExtAddress &aAddress);
+
+    /**
+     * This method returns a pointer to the neighbor object.
+     *
+     * @param[in]  aAddress  A reference to the IPv6 address.
+     *
+     * @returns A pointer to the neighbor object.
+     *
+     */
+    Neighbor *GetNeighbor(const Ip6::Address &aAddress);
+
+    /**
+     * This method returns the next hop towards an RLOC16 destination.
+     *
+     * @param[in]  aDestination  The RLOC16 of the destination.
+     *
+     * @retuns A RLOC16 of the next hop if a route is known, kInvalidRloc16 otherwise.
+     *
+     */
+    Mac::ShortAddress GetNextHop(uint16_t aDestination) const;
+
+    /**
+     * This method converts a link margin value to a link quality value.
+     *
+     * @param[in]  aLinkMargin  The Link Margin in dB.
+     *
+     * @returns The link quality value.
+     *
+     */
+    uint8_t LinkMarginToQuality(uint8_t aLinkMargin);
+
+    /**
+     * This method generates an MLE Data Request message.
+     *
+     * @param[in]  aDestination  A reference to the IPv6 address of the destination.
+     * @param[in]  aTlvs         A pointer to requested TLV types.
+     * @param[in]  aTlvsLength   The number of TLV types in @p aTlvs.
+     *
+     * @retval kThreadError_None    Successfully generated an MLE Data Request message.
+     * @retval kThreadError_NoBufs  Insufficient buffers to generate the MLE Data Request message.
+     *
+     */
+    ThreadError SendDataRequest(const Ip6::Address &aDestination, const uint8_t *aTlvs, uint8_t aTlvsLength);
+
+    /**
+     * This method generates an MLE Data Response message.
+     *
+     * @param[in]  aDestination  A reference to the IPv6 address of the destination.
+     * @param[in]  aTlvs         A pointer to TLV types that should be included.
+     * @param[in]  aTlvsLength   The number of TLV types in @p aTlvs.
+     *
+     * @retval kThreadError_None    Successfully generated an MLE Data Response message.
+     * @retval kThreadError_NoBufs  Insufficient buffers to generate the MLE Data Response message.
+     *
+     */
+    ThreadError SendDataResponse(const Ip6::Address &aDestination, const uint8_t *aTlvs, uint8_t aTlvsLength);
+
+    /**
+     * This method generates an MLE Child Update Request message.
+     *
+     * @retval kThreadError_None    Successfully generated an MLE Child Update Request message..
+     * @retval kThreadError_NoBufs  Insufficient buffers to generate the MLE Child Update Request message.
+     *
+     */
+    ThreadError SendChildUpdateRequest(void);
+
+    /**
+     * This method submits an MLE message to the UDP socket.
+     *
+     * @param[in]  aMessage      A reference to the message.
+     * @param[in]  aDestination  A reference to the IPv6 address of the destination.
+     *
+     * @retval kThreadError_None    Successfully submitted the MLE message.
+     * @retval kThreadError_NoBufs  Insufficient buffers to form the rest of the MLE message.
+     *
+     */
+    ThreadError SendMessage(Message &aMessage, const Ip6::Address &aDestination);
+
+    /**
+     * This method sets the RLOC16 assigned to the Thread interface.
+     *
+     * @param[in]  aRloc16  The RLOC16 to set.
+     *
+     * @retval kThreadError_None  Successfully set the RLOC16.
+     *
+     */
+    ThreadError SetRloc16(uint16_t aRloc16);
+
+    /**
+     * This method sets the Device State to Detached.
+     *
+     * @retval kThreadError_None  Successfully set the Device State to Detached.
+     *
+     */
+    ThreadError SetStateDetached(void);
+
+    /**
+     * This method sets the Device State to Child.
+     *
+     * @retval kThreadError_None  Successfully set the Device State to Child.
+     *
+     */
+    ThreadError SetStateChild(uint16_t aRloc16);
+
+    AddressResolver     *mAddressResolver;  ///< The Address Resolver object.
+    KeyManager          *mKeyManager;       ///< The Key Manager object.
+    MeshForwarder       *mMesh;             ///< The Mesh Forwarding object.
+    MleRouter           *mMleRouter;        ///< The MLE Router object.
+    NetworkData::Leader *mNetworkData;      ///< The Network Data object.
+    ThreadNetif         *mNetif;            ///< The Thread Network Interface object.
+
+    LeaderDataTlv mLeaderData;              ///< Last received Leader Data TLV.
+
+    DeviceState mDeviceState;               ///< Current Thread interface state.
+    Router mParent;                         ///< Parent information.
+    uint8_t mDeviceMode;                    ///< Device mode setting.
+
+    /**
+     * States when searching for a parent.
+     *
+     */
     enum ParentRequestState
     {
-        kParentIdle,
-        kParentSynchronize,
-        kParentRequestStart,
-        kParentRequestRouter,
-        kParentRequestChild,
-        kChildIdRequest,
+        kParentIdle,           ///< Not currently searching for a parent.
+        kParentSynchronize,    ///< Looking to synchronize with a parent (after reset).
+        kParentRequestStart,   ///< Starting to look for a parent.
+        kParentRequestRouter,  ///< Searching for a Router to attach to.
+        kParentRequestChild,   ///< Searching for Routers or REEDs to attach to.
+        kChildIdRequest,       ///< Sending a Child ID Request message.
     };
-    ParentRequestState mParentRequestState = kParentIdle;
-    otMleAttachFilter mParentRequestMode = kMleAttachAnyPartition;
+    ParentRequestState mParentRequestState;  ///< The parent request state.
 
-    struct
-    {
-        uint8_t mChallenge[8];
-    } mParentRequest;
+    Timer mParentRequestTimer;  ///< The timer for driving the Parent Request process.
+
+private:
+    void GenerateNonce(const Mac::ExtAddress &aMacAddr, uint32_t aFrameCounter, uint8_t aSecurityLevel,
+                       uint8_t *aNonce);
+
+    static void HandleUnicastAddressesChanged(void *aContext);
+    void HandleUnicastAddressesChanged(void);
+    static void HandleParentRequestTimer(void *aContext);
+    void HandleParentRequestTimer(void);
+    static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
+    void HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+
+    ThreadError HandleAdvertisement(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError HandleChildIdResponse(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError HandleChildUpdateResponse(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError HandleDataRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError HandleDataResponse(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError HandleParentResponse(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo,
+                                     uint32_t aKeySequence);
+
+    ThreadError SendParentRequest(void);
+    ThreadError SendChildIdRequest(void);
 
     struct
     {
@@ -371,8 +976,25 @@ protected:
         uint8_t mChallengeLength;
     } mChildIdRequest;
 
-// used during the attach process
+    struct
+    {
+        uint8_t mChallenge[8];
+    } mParentRequest;
+
+    otMleAttachFilter mParentRequestMode;
     uint32_t mParentConnectivity;
+
+    Ip6::UdpSocket mSocket;
+    uint32_t mTimeout;
+
+    Ip6::NetifUnicastAddress mLinkLocal16;
+    Ip6::NetifUnicastAddress mLinkLocal64;
+    Ip6::NetifUnicastAddress mMeshLocal64;
+    Ip6::NetifUnicastAddress mMeshLocal16;
+    Ip6::NetifMulticastAddress mLinkLocalAllThreadNodes;
+    Ip6::NetifMulticastAddress mRealmLocalAllThreadNodes;
+
+    Ip6::NetifHandler mNetifHandler;
 };
 
 }  // namespace Mle
