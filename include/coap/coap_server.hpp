@@ -36,42 +36,106 @@ namespace Coap {
  *
  */
 
+/**
+ * This class implements CoAP resource handling.
+ *
+ */
 class Resource
 {
     friend class Server;
 
 public:
-    typedef void (*CoapMessageHandler)(void *context, Header &header, Message &message,
-                                       const Ip6::MessageInfo &messageInfo);
-    Resource(const char *uriPath, CoapMessageHandler handler, void *context) {
-        mUriPath = uriPath;
-        mHandler = handler;
-        mContext = context;
+    /**
+     * This function pointer is called when a CoAP message with a given Uri-Path is received.
+     *
+     * @param[in]  aContext      A pointer to arbitrary context information.
+     * @param[in]  aHeader       A reference to the CoAP header.
+     * @param[in]  aMessage      A reference to the message.
+     * @param[in]  aMessageInfo  A reference to the message info for @p aMessage.
+     *
+     */
+    typedef void (*CoapMessageHandler)(void *aContext, Header &aHeader, Message &aMessage,
+                                       const Ip6::MessageInfo &aMessageInfo);
+
+    /**
+     * This constructor initializes the resource.
+     *
+     * @param[in]  aUriPath  A pointer to a NULL-terminated string for the Uri-Path.
+     * @param[in]  aHandler  A function pointer that is called when receiving a CoAP message for @p aUriPath.
+     * @param[in]  aContext  A pointer to arbitrary context information.
+     */
+    Resource(const char *aUriPath, CoapMessageHandler aHandler, void *aContext) {
+        mUriPath = aUriPath;
+        mHandler = aHandler;
+        mContext = aContext;
     }
 
 private:
+    void HandleRequest(Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo) {
+	mHandler(mContext, aHeader, aMessage, aMessageInfo);
+    }
+
     const char *mUriPath;
     CoapMessageHandler mHandler;
     void *mContext;
     Resource *mNext;
 };
 
+/**
+ * This class implements the CoAP server.
+ *
+ */
 class Server
 {
 public:
-    explicit Server(uint16_t port);
+    explicit Server(uint16_t aPort);
+
+    /**
+     * This method starts the CoAP server.
+     *
+     * @retval kThreadError_None  Successfully started the CoAP server.
+     *
+     */
     ThreadError Start();
+
+    /**
+     * This method stops the CoAP server.
+     *
+     * @retval kThreadError_None  Successfully stopped the CoAP server.
+     *
+     */
     ThreadError Stop();
-    ThreadError AddResource(Resource &resource);
-    ThreadError SendMessage(Message &message, const Ip6::MessageInfo &messageInfo);
+
+    /**
+     * This method adds a resource to the CoAP server.
+     *
+     * @param[in]  aResource  A reference to the resource.
+     *
+     * @retval kThreadError_None  Successfully added @p aResource.
+     * @retval kThreadError_Busy  The @p aResource was alerady added.
+     *
+     */
+    ThreadError AddResource(Resource &aResource);
+
+    /**
+     * This method sends a CoAP response from the server.
+     *
+     * @param[in]  aMessage      The CoAP response to send.
+     * @param[in]  aMessageInfo  The message info corresponding to @p aMessage.
+     *
+     * @retval kThreadError_None    Successfully enqueued the CoAP response message.
+     * @retval kThreadError_NoBufs  Insufficient buffers available to send the CoAP response.
+     *
+     */
+    ThreadError SendMessage(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
 private:
-    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
-    void HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo);
+    static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
+    void HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
     Ip6::UdpSocket mSocket;
     uint16_t mPort;
-    Resource *mResources = NULL;
+    Resource *mResources;
 };
 
 /**

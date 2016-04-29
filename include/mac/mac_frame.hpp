@@ -44,7 +44,16 @@ enum
     kPanIdBroadcast = 0xffff,
 };
 
+/**
+ * This type represents the IEEE 802.15.4 PAN ID.
+ *
+ */
 typedef uint16_t PanId;
+
+/**
+ * This type represents the IEEE 802.15.4 Short Address.
+ *
+ */
 typedef uint16_t ShortAddress;
 
 /**

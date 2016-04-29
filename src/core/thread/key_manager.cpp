@@ -39,23 +39,23 @@ KeyManager::KeyManager(ThreadNetif &netif)
     mNetif = &netif;
 }
 
-const uint8_t *KeyManager::GetMasterKey(uint8_t *keyLength) const
+const uint8_t *KeyManager::GetMasterKey(uint8_t *aKeyLength) const
 {
-    if (keyLength)
+    if (aKeyLength)
     {
-        *keyLength = mMasterKeyLength;
+        *aKeyLength = mMasterKeyLength;
     }
 
     return mMasterKey;
 }
 
-ThreadError KeyManager::SetMasterKey(const void *key, uint8_t keyLength)
+ThreadError KeyManager::SetMasterKey(const void *aKey, uint8_t aKeyLength)
 {
     ThreadError error = kThreadError_None;
 
-    VerifyOrExit(keyLength <= sizeof(mMasterKey), error = kThreadError_InvalidArgs);
-    memcpy(mMasterKey, key, keyLength);
-    mMasterKeyLength = keyLength;
+    VerifyOrExit(aKeyLength <= sizeof(mMasterKey), error = kThreadError_InvalidArgs);
+    memcpy(mMasterKey, aKey, aKeyLength);
+    mMasterKeyLength = aKeyLength;
     mCurrentKeySequence = 0;
     ComputeKey(mCurrentKeySequence, mCurrentKey);
 
@@ -63,23 +63,23 @@ exit:
     return error;
 }
 
-ThreadError KeyManager::ComputeKey(uint32_t keySequence, uint8_t *key)
+ThreadError KeyManager::ComputeKey(uint32_t aKeySequence, uint8_t *aKey)
 {
     Crypto::Sha256 sha256;
     Crypto::Hmac hmac(sha256);
-    uint8_t keySequence_bytes[4];
+    uint8_t keySequenceBytes[4];
 
     hmac.SetKey(mMasterKey, mMasterKeyLength);
     hmac.Init();
 
-    keySequence_bytes[0] = keySequence >> 24;
-    keySequence_bytes[1] = keySequence >> 16;
-    keySequence_bytes[2] = keySequence >> 8;
-    keySequence_bytes[3] = keySequence >> 0;
-    hmac.Input(keySequence_bytes, sizeof(keySequence_bytes));
+    keySequenceBytes[0] = aKeySequence >> 24;
+    keySequenceBytes[1] = aKeySequence >> 16;
+    keySequenceBytes[2] = aKeySequence >> 8;
+    keySequenceBytes[3] = aKeySequence >> 0;
+    hmac.Input(keySequenceBytes, sizeof(keySequenceBytes));
     hmac.Input(kThreadString, sizeof(kThreadString));
 
-    hmac.Finalize(key);
+    hmac.Finalize(aKey);
 
     return kThreadError_None;
 }
@@ -113,23 +113,19 @@ void KeyManager::UpdateNeighbors()
     }
 }
 
-ThreadError KeyManager::SetCurrentKeySequence(uint32_t keySequence)
+void KeyManager::SetCurrentKeySequence(uint32_t aKeySequence)
 {
-    ThreadError error = kThreadError_None;
-
     mPreviousKeyValid = true;
     mPreviousKeySequence = mCurrentKeySequence;
     memcpy(mPreviousKey, mCurrentKey, sizeof(mPreviousKey));
 
-    mCurrentKeySequence = keySequence;
+    mCurrentKeySequence = aKeySequence;
     ComputeKey(mCurrentKeySequence, mCurrentKey);
 
     mMacFrameCounter = 0;
     mMleFrameCounter = 0;
 
     UpdateNeighbors();
-
-    return error;
 }
 
 const uint8_t *KeyManager::GetCurrentMacKey() const
@@ -162,15 +158,15 @@ const uint8_t *KeyManager::GetPreviousMleKey() const
     return mPreviousKey;
 }
 
-const uint8_t *KeyManager::GetTemporaryMacKey(uint32_t keySequence)
+const uint8_t *KeyManager::GetTemporaryMacKey(uint32_t aKeySequence)
 {
-    ComputeKey(keySequence, mTemporaryKey);
+    ComputeKey(aKeySequence, mTemporaryKey);
     return mTemporaryKey + 16;
 }
 
-const uint8_t *KeyManager::GetTemporaryMleKey(uint32_t keySequence)
+const uint8_t *KeyManager::GetTemporaryMleKey(uint32_t aKeySequence)
 {
-    ComputeKey(keySequence, mTemporaryKey);
+    ComputeKey(aKeySequence, mTemporaryKey);
     return mTemporaryKey;
 }
 
@@ -179,21 +175,19 @@ uint32_t KeyManager::GetMacFrameCounter() const
     return mMacFrameCounter;
 }
 
+void KeyManager::IncrementMacFrameCounter()
+{
+    mMacFrameCounter++;
+}
+
 uint32_t KeyManager::GetMleFrameCounter() const
 {
     return mMleFrameCounter;
 }
 
-ThreadError KeyManager::IncrementMacFrameCounter()
-{
-    mMacFrameCounter++;
-    return kThreadError_None;
-}
-
-ThreadError KeyManager::IncrementMleFrameCounter()
+void KeyManager::IncrementMleFrameCounter()
 {
     mMleFrameCounter++;
-    return kThreadError_None;
 }
 
 }  // namespace Thread

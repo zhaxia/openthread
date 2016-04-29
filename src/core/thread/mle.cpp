@@ -54,6 +54,7 @@ ThreadError Mle::Init(ThreadNetif &netif)
     mNetif = &netif;
     mAddressResolver = netif.GetAddressResolver();
     mKeyManager = netif.GetKeyManager();
+    mMac = netif.GetMac();
     mMesh = netif.GetMeshForwarder();
     mMleRouter = netif.GetMle();
     mNetworkData = netif.GetNetworkDataLeader();
@@ -78,7 +79,7 @@ ThreadError Mle::Init(ThreadNetif &netif)
     // link-local 64
     memset(&mLinkLocal64, 0, sizeof(mLinkLocal64));
     mLinkLocal64.GetAddress().m16[0] = HostSwap16(0xfe80);
-    memcpy(mLinkLocal64.GetAddress().m8 + 8, mMesh->GetExtAddress(), 8);
+    memcpy(mLinkLocal64.GetAddress().m8 + 8, mMac->GetExtAddress(), 8);
     mLinkLocal64.GetAddress().m8[8] ^= 2;
     mLinkLocal64.mPrefixLength = 64;
     mLinkLocal64.mPreferredLifetime = 0xffffffff;
@@ -369,7 +370,7 @@ const Ip6::Address *Mle::GetRealmLocalAllThreadNodesAddress(void) const
 
 uint16_t Mle::GetRloc16(void) const
 {
-    return mMesh->GetShortAddress();
+    return mMac->GetShortAddress();
 }
 
 ThreadError Mle::SetRloc16(uint16_t aRloc16)
@@ -390,7 +391,7 @@ ThreadError Mle::SetRloc16(uint16_t aRloc16)
         mNetif->RemoveUnicastAddress(mMeshLocal16);
     }
 
-    mMesh->SetShortAddress(aRloc16);
+    mMac->SetShortAddress(aRloc16);
 
     return kThreadError_None;
 }
@@ -657,7 +658,7 @@ ThreadError Mle::AppendAddressRegistration(Message &aMessage)
     ThreadError error;
     Tlv tlv;
     AddressRegistrationEntry entry;
-    Context context;
+    Lowpan::Context context;
     uint8_t length = 0;
 
     tlv.SetType(Tlv::kAddressRegistration);
@@ -1110,7 +1111,7 @@ ThreadError Mle::SendMessage(Message &aMessage, const Ip6::Address &aDestination
 
     aMessage.Write(0, header.GetLength(), &header);
 
-    GenerateNonce(*mMesh->GetExtAddress(), mKeyManager->GetMleFrameCounter(), Mac::Frame::kSecEncMic32, nonce);
+    GenerateNonce(*mMac->GetExtAddress(), mKeyManager->GetMleFrameCounter(), Mac::Frame::kSecEncMic32, nonce);
 
     aesEcb.SetKey(mKeyManager->GetCurrentMleKey(), 16);
     aesCcm.Init(aesEcb, 16 + 16 + header.GetHeaderLength(), aMessage.GetLength() - (header.GetLength() - 1),

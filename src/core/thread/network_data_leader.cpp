@@ -94,7 +94,7 @@ ThreadError Leader::SetContextIdReuseDelay(uint32_t aDelay)
     return kThreadError_None;
 }
 
-ThreadError Leader::GetContext(const Ip6::Address &aAddress, Context &aContext)
+ThreadError Leader::GetContext(const Ip6::Address &aAddress, Lowpan::Context &aContext)
 {
     PrefixTlv *prefix;
     ContextTlv *contextTlv;
@@ -142,7 +142,7 @@ ThreadError Leader::GetContext(const Ip6::Address &aAddress, Context &aContext)
     return (aContext.mPrefixLength > 0) ? kThreadError_None : kThreadError_Error;
 }
 
-ThreadError Leader::GetContext(uint8_t aContextId, Context &aContext)
+ThreadError Leader::GetContext(uint8_t aContextId, Lowpan::Context &aContext)
 {
     ThreadError error = kThreadError_Error;
     PrefixTlv *prefix;

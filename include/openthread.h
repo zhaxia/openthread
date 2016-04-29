@@ -301,7 +301,7 @@ uint16_t otGetPanId(void);
 /**
  * Set the IEEE 802.15.4 PAN ID.
  *
- * @param[in]  aPanIdThe   IEEE 802.15.4 PAN ID.
+ * @param[in]  aPanId  The IEEE 802.15.4 PAN ID.
  *
  * @retval kThreadErrorNone         Successfully set the PAN ID.
  * @retval kThreadErrorInvalidArgs  If aPanId is not in the range [0, 65534].
@@ -368,7 +368,7 @@ typedef struct otIp6Address
 {
     union
     {
-        uint8_t m8[kIp6AddressSize];
+        uint8_t  m8[kIp6AddressSize];
         uint16_t m16[kIp6AddressSize / sizeof(uint16_t)];
         uint32_t m32[kIp6AddressSize / sizeof(uint32_t)];
     };
@@ -379,8 +379,8 @@ typedef struct otIp6Address
  */
 typedef struct otIp6Prefix
 {
-    otIp6Address  mPrefix;
-    uint8_t       mLength;
+    otIp6Address  mPrefix;  ///< The IPv6 prefix.
+    uint8_t       mLength;  ///< The IPv6 prefix length.
 } otIp6Prefix;
 
 /**
@@ -446,7 +446,7 @@ ThreadError otAddBorderRouter(const otBorderRouterConfig *aConfig);
 /**
  * Remove a border router configuration from the local network data.
  *
- * @param [in]aPrefixA pointer to an IPv6 prefix.
+ * @param [in]  aPrefix  A pointer to an IPv6 prefix.
  *
  * @retval kThreadErrorNone  Successfully removed the configuration from the local network data.
  *
@@ -1062,6 +1062,7 @@ int otReadMessage(otMessage aMessage, uint16_t aOffset, void *aBuf, uint16_t aLe
  * Write bytes to a message.
  *
  * @param[in]  aMessage  A pointer to a message buffer.
+ * @param[in]  aOffset   An offset in bytes.
  * @param[in]  aBuf      A pointer to a buffer that message bytes are written from.
  * @param[in]  aLength   Number of bytes to write.
  *

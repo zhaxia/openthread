@@ -49,8 +49,8 @@ namespace Thread {
  *
  * @brief
  *   This namespace includes definitions for managing Thread Network Data.
+ *
  */
-
 namespace NetworkData {
 
 /**
@@ -60,8 +60,13 @@ namespace NetworkData {
  *   This module includes definitions for managing Thread Network Data.
  *
  * @{
+ *
  */
 
+/**
+ * This class implements Network Data processing.
+ *
+ */
 class NetworkData
 {
 public:

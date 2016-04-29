@@ -37,6 +37,8 @@ class ThreadNetif;
 class AddressResolver;
 class KeyManager;
 class MeshForwarder;
+
+namespace Mac { class Mac; }
 namespace NetworkData { class Leader; }
 
 /**
@@ -560,7 +562,7 @@ public:
      * @retval kThreadError_Error  The Thread interface is not currently attached to a Thread Partition.
      *
      */
-    ThreadError GetLeaderAddress(Ip6::Address &address) const;
+    ThreadError GetLeaderAddress(Ip6::Address &aAddress) const;
 
     /**
      * This method returns the most recently received Leader Data TLV.
@@ -921,6 +923,7 @@ protected:
     AddressResolver     *mAddressResolver;  ///< The Address Resolver object.
     KeyManager          *mKeyManager;       ///< The Key Manager object.
     MeshForwarder       *mMesh;             ///< The Mesh Forwarding object.
+    Mac::Mac            *mMac;              ///< The MAC object.
     MleRouter           *mMleRouter;        ///< The MLE Router object.
     NetworkData::Leader *mNetworkData;      ///< The Network Data object.
     ThreadNetif         *mNetif;            ///< The Thread Network Interface object.

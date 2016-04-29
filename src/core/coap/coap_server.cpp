@@ -26,9 +26,10 @@
 namespace Thread {
 namespace Coap {
 
-Server::Server(uint16_t port)
+Server::Server(uint16_t aPort)
 {
-    mPort = port;
+    mPort = aPort;
+    mResources = NULL;
 }
 
 ThreadError Server::Start()
@@ -49,37 +50,37 @@ ThreadError Server::Stop()
     return mSocket.Close();
 }
 
-ThreadError Server::AddResource(Resource &resource)
+ThreadError Server::AddResource(Resource &aResource)
 {
     ThreadError error = kThreadError_None;
 
     for (Resource *cur = mResources; cur; cur = cur->mNext)
     {
-        VerifyOrExit(cur != &resource, error = kThreadError_Busy);
+        VerifyOrExit(cur != &aResource, error = kThreadError_Busy);
     }
 
-    resource.mNext = mResources;
-    mResources = &resource;
+    aResource.mNext = mResources;
+    mResources = &aResource;
 
 exit:
     return error;
 }
 
-void Server::HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo)
+void Server::HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo)
 {
-    Server *obj = reinterpret_cast<Server *>(context);
-    obj->HandleUdpReceive(*static_cast<Message *>(message), *static_cast<const Ip6::MessageInfo *>(messageInfo));
+    Server *obj = reinterpret_cast<Server *>(aContext);
+    obj->HandleUdpReceive(*static_cast<Message *>(aMessage), *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
-void Server::HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageInfo)
+void Server::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     Header header;
     char uriPath[32];
     char *curUriPath = uriPath;
     const Header::Option *coapOption;
 
-    SuccessOrExit(header.FromMessage(message));
-    message.MoveOffset(header.GetLength());
+    SuccessOrExit(header.FromMessage(aMessage));
+    aMessage.MoveOffset(header.GetLength());
 
     coapOption = header.GetCurrentOption();
 
@@ -110,7 +111,7 @@ void Server::HandleUdpReceive(Message &message, const Ip6::MessageInfo &messageI
     {
         if (strcmp(resource->mUriPath, uriPath) == 0)
         {
-            resource->mHandler(resource->mContext, header, message, messageInfo);
+            resource->HandleRequest(header, aMessage, aMessageInfo);
             ExitNow();
         }
     }
@@ -119,9 +120,9 @@ exit:
     {}
 }
 
-ThreadError Server::SendMessage(Message &message, const Ip6::MessageInfo &messageInfo)
+ThreadError Server::SendMessage(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
-    return mSocket.SendTo(message, messageInfo);
+    return mSocket.SendTo(aMessage, aMessageInfo);
 }
 
 }  // namespace Coap

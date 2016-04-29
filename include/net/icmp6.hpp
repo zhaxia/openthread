@@ -287,6 +287,10 @@ private:
     static IcmpHandler *sHandlers;
 };
 
+/**
+ * This class implements ICMPv6.
+ *
+ */
 class Icmp
 {
 public:

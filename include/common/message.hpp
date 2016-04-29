@@ -294,7 +294,7 @@ public:
      * @param[in]  aLength  Number of bytes to read.
      * @param[in]  aBuf     A pointer to a data buffer.
      *
-     * @retuns The number of bytes read.
+     * @returns The number of bytes read.
      *
      */
     int Read(uint16_t aOffset, uint16_t aLength, void *aBuf) const;
@@ -306,7 +306,7 @@ public:
      * @param[in]  aLength  Number of bytes to write.
      * @param[in]  aBuf     A pointer to a data buffer.
      *
-     * @retuns The number of bytes written.
+     * @returns The number of bytes written.
      *
      */
     int Write(uint16_t aOffset, uint16_t aLength, const void *aBuf);
@@ -508,6 +508,10 @@ private:
     ThreadError ResizeMessage(uint16_t aLength);
 };
 
+/**
+ * This class implements a message queue.
+ *
+ */
 class MessageQueue
 {
 public:

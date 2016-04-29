@@ -43,30 +43,148 @@ class KeyManager
 {
 public:
     explicit KeyManager(ThreadNetif &netif);
-    const uint8_t *GetMasterKey(uint8_t *keyLength) const;
-    ThreadError SetMasterKey(const void *key, uint8_t keyLength);
 
+    /**
+     * This method returns a pointer to the Thread Master Key
+     *
+     * @param[out]  aKeyLength  A pointer where the key length value will be placed.
+     *
+     * @returns A pointer to the Thread Master Key.
+     *
+     */
+    const uint8_t *GetMasterKey(uint8_t *aKeyLength) const;
+
+    /**
+     * This method sets the Thread Master Key.
+     *
+     * @param[in]  aKey        A pointer to the Thread Master Key.
+     * @param[in]  aKeyLength  The length of @p aKey.
+     *
+     * @retval kThreadError_None         Successfully set the Thread Master Key.
+     * @retval kThreadError_InvalidArgs  The @p aKeyLength value was invalid.
+     *
+     */
+    ThreadError SetMasterKey(const void *aKey, uint8_t aKeyLength);
+
+    /**
+     * This method returns the current key sequence value.
+     *
+     * @returns The current key sequence value.
+     *
+     */
     uint32_t GetCurrentKeySequence() const;
-    ThreadError SetCurrentKeySequence(uint32_t keySequence);
+
+    /**
+     * This method sets the current key sequence value.
+     *
+     * @param[in]  aKeySequence  The key sequence value.
+     *
+     */
+    void SetCurrentKeySequence(uint32_t aKeySequence);
+
+    /**
+     * This method returns a pointer to the current MAC key.
+     *
+     * @returns A pointer to the current MAC key.
+     *
+     */
     const uint8_t *GetCurrentMacKey() const;
+    
+    /**
+     * This method returns a pointer to the current MLE key.
+     *
+     * @returns A pointer to the current MLE key.
+     *
+     */
     const uint8_t *GetCurrentMleKey() const;
 
+    /**
+     * This method indicates whether the previous key is valid.
+     *
+     * @retval TRUE   If the previous key is vaild.
+     * @retval FALSE  If the previous key is not valid.
+     *
+     */
     bool IsPreviousKeyValid() const;
+
+    /**
+     * This method returns the previous key sequence value.
+     *
+     * @returns The previous key sequence value.
+     *
+     */    
     uint32_t GetPreviousKeySequence() const;
+
+    /**
+     * This method returns a pointer to the previous MAC key.
+     *
+     * @returns A pointer to the previous MAC key.
+     *
+     */
     const uint8_t *GetPreviousMacKey() const;
+
+    /**
+     * This method returns a pointer to the previous MLE key.
+     *
+     * @returns A pointer to the previous MLE key.
+     *
+     */
     const uint8_t *GetPreviousMleKey() const;
 
-    const uint8_t *GetTemporaryMacKey(uint32_t keySequence);
-    const uint8_t *GetTemporaryMleKey(uint32_t keySequence);
+    /**
+     * This method returns a pointer to a temporary MAC key computed from the given key sequence.
+     *
+     * @param[in]  aKeySequence  The key sequence value.
+     *
+     * @returns A pointer to the temporary MAC key.
+     *
+     */
+    const uint8_t *GetTemporaryMacKey(uint32_t aKeySequence);
 
+    /**
+     * This method returns a pointer to a temporary MLE key computed from the given key sequence.
+     *
+     * @param[in]  aKeySequence  The key sequence value.
+     *
+     * @returns A pointer to the temporary MLE key.
+     *
+     */
+    const uint8_t *GetTemporaryMleKey(uint32_t aKeySequence);
+
+    /**
+     * This method returns the current MAC Frame Counter value.
+     *
+     * @returns The current MAC Frame Counter value.
+     *
+     */
     uint32_t GetMacFrameCounter() const;
+
+    /**
+     * This method increments the current MAC Frame Counter value.
+     *
+     * @returns The current MAC Frame Counter value.
+     *
+     */
+    void IncrementMacFrameCounter();
+
+    /**
+     * This method returns the current MLE Frame Counter value.
+     *
+     * @returns The current MLE Frame Counter value.
+     *
+     */
     uint32_t GetMleFrameCounter() const;
 
-    ThreadError IncrementMacFrameCounter();
-    ThreadError IncrementMleFrameCounter();
+    /**
+     * This method increments the current MLE Frame Counter value.
+     *
+     * @returns The current MLE Frame Counter value.
+     *
+     */
+    void IncrementMleFrameCounter();
 
 private:
-    ThreadError ComputeKey(uint32_t keySequence, uint8_t *key);
+    ThreadError ComputeKey(uint32_t aKeySequence, uint8_t *aKey);
     void UpdateNeighbors();
 
     uint8_t mMasterKey[16];

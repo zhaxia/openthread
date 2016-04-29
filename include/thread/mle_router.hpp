@@ -111,7 +111,7 @@ public:
      *
      * @param[in]  aDestination  The RLOC16 of the destination.
      *
-     * @retuns A RLOC16 of the next hop if a route is known, kInvalidRloc16 otherwise.
+     * @returns A RLOC16 of the next hop if a route is known, kInvalidRloc16 otherwise.
      *
      */
     uint16_t GetNextHop(uint16_t aDestination) const;
@@ -175,7 +175,7 @@ public:
      * @retval kThreadError_InvalidState  The Router ID was not allocated.
      *
      */
-    ThreadError ReleaseRouterId(uint8_t routerId);
+    ThreadError ReleaseRouterId(uint8_t aRouterId);
 
     /**
      * This method returns a pointer to a Child object.
@@ -185,7 +185,7 @@ public:
      * @returns A pointer to the Child object.
      *
      */
-    Child *GetChild(uint16_t address);
+    Child *GetChild(uint16_t aAddress);
 
     /**
      * This method returns a pointer to a Child object.
@@ -235,7 +235,7 @@ public:
      * @returns A pointer to the Neighbor corresponding to @p aAddress, NULL otherwise.
      *
      */
-    Neighbor *GetNeighbor(uint16_t address);
+    Neighbor *GetNeighbor(uint16_t aAddress);
 
     /**
      * This method returns a pointer to a Neighbor object.

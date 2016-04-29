@@ -40,13 +40,15 @@ namespace NetworkData {
  * @addtogroup core-netdata-leader
  *
  * @brief
- *   This module includes definitions for manipulating Thread Network Data maanged by the Thread Leader..
+ *   This module includes definitions for manipulating Thread Network Data maanged by the Thread Leader.
  *
  * @{
+ *
  */
 
 /**
  * This class implements the Thread Network Data maintained by the Leader.
+ *
  */
 class Leader: public NetworkData
 {
@@ -123,7 +125,7 @@ public:
      * @retval kThreadError_NotFound  Could not find the 6LoWPAN Context information.
      *
      */
-    ThreadError GetContext(const Ip6::Address &aAddress, Context &aContext);
+    ThreadError GetContext(const Ip6::Address &aAddress, Lowpan::Context &aContext);
 
     /**
      * This method retrieves the 6LoWPAN Context information based on a given Context ID.
@@ -135,7 +137,7 @@ public:
      * @retval kThreadError_NotFound  Could not find the 6LoWPAN Context information.
      *
      */
-    ThreadError GetContext(uint8_t aContextId, Context &aContext);
+    ThreadError GetContext(uint8_t aContextId, Lowpan::Context &aContext);
 
     /**
      * This method indicates whether or not the given IPv6 address is on-mesh.

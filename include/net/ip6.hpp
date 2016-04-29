@@ -241,6 +241,10 @@ private:
     Address  mDestination;
 } __attribute__((packed));
 
+/**
+ * This class implements IPv6 Extension Header generation and processing.
+ *
+ */
 class ExtensionHeader
 {
 public:
