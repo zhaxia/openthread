@@ -291,8 +291,27 @@ AM_CONDITIONAL([OPENTHREAD_WITH_MINIMUM_SET_OF_TESTS], [test "${enable_minimum_s
 
 if test "${enable_minimum_set_of_tests}" = "yes"; then
     if test "${nl_cv_build_coverage}" = "yes"; then
-        AC_MSG_ERROR(["Do not run code coverage with only the minimum set of tests."])
+        AC_MSG_ERROR(["Do not run code coverage only with the minimum set of tests."])
     fi
+fi
+
+# Check for Python and Python libraries used in the tests
+if test "${nl_cv_build_tests}" = "yes"; then
+    AC_MSG_CHECKING([checking for Python and Python libraries used in tests.])
+
+    # Check for Python
+    python --version 2> /dev/null
+    if test $? != 0; then
+        AC_MSG_ERROR(["Cannot run tests: missing Python."])
+    fi
+
+    # Check for Python pexpect library
+    python -c 'import pexpect' 2> /dev/null
+    if test $? != 0; then
+        AC_MSG_ERROR(["Cannot run tests: missing Python pexpect library."])
+    fi
+
+    AC_MSG_RESULT([ok])
 fi
 
 #
