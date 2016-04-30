@@ -192,6 +192,9 @@ private:
     int DecompressUdpHeader(Message &message, const uint8_t *aBuf, uint16_t aBufLength, uint16_t datagramLength);
     ThreadError DispatchToNextHeader(uint8_t dispatch, Ip6::IpProto &nextHeader);
 
+    static ThreadError CopyContext(const Context &aContext, Ip6::Address &aAddress);
+    static ThreadError ComputeIID(const Mac::Address &aMacAddr, const Context &aContext, uint8_t *aIid);
+
     NetworkData::Leader *mNetworkData;
 };
 

@@ -25,10 +25,22 @@
 namespace Thread {
 namespace Hdlc {
 
-/*
- * FCS lookup table as calculated by the table generator.
+/**
+ * This method updates an FCS.
+ *
+ * @param[in]  aFcs   The FCS to update. 
+ * @param[in]  aByte  The intput byte value.
+ *
+ * @returns The updated FCS.
+ *
  */
-static const uint16_t fcstab[256] =
+static uint16_t UpdateFcs(uint16_t aFcs, uint8_t aByte);
+
+/**
+ * FCS lookup table
+ *
+ */
+static const uint16_t sFcsTable[256] =
 {
     0x0000, 0x1189, 0x2312, 0x329b, 0x4624, 0x57ad, 0x6536, 0x74bf,
     0x8c48, 0x9dc1, 0xaf5a, 0xbed3, 0xca6c, 0xdbe5, 0xe97e, 0xf8f7,
@@ -66,27 +78,26 @@ static const uint16_t fcstab[256] =
 
 enum
 {
-    kFlagSequence = 0x7e,
-    kEscapeSequence = 0x7d,
-    kInitFcs16 = 0xffff,
-    kGoodFcs16 = 0xf0b8,
+    kFlagSequence   = 0x7e,  ///< HDLC Flag value
+    kEscapeSequence = 0x7d,  ///< HDLC Escape value
 };
 
-static uint16_t UpdateFcs(uint16_t fcs, uint8_t byte);
-
-/*
- * Calculate a new fcs given the current fcs and the new data.
- */
-uint16_t UpdateFcs(uint16_t fcs, uint8_t cp)
+enum
 {
-    return (fcs >> 8) ^ fcstab[(fcs ^ cp) & 0xff];
+    kInitFcs = 0xffff,  ///< Initial FCS value.
+    kGoodFcs = 0xf0b8,  ///< Good FCS value.
+};
+
+uint16_t UpdateFcs(uint16_t aFcs, uint8_t aByte)
+{
+    return (aFcs >> 8) ^ sFcsTable[(aFcs ^ aByte) & 0xff];
 }
 
 ThreadError Encoder::Init(uint8_t *aOutBuf, uint16_t &aOutLength)
 {
     ThreadError error = kThreadError_None;
 
-    mFcs = kInitFcs16;
+    mFcs = kInitFcs;
 
     VerifyOrExit(aOutLength > 0, error = kThreadError_NoBufs);
     aOutBuf[0] = kFlagSequence;
@@ -165,9 +176,8 @@ void Decoder::Init(uint8_t *aOutBuf, uint16_t aOutLength, FrameHandler aFrameHan
     mOutLength = aOutLength;
 }
 
-ThreadError Decoder::Decode(const uint8_t *aInBuf, uint16_t aInLength)
+void Decoder::Decode(const uint8_t *aInBuf, uint16_t aInLength)
 {
-    ThreadError error = kThreadError_None;
     uint8_t byte;
 
     for (int i = 0; i < aInLength; i++)
@@ -181,7 +191,7 @@ ThreadError Decoder::Decode(const uint8_t *aInBuf, uint16_t aInLength)
             {
                 mState = kStateSync;
                 mOutOffset = 0;
-                mFcs = kInitFcs16;
+                mFcs = kInitFcs;
             }
 
             break;
@@ -196,13 +206,13 @@ ThreadError Decoder::Decode(const uint8_t *aInBuf, uint16_t aInLength)
             case kFlagSequence:
                 if (mOutOffset > 0)
                 {
-                    if (mFcs == kGoodFcs16)
+                    if (mFcs == kGoodFcs)
                     {
                         mFrameHandler(mContext, mOutBuf, mOutOffset - 2);
                     }
 
                     mOutOffset = 0;
-                    mFcs = kInitFcs16;
+                    mFcs = kInitFcs;
                 }
 
                 break;
@@ -210,7 +220,6 @@ ThreadError Decoder::Decode(const uint8_t *aInBuf, uint16_t aInLength)
             default:
                 if (mOutOffset < mOutLength)
                 {
-                    printf("%02x\n", byte);
                     mFcs = UpdateFcs(mFcs, byte);
                     mOutBuf[mOutOffset++] = byte;
                 }
@@ -241,9 +250,6 @@ ThreadError Decoder::Decode(const uint8_t *aInBuf, uint16_t aInLength)
             break;
         }
     }
-
-exit:
-    return error;
 }
 
 }  // namespace Hdlc

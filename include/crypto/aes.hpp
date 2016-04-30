@@ -36,7 +36,10 @@ namespace Crypto {
  *
  */
 
-#define AES_BLOCK_SIZE  16
+enum
+{
+    kAesBlockSize = 16,  ///< AES block size in bytes.
+};
 
 #define ROR(word, bits)                                 \
   (((word) >> (bits)) | ((word) << (32-(bits))))

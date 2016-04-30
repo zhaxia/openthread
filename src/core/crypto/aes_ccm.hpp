@@ -37,25 +37,64 @@ namespace Crypto {
  *
  */
 
-class AesCcm
+/**
+ * This class implements AES CCM computation.
+ *
+ */
+class AesCcm: public AesEcb
 {
 public:
-    void Init(const AesEcb &ecb, uint32_t headerLength, uint32_t plaintextLength, uint8_t tagLength,
-              const void *nonce, uint8_t nonceLength);
-    void Header(const void *header, uint32_t headerLength);
-    void Payload(void *plaintext, void *ciphertext, uint32_t length, bool encrypt);
-    void Finalize(void *tag, uint8_t *tagLength);
+    /**
+     * This method initializes the AES CCM computation.
+     *
+     * @param[in]  aHeaderLength     Length of header in bytes.
+     * @param[in]  aPlainTextLength  Length of plaintext in bytes.
+     * @param[in]  aTagLength        Length of tag in bytes.
+     * @param[in]  aNonce            A pointer to the nonce.
+     * @param[in]  aNonceLength      Length of nonce in bytes.
+     *
+     */
+    void Init(uint32_t aHeaderLength, uint32_t aPlainTextLength, uint8_t aTagLength,
+              const void *aNonce, uint8_t aNonceLength);
+
+    /**
+     * This method processes the header.
+     *
+     * @param[in]  aHeader        A pointer to the header.
+     * @param[in]  aHeaderLength  Lenth of header in bytes.
+     *
+     */
+    void Header(const void *aHeader, uint32_t aHeaderLength);
+
+    /**
+     * This method processes the payload.
+     *
+     * @param[inout]  aPlainText   A pointer to the plaintext.
+     * @param[inout]  aCipherText  A pointer to the ciphertext.
+     * @param[in]     aLength      Payload length in bytes.
+     * @param[in]     aEncrypt     TRUE on encrypt and FALSE on decrypt.
+     *
+     */
+    void Payload(void *aPlainText, void *aCipherText, uint32_t aLength, bool aEncrypt);
+
+    /**
+     * This method generates the tag.
+     *
+     * @param[out]  aTag        A pointer to the tag.
+     * @param[out]  aTagLength  Length of the tag in bytes.
+     *
+     */
+    void Finalize(void *aTag, uint8_t *aTagLength);
 
 private:
-    const AesEcb *mEcb;
-    uint8_t mBlock[16];
-    uint8_t mCtr[16];
-    uint8_t mCtrPad[16];
+    uint8_t mBlock[kAesBlockSize];
+    uint8_t mCtr[kAesBlockSize];
+    uint8_t mCtrPad[kAesBlockSize];
     uint8_t mNonceLength;
     uint32_t mHeaderLength;
     uint32_t mHeaderCur;
-    uint32_t mPlaintextLength;
-    uint32_t mPlaintextCur;
+    uint32_t mPlainTextLength;
+    uint32_t mPlainTextCur;
     uint16_t mBlockLength;
     uint16_t mCtrLength;
     uint8_t mTagLength;

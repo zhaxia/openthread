@@ -31,25 +31,23 @@ Hmac::Hmac(Hash &hash)
     mHash = &hash;
 }
 
-ThreadError Hmac::SetKey(const void *key, uint16_t keyLength)
+void Hmac::SetKey(const void *aKey, uint16_t aKeyLength)
 {
-    if (keyLength > kMaxKeyLength)
+    if (aKeyLength > kMaxKeyLength)
     {
         mHash->Init();
-        mHash->Input(key, keyLength);
+        mHash->Input(aKey, aKeyLength);
         mHash->Finalize(mKey);
         mKeyLength = mHash->GetSize();
     }
     else
     {
-        memcpy(mKey, key, keyLength);
-        mKeyLength = keyLength;
+        memcpy(mKey, aKey, aKeyLength);
+        mKeyLength = aKeyLength;
     }
-
-    return kThreadError_None;
 }
 
-ThreadError Hmac::Init()
+void Hmac::Init(void)
 {
     uint8_t pad[kMaxKeyLength];
     int i;
@@ -67,22 +65,20 @@ ThreadError Hmac::Init()
     // start inner hash
     mHash->Init();
     mHash->Input(pad, sizeof(pad));
-
-    return kThreadError_None;
 }
 
-ThreadError Hmac::Input(const void *buf, uint16_t bufLength)
+void Hmac::Input(const void *aBuf, uint16_t aBufLength)
 {
-    return mHash->Input(buf, bufLength);
+    mHash->Input(aBuf, aBufLength);
 }
 
-ThreadError Hmac::Finalize(uint8_t *hash)
+void Hmac::Finalize(uint8_t *aHash)
 {
     uint8_t pad[kMaxKeyLength];
     int i;
 
     // finish inner hash
-    mHash->Finalize(hash);
+    mHash->Finalize(aHash);
 
     // perform outer hash
     for (i = 0; i < mKeyLength; i++)
@@ -97,10 +93,8 @@ ThreadError Hmac::Finalize(uint8_t *hash)
 
     mHash->Init();
     mHash->Input(pad, kMaxKeyLength);
-    mHash->Input(hash, mHash->GetSize());
-    mHash->Finalize(hash);
-
-    return kThreadError_None;
+    mHash->Input(aHash, mHash->GetSize());
+    mHash->Finalize(aHash);
 }
 
 }  // namespace Crypto

@@ -37,11 +37,30 @@ namespace Crypto {
  *
  */
 
+/**
+ * This class implements AES ECB computation.
+ *
+ */
 class AesEcb
 {
 public:
-    ThreadError SetKey(const uint8_t *key, uint16_t keylen);
-    void Encrypt(const uint8_t *pt, uint8_t *ct) const;
+    /**
+     * This method sets the key.
+     *
+     * @param[in]  aKey        A pointer to the key.
+     * @param[in]  aKeyLength  Length of the key in bytes.
+     *
+     */
+    ThreadError SetKey(const uint8_t *aKey, uint16_t aKeyLength);
+
+    /**
+     * This method encrypts data.
+     *
+     * @param[in]   aPlainText  A pointer to the plaintext.
+     * @param[out]  aCipherText  A pointer to the ciphertext.
+     *
+     */
+    void Encrypt(const uint8_t *aPlainText, uint8_t *aCipherText) const;
 
 private:
     uint32_t m_eK[44];

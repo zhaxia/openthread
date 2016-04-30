@@ -38,7 +38,7 @@ Lowpan::Lowpan(ThreadNetif &aNetif)
     mNetworkData = aNetif.GetNetworkDataLeader();
 }
 
-static ThreadError CopyContext(const Context &aContext, Ip6::Address &aAddress)
+ThreadError Lowpan::CopyContext(const Context &aContext, Ip6::Address &aAddress)
 {
     memcpy(&aAddress, aContext.mPrefix, aContext.mPrefixLength / 8);
 
@@ -51,7 +51,7 @@ static ThreadError CopyContext(const Context &aContext, Ip6::Address &aAddress)
     return kThreadError_None;
 }
 
-static ThreadError ComputeIID(const Mac::Address &aMacAddr, const Context &aContext, uint8_t *aIid)
+ThreadError Lowpan::ComputeIID(const Mac::Address &aMacAddr, const Context &aContext, uint8_t *aIid)
 {
     switch (aMacAddr.mLength)
     {

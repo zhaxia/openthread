@@ -37,14 +37,46 @@ namespace Crypto {
  *
  */
 
+/**
+ * This class implements HMAC computation.
+ *
+ */
 class Hmac
 {
 public:
-    explicit Hmac(Hash &hash);
-    ThreadError SetKey(const void *key, uint16_t keyLength);
-    ThreadError Init();
-    ThreadError Input(const void *buf, uint16_t bufLength);
-    ThreadError Finalize(uint8_t *hash);
+    explicit Hmac(Hash &aHash);
+
+    /**
+     * This method sets the key.
+     *
+     * @param[in]  aKey        A pointer to the key.
+     * @param[in]  aKeyLength  The key length in bytes.
+     *
+     */
+    void SetKey(const void *aKey, uint16_t aKeyLength);
+
+    /**
+     * This method initializes the HMAC computation.
+     *
+     */
+    void Init(void);
+
+    /**
+     * This method inputs bytes into the HMAC computation.
+     *
+     * @param[in]  aBuf        A pointer to the input buffer.
+     * @param[in]  aBufLength  The length of @p aBuf in bytes.
+     *
+     */
+    void Input(const void *aBuf, uint16_t aBufLength);
+
+    /**
+     * This method finalizes the has computation.
+     *
+     * @parma[out]  aHash  A pointer to the output buffer.
+     *
+     */
+    void Finalize(uint8_t *aHash);
 
 private:
     enum

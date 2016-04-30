@@ -17,7 +17,6 @@
 #include "test_util.h"
 #include <common/debug.hpp>
 #include <crypto/aes_ccm.hpp>
-#include <crypto/aes_ecb.hpp>
 #include <string.h>
 
 /**
@@ -58,9 +57,6 @@ void TestMacBeaconFrame()
         0xB5, 0x53
     };
 
-    Thread::Crypto::AesEcb aes_ecb;
-    aes_ecb.SetKey(key, sizeof(key));
-
     Thread::Crypto::AesCcm aesCcm;
     uint32_t headerLength = sizeof(test) - 8;
     uint32_t payloadLength = 0;
@@ -72,14 +68,15 @@ void TestMacBeaconFrame()
         0x00, 0x00, 0x00, 0x05, 0x02,
     };
 
-    aesCcm.Init(aes_ecb, headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
+    aesCcm.SetKey(key, sizeof(key));
+    aesCcm.Init(headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
     aesCcm.Header(test, headerLength);
     aesCcm.Finalize(test + headerLength, &tagLength);
 
     VerifyOrQuit(memcmp(test, encrypted, sizeof(encrypted)) == 0,
                  "TestMacBeaconFrame encrypt failed");
 
-    aesCcm.Init(aes_ecb, headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
+    aesCcm.Init(headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
     aesCcm.Header(test, headerLength);
     aesCcm.Finalize(test + headerLength, &tagLength);
 
@@ -122,9 +119,6 @@ void TestMacDataFrame()
         0x00, 0x00, 0x61, 0x62, 0x63, 0x64
     };
 
-    Thread::Crypto::AesEcb aesEcb;
-    aesEcb.SetKey(key, sizeof(key));
-
     Thread::Crypto::AesCcm aesCcm;
     uint32_t headerLength = sizeof(test) - 4;
     uint32_t payloadLength = 4;
@@ -136,7 +130,8 @@ void TestMacDataFrame()
         0x00, 0x00, 0x00, 0x05, 0x04,
     };
 
-    aesCcm.Init(aesEcb, headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
+    aesCcm.SetKey(key, sizeof(key));
+    aesCcm.Init(headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
     aesCcm.Header(test, headerLength);
     aesCcm.Payload(test + headerLength, test + headerLength, payloadLength, true);
     aesCcm.Finalize(test + headerLength + payloadLength, &tagLength);
@@ -147,7 +142,7 @@ void TestMacDataFrame()
     VerifyOrQuit(memcmp(test, encrypted, sizeof(encrypted)) == 0,
                  "TestMacDataFrame encrypt failed");
 
-    aesCcm.Init(aesEcb, headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
+    aesCcm.Init(headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
     aesCcm.Header(test, headerLength);
     aesCcm.Payload(test + headerLength, test + headerLength, payloadLength, false);
     aesCcm.Finalize(test + headerLength + payloadLength, &tagLength);
@@ -203,18 +198,16 @@ void TestMacCommandFrame()
         0x00, 0x00, 0x00, 0x05, 0x06,
     };
 
-    Thread::Crypto::AesEcb aesEcb;
-    aesEcb.SetKey(key, sizeof(key));
-
     Thread::Crypto::AesCcm aesCcm;
-    aesCcm.Init(aesEcb, headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
+    aesCcm.SetKey(key, sizeof(key));
+    aesCcm.Init(headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
     aesCcm.Header(test, headerLength);
     aesCcm.Payload(test + headerLength, test + headerLength, payloadLength, true);
     aesCcm.Finalize(test + headerLength + payloadLength, &tagLength);
     VerifyOrQuit(memcmp(test, encrypted, sizeof(encrypted)) == 0,
                  "TestMacCommandFrame encrypt failed\n");
 
-    aesCcm.Init(aesEcb, headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
+    aesCcm.Init(headerLength, payloadLength, tagLength, nonce, sizeof(nonce));
     aesCcm.Header(test, headerLength);
     aesCcm.Payload(test + headerLength, test + headerLength, payloadLength, false);
     aesCcm.Finalize(test + headerLength + payloadLength, &tagLength);

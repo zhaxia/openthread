@@ -26,27 +26,27 @@
 namespace Thread {
 namespace Crypto {
 
-static uint32_t SetupMix(uint32_t temp)
+static uint32_t SetupMix(uint32_t aTemp)
 {
     return
-        (Te4_3[byte(temp, 2)]) ^
-        (Te4_2[byte(temp, 1)]) ^
-        (Te4_1[byte(temp, 0)]) ^
-        (Te4_0[byte(temp, 3)]);
+        (Te4_3[byte(aTemp, 2)]) ^
+        (Te4_2[byte(aTemp, 1)]) ^
+        (Te4_1[byte(aTemp, 0)]) ^
+        (Te4_0[byte(aTemp, 3)]);
 }
 
-ThreadError AesEcb::SetKey(const uint8_t *key, uint16_t keyLength)
+ThreadError AesEcb::SetKey(const uint8_t *aKey, uint16_t aKeyLength)
 {
     uint32_t *rk;
 
-    assert(keyLength == 16);
+    assert(aKeyLength == 16);
 
     /* setup the forward key */
     rk = m_eK;
-    LOAD32H(rk[0], key +  0);
-    LOAD32H(rk[1], key +  4);
-    LOAD32H(rk[2], key +  8);
-    LOAD32H(rk[3], key + 12);
+    LOAD32H(rk[0], aKey +  0);
+    LOAD32H(rk[1], aKey +  4);
+    LOAD32H(rk[2], aKey +  8);
+    LOAD32H(rk[3], aKey + 12);
 
     for (int i = 0; i < 10; i++)
     {
@@ -61,7 +61,7 @@ ThreadError AesEcb::SetKey(const uint8_t *key, uint16_t keyLength)
     return kThreadError_None;
 }
 
-void AesEcb::Encrypt(const uint8_t *pt, uint8_t *ct) const
+void AesEcb::Encrypt(const uint8_t *aPlainText, uint8_t *aCipherText) const
 {
     uint32_t s0, s1, s2, s3, t0, t1, t2, t3;
     const uint32_t *rk;
@@ -75,13 +75,13 @@ void AesEcb::Encrypt(const uint8_t *pt, uint8_t *ct) const
      * and add initial round key:
      */
 
-    LOAD32H(s0, pt  +  0);
+    LOAD32H(s0, aPlainText  +  0);
     s0 ^= rk[0];
-    LOAD32H(s1, pt  +  4);
+    LOAD32H(s1, aPlainText  +  4);
     s1 ^= rk[1];
-    LOAD32H(s2, pt  +  8);
+    LOAD32H(s2, aPlainText  +  8);
     s2 ^= rk[2];
-    LOAD32H(s3, pt  + 12);
+    LOAD32H(s3, aPlainText  + 12);
     s3 ^= rk[3];
 
     for (r = 0; ; r++)
@@ -135,28 +135,28 @@ void AesEcb::Encrypt(const uint8_t *pt, uint8_t *ct) const
         (Te4_1[byte(t2, 1)]) ^
         (Te4_0[byte(t3, 0)]) ^
         rk[0];
-    STORE32H(s0, ct);
+    STORE32H(s0, aCipherText);
     s1 =
         (Te4_3[byte(t1, 3)]) ^
         (Te4_2[byte(t2, 2)]) ^
         (Te4_1[byte(t3, 1)]) ^
         (Te4_0[byte(t0, 0)]) ^
         rk[1];
-    STORE32H(s1, ct + 4);
+    STORE32H(s1, aCipherText + 4);
     s2 =
         (Te4_3[byte(t2, 3)]) ^
         (Te4_2[byte(t3, 2)]) ^
         (Te4_1[byte(t0, 1)]) ^
         (Te4_0[byte(t1, 0)]) ^
         rk[2];
-    STORE32H(s2, ct + 8);
+    STORE32H(s2, aCipherText + 8);
     s3 =
         (Te4_3[byte(t3, 3)]) ^
         (Te4_2[byte(t0, 2)]) ^
         (Te4_1[byte(t1, 1)]) ^
         (Te4_0[byte(t2, 0)]) ^
         rk[3];
-    STORE32H(s3, ct + 12);
+    STORE32H(s3, aCipherText + 12);
 }
 
 }  // namespace Crypto

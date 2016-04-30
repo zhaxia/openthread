@@ -36,13 +36,43 @@ namespace Crypto {
  *
  */
 
+/**
+ * This class implements hash computations.
+ *
+ */
 class Hash
 {
 public:
-    virtual uint16_t GetSize() const = 0;
-    virtual ThreadError Init() = 0;
-    virtual ThreadError Input(const void *buf, uint16_t bufLength) = 0;
-    virtual ThreadError Finalize(uint8_t *hash) = 0;
+    /**
+     * This method returns the hash size.
+     *
+     * @returns The hash size.
+     *
+     */
+    virtual uint16_t GetSize(void) const = 0;
+
+    /**
+     * This method initializes the hash computation.
+     *
+     */
+    virtual void Init(void) = 0;
+
+    /**
+     * This method inputs data into the hash.
+     *
+     * @param[in]  aBuf        A pointer to the input buffer.
+     * @param[in]  aBufLength  The length of @p aBuf in bytes.
+     *
+     */
+    virtual void Input(const void *aBuf, uint16_t aBufLength) = 0;
+
+    /**
+     * This method finalizes the hash computation.
+     *
+     * @parma[out]  aHash  A pointer to the output buffer.
+     *
+     */
+    virtual void Finalize(uint8_t *aHash) = 0;
 };
 
 /**
