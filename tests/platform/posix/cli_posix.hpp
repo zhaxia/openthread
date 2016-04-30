@@ -27,30 +27,45 @@
 namespace Thread {
 namespace Cli {
 
-class Command;
-
 class Socket: public Server
 {
 public:
-    Socket();
-    ThreadError Start() final;
-    ThreadError Output(const char *buf, uint16_t buf_length) final;
+    Socket(void);
+
+    /**
+     * This method starts the CLI server.
+     *
+     * @retval kThreadError_None  Successfully started the server.
+     *
+     */
+    ThreadError Start(void) final;
+
+    /**
+     * This method delivers output to the client.
+     *
+     * @param[in]  aBuf        A pointer to a buffer.
+     * @param[in]  aBufLength  Number of bytes in the buffer.
+     *
+     * @retval kThreadError_None  Successfully delivered output the client.
+     *
+     */
+    ThreadError Output(const char *aBuf, uint16_t aBufLength) final;
 
 private:
-    static void *ReceiveThread(void *arg);
-    void *ReceiveThread();
+    static void *ReceiveThread(void *aContext);
+    void *ReceiveThread(void);
 
-    static void ReceivedTask(void *context);
-    void ReceivedTask();
+    static void ReceivedTask(void *aContext);
+    void ReceivedTask(void);
 
-    Tasklet m_received_task;
+    Tasklet mReceivedTask;
 
-    pthread_t m_pthread;
-    pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
-    pthread_cond_t m_condition_variable = PTHREAD_COND_INITIALIZER;
-    int m_sockfd;
-    struct sockaddr m_sockaddr;
-    socklen_t m_socklen;
+    pthread_t mPthread;
+    pthread_mutex_t mMutex;
+    pthread_cond_t mConditionVariable;
+    int mSockFd;
+    struct sockaddr mSockAddr;
+    socklen_t mSockLen;
 };
 
 }  // namespace Cli

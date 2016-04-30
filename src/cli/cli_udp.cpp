@@ -22,13 +22,14 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <cli/cli.hpp>
 #include <cli/cli_udp.hpp>
 #include <common/code_utils.hpp>
 
 namespace Thread {
 namespace Cli {
 
-ThreadError Udp::Start()
+ThreadError Udp::Start(void)
 {
     ThreadError error;
 
@@ -69,7 +70,7 @@ void Udp::HandleUdpReceive(otMessage aMessage, const otMessageInfo *aMessageInfo
 
     mPeer = *aMessageInfo;
 
-    ProcessLine(buf, length, *this);
+    Interpreter::ProcessLine(buf, payloadLength, *this);
 
 exit:
     {}

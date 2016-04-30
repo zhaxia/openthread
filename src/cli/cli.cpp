@@ -27,52 +27,13 @@
 
 #include "cli.hpp"
 #include <common/encoding.hpp>
-#include <net/icmp6.hpp>
 
 using Thread::Encoding::BigEndian::HostSwap16;
 
 namespace Thread {
 namespace Cli {
 
-enum
-{
-    kMaxArgs = 8,
-};
-
-static void ProcessHelp(int argc, char *argv[]);
-static void ProcessChannel(int argc, char *argv[]);
-static void ProcessChildTimeout(int argc, char *argv[]);
-static void ProcessContextIdReuseDelay(int argc, char *argv[]);
-static void ProcessExtAddress(int argc, char *argv[]);
-static void ProcessExtPanId(int argc, char *argv[]);
-static void ProcessIpAddr(int argc, char *argv[]);
-static void ProcessKeySequence(int argc, char *argv[]);
-static void ProcessLeaderWeight(int argc, char *argv[]);
-static void ProcessMasterKey(int argc, char *argv[]);
-static void ProcessMode(int argc, char *argv[]);
-static void ProcessNetworkDataRegister(int argc, char *argv[]);
-static void ProcessNetworkIdTimeout(int argc, char *argv[]);
-static void ProcessNetworkName(int argc, char *argv[]);
-static void ProcessPanId(int argc, char *argv[]);
-static void ProcessPing(int argc, char *argv[]);
-static void ProcessPrefix(int argc, char *argv[]);
-static void ProcessReleaseRouterId(int argc, char *argv[]);
-static void ProcessRoute(int argc, char *argv[]);
-static void ProcessRouterUpgradeThreshold(int argc, char *argv[]);
-static void ProcessRloc16(int argc, char *argv[]);
-static void ProcessShutdown(int argc, char *argv[]);
-static void ProcessStart(int argc, char *argv[]);
-static void ProcessState(int argc, char *argv[]);
-static void ProcessStop(int argc, char *argv[]);
-static void ProcessWhitelist(int argc, char *argv[]);
-
-struct Command
-{
-    const char *mName;
-    void (*mCommand)(int argc, char *argv[]);
-};
-
-static struct Command sCommands[] =
+const struct Command Interpreter::sCommands[] =
 {
     { "help", &ProcessHelp },
     { "channel", &ProcessChannel },
@@ -102,39 +63,48 @@ static struct Command sCommands[] =
     { "whitelist", &ProcessWhitelist },
 };
 
-static int hex2bin(const char *hex, uint8_t *bin, uint16_t binLength)
+ResponseBuffer Interpreter::sResponse;
+
+otNetifAddress Interpreter::sAddress;
+
+Ip6::IcmpEcho Interpreter::sIcmpEcho(&HandleEchoResponse, NULL);
+Ip6::SockAddr Interpreter::sSockAddr;
+Server *Interpreter::sServer;
+uint8_t Interpreter::sEchoRequest[1500];
+
+int Interpreter::Hex2Bin(const char *aHex, uint8_t *aBin, uint16_t aBinLength)
 {
-    uint16_t hexLength = strlen(hex);
-    const char *hexEnd = hex + hexLength;
-    uint8_t *cur = bin;
+    uint16_t hexLength = strlen(aHex);
+    const char *hexEnd = aHex + hexLength;
+    uint8_t *cur = aBin;
     uint8_t numChars = hexLength & 1;
     uint8_t byte = 0;
 
-    if ((hexLength + 1) / 2 > binLength)
+    if ((hexLength + 1) / 2 > aBinLength)
     {
         return -1;
     }
 
-    while (hex < hexEnd)
+    while (aHex < hexEnd)
     {
-        if ('A' <= *hex && *hex <= 'F')
+        if ('A' <= *aHex && *aHex <= 'F')
         {
-            byte |= 10 + (*hex - 'A');
+            byte |= 10 + (*aHex - 'A');
         }
-        else if ('a' <= *hex && *hex <= 'f')
+        else if ('a' <= *aHex && *aHex <= 'f')
         {
-            byte |= 10 + (*hex - 'a');
+            byte |= 10 + (*aHex - 'a');
         }
-        else if ('0' <= *hex && *hex <= '9')
+        else if ('0' <= *aHex && *aHex <= '9')
         {
-            byte |= *hex - '0';
+            byte |= *aHex - '0';
         }
         else
         {
             return -1;
         }
 
-        hex++;
+        aHex++;
         numChars++;
 
         if (numChars >= 2)
@@ -149,41 +119,17 @@ static int hex2bin(const char *hex, uint8_t *bin, uint16_t binLength)
         }
     }
 
-    return cur - bin;
+    return cur - aBin;
 }
 
-class ResponseBuffer
-{
-public:
-    void Init() { mEnd = mBuffer; }
-
-    void Append(const char *fmt, ...) {
-        va_list ap;
-        va_start(ap, fmt);
-        vsnprintf(mEnd, sizeof(mBuffer) - (mEnd - mBuffer), fmt, ap);
-        va_end(ap);
-        mEnd += strlen(mEnd);
-    }
-
-    const char *GetResponse() { return mBuffer; }
-
-    uint16_t GetResponseLength() { return mEnd - mBuffer; }
-
-private:
-    char mBuffer[512];
-    char *mEnd;
-};
-
-static ResponseBuffer sResponse;
-
-ThreadError ParseLong(char *argv, long &value)
+ThreadError Interpreter::ParseLong(char *argv, long &value)
 {
     char *endptr;
     value = strtol(argv, &endptr, 0);
     return (*endptr == '\0') ? kThreadError_None : kThreadError_Parse;
 }
 
-void ProcessHelp(int argc, char *argv[])
+void Interpreter::ProcessHelp(int argc, char *argv[])
 {
     for (int i = 0; i < sizeof(sCommands) / sizeof(sCommands[0]); i++)
     {
@@ -191,7 +137,7 @@ void ProcessHelp(int argc, char *argv[])
     }
 }
 
-void ProcessChannel(int argc, char *argv[])
+void Interpreter::ProcessChannel(int argc, char *argv[])
 {
     long value;
 
@@ -211,7 +157,7 @@ exit:
     {}
 }
 
-void ProcessChildTimeout(int argc, char *argv[])
+void Interpreter::ProcessChildTimeout(int argc, char *argv[])
 {
     long value;
 
@@ -231,7 +177,7 @@ exit:
     {}
 }
 
-void ProcessContextIdReuseDelay(int argc, char *argv[])
+void Interpreter::ProcessContextIdReuseDelay(int argc, char *argv[])
 {
     long value;
 
@@ -251,7 +197,7 @@ exit:
     {}
 }
 
-void ProcessExtAddress(int argc, char *argv[])
+void Interpreter::ProcessExtAddress(int argc, char *argv[])
 {
     const uint8_t *extAddress = otGetExtendedAddress();
     sResponse.Append("%02x%02x%02x%02x%02x%02x%02x%02x\n",
@@ -260,7 +206,7 @@ void ProcessExtAddress(int argc, char *argv[])
     sResponse.Append("Done\n");
 }
 
-void ProcessExtPanId(int argc, char *argv[])
+void Interpreter::ProcessExtPanId(int argc, char *argv[])
 {
     if (argc == 0)
     {
@@ -273,7 +219,7 @@ void ProcessExtPanId(int argc, char *argv[])
     {
         uint8_t extPanId[8];
 
-        VerifyOrExit(hex2bin(argv[0], extPanId, sizeof(extPanId)) >= 0, ;);
+        VerifyOrExit(Hex2Bin(argv[0], extPanId, sizeof(extPanId)) >= 0, ;);
 
         otSetExtendedPanId(extPanId);
     }
@@ -284,9 +230,7 @@ exit:
     {}
 }
 
-static otNetifAddress sAddress;
-
-ThreadError ProcessIpAddrAdd(int argc, char *argv[])
+ThreadError Interpreter::ProcessIpAddrAdd(int argc, char *argv[])
 {
     ThreadError error;
 
@@ -302,7 +246,7 @@ exit:
     return error;
 }
 
-ThreadError ProcessIpAddrDel(int argc, char *argv[])
+ThreadError Interpreter::ProcessIpAddrDel(int argc, char *argv[])
 {
     ThreadError error;
     struct otIp6Address address;
@@ -317,7 +261,7 @@ exit:
     return error;
 }
 
-void ProcessIpAddr(int argc, char *argv[])
+void Interpreter::ProcessIpAddr(int argc, char *argv[])
 {
     if (argc == 0)
     {
@@ -348,7 +292,7 @@ exit:
     {}
 }
 
-void ProcessKeySequence(int argc, char *argv[])
+void Interpreter::ProcessKeySequence(int argc, char *argv[])
 {
     long value;
 
@@ -368,7 +312,7 @@ exit:
     {}
 }
 
-void ProcessLeaderWeight(int argc, char *argv[])
+void Interpreter::ProcessLeaderWeight(int argc, char *argv[])
 {
     long value;
 
@@ -388,7 +332,7 @@ exit:
     {}
 }
 
-void ProcessMasterKey(int argc, char *argv[])
+void Interpreter::ProcessMasterKey(int argc, char *argv[])
 {
     uint8_t keyLength;
 
@@ -407,7 +351,7 @@ void ProcessMasterKey(int argc, char *argv[])
     {
         uint8_t key[16];
 
-        VerifyOrExit((keyLength = hex2bin(argv[0], key, sizeof(key))) >= 0, ;);
+        VerifyOrExit((keyLength = Hex2Bin(argv[0], key, sizeof(key))) >= 0, ;);
         SuccessOrExit(otSetMasterKey(key, keyLength));
     }
 
@@ -417,7 +361,7 @@ exit:
     {}
 }
 
-void ProcessMode(int argc, char *argv[])
+void Interpreter::ProcessMode(int argc, char *argv[])
 {
     otLinkModeConfig linkMode = {};
 
@@ -483,7 +427,7 @@ exit:
     {}
 }
 
-void ProcessNetworkDataRegister(int argc, char *argv[])
+void Interpreter::ProcessNetworkDataRegister(int argc, char *argv[])
 {
     SuccessOrExit(otSendServerData());
     sResponse.Append("Done\n");
@@ -492,7 +436,7 @@ exit:
     {}
 }
 
-void ProcessNetworkIdTimeout(int argc, char *argv[])
+void Interpreter::ProcessNetworkIdTimeout(int argc, char *argv[])
 {
     long value;
 
@@ -512,7 +456,7 @@ exit:
     {}
 }
 
-void ProcessNetworkName(int argc, char *argv[])
+void Interpreter::ProcessNetworkName(int argc, char *argv[])
 {
     if (argc == 0)
     {
@@ -529,7 +473,7 @@ exit:
     {}
 }
 
-void ProcessPanId(int argc, char *argv[])
+void Interpreter::ProcessPanId(int argc, char *argv[])
 {
     long value;
 
@@ -549,14 +493,7 @@ exit:
     {}
 }
 
-static void HandleEchoResponse(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
-
-static Ip6::SockAddr sSockAddr;
-static Ip6::IcmpEcho sIcmpEcho(&HandleEchoResponse, NULL);
-static Server *sServer;
-static uint8_t sEchoRequest[2024];
-
-void HandleEchoResponse(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+void Interpreter::HandleEchoResponse(void *aContext, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     Ip6::IcmpHeader icmp6Header;
 
@@ -574,7 +511,7 @@ void HandleEchoResponse(void *aContext, Message &aMessage, const Ip6::MessageInf
     sServer->Output(sResponse.GetResponse(), sResponse.GetResponseLength());
 }
 
-void ProcessPing(int argc, char *argv[])
+void Interpreter::ProcessPing(int argc, char *argv[])
 {
     long length = 8;
 
@@ -597,7 +534,7 @@ exit:
     {}
 }
 
-static ThreadError ProcessPrefixAdd(int argc, char *argv[])
+ThreadError Interpreter::ProcessPrefixAdd(int argc, char *argv[])
 {
     ThreadError error = kThreadError_None;
     otBorderRouterConfig config = {};
@@ -684,7 +621,7 @@ exit:
     return error;
 }
 
-static ThreadError ProcessPrefixRemove(int argc, char *argv[])
+ThreadError Interpreter::ProcessPrefixRemove(int argc, char *argv[])
 {
     ThreadError error = kThreadError_None;
     struct otIp6Prefix prefix = {};
@@ -715,7 +652,7 @@ exit:
     return error;
 }
 
-void ProcessPrefix(int argc, char *argv[])
+void Interpreter::ProcessPrefix(int argc, char *argv[])
 {
     if (strcmp(argv[0], "add") == 0)
     {
@@ -736,7 +673,7 @@ exit:
     {}
 }
 
-void ProcessReleaseRouterId(int argc, char *argv[])
+void Interpreter::ProcessReleaseRouterId(int argc, char *argv[])
 {
     long value;
 
@@ -751,13 +688,13 @@ exit:
     {}
 }
 
-void ProcessRloc16(int argc, char *argv[])
+void Interpreter::ProcessRloc16(int argc, char *argv[])
 {
     sResponse.Append("%04x\n", otGetRloc16());
     sResponse.Append("Done\n");
 }
 
-static ThreadError ProcessRouteAdd(int argc, char *argv[])
+ThreadError Interpreter::ProcessRouteAdd(int argc, char *argv[])
 {
     ThreadError error = kThreadError_None;
     otExternalRouteConfig config = {};
@@ -812,7 +749,7 @@ exit:
     return error;
 }
 
-static ThreadError ProcessRouteRemove(int argc, char *argv[])
+ThreadError Interpreter::ProcessRouteRemove(int argc, char *argv[])
 {
     ThreadError error = kThreadError_None;
     struct otIp6Prefix prefix = {};
@@ -843,7 +780,7 @@ exit:
     return error;
 }
 
-void ProcessRoute(int argc, char *argv[])
+void Interpreter::ProcessRoute(int argc, char *argv[])
 {
     if (strcmp(argv[0], "add") == 0)
     {
@@ -864,7 +801,7 @@ exit:
     {}
 }
 
-void ProcessRouterUpgradeThreshold(int argc, char *argv[])
+void Interpreter::ProcessRouterUpgradeThreshold(int argc, char *argv[])
 {
     long value;
 
@@ -884,14 +821,14 @@ exit:
     {}
 }
 
-void ProcessShutdown(int argc, char *argv[])
+void Interpreter::ProcessShutdown(int argc, char *argv[])
 {
     sResponse.Append("Done\n");
     sServer->Output(sResponse.GetResponse(), sResponse.GetResponseLength());
     exit(0);
 }
 
-void ProcessStart(int argc, char *argv[])
+void Interpreter::ProcessStart(int argc, char *argv[])
 {
     SuccessOrExit(otEnable());
     sResponse.Append("Done\n");
@@ -900,7 +837,7 @@ exit:
     {}
 }
 
-void ProcessState(int argc, char *argv[])
+void Interpreter::ProcessState(int argc, char *argv[])
 {
     if (argc == 0)
     {
@@ -957,7 +894,7 @@ exit:
     {}
 }
 
-void ProcessStop(int argc, char *argv[])
+void Interpreter::ProcessStop(int argc, char *argv[])
 {
     SuccessOrExit(otDisable());
     sResponse.Append("Done\n");
@@ -966,7 +903,7 @@ exit:
     {}
 }
 
-void ProcessWhitelist(int argc, char *argv[])
+void Interpreter::ProcessWhitelist(int argc, char *argv[])
 {
     int argcur = 0;
     uint8_t extAddr[8];
@@ -979,7 +916,7 @@ void ProcessWhitelist(int argc, char *argv[])
     else if (strcmp(argv[argcur], "add") == 0)
     {
         VerifyOrExit(++argcur < argc, ;);
-        VerifyOrExit(hex2bin(argv[argcur], extAddr, sizeof(extAddr)) == sizeof(extAddr), ;);
+        VerifyOrExit(Hex2Bin(argv[argcur], extAddr, sizeof(extAddr)) == sizeof(extAddr), ;);
 
         if (++argcur < argc)
         {
@@ -1007,7 +944,7 @@ void ProcessWhitelist(int argc, char *argv[])
     else if (strcmp(argv[argcur], "remove") == 0)
     {
         VerifyOrExit(++argcur < argc, ;);
-        VerifyOrExit(hex2bin(argv[argcur], extAddr, sizeof(extAddr)) == sizeof(extAddr), ;);
+        VerifyOrExit(Hex2Bin(argv[argcur], extAddr, sizeof(extAddr)) == sizeof(extAddr), ;);
         otRemoveMacWhitelist(extAddr);
     }
 
@@ -1017,7 +954,7 @@ exit:
     {}
 }
 
-void ProcessLine(char *aBuf, uint16_t aBufLength, Server &aServer)
+void Interpreter::ProcessLine(char *aBuf, uint16_t aBufLength, Server &aServer)
 {
     char *argv[kMaxArgs];
     char *cmd;

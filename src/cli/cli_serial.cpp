@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <cli/cli.hpp>
 #include <cli/cli_serial.hpp>
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
@@ -35,14 +36,14 @@ static const uint8_t VT102_ERASE_EOL[] = "\033[K";
 static const uint8_t CRNL[] = "\r\n";
 static Serial *sServer;
 
-static Tasklet sReceiveTask(&Serial::ReceiveTask, NULL);
+Tasklet Serial::sReceiveTask(&ReceiveTask, NULL);
 
-Serial::Serial()
+Serial::Serial(void)
 {
     sServer = this;
 }
 
-ThreadError Serial::Start()
+ThreadError Serial::Start(void)
 {
     mRxLength = 0;
     otSerialEnable();
@@ -55,7 +56,7 @@ extern "C" void otSerialSignalSendDone(void)
 
 extern "C" void otSerialSignalReceive(void)
 {
-    sReceiveTask.Post();
+    Serial::sReceiveTask.Post();
 }
 
 void Serial::ReceiveTask(void *aContext)
@@ -63,7 +64,7 @@ void Serial::ReceiveTask(void *aContext)
     sServer->ReceiveTask();
 }
 
-void Serial::ReceiveTask()
+void Serial::ReceiveTask(void)
 {
     uint16_t bufLength;
     const uint8_t *buf;
@@ -125,7 +126,7 @@ void Serial::ReceiveTask()
     otSerialHandleReceiveDone();
 }
 
-ThreadError Serial::ProcessCommand()
+ThreadError Serial::ProcessCommand(void)
 {
     ThreadError error = kThreadError_None;
 
@@ -139,7 +140,7 @@ ThreadError Serial::ProcessCommand()
         mRxBuffer[--mRxLength] = '\0';
     }
 
-    ProcessLine(buf, length, *this);
+    Interpreter::ProcessLine(mRxBuffer, mRxLength, *this);
 
 exit:
     mRxLength = 0;

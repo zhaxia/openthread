@@ -28,12 +28,30 @@
 namespace Thread {
 namespace Cli {
 
-class Command;
-
+/**
+ * This class implements the CLI server.
+ *
+ */
 class Server
 {
 public:
+    /**
+     * This method starts the CLI server.
+     *
+     * @retval kThreadError_None  Successfully started the server.
+     *
+     */
     virtual ThreadError Start() = 0;
+
+    /**
+     * This method delivers output to the client.
+     *
+     * @param[in]  aBuf        A pointer to a buffer.
+     * @param[in]  aBufLength  Number of bytes in the buffer.
+     *
+     * @retval kThreadError_None  Successfully delivered output the client.
+     *
+     */
     virtual ThreadError Output(const char *aBuf, uint16_t aBufLength) = 0;
 };
 
