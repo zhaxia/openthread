@@ -35,11 +35,11 @@ class Udp: public Server
 {
 public:
     ThreadError Start() final;
-    ThreadError Output(const char *buf, uint16_t bufLength) final;
+    ThreadError Output(const char *aBuf, uint16_t aBufLength) final;
 
 private:
-    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
-    void HandleUdpReceive(otMessage message, const otMessageInfo *messageInfo);
+    static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
+    void HandleUdpReceive(otMessage aMessage, const otMessageInfo *aMessageInfo);
 
     otUdpSocket mSocket;
     otMessageInfo mPeer;

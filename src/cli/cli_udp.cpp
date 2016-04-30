@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <cli/cli_command.hpp>
 #include <cli/cli_udp.hpp>
 #include <common/code_utils.hpp>
 
@@ -43,23 +42,20 @@ exit:
     return error;
 }
 
-void Udp::HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo)
+void Udp::HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo)
 {
-    Udp *obj = reinterpret_cast<Udp *>(context);
-    obj->HandleUdpReceive(message, messageInfo);
+    Udp *obj = reinterpret_cast<Udp *>(aContext);
+    obj->HandleUdpReceive(aMessage, aMessageInfo);
 }
 
-void Udp::HandleUdpReceive(otMessage message, const otMessageInfo *messageInfo)
+void Udp::HandleUdpReceive(otMessage aMessage, const otMessageInfo *aMessageInfo)
 {
     ThreadError error = kThreadError_None;
-    uint16_t payloadLength = otGetMessageLength(message) - otGetMessageOffset(message);
-    otMessage reply;
+    uint16_t payloadLength = otGetMessageLength(aMessage) - otGetMessageOffset(aMessage);
     char buf[512];
-    char *cmd;
-    char *last;
 
     VerifyOrExit(payloadLength <= sizeof(buf), ;);
-    otReadMessage(message, otGetMessageOffset(message), buf, payloadLength);
+    otReadMessage(aMessage, otGetMessageOffset(aMessage), buf, payloadLength);
 
     if (buf[payloadLength - 1] == '\n')
     {
@@ -71,68 +67,22 @@ void Udp::HandleUdpReceive(otMessage message, const otMessageInfo *messageInfo)
         buf[--payloadLength] = '\0';
     }
 
-    VerifyOrExit((cmd = strtok_r(buf, " ", &last)) != NULL, ;);
+    mPeer = *aMessageInfo;
 
-    mPeer = *messageInfo;
-
-    if (strncmp(cmd, "?", 1) == 0)
-    {
-        char *cur = buf;
-        char *end = cur + sizeof(buf);
-
-        snprintf(cur, end - cur, "%s", "Commands:\r\n");
-        cur += strlen(cur);
-
-        for (Command *command = mCommands; command; command = command->GetNext())
-        {
-            snprintf(cur, end - cur, "%s\r\n", command->GetName());
-            cur += strlen(cur);
-        }
-
-        VerifyOrExit((reply = otNewUdpMessage()) != NULL, error = kThreadError_NoBufs);
-        otAppendMessage(reply, buf, cur - buf);
-
-        SuccessOrExit(error = otSendUdp(&mSocket, reply, &mPeer));
-    }
-    else
-    {
-        int argc;
-        char *argv[kMaxArgs];
-
-        for (argc = 0; argc < kMaxArgs; argc++)
-        {
-            if ((argv[argc] = strtok_r(NULL, " ", &last)) == NULL)
-            {
-                break;
-            }
-        }
-
-        for (Command *command = mCommands; command; command = command->GetNext())
-        {
-            if (strcmp(cmd, command->GetName()) == 0)
-            {
-                command->Run(argc, argv, *this);
-                break;
-            }
-        }
-    }
+    ProcessLine(buf, length, *this);
 
 exit:
-
-    if (error != kThreadError_None && reply != NULL)
-    {
-        otFreeMessage(reply);
-    }
+    {}
 }
 
-ThreadError Udp::Output(const char *buf, uint16_t bufLength)
+ThreadError Udp::Output(const char *aBuf, uint16_t aBufLength)
 {
     ThreadError error = kThreadError_None;
     otMessage message;
 
     VerifyOrExit((message = otNewUdpMessage()) != NULL, error = kThreadError_NoBufs);
-    SuccessOrExit(error = otSetMessageLength(message, bufLength));
-    otWriteMessage(message, 0, buf, bufLength);
+    SuccessOrExit(error = otSetMessageLength(message, aBufLength));
+    otWriteMessage(message, 0, aBuf, aBufLength);
     SuccessOrExit(error = otSendUdp(&mSocket, message, &mPeer));
 
 exit:

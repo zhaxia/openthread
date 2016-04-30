@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <cli/cli_command.hpp>
 #include <cli/cli_serial.hpp>
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
@@ -59,7 +58,7 @@ extern "C" void otSerialSignalReceive(void)
     sReceiveTask.Post();
 }
 
-void Serial::ReceiveTask(void *context)
+void Serial::ReceiveTask(void *aContext)
 {
     sServer->ReceiveTask();
 }
@@ -129,61 +128,18 @@ void Serial::ReceiveTask()
 ThreadError Serial::ProcessCommand()
 {
     ThreadError error = kThreadError_None;
-    uint16_t payloadLength = mRxLength;
-    char *cmd;
-    char *last;
-    char *cur;
-    char *end;
-    int argc;
-    char *argv[kMaxArgs];
 
-    if (mRxBuffer[payloadLength - 1] == '\n')
+    if (mRxBuffer[mRxLength - 1] == '\n')
     {
-        mRxBuffer[--payloadLength] = '\0';
+        mRxBuffer[--mRxLength] = '\0';
     }
 
-    if (mRxBuffer[payloadLength - 1] == '\r')
+    if (mRxBuffer[mRxLength - 1] == '\r')
     {
-        mRxBuffer[--payloadLength] = '\0';
+        mRxBuffer[--mRxLength] = '\0';
     }
 
-    VerifyOrExit((cmd = strtok_r(mRxBuffer, " ", &last)) != NULL, ;);
-
-    if (strncmp(cmd, "?", 1) == 0)
-    {
-        cur = mRxBuffer;
-        end = cur + sizeof(mRxBuffer);
-
-        snprintf(cur, end - cur, "%s", "Commands:\r\n");
-        cur += strlen(cur);
-
-        for (Command *command = mCommands; command; command = command->GetNext())
-        {
-            snprintf(cur, end - cur, "%s\r\n", command->GetName());
-            cur += strlen(cur);
-        }
-
-        SuccessOrExit(error = otSerialSend(reinterpret_cast<const uint8_t *>(mRxBuffer), cur - mRxBuffer));
-    }
-    else
-    {
-        for (argc = 0; argc < kMaxArgs; argc++)
-        {
-            if ((argv[argc] = strtok_r(NULL, " ", &last)) == NULL)
-            {
-                break;
-            }
-        }
-
-        for (Command *command = mCommands; command; command = command->GetNext())
-        {
-            if (strcmp(cmd, command->GetName()) == 0)
-            {
-                command->Run(argc, argv, *this);
-                break;
-            }
-        }
-    }
+    ProcessLine(buf, length, *this);
 
 exit:
     mRxLength = 0;
@@ -191,9 +147,9 @@ exit:
     return error;
 }
 
-ThreadError Serial::Output(const char *buf, uint16_t bufLength)
+ThreadError Serial::Output(const char *aBuf, uint16_t aBufLength)
 {
-    return otSerialSend(reinterpret_cast<const uint8_t *>(buf), bufLength);
+    return otSerialSend(reinterpret_cast<const uint8_t *>(aBuf), aBufLength);
 }
 
 }  // namespace Cli

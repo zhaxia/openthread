@@ -28,9 +28,9 @@ soc_CPPFLAGS                                   = \
     $(NULL)
 
 soc_LDADD                                      = \
-    $(top_srcdir)/src/cli/libopenthread-cli.a    \
     $(top_srcdir)/src/core/libopenthread.a       \
     $(top_srcdir)/tests/platform/posix/libopenthread-posix.a     \
+    $(top_srcdir)/src/cli/libopenthread-cli.a    \
     -lpthread                                    \
     $(NULL)
 

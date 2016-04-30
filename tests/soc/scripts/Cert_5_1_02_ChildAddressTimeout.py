@@ -101,9 +101,5 @@ class Cert_5_1_02_ChildAddressTimeout(unittest.TestCase):
                 except pexpect.TIMEOUT:
                     pass
 
-        cache = self.nodes[LEADER].get_cache()
-        for entry in cache:
-            self.assertNotEqual(entry[ROUTER], 3)
-
 if __name__ == '__main__':
     unittest.main()

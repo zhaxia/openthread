@@ -21,7 +21,7 @@
 #include <platform/posix/cmdline.h>
 
 #include <platform/posix/cli_posix.hpp>
-#include <cli/cli_command.hpp>
+#include <cli/cli.hpp>
 #include <common/code_utils.hpp>
 
 extern struct gengetopt_args_info args_info;
@@ -90,13 +90,7 @@ void Socket::ReceivedTask(void *context)
 void Socket::ReceivedTask()
 {
     char buf[1024];
-    char *cur = buf;
-    char *end = cur + sizeof(buf);
     int length;
-    char *cmd;
-    char *last;
-    int argc;
-    char *argv[kMaxArgs];
 
     pthread_mutex_lock(&m_mutex);
     m_socklen = sizeof(m_sockaddr);
@@ -113,45 +107,8 @@ void Socket::ReceivedTask()
         buf[--length] = '\0';
     }
 
-    VerifyOrExit((cmd = strtok_r(buf, " ", &last)) != NULL, ;);
+    ProcessLine(buf, length, *this);
 
-    if (strncmp(cmd, "?", 1) == 0)
-    {
-        snprintf(cur, end - cur, "%s", "Commands:\r\n");
-        cur += strlen(cur);
-
-        for (Command *command = mCommands; command; command = command->GetNext())
-        {
-            snprintf(cur, end - cur, "%s\r\n", command->GetName());
-            cur += strlen(cur);
-        }
-
-        snprintf(cur, end - cur, "Done\r\n");
-        cur += strlen(cur);
-
-        sendto(m_sockfd, buf, cur - buf, 0, (struct sockaddr *)&m_sockaddr, sizeof(m_sockaddr));
-    }
-    else
-    {
-        for (argc = 0; argc < kMaxArgs; argc++)
-        {
-            if ((argv[argc] = strtok_r(NULL, " ", &last)) == NULL)
-            {
-                break;
-            }
-        }
-
-        for (Command *command = mCommands; command; command = command->GetNext())
-        {
-            if (strcmp(cmd, command->GetName()) == 0)
-            {
-                command->Run(argc, argv, *this);
-                break;
-            }
-        }
-    }
-
-exit:
     pthread_cond_signal(&m_condition_variable);
 }
 

@@ -33,16 +33,8 @@ class Command;
 class Server
 {
 public:
-    ThreadError Add(Command &command);
     virtual ThreadError Start() = 0;
-    virtual ThreadError Output(const char *buf, uint16_t bufLength) = 0;
-
-protected:
-    enum
-    {
-        kMaxArgs = 8,
-    };
-    Command *mCommands = NULL;
+    virtual ThreadError Output(const char *aBuf, uint16_t aBufLength) = 0;
 };
 
 }  // namespace Cli

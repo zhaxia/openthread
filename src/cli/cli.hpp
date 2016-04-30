@@ -16,67 +16,34 @@
 
 /**
  * @file
- *   This file contains definitions for converting a hex string to binary.
+ *   This file contains definitions for the CLI interpreter.
  */
 
 #ifndef CLI_HPP_
 #define CLI_HPP_
 
-#include <stdint.h>
-#include <string.h>
+#include <cli/cli_server.hpp>
 
 namespace Thread {
+
+/**
+ * @namespace Cli
+ *
+ * @brief
+ *   This namespace contains definitions for the CLI interpreter.
+ *
+ */
 namespace Cli {
 
-static int hex2bin(const char *hex, uint8_t *bin, uint16_t binLength)
-{
-    uint16_t hexLength = strlen(hex);
-    const char *hexEnd = hex + hexLength;
-    uint8_t *cur = bin;
-    uint8_t numChars = hexLength & 1;
-    uint8_t byte = 0;
-
-    if ((hexLength + 1) / 2 > binLength)
-    {
-        return -1;
-    }
-
-    while (hex < hexEnd)
-    {
-        if ('A' <= *hex && *hex <= 'F')
-        {
-            byte |= 10 + (*hex - 'A');
-        }
-        else if ('a' <= *hex && *hex <= 'f')
-        {
-            byte |= 10 + (*hex - 'a');
-        }
-        else if ('0' <= *hex && *hex <= '9')
-        {
-            byte |= *hex - '0';
-        }
-        else
-        {
-            return -1;
-        }
-
-        hex++;
-        numChars++;
-
-        if (numChars >= 2)
-        {
-            numChars = 0;
-            *cur++ = byte;
-            byte = 0;
-        }
-        else
-        {
-            byte <<= 4;
-        }
-    }
-
-    return cur - bin;
-}
+/**
+ * This method interprets a CLI command.
+ *
+ * @param[in]  aBuf        A pointer to a string.
+ * @param[in]  aBufLength  The length of the string in bytes.
+ * @param[in]  aServer     A reference to the CLI server.
+ *
+ */
+void ProcessLine(char *aBuf, uint16_t aBufLength, Server &aServer);
 
 }  // namespace Cli
 }  // namespace Thread

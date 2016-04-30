@@ -309,7 +309,7 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, uint8_t interfac
     uint8_t nextHeader;
     uint8_t hopLimit;
 
-#if 1
+#if 0
     uint8_t buf[1024];
     message.Read(0, sizeof(buf), buf);
     dump("handle datagram", buf, message.GetLength());

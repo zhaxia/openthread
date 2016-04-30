@@ -19,14 +19,6 @@
 #include <platform/posix/cmdline.h>
 
 #include <openthread.h>
-#include <cli/cli_ifconfig.hpp>
-#include <cli/cli_ip.hpp>
-#include <cli/cli_mac.hpp>
-#include <cli/cli_ping.hpp>
-#include <cli/cli_netdata.hpp>
-#include <cli/cli_route.hpp>
-#include <cli/cli_shutdown.hpp>
-#include <cli/cli_thread.hpp>
 #include <platform/atomic.h>
 #include <platform/posix/cli_posix.hpp>
 
@@ -34,14 +26,6 @@ extern "C" void SleepStart(void);
 struct gengetopt_args_info args_info;
 
 Thread::Cli::Socket sCliServer;
-Thread::Cli::Ifconfig sCliIfconfig(sCliServer);
-Thread::Cli::Ip sCliIp(sCliServer);
-Thread::Cli::Mac sCliMac(sCliServer);
-Thread::Cli::NetData sCliNetdata(sCliServer);
-Thread::Cli::Ping sCliPing(sCliServer);
-Thread::Cli::Route sCliRoute(sCliServer);
-Thread::Cli::Shutdown sCliShutdown(sCliServer);
-Thread::Cli::Thread sCliThread(sCliServer);
 
 int main(int argc, char *argv[])
 {
