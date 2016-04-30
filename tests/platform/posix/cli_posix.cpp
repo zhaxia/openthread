@@ -21,7 +21,7 @@
 #include <platform/posix/cmdline.h>
 
 #include <platform/posix/cli_posix.hpp>
-#include <cli/cli_command.hpp>
+#include <cli/cli.hpp>
 #include <common/code_utils.hpp>
 
 extern struct gengetopt_args_info args_info;
@@ -30,8 +30,10 @@ namespace Thread {
 namespace Cli {
 
 Socket::Socket():
-    m_received_task(&ReceivedTask, this)
+    mReceivedTask(&ReceivedTask, this)
 {
+    mMutex = PTHREAD_MUTEX_INITIALIZER;
+    mConditionVariable = PTHREAD_COND_INITIALIZER;
 }
 
 ThreadError Socket::Start()
@@ -43,10 +45,10 @@ ThreadError Socket::Start()
     sockaddr.sin_port = htons(8000 + args_info.nodeid_arg);
     sockaddr.sin_addr.s_addr = INADDR_ANY;
 
-    m_sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    bind(m_sockfd, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
+    mSockFd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    bind(mSockFd, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
 
-    pthread_create(&m_pthread, NULL, ReceiveThread, this);
+    pthread_create(&mPthread, NULL, ReceiveThread, this);
 
     return kThreadError_None;
 }
@@ -65,16 +67,16 @@ void *Socket::ReceiveThread()
     while (1)
     {
         FD_ZERO(&fds);
-        FD_SET(m_sockfd, &fds);
+        FD_SET(mSockFd, &fds);
 
-        rval = select(m_sockfd + 1, &fds, NULL, NULL, NULL);
+        rval = select(mSockFd + 1, &fds, NULL, NULL, NULL);
 
-        if (rval >= 0 && FD_ISSET(m_sockfd, &fds))
+        if (rval >= 0 && FD_ISSET(mSockFd, &fds))
         {
-            pthread_mutex_lock(&m_mutex);
-            m_received_task.Post();
-            pthread_cond_wait(&m_condition_variable, &m_mutex);
-            pthread_mutex_unlock(&m_mutex);
+            pthread_mutex_lock(&mMutex);
+            mReceivedTask.Post();
+            pthread_cond_wait(&mConditionVariable, &mMutex);
+            pthread_mutex_unlock(&mMutex);
         }
     }
 
@@ -90,18 +92,12 @@ void Socket::ReceivedTask(void *context)
 void Socket::ReceivedTask()
 {
     char buf[1024];
-    char *cur = buf;
-    char *end = cur + sizeof(buf);
     int length;
-    char *cmd;
-    char *last;
-    int argc;
-    char *argv[kMaxArgs];
 
-    pthread_mutex_lock(&m_mutex);
-    m_socklen = sizeof(m_sockaddr);
-    length = recvfrom(m_sockfd, buf, sizeof(buf), 0, &m_sockaddr, &m_socklen);
-    pthread_mutex_unlock(&m_mutex);
+    pthread_mutex_lock(&mMutex);
+    mSockLen = sizeof(mSockAddr);
+    length = recvfrom(mSockFd, buf, sizeof(buf), 0, &mSockAddr, &mSockLen);
+    pthread_mutex_unlock(&mMutex);
 
     if (buf[length - 1] == '\n')
     {
@@ -113,53 +109,16 @@ void Socket::ReceivedTask()
         buf[--length] = '\0';
     }
 
-    VerifyOrExit((cmd = strtok_r(buf, " ", &last)) != NULL, ;);
+    Interpreter::ProcessLine(buf, length, *this);
 
-    if (strncmp(cmd, "?", 1) == 0)
-    {
-        snprintf(cur, end - cur, "%s", "Commands:\r\n");
-        cur += strlen(cur);
-
-        for (Command *command = mCommands; command; command = command->GetNext())
-        {
-            snprintf(cur, end - cur, "%s\r\n", command->GetName());
-            cur += strlen(cur);
-        }
-
-        snprintf(cur, end - cur, "Done\r\n");
-        cur += strlen(cur);
-
-        sendto(m_sockfd, buf, cur - buf, 0, (struct sockaddr *)&m_sockaddr, sizeof(m_sockaddr));
-    }
-    else
-    {
-        for (argc = 0; argc < kMaxArgs; argc++)
-        {
-            if ((argv[argc] = strtok_r(NULL, " ", &last)) == NULL)
-            {
-                break;
-            }
-        }
-
-        for (Command *command = mCommands; command; command = command->GetNext())
-        {
-            if (strcmp(cmd, command->GetName()) == 0)
-            {
-                command->Run(argc, argv, *this);
-                break;
-            }
-        }
-    }
-
-exit:
-    pthread_cond_signal(&m_condition_variable);
+    pthread_cond_signal(&mConditionVariable);
 }
 
 ThreadError Socket::Output(const char *buf, uint16_t bufLength)
 {
-    pthread_mutex_lock(&m_mutex);
-    sendto(m_sockfd, buf, bufLength, 0, (struct sockaddr *)&m_sockaddr, sizeof(m_sockaddr));
-    pthread_mutex_unlock(&m_mutex);
+    pthread_mutex_lock(&mMutex);
+    sendto(mSockFd, buf, bufLength, 0, (struct sockaddr *)&mSockAddr, sizeof(mSockAddr));
+    pthread_mutex_unlock(&mMutex);
     return kThreadError_None;
 }
 

@@ -29,17 +29,35 @@
 namespace Thread {
 namespace Cli {
 
-class Command;
-
+/**
+ * This class implements the CLI server on top of a UDP socket.
+ *
+ */
 class Udp: public Server
 {
 public:
-    ThreadError Start() final;
-    ThreadError Output(const char *buf, uint16_t bufLength) final;
+    /**
+     * This method starts the CLI server.
+     *
+     * @retval kThreadError_None  Successfully started the server.
+     *
+     */
+    ThreadError Start(void) final;
+
+    /**
+     * This method delivers output to the client.
+     *
+     * @param[in]  aBuf        A pointer to a buffer.
+     * @param[in]  aBufLength  Number of bytes in the buffer.
+     *
+     * @retval kThreadError_None  Successfully delivered output the client.
+     *
+     */
+    ThreadError Output(const char *aBuf, uint16_t aBufLength) final;
 
 private:
-    static void HandleUdpReceive(void *context, otMessage message, const otMessageInfo *messageInfo);
-    void HandleUdpReceive(otMessage message, const otMessageInfo *messageInfo);
+    static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
+    void HandleUdpReceive(otMessage aMessage, const otMessageInfo *aMessageInfo);
 
     otUdpSocket mSocket;
     otMessageInfo mPeer;

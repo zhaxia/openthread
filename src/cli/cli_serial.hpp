@@ -28,19 +28,35 @@
 namespace Thread {
 namespace Cli {
 
-class Command;
-
+/**
+ * This class implements the CLI server on top of the serial platform abstraction.
+ *
+ */
 class Serial: public Server
 {
 public:
-    Serial();
-    ThreadError Start() final;
-    ThreadError Output(const char *buf, uint16_t bufLength) final;
+    Serial(void);
 
-    void HandleReceive(uint8_t *buf, uint16_t bufLength);
-    void HandleSendDone();
+    /**
+     * This method starts the CLI server.
+     *
+     * @retval kThreadError_None  Successfully started the server.
+     *
+     */
+    ThreadError Start(void) final;
 
-    static void ReceiveTask(void *context);
+    /**
+     * This method delivers output to the client.
+     *
+     * @param[in]  aBuf        A pointer to a buffer.
+     * @param[in]  aBufLength  Number of bytes in the buffer.
+     *
+     * @retval kThreadError_None  Successfully delivered output the client.
+     *
+     */
+    ThreadError Output(const char *aBuf, uint16_t aBufLength) final;
+
+    static Tasklet sReceiveTask;
 
 private:
     enum
@@ -48,8 +64,10 @@ private:
         kRxBufferSize = 128,
     };
 
-    ThreadError ProcessCommand();
-    void ReceiveTask();
+    static void ReceiveTask(void *aContext);
+
+    ThreadError ProcessCommand(void);
+    void ReceiveTask(void);
 
     char mRxBuffer[kRxBufferSize];
     uint16_t mRxLength;

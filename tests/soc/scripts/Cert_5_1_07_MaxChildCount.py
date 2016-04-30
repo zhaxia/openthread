@@ -83,7 +83,7 @@ class Cert_5_1_07_MaxChildCount(unittest.TestCase):
         time.sleep(3)
         
         self.nodes[LEADER].stop()
-        time.sleep(105)
+        time.sleep(100)
         
         self.nodes[ED].start()
         time.sleep(3)

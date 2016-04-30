@@ -27,17 +27,7 @@ libopenthread_cli_a_CPPFLAGS =        \
     $(NULL)
 
 libopenthread_cli_a_SOURCES         = \
-    cli_command.cpp                   \
-    cli_ifconfig.cpp                  \
-    cli_ip.cpp                        \
-    cli_mac.cpp                       \
-    cli_netdata.cpp                   \
-    cli_ping.cpp                      \
-    cli_route.cpp                     \
-    cli_server.cpp                    \
-    cli_shutdown.cpp                  \
-    cli_thread.cpp                    \
-    cli_udp.cpp                       \
+    cli.cpp                           \
     $(NULL)
 
 include_HEADERS                     = \

@@ -93,7 +93,7 @@ class Cert_5_3_9_AddressQuery(unittest.TestCase):
         time.sleep(3)
         self.assertEqual(self.nodes[SED2].get_state(), 'child')
 
-        addrs = self.nodes[BR].get_addrs()
+        addrs = self.nodes[ROUTER3].get_addrs()
         for addr in addrs:
             if addr[0:4] != 'fe80':
                 self.nodes[SED2].ping(addr)
@@ -101,9 +101,9 @@ class Cert_5_3_9_AddressQuery(unittest.TestCase):
         addrs = self.nodes[SED2].get_addrs()
         for addr in addrs:
             if addr[0:4] != 'fe80':
-                self.nodes[LEADER].ping(addr)
+                self.nodes[BR].ping(addr)
 
-        addrs = self.nodes[BR].get_addrs()
+        addrs = self.nodes[ROUTER3].get_addrs()
         for addr in addrs:
             if addr[0:4] != 'fe80':
                 self.nodes[SED2].ping(addr)
@@ -114,7 +114,11 @@ class Cert_5_3_9_AddressQuery(unittest.TestCase):
         addrs = self.nodes[ROUTER3].get_addrs()
         for addr in addrs:
             if addr[0:4] != 'fe80':
-                self.nodes[SED2].ping(addr)
+                try:
+                    self.nodes[SED2].ping(addr)
+                    self.assertFalse()
+                except pexpect.TIMEOUT:
+                    pass
 
         self.nodes[SED2].stop()
         time.sleep(10)
@@ -122,7 +126,11 @@ class Cert_5_3_9_AddressQuery(unittest.TestCase):
         addrs = self.nodes[SED2].get_addrs()
         for addr in addrs:
             if addr[0:4] != 'fe80':
-                self.nodes[BR].ping(addr)
+                try:
+                    self.nodes[BR].ping(addr)
+                    self.assertFalse()
+                except pexpect.TIMEOUT:
+                    pass
 
 if __name__ == '__main__':
     unittest.main()

@@ -28,21 +28,31 @@
 namespace Thread {
 namespace Cli {
 
-class Command;
-
+/**
+ * This class implements the CLI server.
+ *
+ */
 class Server
 {
 public:
-    ThreadError Add(Command &command);
+    /**
+     * This method starts the CLI server.
+     *
+     * @retval kThreadError_None  Successfully started the server.
+     *
+     */
     virtual ThreadError Start() = 0;
-    virtual ThreadError Output(const char *buf, uint16_t bufLength) = 0;
 
-protected:
-    enum
-    {
-        kMaxArgs = 8,
-    };
-    Command *mCommands = NULL;
+    /**
+     * This method delivers output to the client.
+     *
+     * @param[in]  aBuf        A pointer to a buffer.
+     * @param[in]  aBufLength  Number of bytes in the buffer.
+     *
+     * @retval kThreadError_None  Successfully delivered output the client.
+     *
+     */
+    virtual ThreadError Output(const char *aBuf, uint16_t aBufLength) = 0;
 };
 
 }  // namespace Cli

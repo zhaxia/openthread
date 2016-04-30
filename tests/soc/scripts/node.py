@@ -54,6 +54,7 @@ class Node:
 
         FNULL = open(os.devnull, 'w')
         self.node_process = subprocess.Popen(cmd.split(), stdout = FNULL)
+        #self.node_process = subprocess.Popen(cmd.split(), stdout = sys.stdout)
 	
 	time.sleep(0.5)
 
@@ -76,7 +77,7 @@ class Node:
         self.pexpect.close()
 
     def send_command(self, cmd):
-        #print self.nodeid, ":", cmd
+        print self.nodeid, ":", cmd
         self.pexpect.sendline(cmd)
 
     def get_commands(self):
@@ -92,44 +93,44 @@ class Node:
         return commands
 
     def set_mode(self, mode):        
-        cmd = 'thread mode ' + mode
+        cmd = 'mode ' + mode
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def start(self):
-        self.send_command('thread start')
+        self.send_command('start')
         self.pexpect.expect('Done')
 
     def stop(self):
-        self.send_command('thread stop')
+        self.send_command('stop')
         self.pexpect.expect('Done')
 
     def clear_whitelist(self):
-        self.send_command('mac whitelist clear')
+        self.send_command('whitelist clear')
         self.pexpect.expect('Done')
 
     def enable_whitelist(self):
-        self.send_command('mac whitelist enable')
+        self.send_command('whitelist enable')
         self.pexpect.expect('Done')
 
     def disable_whitelist(self):
-        self.send_command('mac whitelist disable')
+        self.send_command('whitelist disable')
         self.pexpect.expect('Done')
 
     def add_whitelist(self, addr, rssi=None):
-        cmd = 'mac whitelist add ' + addr
+        cmd = 'whitelist add ' + addr
         if rssi != None:
             cmd += ' ' + str(rssi)
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def remove_whitelist(self, addr):
-        cmd = 'mac whitelist remove ' + addr
+        cmd = 'whitelist remove ' + addr
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def get_addr16(self):
-        self.send_command('mac addr16')
+        self.send_command('rloc16')
         i = self.pexpect.expect('([0-9a-fA-F]{4})')
         if i == 0:
             addr16 = int(self.pexpect.match.groups()[0], 16)
@@ -137,7 +138,7 @@ class Node:
         return addr16
 
     def get_addr64(self):
-        self.send_command('mac addr64')
+        self.send_command('extaddr')
         i = self.pexpect.expect('([0-9a-fA-F]{16})')
         if i == 0:
             addr64 = self.pexpect.match.groups()[0]
@@ -145,12 +146,12 @@ class Node:
         return addr64
 
     def set_channel(self, channel):
-        cmd = 'mac channel %d' % channel
+        cmd = 'channel %d' % channel
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def get_key_sequence(self):
-        self.send_command('thread key_sequence')
+        self.send_command('keysequence')
         i = self.pexpect.expect('(\d+)')
         if i == 0:
             key_sequence = int(self.pexpect.match.groups()[0])
@@ -158,56 +159,56 @@ class Node:
         return key_sequence
 
     def set_key_sequence(self, key_sequence):
-        cmd = 'thread key_sequence %d' % key_sequence
+        cmd = 'keysequence %d' % key_sequence
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def set_network_id_timeout(self, network_id_timeout):
-        cmd = 'thread network_id_timeout %d' % network_id_timeout
+        cmd = 'networkidtimeout %d' % network_id_timeout
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def set_network_name(self, network_name):
-        cmd = 'mac name ' + network_name
+        cmd = 'networkname ' + network_name
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def get_panid(self):
-        self.send_command('mac panid')
+        self.send_command('panid')
         i = self.pexpect.expect('([0-9a-fA-F]{16})')
         if i == 0:
             panid = self.pexpect.match.groups()[0]
         self.pexpect.expect('Done')
 
     def set_panid(self, panid):
-        cmd = 'mac panid %d' % panid
+        cmd = 'panid %d' % panid
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def set_router_upgrade_threshold(self, threshold):
-        cmd = 'thread router_upgrade_threshold %d' % threshold
+        cmd = 'routerupgradethreshold %d' % threshold
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def release_router_id(self, router_id):
-        cmd = 'thread release_router %d' % router_id
+        cmd = 'releaserouterid %d' % router_id
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def get_state(self):
         states = ['detached', 'child', 'router', 'leader']
-        self.send_command('thread state')
+        self.send_command('state')
         match = self.pexpect.expect(states)
         self.pexpect.expect('Done')
         return states[match]
 
     def set_state(self, state):
-        cmd = 'thread state ' + state
+        cmd = 'state ' + state
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def get_timeout(self):
-        self.send_command('thread timeout')
+        self.send_command('childtimeout')
         i = self.pexpect.expect('(\d+)')
         if i == 0:
             timeout = self.pexpect.match.groups()[0]
@@ -215,12 +216,12 @@ class Node:
         return timeout
 
     def set_timeout(self, timeout):
-        cmd = 'thread timeout %d' % timeout
+        cmd = 'childtimeout %d' % timeout
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def get_weight(self):
-        self.send_command('thread weight')
+        self.send_command('leaderweight')
         i = self.pexpect.expect('(\d+)')
         if i == 0:
             weight = self.pexpect.match.groups()[0]
@@ -228,54 +229,30 @@ class Node:
         return weight
 
     def set_weight(self, weight):
-        cmd = 'thread weight %d' % weight
+        cmd = 'leaderweight %d' % weight
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def add_ipaddr(self, ipaddr):
-        cmd = 'ip addr add ' + ipaddr + ' dev thread'
+        cmd = 'ipaddr add ' + ipaddr
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def get_addrs(self):
         addrs = []
-        self.send_command('ifconfig')
-
-        threadif = False
-        while True:
-            i = self.pexpect.expect(['(\S+)\:', '\s*inet6\s+(\S+)/64', 'Done'])
-            if i == 0:
-                if self.pexpect.match.groups()[0] == 'thread':
-                    threadif = True
-                else:
-                    threadif = False
-            elif i == 1:
-                if threadif:
-                    addrs.append(self.pexpect.match.groups()[0])
-            elif i == 2:
-                break
-            elif i == 3:
-                continue
-
-        return addrs
-
-    def get_cache(self):
-        addrs = []
-        self.send_command('thread cache')
+        self.send_command('ipaddr')
 
         while True:
-            i = self.pexpect.expect(['(\S+)\s+(\d+)\s+(\d+)\s+(\d+)', 'Total', 'Done'])
+            i = self.pexpect.expect(['(\S+:\S+)', 'Done'])
             if i == 0:
-                addrs.append(self.pexpect.match.groups())
+                addrs.append(self.pexpect.match.groups()[0])
             elif i == 1:
-                continue
-            elif i == 2:
                 break
 
         return addrs
 
     def get_context_reuse_delay(self):
-        self.send_command('netdata context_reuse_delay')
+        self.send_command('contextreusedelay')
         i = self.pexpect.expect('(\d+)')
         if i == 0:
             timeout = self.pexpect.match.groups()[0]
@@ -283,36 +260,36 @@ class Node:
         return timeout
 
     def set_context_reuse_delay(self, delay):
-        cmd = 'netdata context_reuse_delay %d' % delay
+        cmd = 'contextreusedelay %d' % delay
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def add_prefix(self, prefix, flags, prf = 'med'):
-        cmd = 'netdata prefix add ' + prefix + ' ' + flags + ' ' + prf
+        cmd = 'prefix add ' + prefix + ' ' + flags + ' ' + prf
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def remove_prefix(self, prefix):
-        cmd = 'netdata prefix remove ' + prefix
+        cmd = ' prefix remove ' + prefix
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def add_route(self, prefix, prf = 'med'):
-        cmd = 'netdata route add ' + prefix + ' ' + prf
+        cmd = 'route add ' + prefix + ' ' + prf
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def remove_route(self, prefix):
-        cmd = 'netdata route remove ' + prefix
+        cmd = 'route remove ' + prefix
         self.send_command(cmd)
         self.pexpect.expect('Done')
 
     def register_netdata(self):
-        self.send_command('netdata register')
+        self.send_command('netdataregister')
         self.pexpect.expect('Done')
 
     def scan(self):
-        self.send_command('mac scan')
+        self.send_command('scan')
 
         results = []
         while True:
@@ -326,15 +303,14 @@ class Node:
         return results
 
     def ping(self, ipaddr, num_responses=1, size=None):
-        cmd = 'ping -I thread '
+        cmd = 'ping ' + ipaddr
         if size != None:
-            cmd += '-s ' + str(size) + ' '
-        cmd += ipaddr
+            cmd += ' ' + str(size)
 
         self.send_command(cmd)
         responders = {}
         while len(responders) < num_responses:
-            i = self.pexpect.expect(['from (\S+)%thread:'])
+            i = self.pexpect.expect(['from (\S+):'])
             if i == 0:
                 responders[self.pexpect.match.groups()[0]] = 1
         self.pexpect.expect('\n')
