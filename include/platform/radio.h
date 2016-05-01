@@ -55,7 +55,14 @@ extern "C" {
 
 enum
 {
-    kMaxPsduLength = 127,           ///< Maximum PSDU length
+    kMaxPHYPacketSize   = 127,     ///< aMaxPHYPacketSize (IEEE 802.15.4-2006)
+    kPhyMinChannel      = 11,      ///< 2.4 GHz IEEE 802.15.4-2006                                      
+    kPhyMaxChannel      = 26,      ///< 2.4 GHz IEEE 802.15.4-2006                                      
+    kPhySymbolsPerOctet = 2,       ///< 2.4 GHz IEEE 802.15.4-2006                                      
+    kPhyBitRate         = 250000,  ///< 2.4 GHz IEEE 802.15.4 (kilbits per second)
+
+    kPhyBitsPerOctet    = 8,
+    kPhyUsPerSymbol     = ((kPhyBitsPerOctet / kPhySymbolsPerOctet) * 1000000) / kPhyBitRate,
 };
 
 /**
@@ -63,10 +70,10 @@ enum
  */
 typedef struct RadioPacket
 {
-    uint8_t mLength;                ///< Length of the PSDU.
-    uint8_t mPsdu[kMaxPsduLength];  ///< The PSDU.
-    uint8_t mChannel;               ///< Channel used to transmit/receive the frame.
-    int8_t  mPower;                 ///< Transmit/receive power in dBm.
+    uint8_t mLength;                   ///< Length of the PSDU.
+    uint8_t mPsdu[kMaxPHYPacketSize];  ///< The PSDU.
+    uint8_t mChannel;                  ///< Channel used to transmit/receive the frame.
+    int8_t  mPower;                    ///< Transmit/receive power in dBm.
 } RadioPacket;
 
 /**

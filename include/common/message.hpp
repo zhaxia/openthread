@@ -25,6 +25,7 @@
 #include <stdint.h>
 
 #include <openthread.h>
+#include <openthread-core-config.h>
 #include <common/code_utils.hpp>
 #include <common/thread_error.hpp>
 #include <mac/mac_frame.hpp>
@@ -43,9 +44,8 @@ namespace Thread {
 
 enum
 {
-    kBufferPoolSize = 8192,
-    kBufferSize = 128,
-    kNumBuffers = kBufferPoolSize / kBufferSize,
+    kNumBuffers = OPENTHREAD_CONFIG_NUM_MESSAGE_BUFFERS,
+    kBufferSize = OPENTHREAD_CONFIG_MESSAGE_BUFFER_SIZE,
 };
 
 class Message;

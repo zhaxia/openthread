@@ -318,7 +318,7 @@ PrefixTlv *NetworkData::FindPrefix(const uint8_t *aPrefix, uint8_t aPrefixLength
 int8_t NetworkData::PrefixMatch(const uint8_t *a, const uint8_t *b, uint8_t aLength)
 {
     uint8_t rval = 0;
-    uint8_t bytes = (aLength + 7) / 8;
+    uint8_t bytes = BitVectorBytes(aLength);
     uint8_t diff;
 
     for (uint8_t i = 0; i < bytes; i++)

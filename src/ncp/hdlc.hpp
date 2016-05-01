@@ -28,7 +28,7 @@
 namespace Thread {
 
 /**
- * @namespace Hdlc
+ * @namespace Thread::Hdlc
  *
  * @brief
  *   This namespace includes definitions for the HDLC encoder and decoder.

@@ -29,7 +29,7 @@ namespace Coap {
 
 void Header::Init(void)
 {
-    mHeaderLength = 4;
+    mHeaderLength = kMinHeaderLength;
     mOptionLast = 0;
     mNextOptionOffset = 0;
     mOption = {0, 0, NULL};
@@ -67,58 +67,58 @@ ThreadError Header::FromMessage(const Message &aMessage)
 
         if (mHeader[mHeaderLength] == 0xff)
         {
-            mHeaderLength++;
+            mHeaderLength += sizeof(uint8_t);
             ExitNow(error = kThreadError_None);
         }
 
         optionDelta = mHeader[mHeaderLength] >> 4;
         optionLength = mHeader[mHeaderLength] & 0xf;
-        mHeaderLength++;
-        offset++;
-        length--;
+        mHeaderLength += sizeof(uint8_t);
+        offset += sizeof(uint8_t);
+        length -= sizeof(uint8_t);
 
-        if (optionDelta < 13)
+        if (optionDelta < kOption1ByteExtension)
         {
             // do nothing
         }
-        else if (optionDelta == 13)
+        else if (optionDelta == kOption1ByteExtension)
         {
-            optionDelta = 13 + mHeader[mHeaderLength];
-            mHeaderLength++;
-            offset++;
-            length--;
+            optionDelta = kOption1ByteExtensionOffset + mHeader[mHeaderLength];
+            mHeaderLength += sizeof(uint8_t);
+            offset += sizeof(uint8_t);
+            length -= sizeof(uint8_t);
         }
-        else if (optionDelta == 14)
+        else if (optionDelta == kOption2ByteExtension)
         {
-            optionDelta = 269 + ((static_cast<uint16_t>(mHeader[mHeaderLength]) << 8) |
-                                 mHeader[mHeaderLength + 1]);
-            mHeaderLength += 2;
-            offset += 2;
-            length -= 2;
+            optionDelta = kOption2ByteExtensionOffset + ((static_cast<uint16_t>(mHeader[mHeaderLength]) << 8) |
+                                                         mHeader[mHeaderLength + 1]);
+            mHeaderLength += sizeof(uint16_t);
+            offset += sizeof(uint16_t);
+            length -= sizeof(uint16_t);
         }
         else
         {
             ExitNow(error = kThreadError_Parse);
         }
 
-        if (optionLength < 13)
+        if (optionLength < kOption1ByteExtension)
         {
             // do nothing
         }
-        else if (optionLength == 13)
+        else if (optionLength == kOption1ByteExtension)
         {
-            optionLength = 13 + mHeader[mHeaderLength];
-            mHeaderLength++;
-            offset++;
-            length--;
+            optionLength = kOption1ByteExtensionOffset + mHeader[mHeaderLength];
+            mHeaderLength += sizeof(uint8_t);
+            offset += sizeof(uint8_t);
+            length -= sizeof(uint8_t);
         }
-        else if (optionLength == 14)
+        else if (optionLength == kOption2ByteExtension)
         {
-            optionLength = 269 + ((static_cast<uint16_t>(mHeader[mHeaderLength]) << 8) |
-                                  mHeader[mHeaderLength + 1]);
-            mHeaderLength += 2;
-            offset += 2;
-            length -= 2;
+            optionLength = kOption2ByteExtensionOffset + ((static_cast<uint16_t>(mHeader[mHeaderLength]) << 8) |
+                                                          mHeader[mHeaderLength + 1]);
+            mHeaderLength += sizeof(uint16_t);
+            offset += sizeof(uint16_t);
+            length -= sizeof(uint16_t);
         }
         else
         {
@@ -152,36 +152,36 @@ ThreadError Header::AppendOption(const Option &aOption)
     uint16_t optionDelta = aOption.mNumber - mOptionLast;
     uint16_t optionLength;
 
-    if (optionDelta < 13)
+    if (optionDelta < kOption1ByteExtensionOffset)
     {
         *buf = optionDelta << Option::kOptionDeltaOffset;
     }
-    else if (optionDelta < 269)
+    else if (optionDelta < kOption2ByteExtensionOffset)
     {
-        *buf |= 13 << Option::kOptionDeltaOffset;
-        *cur++ = optionDelta - 13;
+        *buf |= kOption1ByteExtension << Option::kOptionDeltaOffset;
+        *cur++ = optionDelta - kOption1ByteExtensionOffset;
     }
     else
     {
-        *buf |= 14 << Option::kOptionDeltaOffset;
-        optionDelta -= 269;
+        *buf |= kOption2ByteExtension << Option::kOptionDeltaOffset;
+        optionDelta -= kOption2ByteExtensionOffset;
         *cur++ = optionDelta >> 8;
         *cur++ = optionDelta;
     }
 
-    if (aOption.mLength < 13)
+    if (aOption.mLength < kOption1ByteExtensionOffset)
     {
         *buf |= aOption.mLength;
     }
-    else if (aOption.mLength < 269)
+    else if (aOption.mLength < kOption2ByteExtensionOffset)
     {
-        *buf |= 13;
-        *cur++ = aOption.mLength - 13;
+        *buf |= kOption1ByteExtension;
+        *cur++ = aOption.mLength - kOption1ByteExtensionOffset;
     }
     else
     {
-        *buf |= 14;
-        optionLength = aOption.mLength - 269;
+        *buf |= kOption2ByteExtension;
+        optionLength = aOption.mLength - kOption2ByteExtensionOffset;
         *cur++ = optionLength >> 8;
         *cur++ = optionLength;
     }
@@ -246,42 +246,42 @@ const Header::Option *Header::GetNextOption(void)
 
     optionDelta = mHeader[mNextOptionOffset] >> 4;
     optionLength = mHeader[mNextOptionOffset] & 0xf;
-    mNextOptionOffset++;
+    mNextOptionOffset += sizeof(uint8_t);
 
-    if (optionDelta < 13)
+    if (optionDelta < kOption1ByteExtension)
     {
         // do nothing
     }
-    else if (optionDelta == 13)
+    else if (optionDelta == kOption1ByteExtension)
     {
-        optionDelta = 13 + mHeader[mNextOptionOffset];
-        mNextOptionOffset++;
+        optionDelta = kOption1ByteExtensionOffset + mHeader[mNextOptionOffset];
+        mNextOptionOffset += sizeof(uint8_t);
     }
-    else if (optionDelta == 14)
+    else if (optionDelta == kOption2ByteExtension)
     {
-        optionDelta = 269 + ((static_cast<uint16_t>(mHeader[mNextOptionOffset]) << 8) |
-                             mHeader[mNextOptionOffset + 1]);
-        mNextOptionOffset += 2;
+        optionDelta = kOption2ByteExtensionOffset + ((static_cast<uint16_t>(mHeader[mNextOptionOffset]) << 8) |
+                                                     mHeader[mNextOptionOffset + 1]);
+        mNextOptionOffset += sizeof(uint16_t);
     }
     else
     {
         ExitNow();
     }
 
-    if (optionLength < 13)
+    if (optionLength < kOption1ByteExtension)
     {
         // do nothing
     }
-    else if (optionLength == 13)
+    else if (optionLength == kOption1ByteExtension)
     {
-        optionLength = 13 + mHeader[mNextOptionOffset];
-        mNextOptionOffset++;
+        optionLength = kOption1ByteExtensionOffset + mHeader[mNextOptionOffset];
+        mNextOptionOffset += sizeof(uint8_t);
     }
-    else if (optionLength == 14)
+    else if (optionLength == kOption2ByteExtension)
     {
-        optionLength = 269 + ((static_cast<uint16_t>(mHeader[mNextOptionOffset]) << 8) |
-                              mHeader[mNextOptionOffset + 1]);
-        mNextOptionOffset += 2;
+        optionLength = kOption2ByteExtensionOffset + ((static_cast<uint16_t>(mHeader[mNextOptionOffset]) << 8) |
+                                                      mHeader[mNextOptionOffset + 1]);
+        mNextOptionOffset += sizeof(uint16_t);
     }
     else
     {

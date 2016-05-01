@@ -108,6 +108,8 @@ private:
  */
 class Udp
 {
+    friend UdpSocket;
+
 public:
     /**
      * This static method returns a new UDP message with sufficient header space reserved.
@@ -142,6 +144,15 @@ public:
      *
      */
     static ThreadError UpdateChecksum(Message &aMessage, uint16_t aPseudoHeaderChecksum);
+
+private:
+    enum
+    {
+        kDynamicPortMin = 49152,  ///< Service Name and Transport Protocol Port Number Registry
+        kDynamicPortMax = 65535,  ///< Service Name and Transport Protocol Port Number Registry
+    };
+    static uint16_t sEphemeralPort;
+    static UdpSocket *sSockets;
 };
 
 /**

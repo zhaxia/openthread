@@ -25,6 +25,7 @@
 #include <stdint.h>
 
 #include <common/thread_error.hpp>
+#include <crypto/sha256.hpp>
 
 namespace Thread {
 
@@ -89,7 +90,7 @@ public:
      *
      */
     const uint8_t *GetCurrentMacKey() const;
-    
+
     /**
      * This method returns a pointer to the current MLE key.
      *
@@ -112,7 +113,7 @@ public:
      *
      * @returns The previous key sequence value.
      *
-     */    
+     */
     uint32_t GetPreviousKeySequence() const;
 
     /**
@@ -184,20 +185,25 @@ public:
     void IncrementMleFrameCounter();
 
 private:
+    enum
+    {
+        kMaxKeyLength = 16,
+    };
+
     ThreadError ComputeKey(uint32_t aKeySequence, uint8_t *aKey);
     void UpdateNeighbors();
 
-    uint8_t mMasterKey[16];
+    uint8_t mMasterKey[kMaxKeyLength];
     uint8_t mMasterKeyLength;
 
     uint32_t mPreviousKeySequence;
-    uint8_t mPreviousKey[32];
+    uint8_t mPreviousKey[Crypto::Sha256::kHashSize];
     bool mPreviousKeyValid = false;
 
     uint32_t mCurrentKeySequence;
-    uint8_t mCurrentKey[32];
+    uint8_t mCurrentKey[Crypto::Sha256::kHashSize];
 
-    uint8_t mTemporaryKey[32];
+    uint8_t mTemporaryKey[Crypto::Sha256::kHashSize];
 
     uint32_t mMacFrameCounter = 0;
     uint32_t mMleFrameCounter = 0;

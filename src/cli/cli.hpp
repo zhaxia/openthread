@@ -28,7 +28,7 @@
 namespace Thread {
 
 /**
- * @namespace Cli
+ * @namespace Thread::Cli
  *
  * @brief
  *   This namespace contains definitions for the CLI interpreter.

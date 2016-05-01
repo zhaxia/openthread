@@ -92,9 +92,6 @@ public:
     static void FireTimers(void *aContext);
 
 private:
-    /**
-     * This static method
-     */
     static void SetAlarm(void);
 };
 
@@ -175,6 +172,22 @@ public:
      *
      */
     static uint32_t GetNow(void) { return otAlarmGetNow(); }
+
+    /**
+     * This static method returns the number of milliseonds given seconds.
+     *
+     * @returns The number of milliseconds.
+     *
+     */
+    static uint32_t SecToMsec(uint32_t aSeconds) { return aSeconds * 1000u; }
+
+    /**
+     * This static method returns the number of seconds given milliseconds.
+     *
+     * @returns The number of seconds.
+     *
+     */
+    static uint32_t MsecToSec(uint32_t aMilliseconds) { return aMilliseconds / 1000u; }
 
 private:
     void Fired(void) { mHandler(mContext); }

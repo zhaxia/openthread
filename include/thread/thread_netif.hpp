@@ -112,8 +112,8 @@ public:
      * @retval kThreadError_NoRoute  Could not find a valid route.
      *
      */
-    ThreadError RouteLookup(const Ip6::Address &aSource, const Ip6::Address &aDestination, 
-			    uint8_t *aPrefixMatch) final;
+    ThreadError RouteLookup(const Ip6::Address &aSource, const Ip6::Address &aDestination,
+                            uint8_t *aPrefixMatch) final;
 
     /**
      * This method returns a pointer to the address resolver object.

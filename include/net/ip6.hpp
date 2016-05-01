@@ -36,7 +36,7 @@ using Thread::Encoding::BigEndian::HostSwap16;
 namespace Thread {
 
 /**
- * @namespace Ip6
+ * @namespace Thread::Ip6
  *
  * @brief
  *   This namespace includes definitions for IPv6 networking.

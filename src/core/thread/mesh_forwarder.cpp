@@ -350,7 +350,7 @@ Message *MeshForwarder::GetIndirectTransmission(const Child &aChild)
         }
         else
         {
-            mMacDest.mLength = 2;
+            mMacDest.mLength = sizeof(mMacDest.mShortAddress);
             mMacDest.mShortAddress = aChild.mValid.mRloc16;
         }
 
@@ -362,9 +362,9 @@ Message *MeshForwarder::GetIndirectTransmission(const Child &aChild)
         mAddMeshHeader = true;
         mMeshDest = meshHeader.GetDestination();
         mMeshSource = meshHeader.GetSource();
-        mMacSource.mLength = 2;
+        mMacSource.mLength = sizeof(mMacSource.mShortAddress);
         mMacSource.mShortAddress = mMac->GetShortAddress();
-        mMacDest.mLength = 2;
+        mMacDest.mLength = sizeof(mMacDest.mShortAddress);
         mMacDest.mShortAddress = meshHeader.GetDestination();
         break;
 
@@ -394,9 +394,9 @@ ThreadError MeshForwarder::UpdateMeshRoute(Message &aMessage)
     }
 
     // dprintf("MESH ROUTE = %02x %02x\n", meshHeader.GetDestination(), neighbor->mValid.mRloc16);
-    mMacDest.mLength = 2;
+    mMacDest.mLength = sizeof(mMacDest.mShortAddress);
     mMacDest.mShortAddress = neighbor->mValid.mRloc16;
-    mMacSource.mLength = 2;
+    mMacSource.mLength = sizeof(mMacSource.mShortAddress);
     mMacSource.mShortAddress = mMac->GetShortAddress();
 
     mAddMeshHeader = true;
@@ -458,7 +458,7 @@ ThreadError MeshForwarder::UpdateIp6Route(Message &aMessage)
              (neighbor = mMle->GetNeighbor(mMeshDest)) != NULL))
         {
             // destination is neighbor
-            mMacDest.mLength = 2;
+            mMacDest.mLength = sizeof(mMacDest.mShortAddress);
             mMacDest.mShortAddress = mMeshDest;
 
             if (mNetif->IsUnicastAddress(ip6Header.GetSource()))
@@ -467,7 +467,7 @@ ThreadError MeshForwarder::UpdateIp6Route(Message &aMessage)
             }
             else
             {
-                mMacSource.mLength = 2;
+                mMacSource.mLength = sizeof(mMacSource.mShortAddress);
                 mMacSource.mShortAddress = mMac->GetShortAddress();
                 assert(mMacSource.mShortAddress != Mac::kShortAddrInvalid);
             }
@@ -479,9 +479,9 @@ ThreadError MeshForwarder::UpdateIp6Route(Message &aMessage)
 
             SuccessOrExit(error = mMle->CheckReachability(mMeshSource, mMeshDest, ip6Header));
 
-            mMacDest.mLength = 2;
+            mMacDest.mLength = sizeof(mMacDest.mShortAddress);
             mMacDest.mShortAddress = mMle->GetNextHop(mMeshDest);
-            mMacSource.mLength = 2;
+            mMacSource.mLength = sizeof(mMacSource.mShortAddress);
             mMacSource.mShortAddress = mMeshSource;
             mAddMeshHeader = true;
         }
@@ -548,13 +548,12 @@ ThreadError MeshForwarder::GetMacSourceAddress(const Ip6::Address &aIp6Addr, Mac
 {
     assert(!aIp6Addr.IsMulticast());
 
-    aMacAddr.mLength = 8;
-    memcpy(&aMacAddr.mExtAddress, aIp6Addr.m8 + 8, sizeof(aMacAddr.mExtAddress));
-    aMacAddr.mExtAddress.mBytes[0] ^= 0x02;
+    aMacAddr.mLength = sizeof(aMacAddr.mExtAddress);
+    aMacAddr.mExtAddress.Set(aIp6Addr);
 
     if (memcmp(&aMacAddr.mExtAddress, mMac->GetExtAddress(), sizeof(aMacAddr.mExtAddress)) != 0)
     {
-        aMacAddr.mLength = 2;
+        aMacAddr.mLength = sizeof(aMacAddr.mShortAddress);
         aMacAddr.mShortAddress = mMac->GetShortAddress();
     }
 
@@ -565,7 +564,7 @@ ThreadError MeshForwarder::GetMacDestinationAddress(const Ip6::Address &aIp6Addr
 {
     if (aIp6Addr.IsMulticast())
     {
-        aMacAddr.mLength = 2;
+        aMacAddr.mLength = sizeof(aMacAddr.mShortAddress);
         aMacAddr.mShortAddress = Mac::kShortAddrBroadcast;
     }
     else if (aIp6Addr.m16[0] == HostSwap16(0xfe80) &&
@@ -576,19 +575,18 @@ ThreadError MeshForwarder::GetMacDestinationAddress(const Ip6::Address &aIp6Addr
              aIp6Addr.m16[5] == HostSwap16(0x00ff) &&
              aIp6Addr.m16[6] == HostSwap16(0xfe00))
     {
-        aMacAddr.mLength = 2;
+        aMacAddr.mLength = sizeof(aMacAddr.mShortAddress);
         aMacAddr.mShortAddress = HostSwap16(aIp6Addr.m16[7]);
     }
     else if (mMle->IsRoutingLocator(aIp6Addr))
     {
-        aMacAddr.mLength = 2;
+        aMacAddr.mLength = sizeof(aMacAddr.mShortAddress);
         aMacAddr.mShortAddress = HostSwap16(aIp6Addr.m16[7]);
     }
     else
     {
-        aMacAddr.mLength = 8;
-        memcpy(&aMacAddr.mExtAddress, aIp6Addr.m8 + 8, sizeof(aMacAddr.mExtAddress));
-        aMacAddr.mExtAddress.mBytes[0] ^= 0x02;
+        aMacAddr.mLength = sizeof(aMacAddr.mExtAddress);
+        aMacAddr.mExtAddress.Set(aIp6Addr);
     }
 
     return kThreadError_None;
@@ -638,18 +636,18 @@ ThreadError MeshForwarder::SendPoll(Message &aMessage, Mac::Frame &aFrame)
 
     if (macSource.mShortAddress != Mac::kShortAddrInvalid)
     {
-        macSource.mLength = 2;
+        macSource.mLength = sizeof(macSource.mShortAddress);
     }
     else
     {
-        macSource.mLength = 8;
+        macSource.mLength = sizeof(macSource.mExtAddress);
         memcpy(&macSource.mExtAddress, mMac->GetExtAddress(), sizeof(macSource.mExtAddress));
     }
 
     // initialize MAC header
     fcf = Mac::Frame::kFcfFrameMacCmd | Mac::Frame::kFcfPanidCompression | Mac::Frame::kFcfFrameVersion2006;
 
-    if (macSource.mLength == 2)
+    if (macSource.mLength == sizeof(Mac::ShortAddress))
     {
         fcf |= Mac::Frame::kFcfDstAddrShort | Mac::Frame::kFcfSrcAddrShort;
     }
@@ -729,9 +727,9 @@ ThreadError MeshForwarder::SendFragment(Message &aMessage, Mac::Frame &aFrame)
 
     if (mAddMeshHeader)
     {
-        meshSource.mLength = 2;
+        meshSource.mLength = sizeof(meshSource.mShortAddress);
         meshSource.mShortAddress = mMeshSource;
-        meshDest.mLength = 2;
+        meshDest.mLength = sizeof(meshDest.mShortAddress);
         meshDest.mShortAddress = mMeshDest;
     }
     else
@@ -980,7 +978,7 @@ void MeshForwarder::HandleReceivedFrame(Mac::Frame &aFrame, ThreadError aError)
             break;
 
         case 8:
-            memcpy(destination.m8 + 8, &macSource.mExtAddress, sizeof(macSource.mExtAddress));
+            destination.SetIid(macSource.mExtAddress);
             break;
 
         default:
@@ -1005,12 +1003,12 @@ void MeshForwarder::HandleReceivedFrame(Mac::Frame &aFrame, ThreadError aError)
     switch (aFrame.GetType())
     {
     case Mac::Frame::kFcfFrameData:
-	if (reinterpret_cast<Lowpan::MeshHeader *>(payload)->IsMeshHeader())
-	{
+        if (reinterpret_cast<Lowpan::MeshHeader *>(payload)->IsMeshHeader())
+        {
             HandleMesh(payload, payloadLength, messageInfo);
         }
-	else if (reinterpret_cast<Lowpan::FragmentHeader *>(payload)->IsFragmentHeader())
-	{
+        else if (reinterpret_cast<Lowpan::FragmentHeader *>(payload)->IsFragmentHeader())
+        {
             HandleFragment(payload, payloadLength, macSource, macDest, messageInfo);
         }
         else if (Lowpan::Lowpan::IsLowpanHc(payload))
@@ -1045,9 +1043,9 @@ void MeshForwarder::HandleMesh(uint8_t *aFrame, uint8_t aFrameLength, const Thre
 
     VerifyOrExit(meshHeader->IsValid(), error = kThreadError_Drop);
 
-    meshSource.mLength = 2;
+    meshSource.mLength = sizeof(meshSource.mShortAddress);
     meshSource.mShortAddress = meshHeader->GetSource();
-    meshDest.mLength = 2;
+    meshDest.mLength = sizeof(meshDest.mShortAddress);
     meshDest.mShortAddress = meshHeader->GetDestination();
 
     if (meshDest.mShortAddress == mMac->GetShortAddress())
@@ -1055,7 +1053,7 @@ void MeshForwarder::HandleMesh(uint8_t *aFrame, uint8_t aFrameLength, const Thre
         aFrame += meshHeader->GetHeaderLength();
         aFrameLength -= meshHeader->GetHeaderLength();
 
-	if (reinterpret_cast<Lowpan::FragmentHeader *>(aFrame)->IsFragmentHeader())
+        if (reinterpret_cast<Lowpan::FragmentHeader *>(aFrame)->IsFragmentHeader())
         {
             HandleFragment(aFrame, aFrameLength, meshSource, meshDest, aMessageInfo);
         }
@@ -1147,7 +1145,7 @@ void MeshForwarder::HandleFragment(uint8_t *aFrame, uint8_t aFrameLength,
 
         if (!mReassemblyTimer.IsRunning())
         {
-            mReassemblyTimer.Start(1000);
+            mReassemblyTimer.Start(kStateUpdatePeriod);
         }
     }
     else
@@ -1211,7 +1209,7 @@ void MeshForwarder::HandleReassemblyTimer()
 
     if (mReassemblyList.GetHead() != NULL)
     {
-        mReassemblyTimer.Start(1000);
+        mReassemblyTimer.Start(kStateUpdatePeriod);
     }
 }
 

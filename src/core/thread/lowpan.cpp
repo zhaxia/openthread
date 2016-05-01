@@ -40,35 +40,30 @@ Lowpan::Lowpan(ThreadNetif &aNetif)
 
 ThreadError Lowpan::CopyContext(const Context &aContext, Ip6::Address &aAddress)
 {
-    memcpy(&aAddress, aContext.mPrefix, aContext.mPrefixLength / 8);
+    memcpy(&aAddress, aContext.mPrefix, aContext.mPrefixLength / CHAR_BIT);
 
     for (int i = (aContext.mPrefixLength & ~7); i < aContext.mPrefixLength; i++)
     {
-        aAddress.m8[i / 8] &= ~(0x80 >> (i % 8));
-        aAddress.m8[i / 8] |= aContext.mPrefix[i / 8] & (0x80 >> (i % 8));
+        aAddress.m8[i / CHAR_BIT] &= ~(0x80 >> (i % CHAR_BIT));
+        aAddress.m8[i / CHAR_BIT] |= aContext.mPrefix[i / CHAR_BIT] & (0x80 >> (i % CHAR_BIT));
     }
 
     return kThreadError_None;
 }
 
-ThreadError Lowpan::ComputeIID(const Mac::Address &aMacAddr, const Context &aContext, uint8_t *aIid)
+ThreadError Lowpan::ComputeIid(const Mac::Address &aMacAddr, const Context &aContext, Ip6::Address &aIpAddress)
 {
     switch (aMacAddr.mLength)
     {
     case 2:
-        aIid[0] = 0x00;
-        aIid[1] = 0x00;
-        aIid[2] = 0x00;
-        aIid[3] = 0xff;
-        aIid[4] = 0xfe;
-        aIid[5] = 0x00;
-        aIid[6] = aMacAddr.mShortAddress >> 8;
-        aIid[7] = aMacAddr.mShortAddress;
+        aIpAddress.m16[4] = HostSwap16(0x0000);
+        aIpAddress.m16[5] = HostSwap16(0x00ff);
+        aIpAddress.m16[6] = HostSwap16(0xfe00);
+        aIpAddress.m16[7] = HostSwap16(aMacAddr.mShortAddress);
         break;
 
-    case 8:
-        memcpy(aIid, &aMacAddr.mExtAddress, sizeof(aMacAddr.mExtAddress));
-        aIid[0] ^= 0x02;
+    case Ip6::Address::kInterfaceIdentifierSize:
+        aIpAddress.SetIid(aMacAddr.mExtAddress);
         break;
 
     default:
@@ -79,8 +74,8 @@ ThreadError Lowpan::ComputeIID(const Mac::Address &aMacAddr, const Context &aCon
     {
         for (int i = (aContext.mPrefixLength & ~7); i < aContext.mPrefixLength; i++)
         {
-            aIid[i / 8] &= ~(0x80 >> (i % 8));
-            aIid[i / 8] |= aContext.mPrefix[i / 8] & (0x80 >> (i % 8));
+            aIpAddress.m8[i / CHAR_BIT] &= ~(0x80 >> (i % CHAR_BIT));
+            aIpAddress.m8[i / CHAR_BIT] |= aContext.mPrefix[i / CHAR_BIT] & (0x80 >> (i % CHAR_BIT));
         }
     }
 
@@ -91,22 +86,22 @@ int Lowpan::CompressSourceIid(const Mac::Address &aMacAddr, const Ip6::Address &
                               uint16_t &aHcCtl, uint8_t *aBuf)
 {
     uint8_t *cur = aBuf;
-    uint8_t iid[8];
+    Ip6::Address ipaddr;
     Mac::Address tmp;
 
-    ComputeIID(aMacAddr, aContext, iid);
+    ComputeIid(aMacAddr, aContext, ipaddr);
 
-    if (memcmp(iid, aIpAddr.m8 + 8, 8) == 0)
+    if (memcmp(ipaddr.GetIid(), aIpAddr.GetIid(), Ip6::Address::kInterfaceIdentifierSize) == 0)
     {
         aHcCtl |= kHcSrcAddrMode3;
     }
     else
     {
-        tmp.mLength = 2;
+        tmp.mLength = sizeof(tmp.mShortAddress);
         tmp.mShortAddress = HostSwap16(aIpAddr.m16[7]);
-        ComputeIID(tmp, aContext, iid);
+        ComputeIid(tmp, aContext, ipaddr);
 
-        if (memcmp(iid, aIpAddr.m8 + 8, 8) == 0)
+        if (memcmp(ipaddr.GetIid(), aIpAddr.GetIid(), Ip6::Address::kInterfaceIdentifierSize) == 0)
         {
             aHcCtl |= kHcSrcAddrMode2;
             cur[0] = aIpAddr.m8[14];
@@ -116,8 +111,8 @@ int Lowpan::CompressSourceIid(const Mac::Address &aMacAddr, const Ip6::Address &
         else
         {
             aHcCtl |= kHcSrcAddrMode1;
-            memcpy(cur, aIpAddr.m8 + 8, 8);
-            cur += 8;
+            memcpy(cur, aIpAddr.GetIid(), Ip6::Address::kInterfaceIdentifierSize);
+            cur += Ip6::Address::kInterfaceIdentifierSize;
         }
     }
 
@@ -128,22 +123,22 @@ int Lowpan::CompressDestinationIid(const Mac::Address &aMacAddr, const Ip6::Addr
                                    uint16_t &aHcCtl, uint8_t *aBuf)
 {
     uint8_t *cur = aBuf;
-    uint8_t iid[8];
+    Ip6::Address ipaddr;
     Mac::Address tmp;
 
-    ComputeIID(aMacAddr, aContext, iid);
+    ComputeIid(aMacAddr, aContext, ipaddr);
 
-    if (memcmp(iid, aIpAddr.m8 + 8, 8) == 0)
+    if (memcmp(ipaddr.GetIid(), aIpAddr.GetIid(), Ip6::Address::kInterfaceIdentifierSize) == 0)
     {
         aHcCtl |= kHcDstAddrMode3;
     }
     else
     {
-        tmp.mLength = 2;
+        tmp.mLength = sizeof(tmp.mShortAddress);
         tmp.mShortAddress = HostSwap16(aIpAddr.m16[7]);
-        ComputeIID(tmp, aContext, iid);
+        ComputeIid(tmp, aContext, ipaddr);
 
-        if (memcmp(iid, aIpAddr.m8 + 8, 8) == 0)
+        if (memcmp(ipaddr.GetIid(), aIpAddr.GetIid(), Ip6::Address::kInterfaceIdentifierSize) == 0)
         {
             aHcCtl |= kHcDstAddrMode2;
             cur[0] = aIpAddr.m8[14];
@@ -153,8 +148,8 @@ int Lowpan::CompressDestinationIid(const Mac::Address &aMacAddr, const Ip6::Addr
         else
         {
             aHcCtl |= kHcDstAddrMode1;
-            memcpy(cur, aIpAddr.m8 + 8, 8);
-            cur += 8;
+            memcpy(cur, aIpAddr.GetIid(), Ip6::Address::kInterfaceIdentifierSize);
+            cur += Ip6::Address::kInterfaceIdentifierSize;
         }
     }
 
@@ -167,7 +162,7 @@ int Lowpan::CompressMulticast(const Ip6::Address &aIpAddr, uint16_t &aHcCtl, uin
 
     aHcCtl |= kHcMulticast;
 
-    for (int i = 2; i < 16; i++)
+    for (int i = 2; i < sizeof(Ip6::Address); i++)
     {
         if (aIpAddr.m8[i])
         {
@@ -193,8 +188,8 @@ int Lowpan::CompressMulticast(const Ip6::Address &aIpAddr, uint16_t &aHcCtl, uin
             }
             else
             {
-                memcpy(cur, aIpAddr.m8, 16);
-                cur += 16;
+                memcpy(cur, aIpAddr.m8, sizeof(Ip6::Address));
+                cur += sizeof(Ip6::Address);
             }
 
             break;
@@ -324,7 +319,7 @@ int Lowpan::Compress(Message &aMessage, const Mac::Address &aMacSource, const Ma
     else
     {
         memcpy(cur, ip6Header.GetSource().m8, sizeof(ip6Header.GetSource()));
-        cur += 16;
+        cur += sizeof(Ip6::Address);
     }
 
     // Destination Address
@@ -344,7 +339,7 @@ int Lowpan::Compress(Message &aMessage, const Mac::Address &aMacSource, const Ma
     else
     {
         memcpy(cur, &ip6Header.GetDestination(), sizeof(ip6Header.GetDestination()));
-        cur += 16;
+        cur += sizeof(Ip6::Address);
     }
 
     aBuf[0] = hcCtl >> 8;
@@ -573,14 +568,14 @@ int Lowpan::DecompressBaseHeader(Ip6::Header &ip6Header, const Mac::Address &aMa
         if ((hcCtl & kHcSrcAddrContext) == 0)
         {
             memcpy(&ip6Header.GetSource(), cur, sizeof(ip6Header.GetSource()));
-            cur += 16;
+            cur += sizeof(Ip6::Address);
         }
 
         break;
 
     case kHcSrcAddrMode1:
-        memcpy(ip6Header.GetSource().m8 + 8, cur, 8);
-        cur += 8;
+        ip6Header.GetSource().SetIid(cur);
+        cur += Ip6::Address::kInterfaceIdentifierSize;
         break;
 
     case kHcSrcAddrMode2:
@@ -591,7 +586,7 @@ int Lowpan::DecompressBaseHeader(Ip6::Header &ip6Header, const Mac::Address &aMa
         break;
 
     case kHcSrcAddrMode3:
-        ComputeIID(aMacSource, srcContext, ip6Header.GetSource().m8 + 8);
+        ComputeIid(aMacSource, srcContext, ip6Header.GetSource());
         break;
     }
 
@@ -616,12 +611,12 @@ int Lowpan::DecompressBaseHeader(Ip6::Header &ip6Header, const Mac::Address &aMa
         {
         case kHcDstAddrMode0:
             memcpy(&ip6Header.GetDestination(), cur, sizeof(ip6Header.GetDestination()));
-            cur += 16;
+            cur += sizeof(Ip6::Address);
             break;
 
         case kHcDstAddrMode1:
-            memcpy(ip6Header.GetDestination().m8 + 8, cur, 8);
-            cur += 8;
+            ip6Header.GetDestination().SetIid(cur);
+            cur += Ip6::Address::kInterfaceIdentifierSize;
             break;
 
         case kHcDstAddrMode2:
@@ -632,7 +627,7 @@ int Lowpan::DecompressBaseHeader(Ip6::Header &ip6Header, const Mac::Address &aMa
             break;
 
         case kHcDstAddrMode3:
-            ComputeIID(aMacDest, dstContext, ip6Header.GetDestination().m8 + 8);
+            ComputeIid(aMacDest, dstContext, ip6Header.GetDestination());
             break;
         }
 
@@ -660,8 +655,8 @@ int Lowpan::DecompressBaseHeader(Ip6::Header &ip6Header, const Mac::Address &aMa
             switch (hcCtl & kHcDstAddrModeMask)
             {
             case kHcDstAddrMode0:
-                memcpy(ip6Header.GetDestination().m8, cur, 16);
-                cur += 16;
+                memcpy(ip6Header.GetDestination().m8, cur, sizeof(Ip6::Address));
+                cur += sizeof(Ip6::Address);
                 break;
 
             case kHcDstAddrMode1:
@@ -691,7 +686,7 @@ int Lowpan::DecompressBaseHeader(Ip6::Header &ip6Header, const Mac::Address &aMa
                 VerifyOrExit(dstContextValid, error = kThreadError_Parse);
                 ip6Header.GetDestination().m8[1] = cur[0];
                 ip6Header.GetDestination().m8[2] = cur[1];
-                memcpy(ip6Header.GetDestination().m8 + 8, dstContext.mPrefix, 8);
+                memcpy(ip6Header.GetDestination().m8 + 4, dstContext.mPrefix, 8);
                 memcpy(ip6Header.GetDestination().m8 + 12, cur + 2, 4);
                 cur += 6;
                 break;
@@ -742,7 +737,7 @@ int Lowpan::DecompressExtensionHeader(Message &aMessage, const uint8_t *aBuf, ui
     }
 
     // length
-    hdr[1] = ((sizeof(hdr) + len + 7) / 8) - 1;
+    hdr[1] = BitVectorBytes(sizeof(hdr) + len) - 1;
 
     SuccessOrExit(aMessage.Append(hdr, sizeof(hdr)));
     aMessage.MoveOffset(sizeof(hdr));

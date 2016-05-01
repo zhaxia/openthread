@@ -75,7 +75,7 @@ void Server::HandleUdpReceive(void *aContext, otMessage aMessage, const otMessag
 void Server::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     Header header;
-    char uriPath[32];
+    char uriPath[kMaxReceivedUriPath];
     char *curUriPath = uriPath;
     const Header::Option *coapOption;
 

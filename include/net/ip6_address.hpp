@@ -45,6 +45,15 @@ class Address: public otIp6Address
 {
 public:
     /**
+     * Constants
+     *
+     */
+    enum
+    {
+        kInterfaceIdentifierSize   = 8,  ///< Interface Identifier size in bytes.
+    };
+
+    /**
      * IPv6 Address Scopes
      */
     enum
@@ -159,6 +168,38 @@ public:
     bool IsRealmLocalAllRoutersMulticast(void) const;
 
     /**
+     * This method returns a pointer to the Interface Identifier.
+     *
+     * @returns A pointer to the Interface Identifier.
+     *
+     */
+    const uint8_t *GetIid(void) const;
+
+    /**
+     * This method returns a pointer to the Interface Identifier.
+     *
+     * @returns A pointer to the Interface Identifier.
+     *
+     */
+    uint8_t *GetIid(void);
+
+    /**
+     * This method sets the Interface Identifier.
+     *
+     * @param[in]  aIid  A reference to the Interface Identifier.
+     *
+     */
+    void SetIid(const uint8_t *aIid);
+
+    /**
+     * This method sets the Interface Identifier.
+     *
+     * @param[in]  aIid  A reference to the IEEE EUI-64 address.
+     *
+     */
+    void SetIid(const Mac::ExtAddress &aEui64);
+
+    /**
      * This method returns the IPv6 address scope.
      *
      * @returns The IPv6 address scope.
@@ -219,6 +260,12 @@ public:
      *
      */
     const char *ToString(char *aBuf, uint16_t aSize) const;
+
+private:
+    enum
+    {
+        kInterfaceIdentifierOffset = 8,  ///< Interface Identifier offset in bytes.
+    };
 } __attribute__((packed));
 
 /**

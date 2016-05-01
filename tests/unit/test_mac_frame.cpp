@@ -51,7 +51,7 @@ void TestMacHeader()
         },
         {
             Mac::Frame::kFcfDstAddrShort | Mac::Frame::kFcfSrcAddrShort | Mac::Frame::kFcfPanidCompression |
-            Mac::Frame::kFcfSecurityEnabled, Mac::Frame::kSecMic32 | Mac::Frame::kKeyIdMode5, 19
+            Mac::Frame::kFcfSecurityEnabled, Mac::Frame::kSecMic32 | Mac::Frame::kKeyIdMode2, 19
         },
     };
 

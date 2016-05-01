@@ -38,10 +38,27 @@ static Mac *sMac;
 static Tasklet sReceiveDoneTask(&Mac::ReceiveDoneTask, NULL);
 static Tasklet sTransmitDoneTask(&Mac::TransmitDoneTask, NULL);
 
+void Mac::StartCsmaBackoff(void)
+{
+    uint32_t backoffExponent = kMinBE + mCsmaAttempts;
+    uint32_t backoff;
+
+    if (backoffExponent > kMaxBackoff)
+    {
+        backoffExponent = kMaxBackoff;
+    }
+
+    backoff = (kUnitBackoffPeriod * kPhyUsPerSymbol * (1 << backoffExponent)) / 1000;
+    backoff = (otRandomGet() % backoff) + 1;
+
+    mBackoffTimer.Start(backoff);
+}
+
 Mac::Mac(void):
     mAckTimer(&HandleAckTimer, this),
-    mBackoffTimer(&HandleBackoffTimer, this),
-    mReceiveTimer(&HandleReceiveTimer, this)
+    mBackoffTimer(&HandleBeginTransmit, this),
+    mReceiveTimer(&HandleReceiveTimer, this),
+    mBeginTransmit(&HandleBeginTransmit, this)
 {
 }
 
@@ -54,11 +71,11 @@ ThreadError Mac::Init(ThreadNetif &aNetif)
     mState = kStateDisabled;
 
     mRxOnWhenIdle = true;
-    mAttempts = 0;
+    mCsmaAttempts = 0;
     mTransmitBeacon = false;
 
     mActiveScanRequest = false;
-    mScanChannel = 11;
+    mScanChannel = kPhyMinChannel;
     mScanChannelMask = 0xff;
     mScanIntervalPerChannel = 0;
     mActiveScanHandler = NULL;
@@ -68,7 +85,7 @@ ThreadError Mac::Init(ThreadNetif &aNetif)
     mSendTail = NULL;
     mReceiveHead = NULL;
     mReceiveTail = NULL;
-    mChannel = 11;
+    mChannel = OPENTHREAD_CONFIG_DEFAULT_CHANNEL;
     mPanId = kPanIdBroadcast;
     mShortAddress = kShortAddrInvalid;
 
@@ -160,10 +177,10 @@ ThreadError Mac::ActiveScan(uint16_t aIntervalPerChannel, uint16_t aChannelMask,
 
     mActiveScanHandler = aHandler;
     mActiveScanContext = aContext;
-    mScanChannelMask = (aChannelMask == 0) ? kMacScanChannelMaskAllChannels : aChannelMask;
-    mScanIntervalPerChannel = (aIntervalPerChannel == 0) ? kMacScanDefaultInterval : aIntervalPerChannel;
+    mScanChannelMask = (aChannelMask == 0) ? kScanChannelMaskAll : aChannelMask;
+    mScanIntervalPerChannel = (aIntervalPerChannel == 0) ? kScanDefaultInterval : aIntervalPerChannel;
 
-    mScanChannel = 11;
+    mScanChannel = kPhyMinChannel;
 
     while ((mScanChannelMask & 1) == 0)
     {
@@ -174,7 +191,7 @@ ThreadError Mac::ActiveScan(uint16_t aIntervalPerChannel, uint16_t aChannelMask,
     if (mState == kStateIdle)
     {
         mState = kStateActiveScan;
-        mBackoffTimer.Start(16);
+        mBeginTransmit.Post();
     }
     else
     {
@@ -277,7 +294,6 @@ ThreadError Mac::SetExtendedPanId(const uint8_t *aExtPanId)
 ThreadError Mac::SendFrameRequest(Sender &aSender)
 {
     ThreadError error = kThreadError_None;
-    uint32_t backoff;
 
     VerifyOrExit(mState != kStateDisabled &&
                  mSendTail != &aSender && aSender.mNext == NULL,
@@ -297,8 +313,7 @@ ThreadError Mac::SendFrameRequest(Sender &aSender)
     if (mState == kStateIdle)
     {
         mState = kStateTransmitData;
-        backoff = (otRandomGet() % 32) + 1;
-        mBackoffTimer.Start(backoff);
+        StartCsmaBackoff();
     }
 
 exit:
@@ -338,18 +353,19 @@ void Mac::ScheduleNextTransmission(void)
     {
         mActiveScanRequest = false;
         mState = kStateActiveScan;
-        mBackoffTimer.Start(16);
+        StartCsmaBackoff();
     }
     else if (mTransmitBeacon)
     {
         mTransmitBeacon = false;
+        assert(false);
         mState = kStateTransmitBeacon;
-        mBackoffTimer.Start(16);
+        StartCsmaBackoff();
     }
     else if (mSendHead != NULL)
     {
         mState = kStateTransmitData;
-        mBackoffTimer.Start(16);
+        StartCsmaBackoff();
     }
     else
     {
@@ -438,16 +454,16 @@ void Mac::SendBeacon(Frame &aFrame)
     dprintf("Sent Beacon\n");
 }
 
-void Mac::HandleBackoffTimer(void *aContext)
+void Mac::HandleBeginTransmit(void *aContext)
 {
     Mac *obj = reinterpret_cast<Mac *>(aContext);
-    obj->HandleBackoffTimer();
+    obj->HandleBeginTransmit();
 }
 
 void Mac::ProcessTransmitSecurity(void)
 {
     uint8_t securityLevel;
-    uint8_t nonce[13];
+    uint8_t nonce[kNonceSize];
     uint8_t tagLength;
     Crypto::AesCcm aesCcm;
 
@@ -464,10 +480,11 @@ void Mac::ProcessTransmitSecurity(void)
     GenerateNonce(mExtAddress, mKeyManager->GetMacFrameCounter(), securityLevel, nonce);
 
     aesCcm.SetKey(mKeyManager->GetCurrentMacKey(), 16);
-    tagLength = mSendFrame.GetFooterLength() - 2;
+    tagLength = mSendFrame.GetFooterLength() - Frame::kFcsSize;
 
     aesCcm.Init(mSendFrame.GetHeaderLength(), mSendFrame.GetPayloadLength(), tagLength,
                 nonce, sizeof(nonce));
+
     aesCcm.Header(mSendFrame.GetHeader(), mSendFrame.GetHeaderLength());
     aesCcm.Payload(mSendFrame.GetPayload(), mSendFrame.GetPayload(), mSendFrame.GetPayloadLength(), true);
     aesCcm.Finalize(mSendFrame.GetFooter(), &tagLength);
@@ -478,13 +495,13 @@ exit:
     {}
 }
 
-void Mac::HandleBackoffTimer(void)
+void Mac::HandleBeginTransmit(void)
 {
     ThreadError error = kThreadError_None;
 
     if (otRadioIdle() != kThreadError_None)
     {
-        mBackoffTimer.Start(16);
+        mBeginTransmit.Post();
         ExitNow();
     }
 
@@ -520,7 +537,7 @@ void Mac::HandleBackoffTimer(void)
 
     if (mSendFrame.GetAckRequest())
     {
-        mAckTimer.Start(kMacAckTimeout);
+        mAckTimer.Start(kAckTimeout);
         dprintf("ack timer start\n");
     }
 
@@ -553,7 +570,12 @@ void Mac::TransmitDoneTask(void)
 
     if (error != kThreadError_None)
     {
-        mBackoffTimer.Start(16);
+        if (mCsmaAttempts < kMaxCSMABackoffs)
+        {
+            mCsmaAttempts++;
+        }
+
+        StartCsmaBackoff();
         ExitNow();
     }
 
@@ -570,7 +592,7 @@ void Mac::TransmitDoneTask(void)
     case kStateTransmitData:
         if (rxPending)
         {
-            mReceiveTimer.Start(kDataTimeout);
+            mReceiveTimer.Start(kDataPollTimeout);
         }
         else
         {
@@ -607,7 +629,7 @@ void Mac::HandleAckTimer(void)
             mScanChannelMask >>= 1;
             mScanChannel++;
 
-            if (mScanChannelMask == 0 || mScanChannel > 26)
+            if (mScanChannelMask == 0 || mScanChannel > kPhyMaxChannel)
             {
                 mActiveScanHandler(mActiveScanContext, NULL);
                 ScheduleNextTransmission();
@@ -616,7 +638,7 @@ void Mac::HandleAckTimer(void)
         }
         while ((mScanChannelMask & 1) == 0);
 
-        mBackoffTimer.Start(16);
+        StartCsmaBackoff();
         break;
 
     case kStateTransmitData:
@@ -649,7 +671,6 @@ void Mac::SentFrame(bool aAcked)
 {
     Address destination;
     Neighbor *neighbor;
-    uint32_t backoff;
     Sender *sender;
 
     switch (mState)
@@ -667,11 +688,10 @@ void Mac::SentFrame(bool aAcked)
         {
             dump("NO ACK", mSendFrame.GetHeader(), 16);
 
-            if (mAttempts < 12)
+            if (mCsmaAttempts < kMaxCSMABackoffs)
             {
-                mAttempts++;
-                backoff = (otRandomGet() % 32) + 1;
-                mBackoffTimer.Start(backoff);
+                mCsmaAttempts++;
+                StartCsmaBackoff();
                 ExitNow();
             }
 
@@ -682,8 +702,6 @@ void Mac::SentFrame(bool aAcked)
                 neighbor->mState = Neighbor::kStateInvalid;
             }
         }
-
-        mAttempts = 0;
 
         sender = mSendHead;
         mSendHead = mSendHead->mNext;
@@ -704,17 +722,19 @@ void Mac::SentFrame(bool aAcked)
         break;
     }
 
+    mCsmaAttempts = 0;
+
 exit:
     {}
 }
 
-ThreadError Mac::ProcessReceiveSecurity(const Address &aSrcAddr, Neighbor &aNeighbor)
+ThreadError Mac::ProcessReceiveSecurity(const Address &aSrcAddr, Neighbor *aNeighbor)
 {
     ThreadError error = kThreadError_None;
     uint8_t securityLevel;
     uint32_t frameCounter;
-    uint8_t nonce[13];
-    uint8_t tag[16];
+    uint8_t nonce[kNonceSize];
+    uint8_t tag[Frame::kMaxMicSize];
     uint8_t tagLength;
     uint8_t keyid;
     uint32_t keySequence;
@@ -726,14 +746,14 @@ ThreadError Mac::ProcessReceiveSecurity(const Address &aSrcAddr, Neighbor &aNeig
         ExitNow();
     }
 
-    VerifyOrExit(mKeyManager != NULL, error = kThreadError_Security);
+    VerifyOrExit(aNeighbor != NULL && mKeyManager != NULL, error = kThreadError_Security);
 
     mReceiveFrame.GetSecurityLevel(securityLevel);
     mReceiveFrame.GetFrameCounter(frameCounter);
 
     GenerateNonce(aSrcAddr.mExtAddress, frameCounter, securityLevel, nonce);
 
-    tagLength = mReceiveFrame.GetFooterLength() - 2;
+    tagLength = mReceiveFrame.GetFooterLength() - Frame::kFcsSize;
 
     mReceiveFrame.GetKeyId(keyid);
     keyid--;
@@ -743,17 +763,17 @@ ThreadError Mac::ProcessReceiveSecurity(const Address &aSrcAddr, Neighbor &aNeig
         // same key index
         keySequence = mKeyManager->GetCurrentKeySequence();
         macKey = mKeyManager->GetCurrentMacKey();
-        VerifyOrExit(aNeighbor.mPreviousKey == true || frameCounter >= aNeighbor.mValid.mLinkFrameCounter,
+        VerifyOrExit(aNeighbor->mPreviousKey == true || frameCounter >= aNeighbor->mValid.mLinkFrameCounter,
                      error = kThreadError_Security);
     }
-    else if (aNeighbor.mPreviousKey &&
+    else if (aNeighbor->mPreviousKey &&
              mKeyManager->IsPreviousKeyValid() &&
              keyid == (mKeyManager->GetPreviousKeySequence() & 0x7f))
     {
         // previous key index
         keySequence = mKeyManager->GetPreviousKeySequence();
         macKey = mKeyManager->GetPreviousMacKey();
-        VerifyOrExit(frameCounter >= aNeighbor.mValid.mLinkFrameCounter, error = kThreadError_Security);
+        VerifyOrExit(frameCounter >= aNeighbor->mValid.mLinkFrameCounter, error = kThreadError_Security);
     }
     else if (keyid == ((mKeyManager->GetCurrentKeySequence() + 1) & 0x7f))
     {
@@ -788,10 +808,10 @@ ThreadError Mac::ProcessReceiveSecurity(const Address &aSrcAddr, Neighbor &aNeig
 
     if (keySequence == mKeyManager->GetCurrentKeySequence())
     {
-        aNeighbor.mPreviousKey = false;
+        aNeighbor->mPreviousKey = false;
     }
 
-    aNeighbor.mValid.mLinkFrameCounter = frameCounter + 1;
+    aNeighbor->mValid.mLinkFrameCounter = frameCounter + 1;
 
 exit:
     return error;
@@ -828,13 +848,13 @@ void Mac::ReceiveDoneTask(void)
     case 0:
         break;
 
-    case 2:
+    case sizeof(ShortAddress):
         VerifyOrExit(neighbor != NULL, dprintf("drop not neighbor\n"));
-        srcaddr.mLength = 8;
+        srcaddr.mLength = sizeof(srcaddr.mExtAddress);
         memcpy(&srcaddr.mExtAddress, &neighbor->mMacAddr, sizeof(srcaddr.mExtAddress));
         break;
 
-    case 8:
+    case sizeof(ExtAddress):
         break;
 
     default:
@@ -860,14 +880,14 @@ void Mac::ReceiveDoneTask(void)
     case 0:
         break;
 
-    case 2:
+    case sizeof(ShortAddress):
         mReceiveFrame.GetDstPanId(panid);
         VerifyOrExit((panid == kShortAddrBroadcast || panid == mPanId) &&
                      ((mRxOnWhenIdle && dstaddr.mShortAddress == kShortAddrBroadcast) ||
                       dstaddr.mShortAddress == mShortAddress), ;);
         break;
 
-    case 8:
+    case sizeof(ExtAddress):
         mReceiveFrame.GetDstPanId(panid);
         VerifyOrExit(panid == mPanId &&
                      memcmp(&dstaddr.mExtAddress, &mExtAddress, sizeof(dstaddr.mExtAddress)) == 0, ;);
@@ -875,7 +895,7 @@ void Mac::ReceiveDoneTask(void)
     }
 
     // Security Processing
-    SuccessOrExit(ProcessReceiveSecurity(srcaddr, *neighbor));
+    SuccessOrExit(ProcessReceiveSecurity(srcaddr, neighbor));
 
     switch (mState)
     {
@@ -984,9 +1004,10 @@ ThreadError Mac::HandleMacCommand(void)
 
         if (mState == kStateIdle)
         {
+            assert(false);
             mState = kStateTransmitBeacon;
             mTransmitBeacon = false;
-            mBackoffTimer.Start(16);
+            mBackoffTimer.Start(kMinBackoff);
         }
 
         ExitNow(error = kThreadError_Drop);

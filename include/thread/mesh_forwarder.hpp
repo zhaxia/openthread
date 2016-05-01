@@ -22,6 +22,7 @@
 #ifndef MESH_FORWARDER_HPP_
 #define MESH_FORWARDER_HPP_
 
+#include <openthread-core-config.h>
 #include <common/tasklet.hpp>
 #include <common/thread_error.hpp>
 #include <mac/mac.hpp>
@@ -36,7 +37,7 @@ namespace Thread {
 
 enum
 {
-    kReassemblyTimeout = 5,  // seconds
+    kReassemblyTimeout = OPENTHREAD_CONFIG_6LOWPAN_REASSEMBLY_TIMEOUT,
 };
 
 class MleRouter;
@@ -122,6 +123,11 @@ public:
     void SetPollPeriod(uint32_t aPeriod);
 
 private:
+    enum
+    {
+        kStateUpdatePeriod = 1000,  ///< State update period in milliseconds.
+    };
+
     ThreadError CheckReachability(uint8_t *aFrame, uint8_t aFrameLength,
                                   const Mac::Address &aMeshSource, const Mac::Address &aMeshDest);
     ThreadError GetMacDestinationAddress(const Ip6::Address &aIp6Addr, Mac::Address &aMacAddr);
@@ -130,11 +136,11 @@ private:
     Message *GetIndirectTransmission(const Child &aChild);
     void HandleMesh(uint8_t *aFrame, uint8_t aPayloadLength, const ThreadMessageInfo &aMessageInfo);
     void HandleFragment(uint8_t *aFrame, uint8_t aPayloadLength,
-			const Mac::Address &aMacSource, const Mac::Address &aMacDest,
-			const ThreadMessageInfo &aMessageInfo);
+                        const Mac::Address &aMacSource, const Mac::Address &aMacDest,
+                        const ThreadMessageInfo &aMessageInfo);
     void HandleLowpanHC(uint8_t *aFrame, uint8_t aPayloadLength,
-			const Mac::Address &aMacSource, const Mac::Address &aMacDest,
-			const ThreadMessageInfo &aMessageInfo);
+                        const Mac::Address &aMacSource, const Mac::Address &aMacDest,
+                        const ThreadMessageInfo &aMessageInfo);
     void HandleDataRequest(const Mac::Address &aMacSource);
     void MoveToResolving(const Ip6::Address &aDestination);
     ThreadError SendPoll(Message &aMessage, Mac::Frame &aFrame);

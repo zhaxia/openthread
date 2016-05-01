@@ -221,11 +221,16 @@ private:
                                     uint8_t *aPrefixMatch, uint16_t *aRloc16);
     ThreadError DefaultRouteLookup(PrefixTlv &aPrefix, uint16_t *aRloc16);
 
+    /**
+     * Thread Specification Constants
+     *
+     */
     enum
     {
-        kMinContextId = 1,
-        kNumContextIds = 15,
-        kContextIdReuseDelay = 48 * 60 * 60,
+        kMinContextId        = 1,             ///< Minimum Context ID (0 is used for Mesh Local)
+        kNumContextIds       = 15,            ///< Maximum Context ID
+        kContextIdReuseDelay = 48 * 60 * 60,  ///< CONTEXT_ID_REUSE_DELAY (seconds)
+        kStateUpdatePeriod   = 1000,          ///< State update period in milliseconds
     };
     uint16_t mContextUsed = 0;
     uint32_t mContextLastUsed[kNumContextIds];

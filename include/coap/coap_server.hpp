@@ -72,7 +72,7 @@ public:
 
 private:
     void HandleRequest(Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo) {
-	mHandler(mContext, aHeader, aMessage, aMessageInfo);
+        mHandler(mContext, aHeader, aMessage, aMessageInfo);
     }
 
     const char *mUriPath;
@@ -130,6 +130,11 @@ public:
     ThreadError SendMessage(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
 private:
+    enum
+    {
+        kMaxReceivedUriPath = 32,   ///< Maximum supported URI path on received messages.
+    };
+
     static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
     void HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 

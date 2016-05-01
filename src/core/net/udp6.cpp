@@ -32,14 +32,14 @@ using Thread::Encoding::BigEndian::HostSwap16;
 namespace Thread {
 namespace Ip6 {
 
-static UdpSocket *sSockets = NULL;
-static uint16_t sEphemeralPort = 49152;
+UdpSocket *Udp::sSockets = NULL;
+uint16_t Udp::sEphemeralPort = kDynamicPortMin;
 
 ThreadError UdpSocket::Open(otUdpReceive aHandler, void *aContext)
 {
     ThreadError error = kThreadError_None;
 
-    for (UdpSocket *cur = sSockets; cur; cur = cur->GetNext())
+    for (UdpSocket *cur = Udp::sSockets; cur; cur = cur->GetNext())
     {
         if (cur == this)
         {
@@ -52,8 +52,8 @@ ThreadError UdpSocket::Open(otUdpReceive aHandler, void *aContext)
     mHandler = aHandler;
     mContext = aContext;
 
-    SetNext(sSockets);
-    sSockets = this;
+    SetNext(Udp::sSockets);
+    Udp::sSockets = this;
 
 exit:
     return error;
@@ -67,13 +67,13 @@ ThreadError UdpSocket::Bind(const SockAddr &aSockAddr)
 
 ThreadError UdpSocket::Close(void)
 {
-    if (sSockets == this)
+    if (Udp::sSockets == this)
     {
-        sSockets = sSockets->GetNext();
+        Udp::sSockets = Udp::sSockets->GetNext();
     }
     else
     {
-        for (UdpSocket *socket = sSockets; socket; socket = socket->GetNext())
+        for (UdpSocket *socket = Udp::sSockets; socket; socket = socket->GetNext())
         {
             if (socket->GetNext() == this)
             {
@@ -105,7 +105,16 @@ ThreadError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo
 
     if (GetSockName().mPort == 0)
     {
-        GetSockName().mPort = sEphemeralPort++;
+        GetSockName().mPort = Udp::sEphemeralPort;
+
+        if (Udp::sEphemeralPort < Udp::kDynamicPortMax)
+        {
+            Udp::sEphemeralPort++;
+        }
+        else
+        {
+            Udp::sEphemeralPort = Udp::kDynamicPortMin;
+        }
     }
 
     udpHeader.SetSourcePort(GetSockName().mPort);
@@ -150,7 +159,7 @@ ThreadError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
     aMessageInfo.mSockPort = udpHeader.GetDestinationPort();
 
     // find socket
-    for (UdpSocket *socket = sSockets; socket; socket = socket->GetNext())
+    for (UdpSocket *socket = Udp::sSockets; socket; socket = socket->GetNext())
     {
         if (socket->GetSockName().mPort != udpHeader.GetDestinationPort())
         {

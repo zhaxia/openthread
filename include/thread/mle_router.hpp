@@ -310,6 +310,11 @@ public:
     ThreadError SendLinkReject(const Ip6::Address &aDestination);
 
 private:
+    enum
+    {
+        kStateUpdatePeriod = 1000u,  ///< State update period in milliseconds.
+    };
+
     ThreadError AppendConnectivity(Message &aMessage);
     ThreadError AppendChildAddresses(Message &aMessage, Child &aChild);
     ThreadError AppendRoute(Message &aMessage);
