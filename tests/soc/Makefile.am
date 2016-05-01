@@ -55,9 +55,38 @@ check_SCRIPTS                                                      = \
     scripts/Cert_5_3_07_DuplicateAddress.py                          \
     scripts/Cert_5_3_08_ChildAddressSet.py                           \
     scripts/Cert_5_5_01_LeaderReset.py                               \
+    scripts/Cert_5_6_01_NetworkDataRegisterBeforeAttachLeader.py     \
+    scripts/Cert_5_6_02_NetworkDataRegisterBeforeAttachRouter.py     \
+    scripts/Cert_5_6_03_NetworkDataRegisterAfterAttachLeader.py      \
+    scripts/Cert_5_6_04_NetworkDataRegisterAfterAttachRouter.py      \
+    scripts/Cert_5_6_05_NetworkDataRegisterAfterAttachRouter.py      \
+    scripts/Cert_5_6_06_NetworkDataExpiration.py                     \
+    scripts/Cert_5_6_07_NetworkDataRequestREED.py                    \
+    scripts/Cert_5_6_08_ContextManagement.py                         \
+    scripts/Cert_5_6_09_NetworkDataForwarding.py                     \
     scripts/Cert_5_8_01_KeySynchronization.py                        \
     scripts/Cert_5_8_02_KeyIncrement.py                              \
     scripts/Cert_5_8_03_KeyIncrementRollOver.py                      \
+    scripts/Cert_6_1_01_RouterAttach.py                              \
+    scripts/Cert_6_1_02_REEDAttach.py                                \
+    scripts/Cert_6_1_03_RouterAttachConnectivity.py                  \
+    scripts/Cert_6_1_04_REEDAttachConnectivity.py                    \
+    scripts/Cert_6_1_05_RouterAttachLinkQuality.py                   \
+    scripts/Cert_6_1_06_REEDAttachLinkQuality.py                     \
+    scripts/Cert_6_1_07_EDSynchronization.py                         \
+    scripts/Cert_6_3_01_OrphanReattach.py                            \
+    scripts/Cert_6_3_02_NetworkDataUpdate.py                         \
+    scripts/Cert_6_4_01_LinkLocal.py                                 \
+    scripts/Cert_6_4_02_RealmLocal.py                                \
+    scripts/Cert_6_5_01_ChildResetSynchronize.py                     \
+    scripts/Cert_6_5_02_ChildResetReattach.py                        \
+    scripts/Cert_6_6_01_KeyIncrement.py                              \
+    scripts/Cert_6_6_02_KeyIncrementRollOver.py                      \
+    scripts/Cert_7_1_01_BorderRouterAsLeader.py                      \
+    scripts/Cert_7_1_02_BorderRouterAsRouter.py                      \
+    scripts/Cert_7_1_03_BorderRouterAsLeader.py                      \
+    scripts/Cert_7_1_04_BorderRouterAsRouter.py                      \
+    scripts/Cert_7_1_05_BorderRouterAsRouter.py                      \
     $(NULL)
 
 # List all other non-essential program and script tests that MAY be run.
@@ -75,11 +104,20 @@ check_SCRIPTS                                                     += \
     scripts/Cert_5_3_05_RoutingLinkQuality.py                        \
     scripts/Cert_5_3_06_RouterIdMask.py                              \
     scripts/Cert_5_3_10_AddressQuery.py                              \
+    scripts/Cert_5_5_02_LeaderReboot.py                              \
+    scripts/Cert_5_5_03_SplitMergeChildren.py                        \
+    scripts/Cert_5_5_04_SplitMergeRouters.py                         \
+    scripts/Cert_5_5_06_SplitWeight.py                               \
+    scripts/Cert_5_5_07_SplitMergeThreeWay.py                        \
+    scripts/Cert_5_5_08_SplitRoutersLostLeader.py                    \
+    scripts/Cert_6_2_01_NewPartition.py                              \
+    scripts/Cert_6_2_02_NewPartition.py                              \
     $(NULL)
 
 #  Failing
 #    scripts/Cert_5_1_04_RouterAddressReallocation.py                 \
 #    scripts/Cert_5_1_05_RouterAddressTimeout.py                      \
+#    scripts/Cert_5_5_05_SplitMergeREED.py                            \
 #    $(NULL)
 
 endif # OPENTHREAD_WITH_ESSENTIAL_TESTS_ONLY
