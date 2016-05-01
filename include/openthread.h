@@ -372,7 +372,7 @@ typedef struct otIp6Address
         uint16_t m16[kIp6AddressSize / sizeof(uint16_t)];
         uint32_t m32[kIp6AddressSize / sizeof(uint32_t)];
     };
-} otIp6Address;
+} __attribute__((packed)) otIp6Address;
 
 /**
  * This structure represents an IPv6 prefix.

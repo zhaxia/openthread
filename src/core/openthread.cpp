@@ -353,7 +353,7 @@ ThreadError otBecomeLeader()
 
 otDeviceRole otGetDeviceRole()
 {
-    otDeviceRole rval;
+    otDeviceRole rval = kDeviceRoleDisabled;
 
     switch (sThreadNetif.GetMle()->GetDeviceState())
     {

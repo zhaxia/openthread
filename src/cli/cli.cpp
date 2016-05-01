@@ -131,7 +131,7 @@ ThreadError Interpreter::ParseLong(char *argv, long &value)
 
 void Interpreter::ProcessHelp(int argc, char *argv[])
 {
-    for (int i = 0; i < sizeof(sCommands) / sizeof(sCommands[0]); i++)
+    for (unsigned int i = 0; i < sizeof(sCommands) / sizeof(sCommands[0]); i++)
     {
         sResponse.Append("%s\n", sCommands[i].mName);
     }
@@ -975,7 +975,7 @@ void Interpreter::ProcessLine(char *aBuf, uint16_t aBufLength, Server &aServer)
 
     sResponse.Init();
 
-    for (int i = 0; i < sizeof(sCommands) / sizeof(sCommands[0]); i++)
+    for (unsigned int i = 0; i < sizeof(sCommands) / sizeof(sCommands[0]); i++)
     {
         if (strcmp(cmd, sCommands[i].mName) == 0)
         {

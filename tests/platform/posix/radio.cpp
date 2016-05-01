@@ -344,6 +344,8 @@ void *phy_receive_thread(void *arg)
 
         pthread_mutex_unlock(&s_mutex);
     }
+
+    return NULL;
 }
 
 void send_ack()
