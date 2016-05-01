@@ -1,3 +1,6 @@
+OpenThread [![Build Status](https://travis-ci.org/openthread/openthread.svg?branch=master)]
+==========
+
 # Summary
 
 OpenThread is an open-source implementation of the Thread open standard.
