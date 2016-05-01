@@ -54,12 +54,7 @@ static const uint32_t K[64] =
 #define Gamma0(x)       (S((x), 7) ^ S((x), 18) ^ R((x), 3))
 #define Gamma1(x)       (S((x), 17) ^ S((x), 19) ^ R((x), 10))
 
-uint16_t Sha256::GetSize() const
-{
-    return kHashSize;
-}
-
-ThreadError Sha256::Init()
+void Sha256::Init(void)
 {
     mLengthLo = 0;
     mLengthHi = 0;
@@ -73,15 +68,13 @@ ThreadError Sha256::Init()
     mHash[5] = 0x9B05688CUL;
     mHash[6] = 0x1F83D9ABUL;
     mHash[7] = 0x5BE0CD19UL;
-
-    return kThreadError_None;
 }
 
-ThreadError Sha256::Input(const void *buf, uint16_t bufLength)
+void Sha256::Input(const void *aBuf, uint16_t aBufLength)
 {
-    const uint8_t *bytes = reinterpret_cast<const uint8_t *>(buf);
+    const uint8_t *bytes = reinterpret_cast<const uint8_t *>(aBuf);
 
-    while (bufLength--)
+    while (aBufLength--)
     {
         mBlock[mBlockIndex] = *bytes++;
         mBlockIndex++;
@@ -97,12 +90,10 @@ ThreadError Sha256::Input(const void *buf, uint16_t bufLength)
             ProcessBlock();
         }
     }
-
-    return kThreadError_None;
 }
 
 
-ThreadError Sha256::Finalize(uint8_t *hash)
+void Sha256::Finalize(uint8_t *aHash)
 {
     PadMessage();
 
@@ -112,13 +103,11 @@ ThreadError Sha256::Finalize(uint8_t *hash)
 
     for (int i = 0; i < kHashSize; i++)
     {
-        hash[i] = mHash[i >> 2] >> (8 * (3 - (i & 0x03)));
+        aHash[i] = mHash[i >> 2] >> (8 * (3 - (i & 0x03)));
     }
-
-    return kThreadError_None;
 }
 
-void Sha256::PadMessage()
+void Sha256::PadMessage(void)
 {
     mBlock[mBlockIndex++] = 0x80;
 
@@ -149,7 +138,7 @@ void Sha256::PadMessage()
     ProcessBlock();
 }
 
-void Sha256::ProcessBlock()
+void Sha256::ProcessBlock(void)
 {
     uint32_t S[8], W[64], t0, t1;
     uint32_t t;

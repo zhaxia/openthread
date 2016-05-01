@@ -196,8 +196,6 @@ protected:
      *                             resulting Network Data in bytes.
      * @param[inout]  aPrefix      A reference to the Prefix TLV to modify.
      *
-     * @retval
-     *
      */
     void RemoveTemporaryData(uint8_t *aData, uint8_t &aDataLength, PrefixTlv &aPrefix);
 

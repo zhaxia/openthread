@@ -37,22 +37,52 @@ namespace Crypto {
  *
  */
 
+/**
+ * This class implements SHA-256.
+ *
+ */
 class Sha256: public Hash
 {
 public:
     enum
     {
-        kHashSize = 32,
+        kHashSize = 32,  ///< The hash size in bytes.
     };
 
-    uint16_t GetSize() const final;
-    ThreadError Init() final;
-    ThreadError Input(const void *buf, uint16_t bufLength) final;
-    ThreadError Finalize(uint8_t *hash) final;
+    /**
+     * This method returns the hash size.
+     *
+     * @returns The hash size.
+     *
+     */
+    uint16_t GetSize(void) const final { return kHashSize; };
+
+    /**
+     * This method initializes the hash computation.
+     *
+     */
+    void Init(void) final;
+
+    /**
+     * This method inputs data into the hash.
+     *
+     * @param[in]  aBuf        A pointer to the input buffer.
+     * @param[in]  aBufLength  The length of @p aBuf in bytes.
+     *
+     */
+    void Input(const void *aBuf, uint16_t aBufLength) final;
+
+    /**
+     * This method finalizes the hash computation.
+     *
+     * @param[out]  aHash  A pointer to the output buffer.
+     *
+     */
+    void Finalize(uint8_t *aHash) final;
 
 private:
-    void PadMessage();
-    void ProcessBlock();
+    void PadMessage(void);
+    void ProcessBlock(void);
 
     uint32_t mHash[kHashSize / sizeof(uint32_t)];
     uint32_t mLengthLo;

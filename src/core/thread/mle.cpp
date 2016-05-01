@@ -1097,7 +1097,6 @@ ThreadError Mle::SendMessage(Message &aMessage, const Ip6::Address &aDestination
     uint8_t nonce[13];
     uint8_t tag[4];
     uint8_t tagLength;
-    Crypto::AesEcb aesEcb;
     Crypto::AesCcm aesCcm;
     uint8_t buf[64];
     int length;
@@ -1113,8 +1112,8 @@ ThreadError Mle::SendMessage(Message &aMessage, const Ip6::Address &aDestination
 
     GenerateNonce(*mMac->GetExtAddress(), mKeyManager->GetMleFrameCounter(), Mac::Frame::kSecEncMic32, nonce);
 
-    aesEcb.SetKey(mKeyManager->GetCurrentMleKey(), 16);
-    aesCcm.Init(aesEcb, 16 + 16 + header.GetHeaderLength(), aMessage.GetLength() - (header.GetLength() - 1),
+    aesCcm.SetKey(mKeyManager->GetCurrentMleKey(), 16);
+    aesCcm.Init(16 + 16 + header.GetHeaderLength(), aMessage.GetLength() - (header.GetLength() - 1),
                 sizeof(tag), nonce, sizeof(nonce));
 
     aesCcm.Header(&mLinkLocal64.GetAddress(), sizeof(mLinkLocal64.GetAddress()));
@@ -1167,7 +1166,6 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     uint8_t messageTagLength;
     uint8_t nonce[13];
     Mac::ExtAddress macAddr;
-    Crypto::AesEcb aesEcb;
     Crypto::AesCcm aesCcm;
     uint16_t mleOffset;
     uint8_t buf[64];
@@ -1238,8 +1236,8 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     macAddr.mBytes[0] ^= 0x2;
     GenerateNonce(macAddr, frameCounter, Mac::Frame::kSecEncMic32, nonce);
 
-    aesEcb.SetKey(mleKey, 16);
-    aesCcm.Init(aesEcb, sizeof(aMessageInfo.GetPeerAddr()) + sizeof(aMessageInfo.GetSockAddr()) + header.GetHeaderLength(),
+    aesCcm.SetKey(mleKey, 16);
+    aesCcm.Init(sizeof(aMessageInfo.GetPeerAddr()) + sizeof(aMessageInfo.GetSockAddr()) + header.GetHeaderLength(),
                 aMessage.GetLength() - aMessage.GetOffset(), sizeof(messageTag), nonce, sizeof(nonce));
     aesCcm.Header(&aMessageInfo.GetPeerAddr(), sizeof(aMessageInfo.GetPeerAddr()));
     aesCcm.Header(&aMessageInfo.GetSockAddr(), sizeof(aMessageInfo.GetSockAddr()));

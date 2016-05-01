@@ -832,7 +832,7 @@ protected:
      *
      * @param[in]  aDestination  The RLOC16 of the destination.
      *
-     * @retuns A RLOC16 of the next hop if a route is known, kInvalidRloc16 otherwise.
+     * @returns A RLOC16 of the next hop if a route is known, kInvalidRloc16 otherwise.
      *
      */
     Mac::ShortAddress GetNextHop(uint16_t aDestination) const;

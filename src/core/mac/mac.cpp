@@ -449,7 +449,6 @@ void Mac::ProcessTransmitSecurity(void)
     uint8_t securityLevel;
     uint8_t nonce[13];
     uint8_t tagLength;
-    Crypto::AesEcb aesEcb;
     Crypto::AesCcm aesCcm;
 
     if (mSendFrame.GetSecurityEnabled() == false)
@@ -464,10 +463,10 @@ void Mac::ProcessTransmitSecurity(void)
 
     GenerateNonce(mExtAddress, mKeyManager->GetMacFrameCounter(), securityLevel, nonce);
 
-    aesEcb.SetKey(mKeyManager->GetCurrentMacKey(), 16);
+    aesCcm.SetKey(mKeyManager->GetCurrentMacKey(), 16);
     tagLength = mSendFrame.GetFooterLength() - 2;
 
-    aesCcm.Init(aesEcb, mSendFrame.GetHeaderLength(), mSendFrame.GetPayloadLength(), tagLength,
+    aesCcm.Init(mSendFrame.GetHeaderLength(), mSendFrame.GetPayloadLength(), tagLength,
                 nonce, sizeof(nonce));
     aesCcm.Header(mSendFrame.GetHeader(), mSendFrame.GetHeaderLength());
     aesCcm.Payload(mSendFrame.GetPayload(), mSendFrame.GetPayload(), mSendFrame.GetPayloadLength(), true);
@@ -720,7 +719,6 @@ ThreadError Mac::ProcessReceiveSecurity(const Address &aSrcAddr, Neighbor &aNeig
     uint8_t keyid;
     uint32_t keySequence;
     const uint8_t *macKey;
-    Crypto::AesEcb aesEcb;
     Crypto::AesCcm aesCcm;
 
     if (mReceiveFrame.GetSecurityEnabled() == false)
@@ -773,8 +771,8 @@ ThreadError Mac::ProcessReceiveSecurity(const Address &aSrcAddr, Neighbor &aNeig
         ExitNow(error = kThreadError_Security);
     }
 
-    aesEcb.SetKey(macKey, 16);
-    aesCcm.Init(aesEcb, mReceiveFrame.GetHeaderLength(), mReceiveFrame.GetPayloadLength(),
+    aesCcm.SetKey(macKey, 16);
+    aesCcm.Init(mReceiveFrame.GetHeaderLength(), mReceiveFrame.GetPayloadLength(),
                 tagLength, nonce, sizeof(nonce));
     aesCcm.Header(mReceiveFrame.GetHeader(), mReceiveFrame.GetHeaderLength());
     aesCcm.Payload(mReceiveFrame.GetPayload(), mReceiveFrame.GetPayload(), mReceiveFrame.GetPayloadLength(),
