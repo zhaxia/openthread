@@ -28,15 +28,15 @@ class Node:
     def __init__(self, nodeid):
         self.nodeid = nodeid
         self.pp = pprint.PrettyPrinter(indent=4)
-
+        self.verbose = int(float(os.getenv('VERBOSE', 0)))
         self.node_type = os.getenv('NODE_TYPE', 'sim')
+
         if self.node_type == 'soc':
             self.__init_soc(nodeid)
         else:
             self.__init_sim(nodeid)
 
-        self.verbose = os.getenv('VERBOSE', 0)
-        if self.verbose: 
+        if self.verbose:
             self.pexpect.logfile_read = sys.stdout
 
         self.clear_whitelist()
@@ -52,10 +52,12 @@ class Node:
             cmd = './soc'
         cmd += ' --nodeid=%d' % nodeid
 
-        FNULL = open(os.devnull, 'w')
-        self.node_process = subprocess.Popen(cmd.split(), stdout = FNULL)
-        #self.node_process = subprocess.Popen(cmd.split(), stdout = sys.stdout)
-	
+        if self.verbose:
+            self.node_process = subprocess.Popen(cmd.split())
+        else:
+            self.node_process = subprocess.Popen(cmd.split(),
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
 	time.sleep(0.5)
 
         cmd = 'nc -u 127.0.0.1 %d' % (8000 + nodeid)
@@ -74,7 +76,15 @@ class Node:
             self.send_command('shutdown')
             self.pexpect.expect('Done')
             self.node_process.wait()
-        self.pexpect.close()
+
+        self.pexpect.terminate()
+        self.pexpect.close(force=True)
+
+    def get_stdout(self):
+        return self.node_process.stdout.read()
+
+    def get_stderr(self):
+        return self.node_process.stderr.read()
 
     def send_command(self, cmd):
         print self.nodeid, ":", cmd
