@@ -219,7 +219,7 @@ public:
      *
      */
     const char *ToString(char *aBuf, uint16_t aSize) const;
-};
+} __attribute__((packed));
 
 /**
  * @}

@@ -1284,7 +1284,7 @@ private:
     {
         uint8_t mIid[8];
         Ip6::Address mIp6Address;
-    };
+    } __attribute__((packed));
 } __attribute__((packed));
 
 /**
