@@ -1,7 +1,5 @@
-#!/bin/sh
-
 #
-#    Copyright 2016 Nest Labs Inc. All Rights Reserved.
+#    Copyright 2014-2016 Nest Labs Inc. All Rights Reserved.
 #
 #    Licensed under the Apache License, Version 2.0 (the "License");
 #    you may not use this file except in compliance with the License.
@@ -15,20 +13,23 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+
+#
 #    Description:
-#      This file is a trampoline script to the nlbuild-autotools
-#      bootstrap script and augments it by providing the path to the
-#      nlbuild-autotools repository for this project.
+#      This file defines automake variables common to all other
+#      automake headers and files for silent-rules-style (V=[0|1]) build
+#      verbosity output.
 #
 
-# Set this to the relative location of nlbuild-autotools to this script
+AM_V_LN_S       = $(am__v_LN_S_$(V))
+am__v_LN_S_     = $(am__v_LN_S_$(AM_DEFAULT_VERBOSITY))
+am__v_LN_S_0    = @echo "  LN       $(@)";
+am__v_LN_S_1    = 
 
-nlbuild_autotools_stem="third_party/nlbuild-autotools"
+AM_V_MKDIR_P    = $(am__v_MKDIR_P_$(V))
+am__v_MKDIR_P_  = $(am__v_MKDIR_P_$(AM_DEFAULT_VERBOSITY))
+am__v_MKDIR_P_0 = @echo "  MKDIR    $(@)";
+am__v_MKDIR_P_1 = 
 
-# Establish some key directories
 
-srcdir=`dirname ${0}`
-abs_srcdir=`pwd`
-abs_top_srcdir="${abs_srcdir}"
 
-exec ${srcdir}/${nlbuild_autotools_stem}/scripts/bootstrap -I "${abs_top_srcdir}/${nlbuild_autotools_stem}" $*

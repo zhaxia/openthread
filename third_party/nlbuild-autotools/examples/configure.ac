@@ -18,6 +18,12 @@
 #
 
 #
+#    Description:
+#      This file is the GNU autoconf input source file for
+#      @PACKAGE_DESCRIPTION@.
+#
+
+#
 # Declare autoconf version requirements
 #
 AC_PREREQ([2.68])
@@ -25,20 +31,20 @@ AC_PREREQ([2.68])
 #
 # Initialize autoconf for the package
 #
-AC_INIT([OPENTHREAD],
-        m4_esyscmd([third_party/nlbuild-autotools/scripts/mkversion -b `cat .default-version` .]),
+AC_INIT([@PACKAGE_SHORT_UPPER@],
+        m4_esyscmd([@NLBUILD_AUTOTOOLS_STEM@/scripts/mkversion -b `cat .default-version` .]),
         [@PACKAGE_EMAIL@],
-        [openthread],
+        [@PACKAGE_SHORT_LOWER@],
         [@PACKAGE_URL@])
 
 # Tell the rest of the build system the absolute path where the
 # nlbuild-autotools repository is rooted at.
 
-AC_SUBST(nlbuild_autotools_stem,[third_party/nlbuild-autotools])
+AC_SUBST(nlbuild_autotools_stem,[@NLBUILD_AUTOTOOLS_STEM@])
 AC_SUBST(abs_top_nlbuild_autotools_dir,[\${abs_top_srcdir}/\${nlbuild_autotools_stem}])
 
 #
-# OPENTHREAD interface current, revision, and age versions.
+# @PACKAGE_SHORT_UPPER@ interface current, revision, and age versions.
 #
 # Maintainters: Please manage these fields as follows:
 #
@@ -47,33 +53,33 @@ AC_SUBST(abs_top_nlbuild_autotools_dir,[\${abs_top_srcdir}/\${nlbuild_autotools_
 #   No interfaces changed:                     REVISION++
 #
 #
-AC_SUBST(LIBOPENTHREAD_VERSION_CURRENT,  [1])
-AC_SUBST(LIBOPENTHREAD_VERSION_AGE,      [0])
-AC_SUBST(LIBOPENTHREAD_VERSION_REVISION, [0])
-AC_SUBST(LIBOPENTHREAD_VERSION_INFO,     [${LIBOPENTHREAD_VERSION_CURRENT}:${LIBOPENTHREAD_VERSION_REVISION}:${LIBOPENTHREAD_VERSION_AGE}])
+AC_SUBST(LIB@PACKAGE_SHORT_UPPER@_VERSION_CURRENT,  [1])
+AC_SUBST(LIB@PACKAGE_SHORT_UPPER@_VERSION_AGE,      [0])
+AC_SUBST(LIB@PACKAGE_SHORT_UPPER@_VERSION_REVISION, [0])
+AC_SUBST(LIB@PACKAGE_SHORT_UPPER@_VERSION_INFO,     [${LIB@PACKAGE_SHORT_UPPER@_VERSION_CURRENT}:${LIB@PACKAGE_SHORT_UPPER@_VERSION_REVISION}:${LIB@PACKAGE_SHORT_UPPER@_VERSION_AGE}])
 
 #
 # Check the sanity of the source directory by checking for the
 # presence of a key watch file
 #
-AC_CONFIG_SRCDIR([include/thread/thread_netif.hpp])
+AC_CONFIG_SRCDIR([include/@PACKAGE_SHORT_LOWER@.h])
 
 #
 # Tell autoconf where to find auxilliary build tools (e.g. config.guess,
 # install-sh, missing, etc.)
 #
-AC_CONFIG_AUX_DIR([third_party/nlbuild-autotools/autoconf])
+AC_CONFIG_AUX_DIR([@NLBUILD_AUTOTOOLS_STEM@/autoconf])
 
 #
 # Tell autoconf where to find auxilliary M4 macros
 #
-AC_CONFIG_MACRO_DIR([third_party/nlbuild-autotools/autoconf/m4])
+AC_CONFIG_MACRO_DIR([@NLBUILD_AUTOTOOLS_STEM@/autoconf/m4])
 
 #
 # Tell autoconf what file the package is using to aggregate C preprocessor
 # defines.
 #
-AC_CONFIG_HEADERS([include/openthread-config.h])
+AC_CONFIG_HEADERS([include/@PACKAGE_SHORT_LOWER@-config.h])
 
 #
 # Figure out what the canonical build, host and target tuples are.
@@ -118,32 +124,6 @@ AM_SILENT_RULES([yes])
 # Use the included 'bootstrap' script instead when necessary.
 #
 AM_MAINTAINER_MODE
-
-#
-# Check for target
-#
-
-case ${target_os} in
-
-    *darwin*)
-        OPENTHREAD_TARGET=darwin
-        OPENTHREAD_TARGET_DEFINES="-DOPENTHREAD_TARGET_DARWIN"
-        ;;
-
-    *linux*)
-        OPENTHREAD_TARGET=linux
-        OPENTHREAD_TARGET_DEFINES="-DOPENTHREAD_TARGET_LINUX"
-        ;;
-
-esac
-
-AC_SUBST(OPENTHREAD_TARGET_DARWIN)
-AM_CONDITIONAL([OPENTHREAD_TARGET_DARWIN], [test "${OPENTHREAD_TARGET}" = "darwin"])
-
-AC_SUBST(OPENTHREAD_TARGET_LINUX)
-AM_CONDITIONAL([OPENTHREAD_TARGET_LINUX], [test "${OPENTHREAD_TARGET}" = "linux"])
-
-AC_SUBST(OPENTHREAD_TARGET_DEFINES)
 
 #
 # Checks for build host programs
@@ -233,7 +213,7 @@ AC_MSG_NOTICE([checking whether to build debug instances])
 
 NL_ENABLE_DEBUG([no])
 
-AM_CONDITIONAL([OPENTHREAD_BUILD_DEBUG], [test "${nl_cv_build_debug}" = "yes"])
+AM_CONDITIONAL([@PACKAGE_SHORT_UPPER@_BUILD_DEBUG], [test "${nl_cv_build_debug}" = "yes"])
 
 #
 # Code coverage and compiler optimization
@@ -243,17 +223,17 @@ AM_CONDITIONAL([OPENTHREAD_BUILD_DEBUG], [test "${nl_cv_build_debug}" = "yes"])
 
 NL_ENABLE_COVERAGE([no])
 
-AM_CONDITIONAL([OPENTHREAD_BUILD_COVERAGE], [test "${nl_cv_build_coverage}" = "yes"])
+AM_CONDITIONAL([@PACKAGE_SHORT_UPPER@_BUILD_COVERAGE], [test "${nl_cv_build_coverage}" = "yes"])
 
 NL_ENABLE_COVERAGE_REPORTS([auto])
 
-AM_CONDITIONAL([OPENTHREAD_BUILD_COVERAGE_REPORTS], [test "${nl_cv_build_coverage_reports}" = "yes"])
+AM_CONDITIONAL([@PACKAGE_SHORT_UPPER@_BUILD_COVERAGE_REPORTS], [test "${nl_cv_build_coverage_reports}" = "yes"])
 
 # Optimization
 
 NL_ENABLE_OPTIMIZATION([yes])
 
-AM_CONDITIONAL([OPENTHREAD_BUILD_OPTIMIZED], [test "${nl_cv_build_optimized}" = "yes"])
+AM_CONDITIONAL([@PACKAGE_SHORT_UPPER@_BUILD_OPTIMIZED], [test "${nl_cv_build_optimized}" = "yes"])
 
 #
 # Tests
@@ -264,55 +244,7 @@ AC_MSG_NOTICE([checking whether to build tests])
 
 NL_ENABLE_TESTS([yes])
 
-AM_CONDITIONAL([OPENTHREAD_BUILD_TESTS], [test "${nl_cv_build_tests}" = "yes"])
-
-# Check whether to run only the minimum set of tests.
-
-AC_MSG_CHECKING([whether to run only the minimum set of tests.])
-AC_ARG_ENABLE(minimum-set-of-tests,
-    [AS_HELP_STRING([--enable-minimum-set-of-tests],[Run only the most essential tests. @<:@default=no@:>@.])],
-    [
-        case "${enableval}" in
-
-        no|yes)
-            enable_minimum_set_of_tests=${enableval}
-            ;;
-
-        *)
-            AC_MSG_ERROR([Invalid value ${enableval} for --enable-minimum-set-of-tests])
-            ;;
-
-        esac
-    ],
-    [enable_minimum_set_of_tests=no])
-AC_MSG_RESULT(${enable_minimum_set_of_tests})
-
-AM_CONDITIONAL([OPENTHREAD_WITH_MINIMUM_SET_OF_TESTS], [test "${enable_minimum_set_of_tests}" = "yes"])
-
-if test "${enable_minimum_set_of_tests}" = "yes"; then
-    if test "${nl_cv_build_coverage}" = "yes"; then
-        AC_MSG_ERROR(["Do not run code coverage only with the minimum set of tests."])
-    fi
-fi
-
-# Check for Python and Python libraries used in the tests
-if test "${nl_cv_build_tests}" = "yes"; then
-    AC_MSG_CHECKING([checking for Python and Python libraries used in tests.])
-
-    # Check for Python
-    python --version 2> /dev/null
-    if test $? != 0; then
-        AC_MSG_ERROR(["Cannot run tests: missing Python."])
-    fi
-
-    # Check for Python pexpect library
-    python -c 'import pexpect' 2> /dev/null
-    if test $? != 0; then
-        AC_MSG_ERROR(["Cannot run tests: missing Python pexpect library."])
-    fi
-
-    AC_MSG_RESULT([ok])
-fi
+AM_CONDITIONAL([@PACKAGE_SHORT_UPPER@_BUILD_TESTS], [test "${nl_cv_build_tests}" = "yes"])
 
 #
 # Documentation
@@ -324,7 +256,7 @@ fi
 
 NL_ENABLE_DOCS([auto],[NO])
 
-AM_CONDITIONAL(OPENTHREAD_BUILD_DOCS, [test "${nl_cv_build_docs}" = "yes"])
+AM_CONDITIONAL(@PACKAGE_SHORT_UPPER@_BUILD_DOCS, [test "${nl_cv_build_docs}" = "yes"])
 
 #
 # Checks for libraries and packages.
@@ -387,21 +319,9 @@ NL_RESTORE_WERROR
 #
 AC_CONFIG_FILES([
 Makefile
+fps/Makefile
 src/Makefile
-src/cli/Makefile
-src/core/Makefile
-src/ncp/Makefile
 tests/Makefile
-tests/platform/Makefile
-tests/platform/posix/Makefile
-tests/ncp/Makefile
-tests/ncp/src/Makefile
-tests/ncp/tools/Makefile
-tests/ncp/tools/ncp-ctl/Makefile
-tests/ncp/tools/ncp-driver/Makefile
-tests/soc/Makefile
-tests/soc/src/Makefile
-tests/unit/Makefile
 doc/Makefile
 ])
 
@@ -420,7 +340,7 @@ AC_MSG_NOTICE([
   ---------------------
   Package                                   : ${PACKAGE_NAME}
   Version                                   : ${PACKAGE_VERSION}
-  Interface                                 : ${LIBOPENTHREAD_VERSION_INFO//:/.}
+  Interface                                 : ${LIB@PACKAGE_SHORT_UPPER@_VERSION_INFO//:/.}
   Build system                              : ${build}
   Host system                               : ${host}
   Target system                             : ${target}
@@ -436,7 +356,6 @@ AC_MSG_NOTICE([
   Lcov                                      : ${LCOV:--}
   Genhtml                                   : ${GENHTML:--}
   Build tests                               : ${nl_cv_build_tests}
-  Minimum set of tests                      : ${enable_minimum_set_of_tests}
   Prefix                                    : ${prefix}
   Shadow directory program                  : ${LNDIR}
   Documentation support                     : ${nl_cv_build_docs}
