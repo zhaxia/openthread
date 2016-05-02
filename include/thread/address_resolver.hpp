@@ -22,6 +22,7 @@
 #ifndef ADDRESS_RESOLVER_HPP_
 #define ADDRESS_RESOLVER_HPP_
 
+#include <openthread-core-config.h>
 #include <coap/coap_server.hpp>
 #include <common/thread_error.hpp>
 #include <common/timer.hpp>
@@ -84,14 +85,25 @@ public:
 private:
     enum
     {
-        kCacheEntries = 8,
-        kDiscoverTimeout = 3,  // seconds
+        kCacheEntries = OPENTHREAD_CONFIG_ADDRESS_CACHE_ENTRIES,
+        kStateUpdatePeriod = 1000u,           ///< State update period in milliseconds.
+    };
+
+    /**
+     * Thread Protocol Parameters and Constants
+     *
+     */
+    enum
+    {
+        kAddressQueryTimeout = 3,             ///< ADDRESS_QUERY_TIMEOUT (seconds)
+        kAddressQueryInitialRetryDelay = 15,  ///< ADDRESS_QUERY_INITIAL_RETRY_DELAY (seconds)
+        kAddressQueryMaxRetryDelay = 480,     ///< ADDRESS_QUERY_MAX_RETRY_DELAY (seconds)
     };
 
     struct Cache
     {
         Ip6::Address mTarget;
-        uint8_t mIid[8];
+        uint8_t mIid[Ip6::Address::kInterfaceIdentifierSize];
         Mac::ShortAddress mRloc16;
         uint8_t mTimeout;
         uint8_t mFailureCount : 4;

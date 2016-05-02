@@ -22,8 +22,10 @@
 #ifndef TOPOLOGY_HPP_
 #define TOPOLOGY_HPP_
 
+#include <openthread-core-config.h>
 #include <mac/mac_frame.hpp>
 #include <net/ip6.hpp>
+#include <thread/mle_tlvs.hpp>
 
 namespace Thread {
 
@@ -46,7 +48,7 @@ public:
         } mValid;
         struct
         {
-            uint8_t mChallenge[8];       ///< The challenge value
+            uint8_t mChallenge[Mle::ChallengeTlv::kMaxSize];  ///< The challenge value
             uint8_t mChallengeLength;    ///< The challenge length
         } mPending;
     };
@@ -79,7 +81,7 @@ class Child : public Neighbor
 public:
     enum
     {
-        kMaxIp6AddressPerChild = 4,
+        kMaxIp6AddressPerChild = OPENTHREAD_CONFIG_IP_ADDRS_PER_CHILD,
     };
     Ip6::Address mIp6Address[kMaxIp6AddressPerChild];  ///< Registered IPv6 addresses
     uint32_t     mTimeout;                             ///< Child timeout

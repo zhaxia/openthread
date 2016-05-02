@@ -26,6 +26,7 @@
 #include <common/message.hpp>
 #include <common/thread_error.hpp>
 #include <net/ip6_address.hpp>
+#include <thread/mle_constants.hpp>
 
 using Thread::Encoding::BigEndian::HostSwap16;
 using Thread::Encoding::BigEndian::HostSwap32;
@@ -270,6 +271,11 @@ private:
 class ChallengeTlv: public Tlv
 {
 public:
+    enum
+    {
+        kMaxSize = 8,  ///< Maximum size in bytes (Thread Specification).
+    };
+
     /**
      * This method initializes the TLV.
      *
@@ -302,7 +308,7 @@ public:
     void SetChallenge(const uint8_t *aChallenge) { memcpy(mChallenge, aChallenge, GetLength()); }
 
 private:
-    uint8_t mChallenge[8];
+    uint8_t mChallenge[kMaxSize];
 } __attribute__((packed));
 
 /**
@@ -312,6 +318,11 @@ private:
 class ResponseTlv: public Tlv
 {
 public:
+    enum
+    {
+        kMaxSize = 8,  ///< Maximum size in bytes (Thread Specification).
+    };
+
     /**
      * This method initializes the TLV.
      *
@@ -344,7 +355,7 @@ public:
     void SetResponse(const uint8_t *aResponse) { memcpy(mResponse, aResponse, GetLength()); }
 
 private:
-    uint8_t mResponse[8];
+    uint8_t mResponse[kMaxSize];
 } __attribute__((packed));
 
 /**
@@ -553,8 +564,8 @@ private:
         kRouteCostMask = 0xf << kRouteCostOffset,
     };
     uint8_t mRouterIdSequence;
-    uint8_t mRouterIdMask[8];
-    uint8_t mRouteData[32];
+    uint8_t mRouterIdMask[BitVectorBytes(kMaxRouterId)];
+    uint8_t mRouteData[kMaxRouters];
 } __attribute__((packed));
 
 /**
@@ -832,7 +843,11 @@ public:
     void SetTlvs(const uint8_t *aTlvs) { memcpy(mTlvs, aTlvs, GetLength()); }
 
 private:
-    uint8_t mTlvs[8];
+    enum
+    {
+        kMaxTlvs = 8,
+    };
+    uint8_t mTlvs[kMaxTlvs];
 } __attribute__((packed));
 
 /**
@@ -1282,7 +1297,7 @@ private:
     uint8_t mControl;
     union
     {
-        uint8_t mIid[8];
+        uint8_t mIid[Ip6::Address::kInterfaceIdentifierSize];
         Ip6::Address mIp6Address;
     } __attribute__((packed));
 } __attribute__((packed));

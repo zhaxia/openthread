@@ -72,7 +72,7 @@ class NetworkData
 public:
     enum
     {
-        kMaxSize = 256,  ///< Maximum size of Thread Network Data in bytes.
+        kMaxSize = 255,  ///< Maximum size of Thread Network Data in bytes.
     };
 
     /**

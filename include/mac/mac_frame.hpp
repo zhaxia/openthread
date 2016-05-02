@@ -22,12 +22,16 @@
 #ifndef MAC_FRAME_HPP_
 #define MAC_FRAME_HPP_
 
+#include <limits.h>
 #include <stdint.h>
 
 #include <common/thread_error.hpp>
 #include <platform/radio.h>
 
 namespace Thread {
+
+namespace Ip6 { class Address; }
+
 namespace Mac {
 
 /**
@@ -60,8 +64,11 @@ typedef uint16_t ShortAddress;
  * This structure represents an IEEE 802.15.4 Extended Address.
  *
  */
-struct ExtAddress
+class ExtAddress
 {
+public:
+    void Set(const Ip6::Address &aIpAddress);
+
     enum
     {
         kLength = 8,   ///< Size of IEEE 802.15.4 Extended Address in bytes.
@@ -92,7 +99,13 @@ class Frame: public RadioPacket
 public:
     enum
     {
-        kMTU = 127,
+        kMTU                  = 127,
+        kFcfSize              = sizeof(uint16_t),
+        kDsnSize              = sizeof(uint8_t),
+        kSecurityControlSize  = sizeof(uint8_t),
+        kFrameCounterSize     = sizeof(uint32_t),
+        kCommandIdSize        = sizeof(uint8_t),
+        kFcsSize              = sizeof(uint16_t),
 
         kFcfFrameBeacon       = 0 << 0,
         kFcfFrameData         = 1 << 0,
@@ -124,10 +137,16 @@ public:
         kSecEncMic128         = 7 << 0,
         kSecLevelMask         = 7 << 0,
 
+        kMic0Size             = 0,
+        kMic32Size            = 32 / CHAR_BIT,
+        kMic64Size            = 64 / CHAR_BIT,
+        kMic128Size           = 128 / CHAR_BIT,
+        kMaxMicSize           = kMic128Size,
+
         kKeyIdMode0           = 0 << 3,
         kKeyIdMode1           = 1 << 3,
-        kKeyIdMode5           = 2 << 3,
-        kKeyIdMode9           = 3 << 3,
+        kKeyIdMode2           = 2 << 3,
+        kKeyIdMode3           = 3 << 3,
         kKeyIdModeMask        = 3 << 3,
 
         kMacCmdAssociationRequest          = 1,
@@ -531,6 +550,14 @@ public:
     uint8_t *GetFooter(void);
 
 private:
+    enum
+    {
+        kKeyIdLengthMode0 = 0,   ///< Mode 0 Key ID Length in bytes (IEEE 802.15.4-2006)
+        kKeyIdLengthMode1 = 1,   ///< Mode 1 Key ID Length in bytes (IEEE 802.15.4-2006)
+        kKeyIdLengthMode2 = 5,   ///< Mode 2 Key ID Length in bytes (IEEE 802.15.4-2006)
+        kKeyIdLengthMode3 = 9,   ///< Mode 3 Key ID Length in bytes (IEEE 802.15.4-2006)
+    };
+
     uint8_t *FindSequence(void);
     uint8_t *FindDstPanId(void);
     uint8_t *FindDstAddr(void);

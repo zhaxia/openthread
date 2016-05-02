@@ -25,6 +25,7 @@
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <common/thread_error.hpp>
+#include <mac/mac_frame.hpp>
 #include <net/ip6_address.hpp>
 
 using Thread::Encoding::BigEndian::HostSwap16;
@@ -85,6 +86,27 @@ bool Address::IsRealmLocalAllRoutersMulticast(void) const
 {
     return (m32[0] == HostSwap32(0xff030000) && m32[1] == 0 &&
             m32[2] == 0 && m32[3] == HostSwap32(0x02));
+}
+
+const uint8_t *Address::GetIid(void) const
+{
+    return m8 + kInterfaceIdentifierOffset;
+}
+
+uint8_t *Address::GetIid(void)
+{
+    return m8 + kInterfaceIdentifierOffset;
+}
+
+void Address::SetIid(const uint8_t *aIid)
+{
+    memcpy(m8 + kInterfaceIdentifierOffset, aIid, kInterfaceIdentifierSize);
+}
+
+void Address::SetIid(const Mac::ExtAddress &aEui64)
+{
+    memcpy(m8 + kInterfaceIdentifierOffset, aEui64.mBytes, kInterfaceIdentifierSize);
+    m8[kInterfaceIdentifierOffset] ^= 0x02;
 }
 
 uint8_t Address::GetScope(void) const

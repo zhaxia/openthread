@@ -161,7 +161,7 @@ public:
      * This method initializes the header.
      *
      */
-    void Init() { SetRloc(0xfffe); mFlags = 0; }
+    void Init() { SetRloc(Mac::kShortAddrInvalid); mFlags = 0; }
 
     /**
      * This method returns the RLOC16 value.
@@ -259,7 +259,7 @@ public:
         SetType(kTypePrefix);
         mDomainId = aDomainId;
         mPrefixLength = aPrefixLength;
-        memcpy(GetPrefix(), aPrefix, (aPrefixLength + 7) / 8);
+        memcpy(GetPrefix(), aPrefix, BitVectorBytes(aPrefixLength));
         SetSubTlvsLength(0);
     }
 
@@ -293,7 +293,7 @@ public:
      * @returns A pointer to the Sub-TLVs.
      *
      */
-    uint8_t *GetSubTlvs() { return GetPrefix() + (mPrefixLength + 7) / 8; }
+    uint8_t *GetSubTlvs() { return GetPrefix() + BitVectorBytes(mPrefixLength); }
 
     /**
      * This method returns the Sub-TLVs length in bytes.
@@ -302,7 +302,7 @@ public:
      *
      */
     uint8_t GetSubTlvsLength() const {
-        return GetLength() - (sizeof(*this) - sizeof(NetworkDataTlv) + (mPrefixLength + 7) / 8);
+        return GetLength() - (sizeof(*this) - sizeof(NetworkDataTlv) + BitVectorBytes(mPrefixLength));
     }
 
     /**
@@ -312,7 +312,7 @@ public:
      *
      */
     void SetSubTlvsLength(int aLength) {
-        SetLength(sizeof(*this) - sizeof(NetworkDataTlv) + (mPrefixLength + 7) / 8 + aLength);
+        SetLength(sizeof(*this) - sizeof(NetworkDataTlv) + BitVectorBytes(mPrefixLength) + aLength);
     }
 
 private:
@@ -342,7 +342,7 @@ public:
      * This method initializes the TLV.
      *
      */
-    void Init() { SetRloc(0xfffe); mFlags = 0; mReserved = 0; }
+    void Init() { SetRloc(Mac::kShortAddrInvalid); mFlags = 0; mReserved = 0; }
 
     /**
      * This method returns the RLOC16 value.

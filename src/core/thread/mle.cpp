@@ -79,8 +79,7 @@ ThreadError Mle::Init(ThreadNetif &netif)
     // link-local 64
     memset(&mLinkLocal64, 0, sizeof(mLinkLocal64));
     mLinkLocal64.GetAddress().m16[0] = HostSwap16(0xfe80);
-    memcpy(mLinkLocal64.GetAddress().m8 + 8, mMac->GetExtAddress(), 8);
-    mLinkLocal64.GetAddress().m8[8] ^= 2;
+    mLinkLocal64.GetAddress().SetIid(*mMac->GetExtAddress());
     mLinkLocal64.mPrefixLength = 64;
     mLinkLocal64.mPreferredLifetime = 0xffffffff;
     mLinkLocal64.mValidLifetime = 0xffffffff;
@@ -157,7 +156,7 @@ ThreadError Mle::Start(void)
     {
         SendChildUpdateRequest();
         mParentRequestState = kParentSynchronize;
-        mParentRequestTimer.Start(1000);
+        mParentRequestTimer.Start(kParentRequestRouterTimeout);
     }
 
 exit:
@@ -210,7 +209,7 @@ ThreadError Mle::BecomeChild(otMleAttachFilter aFilter)
         mParent.mState = Neighbor::kStateInvalid;
     }
 
-    mParentRequestTimer.Start(1000);
+    mParentRequestTimer.Start(kParentRequestRouterTimeout);
 
 exit:
     return error;
@@ -241,7 +240,7 @@ ThreadError Mle::SetStateChild(uint16_t aRloc16)
 
     if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) != 0)
     {
-        mParentRequestTimer.Start((mTimeout / 2) * 1000U);
+        mParentRequestTimer.Start(Timer::SecToMsec(mTimeout / 2));
     }
 
     if ((mDeviceMode & ModeTlv::kModeFFD) != 0)
@@ -273,7 +272,7 @@ ThreadError Mle::SetTimeout(uint32_t aTimeout)
 
         if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) != 0)
         {
-            mParentRequestTimer.Start((mTimeout / 2) * 1000U);
+            mParentRequestTimer.Start(Timer::SecToMsec(mTimeout / 2));
         }
     }
 
@@ -660,30 +659,9 @@ ThreadError Mle::AppendAddressRegistration(Message &aMessage)
     AddressRegistrationEntry entry;
     Lowpan::Context context;
     uint8_t length = 0;
+    uint8_t startOffset = aMessage.GetLength();
 
     tlv.SetType(Tlv::kAddressRegistration);
-
-    // compute size of TLV
-    for (const Ip6::NetifUnicastAddress *addr = mNetif->GetUnicastAddresses(); addr; addr = addr->GetNext())
-    {
-        if (addr->GetAddress().IsLinkLocal() || addr->GetAddress() == mMeshLocal16.GetAddress())
-        {
-            continue;
-        }
-
-        if (mNetworkData->GetContext(addr->GetAddress(), context) == kThreadError_None)
-        {
-            // compressed entry
-            length += 9;
-        }
-        else
-        {
-            // uncompressed entry
-            length += 17;
-        }
-    }
-
-    tlv.SetLength(length);
     SuccessOrExit(error = aMessage.Append(&tlv, sizeof(tlv)));
 
     // write entries to message
@@ -698,19 +676,21 @@ ThreadError Mle::AppendAddressRegistration(Message &aMessage)
         {
             // compressed entry
             entry.SetContextId(context.mContextId);
-            entry.SetIid(addr->GetAddress().m8 + 8);
-            length = 9;
+            entry.SetIid(addr->GetAddress().GetIid());
         }
         else
         {
             // uncompressed entry
             entry.SetUncompressed();
             entry.SetIp6Address(addr->GetAddress());
-            length = 17;
         }
 
-        SuccessOrExit(error = aMessage.Append(&entry, length));
+        SuccessOrExit(error = aMessage.Append(&entry, entry.GetLength()));
+        length += entry.GetLength();
     }
+
+    tlv.SetLength(length);
+    aMessage.Write(startOffset, sizeof(tlv), &tlv);
 
 exit:
     return error;
@@ -762,7 +742,7 @@ void Mle::HandleParentRequestTimer(void)
             if (mDeviceMode & ModeTlv::kModeRxOnWhenIdle)
             {
                 SendChildUpdateRequest();
-                mParentRequestTimer.Start((mTimeout / 2) * 1000U);
+                mParentRequestTimer.Start(Timer::SecToMsec(mTimeout / 2));
             }
         }
         else
@@ -941,14 +921,13 @@ ThreadError Mle::SendChildIdRequest(void)
 
     memset(&destination, 0, sizeof(destination));
     destination.m16[0] = HostSwap16(0xfe80);
-    memcpy(destination.m8 + 8, &mParent.mMacAddr, sizeof(mParent.mMacAddr));
-    destination.m8[8] ^= 0x2;
+    destination.SetIid(mParent.mMacAddr);
     SuccessOrExit(error = SendMessage(*message, destination));
     dprintf("Sent Child ID Request\n");
 
     if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) == 0)
     {
-        mMesh->SetPollPeriod(100);
+        mMesh->SetPollPeriod(kAttachDataPollPeriod);
         mMesh->SetRxOnWhenIdle(false);
     }
 
@@ -1068,15 +1047,14 @@ ThreadError Mle::SendChildUpdateRequest(void)
 
     memset(&destination, 0, sizeof(destination));
     destination.m16[0] = HostSwap16(0xfe80);
-    memcpy(destination.m8 + 8, &mParent.mMacAddr, sizeof(mParent.mMacAddr));
-    destination.m8[8] ^= 0x2;
+    destination.SetIid(mParent.mMacAddr);
     SuccessOrExit(error = SendMessage(*message, destination));
 
     dprintf("Sent Child Update Request\n");
 
     if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) == 0)
     {
-        mMesh->SetPollPeriod(100);
+        mMesh->SetPollPeriod(kAttachDataPollPeriod);
     }
 
 exit:
@@ -1232,8 +1210,7 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     VerifyOrExit(messageTagLength == sizeof(messageTag), ;);
     SuccessOrExit(aMessage.SetLength(aMessage.GetLength() - sizeof(messageTag)));
 
-    memcpy(&macAddr, aMessageInfo.GetPeerAddr().m8 + 8, sizeof(macAddr));
-    macAddr.mBytes[0] ^= 0x2;
+    macAddr.Set(aMessageInfo.GetPeerAddr());
     GenerateNonce(macAddr, frameCounter, Mac::Frame::kSecEncMic32, nonce);
 
     aesCcm.SetKey(mleKey, 16);
@@ -1392,8 +1369,7 @@ ThreadError Mle::HandleAdvertisement(const Message &aMessage, const Ip6::Message
         SuccessOrExit(error = mMleRouter->HandleAdvertisement(aMessage, aMessageInfo));
     }
 
-    memcpy(&macAddr, aMessageInfo.GetPeerAddr().m8 + 8, sizeof(macAddr));
-    macAddr.mBytes[0] ^= 0x2;
+    macAddr.Set(aMessageInfo.GetPeerAddr());
 
     isNeighbor = false;
 
@@ -1629,8 +1605,7 @@ ThreadError Mle::HandleParentResponse(const Message &aMessage, const Ip6::Messag
     memcpy(mChildIdRequest.mChallenge, challenge.GetChallenge(), challenge.GetLength());
     mChildIdRequest.mChallengeLength = challenge.GetLength();
 
-    memcpy(&mParent.mMacAddr, aMessageInfo.GetPeerAddr().m8 + 8, sizeof(mParent.mMacAddr));
-    mParent.mMacAddr.mBytes[0] ^= 0x2;
+    mParent.mMacAddr.Set(aMessageInfo.GetPeerAddr());
     mParent.mValid.mRloc16 = sourceAddress.GetRloc16();
     mParent.mValid.mLinkFrameCounter = linkFrameCounter.GetFrameCounter();
     mParent.mValid.mMleFrameCounter = mleFrameCounter.GetFrameCounter();
@@ -1686,7 +1661,7 @@ ThreadError Mle::HandleChildIdResponse(const Message &aMessage, const Ip6::Messa
 
     if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) == 0)
     {
-        mMesh->SetPollPeriod((mTimeout / 2) * 1000U);
+        mMesh->SetPollPeriod(Timer::SecToMsec(mTimeout / 2));
         mMesh->SetRxOnWhenIdle(false);
     }
     else
@@ -1786,7 +1761,7 @@ ThreadError Mle::HandleChildUpdateResponse(const Message &aMessage, const Ip6::M
 
         if ((mode.GetMode() & ModeTlv::kModeRxOnWhenIdle) == 0)
         {
-            mMesh->SetPollPeriod((mTimeout / 2) * 1000U);
+            mMesh->SetPollPeriod(Timer::SecToMsec(mTimeout / 2));
             mMesh->SetRxOnWhenIdle(false);
         }
         else
@@ -1846,7 +1821,7 @@ uint16_t Mle::GetNextHop(uint16_t aDestination) const
 
 bool Mle::IsRoutingLocator(const Ip6::Address &aAddress) const
 {
-    return memcmp(&mMeshLocal16, &aAddress, 14) == 0;
+    return memcmp(&mMeshLocal16, &aAddress, kRlocPrefixLength) == 0;
 }
 
 Router *Mle::GetParent()
@@ -1869,7 +1844,7 @@ ThreadError Mle::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, Ip6
         ExitNow(error = kThreadError_None);
     }
 
-    memcpy(&dst, GetMeshLocal16(), 14);
+    memcpy(&dst, GetMeshLocal16(), kRlocPrefixLength);
     dst.m16[7] = HostSwap16(aMeshSource);
     Ip6::Icmp::SendError(dst, Ip6::IcmpHeader::kTypeDstUnreach, Ip6::IcmpHeader::kCodeDstUnreachNoRoute, aIp6Header);
 

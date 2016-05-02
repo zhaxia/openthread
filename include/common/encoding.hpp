@@ -22,6 +22,7 @@
 #ifndef ENCODING_HPP_
 #define ENCODING_HPP_
 
+#include <limits.h>
 #include <stdint.h>
 
 namespace Thread {
@@ -55,6 +56,9 @@ inline uint64_t Swap64(uint64_t v)
         ((v & static_cast<uint64_t>(0x00ff000000000000ULL)) >> 40) |
         ((v & static_cast<uint64_t>(0xff00000000000000ULL)) >> 56);
 }
+
+#define BitVectorBytes(x)           \
+    (((x) + (CHAR_BIT-1)) / CHAR_BIT)
 
 namespace BigEndian {
 

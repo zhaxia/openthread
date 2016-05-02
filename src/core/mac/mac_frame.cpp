@@ -21,9 +21,16 @@
 
 #include <common/code_utils.hpp>
 #include <mac/mac_frame.hpp>
+#include <net/ip6_address.hpp>
 
 namespace Thread {
 namespace Mac {
+
+void ExtAddress::Set(const Ip6::Address &aIpAddress)
+{
+    memcpy(mBytes, aIpAddress.GetIid(), kLength);
+    mBytes[0] ^= 0x02;
+}
 
 ThreadError Frame::InitMacHeader(uint16_t aFcf, uint8_t aSecurityControl)
 {
@@ -33,10 +40,10 @@ ThreadError Frame::InitMacHeader(uint16_t aFcf, uint8_t aSecurityControl)
     // Frame Control Field
     bytes[0] = aFcf;
     bytes[1] = aFcf >> 8;
-    length += 2;
+    length += kFcfSize;
 
     // Sequence Number
-    length++;
+    length += kDsnSize;
 
     // Destinatino PAN + Address
     switch (aFcf & Frame::kFcfDstAddrMask)
@@ -45,11 +52,11 @@ ThreadError Frame::InitMacHeader(uint16_t aFcf, uint8_t aSecurityControl)
         break;
 
     case Frame::kFcfDstAddrShort:
-        length += 4;
+        length += sizeof(PanId) + sizeof(ShortAddress);
         break;
 
     case Frame::kFcfDstAddrExt:
-        length += 10;
+        length += sizeof(PanId) + sizeof(ExtAddress);
         break;
 
     default:
@@ -65,19 +72,19 @@ ThreadError Frame::InitMacHeader(uint16_t aFcf, uint8_t aSecurityControl)
     case Frame::kFcfSrcAddrShort:
         if ((aFcf & Frame::kFcfPanidCompression) == 0)
         {
-            length += 2;
+            length += sizeof(PanId);
         }
 
-        length += 2;
+        length += sizeof(ShortAddress);
         break;
 
     case Frame::kFcfSrcAddrExt:
         if ((aFcf & Frame::kFcfPanidCompression) == 0)
         {
-            length += 2;
+            length += sizeof(PanId);
         }
 
-        length += 8;
+        length += sizeof(ExtAddress);
         break;
 
     default:
@@ -97,18 +104,19 @@ ThreadError Frame::InitMacHeader(uint16_t aFcf, uint8_t aSecurityControl)
         switch (aSecurityControl & kKeyIdModeMask)
         {
         case kKeyIdMode0:
+            length += kKeyIdLengthMode0;
             break;
 
         case kKeyIdMode1:
-            length += 1;
+            length += kKeyIdLengthMode1;
             break;
 
-        case kKeyIdMode5:
-            length += 5;
+        case kKeyIdMode2:
+            length += kKeyIdLengthMode2;
             break;
 
-        case kKeyIdMode9:
-            length += 9;
+        case kKeyIdMode3:
+            length += kKeyIdLengthMode3;
             break;
         }
     }
@@ -116,7 +124,7 @@ ThreadError Frame::InitMacHeader(uint16_t aFcf, uint8_t aSecurityControl)
     // Command ID
     if ((aFcf & kFcfFrameTypeMask) == kFcfFrameMacCmd)
     {
-        length++;
+        length += kCommandIdSize;
     }
 
     SetPsduLength(length + GetFooterLength());
@@ -173,7 +181,7 @@ uint8_t *Frame::FindSequence(void)
     uint8_t *cur = GetPsdu();
 
     // Frame Control Field
-    cur += 2;
+    cur += kFcfSize;
 
     return cur;
 }
@@ -198,9 +206,9 @@ uint8_t *Frame::FindDstPanId(void)
     VerifyOrExit((fcf & Frame::kFcfDstAddrMask) != Frame::kFcfDstAddrNone, cur = NULL);
 
     // Frame Control Field
-    cur += 2;
+    cur += kFcfSize;
     // Sequence Number
-    cur += 1;
+    cur += kDsnSize;
 
 exit:
     return cur;
@@ -237,11 +245,11 @@ uint8_t *Frame::FindDstAddr(void)
     uint8_t *cur = GetPsdu();
 
     // Frame Control Field
-    cur += 2;
+    cur += kFcfSize;
     // Sequence Number
-    cur += 1;
+    cur += kDsnSize;
     // Destination PAN
-    cur += 2;
+    cur += sizeof(PanId);
 
     return cur;
 }
@@ -257,16 +265,16 @@ ThreadError Frame::GetDstAddr(Address &aAddress)
     switch (fcf & Frame::kFcfDstAddrMask)
     {
     case Frame::kFcfDstAddrShort:
-        aAddress.mLength = 2;
+        aAddress.mLength = sizeof(ShortAddress);
         aAddress.mShortAddress = (static_cast<uint16_t>(buf[1]) << 8) | buf[0];
         break;
 
     case Frame::kFcfDstAddrExt:
-        aAddress.mLength = 8;
+        aAddress.mLength = sizeof(ExtAddress);
 
-        for (int i = 0; i < 8; i++)
+        for (unsigned int i = 0; i < sizeof(ExtAddress); i++)
         {
-            aAddress.mExtAddress.mBytes[i] = buf[7 - i];
+            aAddress.mExtAddress.mBytes[i] = buf[sizeof(ExtAddress) - 1 - i];
         }
 
         break;
@@ -306,9 +314,9 @@ ThreadError Frame::SetDstAddr(const ExtAddress &aExtAddress)
     buf = FindDstAddr();
     assert(buf != NULL);
 
-    for (int i = 0; i < 8; i++)
+    for (unsigned int i = 0; i < sizeof(ExtAddress); i++)
     {
-        buf[i] = aExtAddress.mBytes[7 - i];
+        buf[i] = aExtAddress.mBytes[sizeof(ExtAddress) - 1 - i];
     }
 
     return kThreadError_None;
@@ -323,9 +331,9 @@ uint8_t *Frame::FindSrcPanId(void)
                  (fcf & Frame::kFcfSrcAddrMask) != Frame::kFcfSrcAddrNone, cur = NULL);
 
     // Frame Control Field
-    cur += 2;
+    cur += kFcfSize;
     // Sequence Number
-    cur += 1;
+    cur += kDsnSize;
 
     if ((fcf & Frame::kFcfPanidCompression) == 0)
     {
@@ -333,11 +341,11 @@ uint8_t *Frame::FindSrcPanId(void)
         switch (fcf & Frame::kFcfDstAddrMask)
         {
         case Frame::kFcfDstAddrShort:
-            cur += 4;
+            cur += sizeof(PanId) + sizeof(ShortAddress);
             break;
 
         case Frame::kFcfDstAddrExt:
-            cur += 10;
+            cur += sizeof(PanId) + sizeof(ExtAddress);
             break;
         }
     }
@@ -378,26 +386,26 @@ uint8_t *Frame::FindSrcAddr(void)
     uint16_t fcf = (static_cast<uint16_t>(GetPsdu()[1]) << 8) | GetPsdu()[0];
 
     // Frame Control Field
-    cur += 2;
+    cur += kFcfSize;
     // Sequence Number
-    cur += 1;
+    cur += kDsnSize;
 
     // Destination PAN + Address
     switch (fcf & Frame::kFcfDstAddrMask)
     {
     case Frame::kFcfDstAddrShort:
-        cur += 4;
+        cur += sizeof(PanId) + sizeof(ShortAddress);
         break;
 
     case Frame::kFcfDstAddrExt:
-        cur += 10;
+        cur += sizeof(PanId) + sizeof(ExtAddress);
         break;
     }
 
     // Source PAN
     if ((fcf & Frame::kFcfPanidCompression) == 0)
     {
-        cur += 2;
+        cur += sizeof(PanId);
     }
 
     return cur;
@@ -414,16 +422,16 @@ ThreadError Frame::GetSrcAddr(Address &address)
     switch (fcf & Frame::kFcfSrcAddrMask)
     {
     case Frame::kFcfSrcAddrShort:
-        address.mLength = 2;
+        address.mLength = sizeof(ShortAddress);
         address.mShortAddress = (static_cast<uint16_t>(buf[1]) << 8) | buf[0];;
         break;
 
     case Frame::kFcfSrcAddrExt:
-        address.mLength = 8;
+        address.mLength = sizeof(ExtAddress);
 
-        for (int i = 0; i < 8; i++)
+        for (unsigned int i = 0; i < sizeof(ExtAddress); i++)
         {
-            address.mExtAddress.mBytes[i] = buf[7 - i];
+            address.mExtAddress.mBytes[i] = buf[sizeof(ExtAddress) - 1 - i];
         }
 
         break;
@@ -463,9 +471,9 @@ ThreadError Frame::SetSrcAddr(const ExtAddress &aExtAddress)
     buf = FindSrcAddr();
     assert(buf != NULL);
 
-    for (int i = 0; i < 8; i++)
+    for (unsigned int i = 0; i < sizeof(aExtAddress); i++)
     {
-        buf[i] = aExtAddress.mBytes[7 - i];
+        buf[i] = aExtAddress.mBytes[sizeof(aExtAddress) - 1 - i];
     }
 
     return kThreadError_None;
@@ -479,19 +487,19 @@ uint8_t *Frame::FindSecurityHeader(void)
     VerifyOrExit((fcf & Frame::kFcfSecurityEnabled) != 0, cur = NULL);
 
     // Frame Control Field
-    cur += 2;
+    cur += kFcfSize;
     // Sequence Number
-    cur += 1;
+    cur += kDsnSize;
 
     // Destination PAN + Address
     switch (fcf & Frame::kFcfDstAddrMask)
     {
     case Frame::kFcfDstAddrShort:
-        cur += 4;
+        cur += sizeof(PanId) + sizeof(ShortAddress);
         break;
 
     case Frame::kFcfDstAddrExt:
-        cur += 10;
+        cur += sizeof(PanId) + sizeof(ExtAddress);
         break;
     }
 
@@ -501,19 +509,19 @@ uint8_t *Frame::FindSecurityHeader(void)
     case Frame::kFcfSrcAddrShort:
         if ((fcf & Frame::kFcfPanidCompression) == 0)
         {
-            cur += 2;
+            cur += sizeof(PanId);
         }
 
-        cur += 2;
+        cur += sizeof(ShortAddress);
         break;
 
     case Frame::kFcfSrcAddrExt:
         if ((fcf & Frame::kFcfPanidCompression) == 0)
         {
-            cur += 2;
+            cur += sizeof(PanId);
         }
 
-        cur += 8;
+        cur += sizeof(ExtAddress);
         break;
     }
 
@@ -542,7 +550,7 @@ ThreadError Frame::GetFrameCounter(uint32_t &aFrameCounter)
     VerifyOrExit((buf = FindSecurityHeader()) != NULL, error = kThreadError_Parse);
 
     // Security Control
-    buf++;
+    buf += kSecurityControlSize;
 
     aFrameCounter = ((static_cast<uint32_t>(buf[3]) << 24) |
                      (static_cast<uint32_t>(buf[2]) << 16) |
@@ -561,7 +569,7 @@ ThreadError Frame::SetFrameCounter(uint32_t aFrameCounter)
     assert(buf != NULL);
 
     // Security Control
-    buf++;
+    buf += kSecurityControlSize;
 
     buf[0] = aFrameCounter;
     buf[1] = aFrameCounter >> 8;
@@ -579,7 +587,7 @@ ThreadError Frame::GetKeyId(uint8_t &aKeyId)
     VerifyOrExit((buf = FindSecurityHeader()) != NULL, error = kThreadError_Parse);
 
     // Security Control + Frame Counter
-    buf += 1 + 4;
+    buf += kSecurityControlSize + kFrameCounterSize;
 
     aKeyId = buf[0];
 
@@ -595,7 +603,7 @@ ThreadError Frame::SetKeyId(uint8_t aKeyId)
     assert(buf != NULL);
 
     // Security Control + Frame Counter
-    buf += 1 + 4;
+    buf += kSecurityControlSize + kFrameCounterSize;
 
     buf[0] = aKeyId;
 
@@ -653,27 +661,28 @@ uint8_t Frame::GetFooterLength(void)
     {
     case kSecNone:
     case kSecEnc:
+        footerLength += kMic0Size;
         break;
 
     case kSecMic32:
     case kSecEncMic32:
-        footerLength += 4;
+        footerLength += kMic32Size;
         break;
 
     case kSecMic64:
     case kSecEncMic64:
-        footerLength += 8;
+        footerLength += kMic64Size;
         break;
 
     case kSecMic128:
     case kSecEncMic128:
-        footerLength += 16;
+        footerLength += kMic128Size;
         break;
     }
 
 exit:
     // Frame Check Sequence
-    footerLength += 2;
+    footerLength += kFcsSize;
 
     return footerLength;
 }
@@ -706,9 +715,9 @@ uint8_t *Frame::GetPayload(void)
     uint8_t securityControl;
 
     // Frame Control
-    cur += 2;
+    cur += kFcfSize;
     // Sequence Number
-    cur += 1;
+    cur += kDsnSize;
 
     // Destination PAN + Address
     switch (fcf & Frame::kFcfDstAddrMask)
@@ -717,11 +726,11 @@ uint8_t *Frame::GetPayload(void)
         break;
 
     case Frame::kFcfDstAddrShort:
-        cur += 4;
+        cur += sizeof(PanId) + sizeof(ShortAddress);
         break;
 
     case Frame::kFcfDstAddrExt:
-        cur += 10;
+        cur += sizeof(PanId) + sizeof(ExtAddress);
         break;
 
     default:
@@ -737,19 +746,19 @@ uint8_t *Frame::GetPayload(void)
     case Frame::kFcfSrcAddrShort:
         if ((fcf & Frame::kFcfPanidCompression) == 0)
         {
-            cur += 2;
+            cur += sizeof(PanId);
         }
 
-        cur += 2;
+        cur += sizeof(ShortAddress);
         break;
 
     case Frame::kFcfSrcAddrExt:
         if ((fcf & Frame::kFcfPanidCompression) == 0)
         {
-            cur += 2;
+            cur += sizeof(PanId);
         }
 
-        cur += 8;
+        cur += sizeof(ExtAddress);
         break;
 
     default:
@@ -763,24 +772,25 @@ uint8_t *Frame::GetPayload(void)
 
         if (securityControl & kSecLevelMask)
         {
-            cur += 5;
+            cur += kSecurityControlSize + kFrameCounterSize;
         }
 
         switch (securityControl & kKeyIdModeMask)
         {
         case kKeyIdMode0:
+            cur += kKeyIdLengthMode0;
             break;
 
         case kKeyIdMode1:
-            cur += 1;
+            cur += kKeyIdLengthMode1;
             break;
 
-        case kKeyIdMode5:
-            cur += 5;
+        case kKeyIdMode2:
+            cur += kKeyIdLengthMode2;
             break;
 
-        case kKeyIdMode9:
-            cur += 9;
+        case kKeyIdMode3:
+            cur += kKeyIdLengthMode3;
             break;
         }
     }
@@ -788,7 +798,7 @@ uint8_t *Frame::GetPayload(void)
     // Command ID
     if ((fcf & kFcfFrameTypeMask) == kFcfFrameMacCmd)
     {
-        cur++;
+        cur += kCommandIdSize;
     }
 
 exit:

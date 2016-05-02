@@ -81,14 +81,21 @@ public:
     void Finalize(uint8_t *aHash) final;
 
 private:
+    enum
+    {
+        kHashBlockSize = 64,  ///< The block size.
+    };
+
     void PadMessage(void);
     void ProcessBlock(void);
+
+    static const uint32_t K[];
 
     uint32_t mHash[kHashSize / sizeof(uint32_t)];
     uint32_t mLengthLo;
     uint32_t mLengthHi;
     uint8_t mBlockIndex;
-    uint8_t mBlock[64];
+    uint8_t mBlock[kHashBlockSize];
 };
 
 /**

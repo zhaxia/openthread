@@ -28,6 +28,7 @@
 #include <crypto/aes_ecb.hpp>
 #include <mac/mac.hpp>
 #include <net/udp6.hpp>
+#include <thread/mle_constants.hpp>
 #include <thread/mle_tlvs.hpp>
 #include <thread/topology.hpp>
 
@@ -77,46 +78,6 @@ class MleRouter;
  *
  */
 
-enum
-{
-    kMaxChildren                = 5,
-};
-
-enum
-{
-    kVersion                    = 1,     ///< MLE Version
-    kUdpPort                    = 19788, ///< MLE UDP Port
-    kParentRequestRouterTimeout = 1000,  // milliseconds
-    kParentRequestChildTimeout  = 2000,  // milliseconds
-    kChildIdMask                = 0x1ff,
-    kRouterIdOffset             = 10,
-};
-
-/**
- * Routing Protocol Parameters and Contstants
- *
- */
-enum
-{
-    kAdvertiseIntervalMin       = 1,    ///< ADVERTISEMENT_I_MIN (seconds)
-    kAdvertiseIntervalMax       = 32,   ///< ADVERTISEMENT_I_MAX (seconds)
-    kRouterIdReuseDelay         = 100,  ///< ID_REUSE_DELAY (seconds)
-    kRouterIdSequencePeriod     = 10,   ///< ID_SEQUENCE_PERIOD (seconds)
-    kMaxNeighborAge             = 100,  ///< MAX_NEIGHBOR_AGE (seconds)
-    kMaxRouteCost               = 16,   ///< MAX_ROUTE_COST
-    kMaxRouterId                = 62,   ///< MAX_ROUTER_ID
-    kMaxRouters                 = 32,   ///< MAX_ROUTERS
-    kMinDowngradeNeighbors      = 7,    ///< MIN_DOWNGRADE_NEIGHBORS
-    kNetworkIdTimeout           = 120,  ///< NETWORK_ID_TIMEOUT (seconds)
-    kParentRouteToLeaderTimeout = 20,   ///< PARENT_ROUTE_TO_LEADER_TIMEOUT (seconds)
-    kRouterSelectionJitter      = 120,  ///< ROUTER_SELECTION_JITTER (seconds)
-    kRouterDowngradeThreshold   = 23,   ///< ROUTER_DOWNGRADE_THRESHOLD (routers)
-    kRouterUpgradeThreadhold    = 16,   ///< ROUTER_UPGRADE_THRESHOLD (routers)
-    kMaxLeaderToRouterTimeout   = 90,   ///< INFINITE_COST_TIMEOUT (seconds)
-    kReedAdvertiseInterval      = 570,  ///< REED_ADVERTISEMENT_INTERVAL (seconds)
-    kReedAdvertiseJitter        = 60,   ///< REED_ADVERTISEMENT_JITTER (seconds)
-};
-
 /**
  * MLE Device states
  *
@@ -153,7 +114,7 @@ public:
     bool IsValid(void) const {
         return mSecuritySuite == 0 &&
                (mSecurityControl == (Mac::Frame::kKeyIdMode1 | Mac::Frame::kSecEncMic32) ||
-                mSecurityControl == (Mac::Frame::kKeyIdMode5 | Mac::Frame::kSecEncMic32));
+                mSecurityControl == (Mac::Frame::kKeyIdMode2 | Mac::Frame::kSecEncMic32));
     }
 
     /**
@@ -219,7 +180,7 @@ public:
      *
      */
     void SetKeyIdMode2(void) {
-        mSecurityControl = (mSecurityControl & ~Mac::Frame::kKeyIdModeMask) | Mac::Frame::kKeyIdMode5;
+        mSecurityControl = (mSecurityControl & ~Mac::Frame::kKeyIdModeMask) | Mac::Frame::kKeyIdMode2;
     }
 
     /**
@@ -952,6 +913,11 @@ protected:
     Timer mParentRequestTimer;  ///< The timer for driving the Parent Request process.
 
 private:
+    enum
+    {
+        kAttachDataPollPeriod = OPENTHREAD_CONFIG_ATTACH_DATA_POLL_PERIOD,
+    };
+
     void GenerateNonce(const Mac::ExtAddress &aMacAddr, uint32_t aFrameCounter, uint8_t aSecurityLevel,
                        uint8_t *aNonce);
 
@@ -975,13 +941,13 @@ private:
 
     struct
     {
-        uint8_t mChallenge[8];
+        uint8_t mChallenge[ChallengeTlv::kMaxSize];
         uint8_t mChallengeLength;
     } mChildIdRequest;
 
     struct
     {
-        uint8_t mChallenge[8];
+        uint8_t mChallenge[ChallengeTlv::kMaxSize];
     } mParentRequest;
 
     otMleAttachFilter mParentRequestMode;
@@ -1004,6 +970,7 @@ private:
 
 /**
  * @}
+ *
  */
 
 }  // namespace Thread

@@ -22,6 +22,7 @@
 #ifndef MAC_HPP_
 #define MAC_HPP_
 
+#include <openthread-core-config.h>
 #include <common/tasklet.hpp>
 #include <common/timer.hpp>
 #include <crypto/aes_ecb.hpp>
@@ -47,16 +48,36 @@ namespace Mle { class MleRouter; }
 
 namespace Mac {
 
+/**
+ * Protocol parameters and constants.
+ *
+ */
 enum
 {
-    kMacAckTimeout = 16,  // milliseconds
-    kDataTimeout = 100,  // milliseconds
+    kMinBE                = 3,   ///< macMinBE (IEEE 802.15.4-2006)
+    kMaxBE                = 6,   ///< macMaxBE (IEEE 802.15.4-2006)
+    kMaxCSMABackoffs      = 4,   ///< macMaxCSMABackoffs (IEEE 802.15.4-2006)
+    kUnitBackoffPeriod    = 20,  ///< Number of symbols (IEEE 802.15.4-2006)
 
-    kMacScanChannelMaskAllChannels = 0xffff,
-    kMacScanDefaultInterval = 128,  // milliseconds
+    /**
+     * Minimum backoff period in milliseconds.
+     */
+    kMinBackoff           = (kUnitBackoffPeriod *kPhyUsPerSymbol * (1 << kMinBE)) / 1000,
 
-    kNetworkNameSize = 16,   ///< Size of Thread Network Name in bytes.
-    kExtPanIdSize = 8,           ///< Size of Thread Extended PAN ID.
+    /**
+     * Maximum backoff period in milliseconds.
+     */
+    kMaxBackoff           = (kUnitBackoffPeriod *kPhyUsPerSymbol * (1 << kMaxBE)) / 1000,
+
+    kAckTimeout           = 16,   ///< Timeout for waiting on an ACK (milliseconds).
+    kDataPollTimeout      = 100,  ///< Timeout for receivint Data Frame (milliseconds).
+    kNonceSize            = 13,   ///< Size of IEEE 802.15.4 Nonce (bytes).
+
+    kScanChannelMaskAll   = 0xffff,
+    kScanDefaultInterval  = 128,  ///< Default interval between channels (milliseconds).
+
+    kNetworkNameSize      = 16,   ///< Size of Thread Network Name (bytes).
+    kExtPanIdSize         = 8,    ///< Size of Thread Extended PAN ID.
 };
 
 /**
@@ -66,7 +87,7 @@ enum
 struct ActiveScanResult
 {
     uint8_t  mNetworkName[kNetworkNameSize];   ///<  The Thread Network Name.
-    uint8_t  mExtPanid[kExtPanIdSize];             ///<  The Thread Extended PAN ID.
+    uint8_t  mExtPanid[kExtPanIdSize];         ///<  The Thread Extended PAN ID.
     uint8_t  mExtAddr[ExtAddress::kLength];    ///<  The IEEE 802.15.4 Extended Address.
     uint16_t mPanId;                           ///<  The IEEE 802.15.4 PAN ID.
     uint8_t  mChannel;                         ///<  The IEEE 802.15.4 Channel.
@@ -386,28 +407,31 @@ public:
     static void TransmitDoneTask(void *aContext);
 
 private:
-    void GenerateNonce(const ExtAddress &address, uint32_t frameCounter, uint8_t securityLevel, uint8_t *nonce);
+    void GenerateNonce(const ExtAddress &aAddress, uint32_t aFrameCounter, uint8_t aSecurityLevel, uint8_t *aNonce);
     void NextOperation(void);
     void ProcessTransmitSecurity(void);
-    ThreadError ProcessReceiveSecurity(const Address &srcaddr, Neighbor &neighbor);
+    ThreadError ProcessReceiveSecurity(const Address &aSrcAddr, Neighbor *aNeighbor);
     void ScheduleNextTransmission(void);
-    void SentFrame(bool acked);
-    void SendBeaconRequest(Frame &frame);
-    void SendBeacon(Frame &frame);
+    void SentFrame(bool aAcked);
+    void SendBeaconRequest(Frame &aFrame);
+    void SendBeacon(Frame &aFrame);
     void StartBackoff(void);
     void HandleBeaconFrame(void);
     ThreadError HandleMacCommand(void);
 
-    static void HandleAckTimer(void *context);
+    static void HandleAckTimer(void *aContext);
     void HandleAckTimer(void);
-    static void HandleBackoffTimer(void *context);
-    void HandleBackoffTimer(void);
-    static void HandleReceiveTimer(void *context);
+    static void HandleBeginTransmit(void *aContext);
+    void HandleBeginTransmit(void);
+    static void HandleReceiveTimer(void *aContext);
     void HandleReceiveTimer(void);
+
+    void StartCsmaBackoff(void);
 
     void ReceiveDoneTask(void);
     void TransmitDoneTask(void);
 
+    Tasklet mBeginTransmit;
     Timer mAckTimer;
     Timer mBackoffTimer;
     Timer mReceiveTimer;
@@ -440,7 +464,7 @@ private:
     uint8_t mBeaconSequence;
     uint8_t mDataSequence;
     bool mRxOnWhenIdle;
-    uint8_t mAttempts;
+    uint8_t mCsmaAttempts;
     bool mTransmitBeacon;
 
     bool mActiveScanRequest;

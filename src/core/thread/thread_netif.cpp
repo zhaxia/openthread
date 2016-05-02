@@ -94,7 +94,7 @@ bool ThreadNetif::IsUp(void) const
 ThreadError ThreadNetif::GetLinkAddress(Ip6::LinkAddress &address) const
 {
     address.mType = Ip6::LinkAddress::kEui64;
-    address.mLength = 8;
+    address.mLength = sizeof(address.mExtAddress);
     memcpy(&address.mExtAddress, mMac.GetExtAddress(), address.mLength);
     return kThreadError_None;
 }

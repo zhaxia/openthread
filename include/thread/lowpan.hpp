@@ -43,7 +43,7 @@ namespace NetworkData { class Leader; }
  */
 
 /**
- * @namespace Lowpan
+ * @namespace Thread::Lowpan
  *
  * @brief
  *   This namespace includes definitions for 6LoWPAN message processing.
@@ -58,7 +58,7 @@ namespace Lowpan {
 struct Context
 {
     const uint8_t *mPrefix;        ///< A pointer to the prefix.
-    uint8_t        mPrefixLength;  ///< The prefix length. 
+    uint8_t        mPrefixLength;  ///< The prefix length.
     uint8_t        mContextId;     ///< The Context ID.
 };
 
@@ -85,7 +85,7 @@ public:
      * @retval FALSE  If the header does not match the LOWPAN_IPHC dispatch value.
      */
     static bool IsLowpanHc(uint8_t *aHeader) {
-	return (aHeader[0] & (Lowpan::kHcDispatchMask >> 8)) == (Lowpan::kHcDispatch >> 8);
+        return (aHeader[0] & (Lowpan::kHcDispatchMask >> 8)) == (Lowpan::kHcDispatch >> 8);
     }
 
     /**
@@ -132,12 +132,12 @@ public:
                              const uint8_t *aBuf);
 
 private:
-    enum 
+    enum
     {
         kHcDispatch        = 3 << 13,
         kHcDispatchMask    = 7 << 13,
 
-	kHcTrafficClass    = 1 << 11,
+        kHcTrafficClass    = 1 << 11,
         kHcFlowLabel       = 2 << 11,
         kHcTrafficFlow     = 3 << 11,
         kHcTrafficFlowMask = 3 << 11,
@@ -193,7 +193,7 @@ private:
     ThreadError DispatchToNextHeader(uint8_t dispatch, Ip6::IpProto &nextHeader);
 
     static ThreadError CopyContext(const Context &aContext, Ip6::Address &aAddress);
-    static ThreadError ComputeIID(const Mac::Address &aMacAddr, const Context &aContext, uint8_t *aIid);
+    static ThreadError ComputeIid(const Mac::Address &aMacAddr, const Context &aContext, Ip6::Address &aIpAddress);
 
     NetworkData::Leader *mNetworkData;
 };
@@ -329,7 +329,7 @@ public:
      *
      */
     uint8_t GetHeaderLength() {
-	return (mDispatchOffsetSize & kOffset) ? sizeof(*this) : sizeof(*this) - sizeof(mOffset);
+        return (mDispatchOffsetSize & kOffset) ? sizeof(*this) : sizeof(*this) - sizeof(mOffset);
     }
 
     /**
@@ -338,7 +338,7 @@ public:
      * @returns The Datagram Size value.
      *
      */
-    uint16_t GetDatagramSize() { return (static_cast<uint16_t>(mDispatchOffsetSize & kSizeMask) << 8) | mSize; }
+    uint16_t GetDatagramSize() { return HostSwap16(mSize) & kSizeMask; }
 
     /**
      * This method sets the Datagram Size value.
@@ -347,8 +347,7 @@ public:
      *
      */
     void SetDatagramSize(uint16_t aSize) {
-	mDispatchOffsetSize = (mDispatchOffsetSize & ~kSizeMask) | ((aSize >> 8) & kSizeMask);
-        mSize = aSize;
+        mSize = HostSwap16((HostSwap16(mSize) & ~kSizeMask) | (aSize & kSizeMask));
     }
 
     /**
@@ -382,12 +381,10 @@ public:
      *
      */
     void SetDatagramOffset(uint16_t aOffset) {
-        if (aOffset == 0)
-	{
+        if (aOffset == 0) {
             mDispatchOffsetSize &= ~kOffset;
         }
-        else
-	{
+        else {
             mDispatchOffsetSize |= kOffset;
             mOffset = aOffset / 8;
         }
@@ -399,11 +396,14 @@ private:
         kDispatch     = 3 << 6,
         kDispatchMask = 3 << 6,
         kOffset       = 1 << 5,
-        kSizeMask     = 7 << 0,
+        kSizeMask     = 0x7ff,
     };
 
-    uint8_t mDispatchOffsetSize;
-    uint8_t mSize;
+    union
+    {
+        uint8_t mDispatchOffsetSize;
+        uint16_t mSize;
+    } __attribute__((packed));
     uint16_t mTag;
     uint8_t mOffset;
 } __attribute__((packed));

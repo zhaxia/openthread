@@ -31,6 +31,7 @@
 #include <thread/network_data_leader.hpp>
 #include <thread/thread_netif.hpp>
 #include <thread/thread_tlvs.hpp>
+#include <thread/thread_uris.hpp>
 
 using Thread::Encoding::BigEndian::HostSwap16;
 
@@ -39,7 +40,7 @@ namespace NetworkData {
 
 Leader::Leader(void):
     mTimer(&HandleTimer, this),
-    mServerData("n/sd", &HandleServerData, this)
+    mServerData(OPENTHREAD_URI_SERVER_DATA, &HandleServerData, this)
 {
 }
 
@@ -261,7 +262,7 @@ ThreadError Leader::ConfigureAddress(PrefixTlv &aPrefix)
         }
 
         memset(&mAddresses[i], 0, sizeof(mAddresses[i]));
-        memcpy(mAddresses[i].mAddress.m8, aPrefix.GetPrefix(), (aPrefix.GetPrefixLength() + 7) / 8);
+        memcpy(mAddresses[i].mAddress.m8, aPrefix.GetPrefix(), BitVectorBytes(aPrefix.GetPrefixLength()));
 
         for (size_t j = 8; j < sizeof(mAddresses[i].mAddress); j++)
         {
@@ -524,7 +525,7 @@ void Leader::HandleServerData(Coap::Header &aHeader, Message &aMessage,
                               const Ip6::MessageInfo &aMessageInfo)
 {
     uint8_t tlvsLength;
-    uint8_t tlvs[256];
+    uint8_t tlvs[kMaxSize];
     uint16_t rloc16;
 
     dprintf("Received network data registration\n");
@@ -650,7 +651,7 @@ ThreadError Leader::AddHasRoute(PrefixTlv &aPrefix, HasRouteTlv &aHasRoute)
     if ((dstPrefix = FindPrefix(aPrefix.GetPrefix(), aPrefix.GetPrefixLength())) == NULL)
     {
         dstPrefix = reinterpret_cast<PrefixTlv *>(mTlvs + mLength);
-        Insert(reinterpret_cast<uint8_t *>(dstPrefix), sizeof(PrefixTlv) + (aPrefix.GetPrefixLength() + 7) / 8);
+        Insert(reinterpret_cast<uint8_t *>(dstPrefix), sizeof(PrefixTlv) + BitVectorBytes(aPrefix.GetPrefixLength()));
         dstPrefix->Init(aPrefix.GetDomainId(), aPrefix.GetPrefixLength(), aPrefix.GetPrefix());
     }
 
@@ -692,7 +693,7 @@ ThreadError Leader::AddBorderRouter(PrefixTlv &aPrefix, BorderRouterTlv &aBorder
     if ((dstPrefix = FindPrefix(aPrefix.GetPrefix(), aPrefix.GetPrefixLength())) == NULL)
     {
         dstPrefix = reinterpret_cast<PrefixTlv *>(mTlvs + mLength);
-        Insert(reinterpret_cast<uint8_t *>(dstPrefix), sizeof(PrefixTlv) + (aPrefix.GetPrefixLength() + 7) / 8);
+        Insert(reinterpret_cast<uint8_t *>(dstPrefix), sizeof(PrefixTlv) + BitVectorBytes(aPrefix.GetPrefixLength()));
         dstPrefix->Init(aPrefix.GetDomainId(), aPrefix.GetPrefixLength(), aPrefix.GetPrefix());
     }
 
@@ -889,7 +890,7 @@ ThreadError Leader::RemoveRloc(PrefixTlv &prefix, uint16_t aRloc16)
                 mContextLastUsed[context->GetContextId() - kMinContextId] = 1;
             }
 
-            mTimer.Start(1000);
+            mTimer.Start(kStateUpdatePeriod);
         }
         else
         {
@@ -1063,7 +1064,7 @@ void Leader::HandleTimer(void)
             continue;
         }
 
-        if ((Timer::GetNow() - mContextLastUsed[i]) >= mContextIdReuseDelay * 1000U)
+        if ((Timer::GetNow() - mContextLastUsed[i]) >= Timer::SecToMsec(mContextIdReuseDelay))
         {
             FreeContext(kMinContextId + i);
         }
@@ -1075,7 +1076,7 @@ void Leader::HandleTimer(void)
 
     if (contextsWaiting)
     {
-        mTimer.Start(1000);
+        mTimer.Start(kStateUpdatePeriod);
     }
 }
 

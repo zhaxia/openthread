@@ -158,14 +158,6 @@ public:
      */
     void SetMessageId(uint16_t aMessageId) { mHeader[2] = aMessageId >> 8; mHeader[3] = aMessageId; }
 
-    enum
-    {
-        kTokenLengthMask = 0x0f,
-        kTokenLengthOffset = 0,
-        kTokenOffset = 4,
-        kMaxTokenLength = 8,
-    };
-
     /**
      * This method returns the Token length.
      *
@@ -189,11 +181,10 @@ public:
      * @param[in]  aTokenLength  The Length of @p aToken.
      *
      */
-    void SetToken(const uint8_t *aToken, uint8_t aTokenLength)
-    {
-	mHeader[0] = (mHeader[0] & ~kTokenLengthMask) | (aTokenLength << kTokenLengthOffset);
-	memcpy(mHeader + kTokenOffset, aToken, aTokenLength);
-	mHeaderLength += aTokenLength;
+    void SetToken(const uint8_t *aToken, uint8_t aTokenLength) {
+        mHeader[0] = (mHeader[0] & ~kTokenLengthMask) | (aTokenLength << kTokenLengthOffset);
+        memcpy(mHeader + kTokenOffset, aToken, aTokenLength);
+        mHeaderLength += aTokenLength;
     }
 
     /**
@@ -202,18 +193,18 @@ public:
      */
     struct Option
     {
-	/**
-	 * Protocol Constants
-	 *
-	 */
-	enum
-	{
-            kOptionDeltaOffset   = 4,    ///< Delta 
-	};
+        /**
+         * Protocol Constants
+         *
+         */
+        enum
+        {
+            kOptionDeltaOffset   = 4,    ///< Delta
+        };
 
-	/**
-	 * Option Numbers
-	 */
+        /**
+         * Option Numbers
+         */
         enum Type
         {
             kOptionUriPath       = 11,   ///< Uri-Path
@@ -306,22 +297,38 @@ public:
     uint8_t GetLength(void) const { return mHeaderLength; }
 
 private:
+    /**
+     * Protocol Constants (RFC 7252).
+     *
+     */
     enum
     {
-        kVersionMask = 0xc0,
-        kVersionOffset = 6,
+        kVersionMask                = 0xc0,  ///< Version mask as specified (RFC 7252).
+        kVersionOffset              = 6,     ///< Version offset as specified (RFC 7252).
+
+        kTokenLengthMask            = 0x0f,  ///< Token Length mask as specified (RFC 7252).
+        kTokenLengthOffset          = 0,     ///< Token Length offset as specified (RFC 7252).
+        kTokenOffset                = 4,     ///< Token offset as specified (RFC 7252).
+        kMaxTokenLength             = 8,     ///< Max token length as specified (RFC 7252).
+
+        kOption1ByteExtension       = 13,    ///< Indicates a 1 byte extension (RFC 7252).
+        kOption2ByteExtension       = 14,    ///< Indicates a 1 byte extension (RFC 7252).
+
+        kOption1ByteExtensionOffset = 13,    ///< Delta/Length offset as specified (RFC 7252).
+        kOption2ByteExtensionOffset = 269,   ///< Delta/Length offset as specified (RFC 7252).
     };
 
     enum
     {
         kTypeMask = 0x30,
+        kMinHeaderLength = 4,
         kMaxHeaderLength = 128,
     };
     uint8_t mHeader[kMaxHeaderLength];
-    uint8_t mHeaderLength = 4;
-    uint16_t mOptionLast = 0;
-    uint16_t mNextOptionOffset = 0;
-    Option mOption = {0, 0, NULL};
+    uint8_t mHeaderLength;
+    uint16_t mOptionLast;
+    uint16_t mNextOptionOffset;
+    Option mOption;
 };
 
 /**

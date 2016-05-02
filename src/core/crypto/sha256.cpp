@@ -26,7 +26,7 @@
 namespace Thread {
 namespace Crypto {
 
-static const uint32_t K[64] =
+const uint32_t Sha256::K[kHashBlockSize] =
 {
     0x428a2f98UL, 0x71374491UL, 0xb5c0fbcfUL, 0xe9b5dba5UL, 0x3956c25bUL,
     0x59f111f1UL, 0x923f82a4UL, 0xab1c5ed5UL, 0xd807aa98UL, 0x12835b01UL,
@@ -85,7 +85,7 @@ void Sha256::Input(const void *aBuf, uint16_t aBufLength)
             mLengthHi++;
         }
 
-        if (mBlockIndex == 64)
+        if (mBlockIndex == sizeof(mBlock))
         {
             ProcessBlock();
         }
@@ -97,7 +97,7 @@ void Sha256::Finalize(uint8_t *aHash)
 {
     PadMessage();
 
-    memset(mBlock, 0, 64);
+    memset(mBlock, 0, sizeof(mBlock));
     mLengthLo = 0;
     mLengthHi = 0;
 
@@ -113,7 +113,7 @@ void Sha256::PadMessage(void)
 
     if (mBlockIndex > 56)
     {
-        while (mBlockIndex < 64)
+        while (mBlockIndex < sizeof(mBlock))
         {
             mBlock[mBlockIndex++] = 0;
         }

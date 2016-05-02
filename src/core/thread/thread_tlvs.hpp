@@ -426,7 +426,7 @@ public:
      *
      */
     bool IsAssignedRouterIdSet(uint8_t aRouterId) const {
-	return (mAssignedRouterIdMask[aRouterId / 8] & (0x80 >> (aRouterId % 8))) != 0;
+        return (mAssignedRouterIdMask[aRouterId / 8] & (0x80 >> (aRouterId % 8))) != 0;
     }
 
     /**
@@ -439,7 +439,7 @@ public:
 
 private:
     uint8_t mIdSequence;
-    uint8_t mAssignedRouterIdMask[(Mle::kMaxRouterId + 7) / 8];
+    uint8_t mAssignedRouterIdMask[BitVectorBytes(Mle::kMaxRouterId)];
 };
 
 }  // namespace Thread

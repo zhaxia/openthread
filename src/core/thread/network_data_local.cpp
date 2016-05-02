@@ -25,6 +25,7 @@
 #include <thread/network_data_local.hpp>
 #include <thread/thread_netif.hpp>
 #include <thread/thread_tlvs.hpp>
+#include <thread/thread_uris.hpp>
 
 namespace Thread {
 namespace NetworkData {
@@ -45,7 +46,7 @@ ThreadError Local::AddOnMeshPrefix(const uint8_t *aPrefix, uint8_t aPrefixLength
 
     prefixTlv = reinterpret_cast<PrefixTlv *>(mTlvs + mLength);
     Insert(reinterpret_cast<uint8_t *>(prefixTlv),
-           sizeof(PrefixTlv) + (aPrefixLength + 7) / 8 + sizeof(BorderRouterTlv) + sizeof(BorderRouterEntry));
+           sizeof(PrefixTlv) + BitVectorBytes(aPrefixLength) + sizeof(BorderRouterTlv) + sizeof(BorderRouterEntry));
     prefixTlv->Init(0, aPrefixLength, aPrefix);
     prefixTlv->SetSubTlvsLength(sizeof(BorderRouterTlv) + sizeof(BorderRouterEntry));
 
@@ -89,7 +90,7 @@ ThreadError Local::AddHasRoutePrefix(const uint8_t *aPrefix, uint8_t aPrefixLeng
 
     prefixTlv = reinterpret_cast<PrefixTlv *>(mTlvs + mLength);
     Insert(reinterpret_cast<uint8_t *>(prefixTlv),
-           sizeof(PrefixTlv) + (aPrefixLength + 7) / 8 + sizeof(HasRouteTlv) + sizeof(HasRouteEntry));
+           sizeof(PrefixTlv) + BitVectorBytes(aPrefixLength) + sizeof(HasRouteTlv) + sizeof(HasRouteEntry));
     prefixTlv->Init(0, aPrefixLength, aPrefix);
     prefixTlv->SetSubTlvsLength(sizeof(HasRouteTlv) + sizeof(HasRouteEntry));
 
@@ -198,12 +199,13 @@ ThreadError Local::Register(const Ip6::Address &aDestination)
         mCoapToken[i] = otRandomGet();
     }
 
+    header.Init();
     header.SetVersion(1);
     header.SetType(Coap::Header::kTypeConfirmable);
     header.SetCode(Coap::Header::kCodePost);
     header.SetMessageId(++mCoapMessageId);
     header.SetToken(mCoapToken, sizeof(mCoapToken));
-    header.AppendUriPathOptions("n/sd");
+    header.AppendUriPathOptions(OPENTHREAD_URI_SERVER_DATA);
     header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
 

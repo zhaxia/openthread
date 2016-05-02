@@ -186,8 +186,8 @@ public:
 private:
     enum
     {
-        kNumEntries = 32,
-        kLifetime = 5,  // seconds
+        kNumEntries = OPENTHREAD_CONFIG_MPL_CACHE_ENTRIES,
+        kLifetime = OPENTHREAD_CONFIG_MPL_CACHE_ENTRY_LIFETIME,
     };
 
     static void HandleTimer(void *context);
