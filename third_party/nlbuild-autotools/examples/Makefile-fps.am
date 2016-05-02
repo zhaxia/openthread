@@ -1,5 +1,3 @@
-#!/bin/sh
-
 #
 #    Copyright 2016 Nest Labs Inc. All Rights Reserved.
 #
@@ -15,20 +13,16 @@
 #    See the License for the specific language governing permissions and
 #    limitations under the License.
 #
+
+#
 #    Description:
-#      This file is a trampoline script to the nlbuild-autotools
-#      bootstrap script and augments it by providing the path to the
-#      nlbuild-autotools repository for this project.
+#      This file is the GNU automake template for the @PACKAGE_DESCRIPTION@
+#      first-party (e.g. Nest Labs) software directory.
 #
 
-# Set this to the relative location of nlbuild-autotools to this script
+include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
-nlbuild_autotools_stem="third_party/nlbuild-autotools"
+SUBDIRS                  = \
+    $(NULL)
 
-# Establish some key directories
-
-srcdir=`dirname ${0}`
-abs_srcdir=`pwd`
-abs_top_srcdir="${abs_srcdir}"
-
-exec ${srcdir}/${nlbuild_autotools_stem}/scripts/bootstrap -I "${abs_top_srcdir}/${nlbuild_autotools_stem}" $*
+include $(abs_top_nlbuild_autotools_dir)/automake/post.am

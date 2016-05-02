@@ -14,33 +14,38 @@
 #    limitations under the License.
 #
 
+#
+#    Description:
+#      This file is the GNU automake template for the @PACKAGE_DESCRIPTION@.
+#
+
 include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
-ACLOCAL_AMFLAGS                     = -I third_party/nlbuild-autotools/autoconf/m4
-AM_MAKEFLAGS                        = --no-print-directory
+AM_MAKEFLAGS                              = --no-print-directory
 
-SUBDIRS                             = \
-    src                               \
-    tests                             \
-    doc                               \
+SUBDIRS                                   = \
+    include                                 \
+    src                                     \
+    tests                                   \
+    doc                                     \
     $(NULL)
 
-EXTRA_DIST                          = \
-    .default-version                  \
-    bootstrap                         \
-    bootstrap-configure               \
+EXTRA_DIST                                = \
+    .default-version                        \
+    bootstrap                               \
+    bootstrap-configure                     \
     $(srcdir)/third_party/nlbuild-autotools \
     $(NULL)
 
-BUILT_SOURCES                       = \
-    .local-version                    \
+BUILT_SOURCES                             = \
+    .local-version                          \
     $(NULL)
 
-dist_doc_DATA                       = \
+dist_doc_DATA                             = \
     $(NULL)
 
-DISTCLEANFILES                      = \
-    .local-version                    \
+DISTCLEANFILES                            = \
+    .local-version                          \
     $(NULL)
 
 #
@@ -72,9 +77,9 @@ VERSION_FILE                      := $(if $(wildcard $(builddir)/.local-version)
 # package was bootstrapped.
 #
 
-OPENTHREAD_VERSION     ?= $(shell cat $(VERSION_FILE) 2> /dev/null)
+@PACKAGE_SHORT_UPPER@_VERSION     ?= $(shell cat $(VERSION_FILE) 2> /dev/null)
 
-PACKAGE_VERSION                    = $(OPENTHREAD_VERSION)
+PACKAGE_VERSION                    = $(@PACKAGE_SHORT_UPPER@_VERSION)
 VERSION                            = $(PACKAGE_VERSION)
 
 #
@@ -83,18 +88,18 @@ VERSION                            = $(PACKAGE_VERSION)
 # Speculatively regenerate .local-version and check to see if it needs
 # to be updated.
 #
-# If OPENTHREAD_VERSION has been supplied anywhere other than in this file
+# If @PACKAGE_SHORT_UPPER@_VERSION has been supplied anywhere other than in this file
 # (which is implicitly the contents of .local-version), then use that;
 # otherwise, attempt to generate it from the SCM system.
 #
 # This is called from $(call check-file,.local-version).
 #
 define check-file-.local-version
-if [ "$(origin OPENTHREAD_VERSION)" != "file" ]; then \
-    echo "$(OPENTHREAD_VERSION)" > "$(2)";            \
+if [ "$(origin @PACKAGE_SHORT_UPPER@_VERSION)" != "file" ]; then \
+    echo "$(@PACKAGE_SHORT_UPPER@_VERSION)" > "$(2)";            \
 else                                                             \
     $(abs_top_nlbuild_autotools_dir)/scripts/mkversion           \
-        -b "$(OPENTHREAD_VERSION)" "$(top_srcdir)"    \
+        -b "$(@PACKAGE_SHORT_UPPER@_VERSION)" "$(top_srcdir)"    \
         > "$(2)";                                                \
 fi
 endef
