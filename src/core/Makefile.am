@@ -28,6 +28,7 @@ libopenthread_a_SOURCES             = \
     openthread.cpp                    \
     coap/coap_header.cpp              \
     coap/coap_server.cpp              \
+    common/logging.cpp                \
     common/message.cpp                \
     common/tasklet.cpp                \
     common/timer.cpp                  \

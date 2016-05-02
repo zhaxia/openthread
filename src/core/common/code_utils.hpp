@@ -24,8 +24,6 @@
 
 #include <stdbool.h>
 
-#include <common/debug.hpp>
-
 #define SuccessOrExit(ERR)                      \
   do {                                          \
     if ((ERR) != 0) {                           \

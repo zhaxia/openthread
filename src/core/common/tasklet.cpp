@@ -20,6 +20,7 @@
  */
 
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
 #include <common/tasklet.hpp>
 #include <common/thread_error.hpp>
 #include <platform/atomic.h>

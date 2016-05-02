@@ -136,9 +136,6 @@ void TestMacDataFrame()
     aesCcm.Payload(test + headerLength, test + headerLength, payloadLength, true);
     aesCcm.Finalize(test + headerLength + payloadLength, &tagLength);
 
-    dump("test", test, sizeof(test));
-    dump("encrypted", encrypted, sizeof(encrypted));
-
     VerifyOrQuit(memcmp(test, encrypted, sizeof(encrypted)) == 0,
                  "TestMacDataFrame encrypt failed");
 

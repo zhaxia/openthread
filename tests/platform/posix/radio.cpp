@@ -29,6 +29,7 @@
 #include <platform/posix/cmdline.h>
 
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
 #include <common/thread_error.hpp>
 #include <mac/mac.hpp>
 #include <platform/radio.h>
@@ -294,7 +295,6 @@ void *phy_receive_thread(void *arg)
 
             if (length < 0)
             {
-                dprintf("recvfrom error\n");
                 assert(false);
             }
 
@@ -322,7 +322,6 @@ void *phy_receive_thread(void *arg)
                 }
             }
 
-            dprintf("Received ack %d\n", rx_sequence);
             otRadioSignalTransmitDone();
             break;
 
@@ -375,8 +374,6 @@ void send_ack()
         sendto(s_sockfd, m_ack_packet.mPsdu, m_ack_packet.mLength, 0,
                (struct sockaddr *)&sockaddr, sizeof(sockaddr));
     }
-
-    dprintf("Sent ack %d\n", sequence);
 }
 
 ThreadError otRadioHandleReceiveDone()

@@ -22,6 +22,8 @@
 #ifndef CLI_HPP_
 #define CLI_HPP_
 
+#include <stdarg.h>
+
 #include <cli/cli_server.hpp>
 #include <net/icmp6.hpp>
 

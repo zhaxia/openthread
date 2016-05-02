@@ -20,6 +20,8 @@
  */
 
 #include <coap/coap_header.hpp>
+#include <common/debug.hpp>
+#include <common/logging.hpp>
 #include <common/code_utils.hpp>
 #include <platform/random.h>
 #include <thread/network_data_local.hpp>
@@ -63,7 +65,7 @@ ThreadError Local::AddOnMeshPrefix(const uint8_t *aPrefix, uint8_t aPrefixLength
         brTlv->SetStable();
     }
 
-    dump("add prefix done", mTlvs, mLength);
+    otDumpDebgNetData("add prefix done", mTlvs, mLength);
     return kThreadError_None;
 }
 
@@ -77,7 +79,7 @@ ThreadError Local::RemoveOnMeshPrefix(const uint8_t *aPrefix, uint8_t aPrefixLen
     Remove(reinterpret_cast<uint8_t *>(tlv), sizeof(NetworkDataTlv) + tlv->GetLength());
 
 exit:
-    dump("remove done", mTlvs, mLength);
+    otDumpDebgNetData("remove done", mTlvs, mLength);
     return error;
 }
 
@@ -106,7 +108,7 @@ ThreadError Local::AddHasRoutePrefix(const uint8_t *aPrefix, uint8_t aPrefixLeng
         hasRouteTlv->SetStable();
     }
 
-    dump("add route done", mTlvs, mLength);
+    otDumpDebgNetData("add route done", mTlvs, mLength);
     return kThreadError_None;
 }
 
@@ -120,7 +122,7 @@ ThreadError Local::RemoveHasRoutePrefix(const uint8_t *aPrefix, uint8_t aPrefixL
     Remove(reinterpret_cast<uint8_t *>(tlv), sizeof(NetworkDataTlv) + tlv->GetLength());
 
 exit:
-    dump("remove done", mTlvs, mLength);
+    otDumpDebgNetData("remove done", mTlvs, mLength);
     return error;
 }
 
@@ -218,7 +220,7 @@ ThreadError Local::Register(const Ip6::Address &aDestination)
     messageInfo.mPeerPort = kCoapUdpPort;
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
 
-    dprintf("Sent network data registration\n");
+    otLogInfoNetData("Sent network data registration\n");
 
 exit:
 
@@ -247,7 +249,7 @@ void Local::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessage
                  header.GetTokenLength() == sizeof(mCoapToken) &&
                  memcmp(mCoapToken, header.GetToken(), sizeof(mCoapToken)) == 0, ;);
 
-    dprintf("Network data registration acknowledged\n");
+    otLogInfoNetData("Network data registration acknowledged\n");
 
 exit:
     {}

@@ -34,10 +34,15 @@ struct prf_ra
 #include <net/route.h>
 #include <netinet6/in6_var.h>
 #include <netinet6/nd6.h>
+#include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/kern_control.h>
 #include <sys/sysctl.h>
+
+#include <common/code_utils.hpp>
+#include <common/debug.hpp>
 
 namespace Thread {
 
@@ -220,7 +225,6 @@ size_t TunNetif::Write(uint8_t *buf, size_t buf_length)
     tun_buf[2] = AF_INET6 >> 8;
     tun_buf[3] = AF_INET6;
     memcpy(tun_buf + 4, buf, buf_length);
-    dump("tun write", buf, buf_length);
 
     return write(tunfd_, tun_buf, 4 + buf_length);
 }

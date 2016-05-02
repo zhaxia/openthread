@@ -32,7 +32,6 @@ static Timer   *sTail = NULL;
 
 void TimerScheduler::Init(void)
 {
-    dprintf("Timer init\n");
     otAlarmInit();
 }
 

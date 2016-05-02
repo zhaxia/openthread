@@ -20,6 +20,8 @@
  */
 
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
+#include <common/logging.hpp>
 #include <common/thread_error.hpp>
 #include <crypto/aes_ccm.hpp>
 #include <mac/mac.hpp>
@@ -43,13 +45,13 @@ void Mac::StartCsmaBackoff(void)
     uint32_t backoffExponent = kMinBE + mCsmaAttempts;
     uint32_t backoff;
 
-    if (backoffExponent > kMaxBackoff)
+    if (backoffExponent > kMaxBE)
     {
-        backoffExponent = kMaxBackoff;
+        backoffExponent = kMaxBE;
     }
 
     backoff = (kUnitBackoffPeriod * kPhyUsPerSymbol * (1 << backoffExponent)) / 1000;
-    backoff = (otRandomGet() % backoff) + 1;
+    backoff = (otRandomGet() % backoff) + kMinBackoff;
 
     mBackoffTimer.Start(backoff);
 }
@@ -403,7 +405,7 @@ void Mac::SendBeaconRequest(Frame &aFrame)
     aFrame.SetDstAddr(kShortAddrBroadcast);
     aFrame.SetCommandId(Frame::kMacCmdBeaconRequest);
 
-    dprintf("Sent Beacon Request\n");
+    otLogInfoMac("Sent Beacon Request\n");
 }
 
 void Mac::SendBeacon(Frame &aFrame)
@@ -451,7 +453,7 @@ void Mac::SendBeacon(Frame &aFrame)
 
     aFrame.SetPayloadLength(payload - aFrame.GetPayload());
 
-    dprintf("Sent Beacon\n");
+    otLogInfoMac("Sent Beacon\n");
 }
 
 void Mac::HandleBeginTransmit(void *aContext)
@@ -538,7 +540,7 @@ void Mac::HandleBeginTransmit(void)
     if (mSendFrame.GetAckRequest())
     {
         mAckTimer.Start(kAckTimeout);
-        dprintf("ack timer start\n");
+        otLogDebgMac("ack timer start\n");
     }
 
 exit:
@@ -642,7 +644,7 @@ void Mac::HandleAckTimer(void)
         break;
 
     case kStateTransmitData:
-        dprintf("ack timer fired\n");
+        otLogDebgMac("ack timer fired\n");
         SentFrame(false);
         break;
 
@@ -663,7 +665,7 @@ void Mac::HandleReceiveTimer(void *aContext)
 
 void Mac::HandleReceiveTimer(void)
 {
-    dprintf("data poll timeout!\n");
+    otLogInfoMac("data poll timeout!\n");
     NextOperation();
 }
 
@@ -686,7 +688,7 @@ void Mac::SentFrame(bool aAcked)
     case kStateTransmitData:
         if (mSendFrame.GetAckRequest() && !aAcked)
         {
-            dump("NO ACK", mSendFrame.GetHeader(), 16);
+            otDumpDebgMac("NO ACK", mSendFrame.GetHeader(), 16);
 
             if (mCsmaAttempts < kMaxCSMABackoffs)
             {
@@ -702,6 +704,8 @@ void Mac::SentFrame(bool aAcked)
                 neighbor->mState = Neighbor::kStateInvalid;
             }
         }
+
+        mCsmaAttempts = 0;
 
         sender = mSendHead;
         mSendHead = mSendHead->mNext;
@@ -721,8 +725,6 @@ void Mac::SentFrame(bool aAcked)
         assert(false);
         break;
     }
-
-    mCsmaAttempts = 0;
 
 exit:
     {}
@@ -849,7 +851,7 @@ void Mac::ReceiveDoneTask(void)
         break;
 
     case sizeof(ShortAddress):
-        VerifyOrExit(neighbor != NULL, dprintf("drop not neighbor\n"));
+        VerifyOrExit(neighbor != NULL, otLogDebgMac("drop not neighbor\n"));
         srcaddr.mLength = sizeof(srcaddr.mExtAddress);
         memcpy(&srcaddr.mExtAddress, &neighbor->mMacAddr, sizeof(srcaddr.mExtAddress));
         break;
@@ -999,7 +1001,7 @@ ThreadError Mac::HandleMacCommand(void)
 
     if (commandId == Frame::kMacCmdBeaconRequest)
     {
-        dprintf("Received Beacon Request\n");
+        otLogInfoMac("Received Beacon Request\n");
         mTransmitBeacon = true;
 
         if (mState == kStateIdle)
@@ -1007,7 +1009,7 @@ ThreadError Mac::HandleMacCommand(void)
             assert(false);
             mState = kStateTransmitBeacon;
             mTransmitBeacon = false;
-            mBackoffTimer.Start(kMinBackoff);
+            mBeginTransmit.Post();
         }
 
         ExitNow(error = kThreadError_Drop);

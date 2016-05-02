@@ -22,6 +22,8 @@
 #ifndef COAP_HEADER_HPP_
 #define COAP_HEADER_HPP_
 
+#include <string.h>
+
 #include <common/message.hpp>
 
 namespace Thread {

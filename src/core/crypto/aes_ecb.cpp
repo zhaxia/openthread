@@ -20,6 +20,7 @@
  */
 
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
 #include <common/thread_error.hpp>
 #include <crypto/aes_ecb.hpp>
 

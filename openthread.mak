@@ -18,6 +18,7 @@ OPENTHREAD_CORE_SOURCES                   = \
     src/core/openthread.cpp                 \
     src/core/coap/coap_header.cpp           \
     src/core/coap/coap_server.cpp           \
+    src/core/common/logging.cpp             \
     src/core/common/message.cpp             \
     src/core/common/tasklet.cpp             \
     src/core/common/timer.cpp               \

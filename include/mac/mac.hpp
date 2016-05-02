@@ -54,20 +54,12 @@ namespace Mac {
  */
 enum
 {
-    kMinBE                = 3,   ///< macMinBE (IEEE 802.15.4-2006)
-    kMaxBE                = 6,   ///< macMaxBE (IEEE 802.15.4-2006)
-    kMaxCSMABackoffs      = 4,   ///< macMaxCSMABackoffs (IEEE 802.15.4-2006)
-    kUnitBackoffPeriod    = 20,  ///< Number of symbols (IEEE 802.15.4-2006)
+    kMinBE                = 3,    ///< macMinBE (IEEE 802.15.4-2006)
+    kMaxBE                = 6,    ///< macMaxBE (IEEE 802.15.4-2006)
+    kMaxCSMABackoffs      = 12,   ///< macMaxCSMABackoffs (IEEE 802.15.4-2006)
+    kUnitBackoffPeriod    = 20,   ///< Number of symbols (IEEE 802.15.4-2006)
 
-    /**
-     * Minimum backoff period in milliseconds.
-     */
-    kMinBackoff           = (kUnitBackoffPeriod *kPhyUsPerSymbol * (1 << kMinBE)) / 1000,
-
-    /**
-     * Maximum backoff period in milliseconds.
-     */
-    kMaxBackoff           = (kUnitBackoffPeriod *kPhyUsPerSymbol * (1 << kMaxBE)) / 1000,
+    kMinBackoff           = 16,   ///< Minimum backoff (milliseconds).
 
     kAckTimeout           = 16,   ///< Timeout for waiting on an ACK (milliseconds).
     kDataPollTimeout      = 100,  ///< Timeout for receivint Data Frame (milliseconds).

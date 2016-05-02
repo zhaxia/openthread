@@ -57,9 +57,6 @@ void TestSha256()
         sha256.Input(tests[i].msg, strlen(tests[i].msg));
         sha256.Finalize(hash);
 
-        dump("hash", hash, sizeof(hash));
-        dump("test", tests[i].hash, sizeof(tests[i].hash));
-
         VerifyOrQuit(memcmp(hash, tests[i].hash, sizeof(tests[i].hash)) == 0,
                      "SHA-256 test failed\n");
     }

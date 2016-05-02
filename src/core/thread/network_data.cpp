@@ -21,6 +21,7 @@
 
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
+#include <common/logging.hpp>
 #include <thread/network_data.hpp>
 
 namespace Thread {
@@ -74,7 +75,7 @@ void NetworkData::RemoveTemporaryData(uint8_t *aData, uint8_t &aDataLength)
                 continue;
             }
 
-            dump("remove prefix done", mTlvs, mLength);
+            otDumpDebgNetData("remove prefix done", mTlvs, mLength);
             break;
         }
 
@@ -98,7 +99,7 @@ void NetworkData::RemoveTemporaryData(uint8_t *aData, uint8_t &aDataLength)
         cur = cur->GetNext();
     }
 
-    dump("remove done", aData, aDataLength);
+    otDumpDebgNetData("remove done", aData, aDataLength);
 }
 
 void NetworkData::RemoveTemporaryData(uint8_t *aData, uint8_t &aDataLength, PrefixTlv &aPrefix)

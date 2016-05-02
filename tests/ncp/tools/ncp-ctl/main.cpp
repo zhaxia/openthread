@@ -27,6 +27,7 @@
 #include <ncp/ncp.pb-c.h>
 
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
 #include <common/thread_error.hpp>
 
 namespace Thread {
@@ -827,7 +828,6 @@ int main(int argc, char *argv[])
     uint8_t buf[1024];
     int buf_length;
     buf_length = thread_control__pack(&thread_control, buf);
-    dump("protobuf", buf, buf_length);
 
     // open ipc socket
     int ipc_fd;
@@ -864,7 +864,6 @@ int main(int argc, char *argv[])
         printf("%s\n", strerror(errno));
     }
 
-    dump("response", buf, buf_length);
     Thread::ProcessThreadControl(buf, buf_length);
 
     close(ipc_fd);
