@@ -21,6 +21,8 @@
 
 #include <openthread.h>
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
+#include <common/logging.hpp>
 #include <common/message.hpp>
 #include <common/tasklet.hpp>
 #include <common/timer.hpp>
@@ -37,6 +39,8 @@ extern "C" {
 
 void otInit()
 {
+    otLogInfoApi("Init\n");
+
     otRandomInit();
 
     Message::Init();

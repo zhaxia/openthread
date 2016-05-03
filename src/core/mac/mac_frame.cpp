@@ -20,6 +20,7 @@
  */
 
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
 #include <mac/mac_frame.hpp>
 #include <net/ip6_address.hpp>
 

@@ -19,7 +19,11 @@
  *   This file implements ICMPv6.
  */
 
+#include <string.h>
+
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
+#include <common/logging.hpp>
 #include <common/message.hpp>
 #include <common/thread_error.hpp>
 #include <net/icmp6.hpp>
@@ -68,7 +72,7 @@ ThreadError IcmpEcho::SendEchoRequest(const SockAddr &aDestination,
     messageInfo.mInterfaceId = aDestination.mScopeId;
 
     SuccessOrExit(error = Ip6::SendDatagram(*message, messageInfo, kProtoIcmp6));
-    dprintf("Sent echo request\n");
+    otLogInfoIcmp("Sent echo request\n");
 
 exit:
     return error;
@@ -116,7 +120,7 @@ ThreadError Icmp::SendError(const Address &aDestination, IcmpHeader::Type aType,
 
     SuccessOrExit(error = Ip6::SendDatagram(*message, messageInfo, kProtoIcmp6));
 
-    dprintf("Sent ICMPv6 Error\n");
+    otLogInfoIcmp("Sent ICMPv6 Error\n");
 
 exit:
     return error;
@@ -180,12 +184,12 @@ ThreadError Icmp::HandleEchoRequest(Message &aRequestMessage, const MessageInfo 
 
     payloadLength = aRequestMessage.GetLength() - aRequestMessage.GetOffset() - IcmpHeader::GetDataOffset();
 
-    dprintf("Received Echo Request\n");
+    otLogInfoIcmp("Received Echo Request\n");
 
     icmp6Header.Init();
     icmp6Header.SetType(IcmpHeader::kTypeEchoReply);
 
-    VerifyOrExit((replyMessage = Ip6::NewMessage(0)) != NULL, dprintf("icmp fail\n"));
+    VerifyOrExit((replyMessage = Ip6::NewMessage(0)) != NULL, otLogDebgIcmp("icmp fail\n"));
     SuccessOrExit(replyMessage->SetLength(IcmpHeader::GetDataOffset() + payloadLength));
 
     replyMessage->Write(0, IcmpHeader::GetDataOffset(), &icmp6Header);
@@ -204,7 +208,7 @@ ThreadError Icmp::HandleEchoRequest(Message &aRequestMessage, const MessageInfo 
 
     SuccessOrExit(error = Ip6::SendDatagram(*replyMessage, replyMessageInfo, kProtoIcmp6));
 
-    dprintf("Sent Echo Reply\n");
+    otLogInfoIcmp("Sent Echo Reply\n");
 
 exit:
     return error;

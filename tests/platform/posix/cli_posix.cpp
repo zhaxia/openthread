@@ -17,6 +17,7 @@
 #include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/select.h>
 
 #include <platform/posix/cmdline.h>
 

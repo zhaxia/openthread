@@ -20,6 +20,8 @@
  */
 
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
+#include <common/logging.hpp>
 #include <common/encoding.hpp>
 #include <common/message.hpp>
 #include <common/thread_error.hpp>
@@ -309,7 +311,6 @@ Message *MeshForwarder::GetDirectTransmission()
             continue;
 
         default:
-            dprintf("error = %d\n", error);
             assert(false);
             break;
         }
@@ -393,7 +394,6 @@ ThreadError MeshForwarder::UpdateMeshRoute(Message &aMessage)
         VerifyOrExit((neighbor = mMle->GetNeighbor(nextHop)) != NULL, error = kThreadError_Drop);
     }
 
-    // dprintf("MESH ROUTE = %02x %02x\n", meshHeader.GetDestination(), neighbor->mValid.mRloc16);
     mMacDest.mLength = sizeof(mMacDest.mShortAddress);
     mMacDest.mShortAddress = neighbor->mValid.mRloc16;
     mMacSource.mLength = sizeof(mMacSource.mShortAddress);
@@ -443,7 +443,6 @@ ThreadError MeshForwarder::UpdateIp6Route(Message &aMessage)
             else
             {
                 mNetworkData->RouteLookup(ip6Header.GetSource(), ip6Header.GetDestination(), NULL, &mMeshDest);
-                dprintf("found external route = %04x\n", mMeshDest);
                 assert(mMeshDest != Mac::kShortAddrInvalid);
             }
         }
@@ -538,7 +537,7 @@ void MeshForwarder::HandlePollTimer()
     if ((message = Message::New(Message::kTypeMacDataPoll, 0)) != NULL)
     {
         SendMessage(*message);
-        dprintf("Sent poll\n");
+        otLogInfoMac("Sent poll\n");
     }
 
     mPollTimer.Start(mPollPeriod);
@@ -895,8 +894,6 @@ void MeshForwarder::HandleSentFrame(Mac::Frame &aFrame)
     mSendMessage->SetOffset(mMessageNextOffset);
 
     aFrame.GetDstAddr(macDest);
-
-    dprintf("sent frame %d %d\n", mMessageNextOffset, mSendMessage->GetLength());
 
     if ((child = mMle->GetChild(macDest)) != NULL)
     {

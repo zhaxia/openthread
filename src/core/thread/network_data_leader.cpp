@@ -20,6 +20,8 @@
  */
 
 #include <coap/coap_header.hpp>
+#include <common/debug.hpp>
+#include <common/logging.hpp>
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <common/message.hpp>
@@ -501,7 +503,7 @@ void Leader::SetNetworkData(uint8_t aVersion, uint8_t aStableVersion, bool aStab
         RemoveTemporaryData(mTlvs, mLength);
     }
 
-    dump("set network data", mTlvs, mLength);
+    otDumpDebgNetData("set network data", mTlvs, mLength);
 
     ConfigureAddresses();
     mMle->HandleNetworkDataUpdate();
@@ -528,7 +530,7 @@ void Leader::HandleServerData(Coap::Header &aHeader, Message &aMessage,
     uint8_t tlvs[kMaxSize];
     uint16_t rloc16;
 
-    dprintf("Received network data registration\n");
+    otLogInfoNetData("Received network data registration\n");
 
     tlvsLength = aMessage.GetLength() - aMessage.GetOffset();
 
@@ -560,7 +562,7 @@ void Leader::SendServerDataResponse(const Coap::Header &aRequestHeader, const Ip
 
     SuccessOrExit(error = mCoapServer->SendMessage(*message, aMessageInfo));
 
-    dprintf("Sent network data registration acknowledgment\n");
+    otLogInfoNetData("Sent network data registration acknowledgment\n");
 
 exit:
 
@@ -598,7 +600,7 @@ ThreadError Leader::AddNetworkData(uint8_t *aTlvs, uint8_t aTlvsLength)
         {
         case NetworkDataTlv::kTypePrefix:
             AddPrefix(*reinterpret_cast<PrefixTlv *>(cur));
-            dump("add prefix done", mTlvs, mLength);
+            otDumpDebgNetData("add prefix done", mTlvs, mLength);
             break;
 
         default:
@@ -609,7 +611,7 @@ ThreadError Leader::AddNetworkData(uint8_t *aTlvs, uint8_t aTlvsLength)
         cur = cur->GetNext();
     }
 
-    dump("add done", mTlvs, mLength);
+    otDumpDebgNetData("add done", mTlvs, mLength);
 
     return kThreadError_None;
 }
@@ -757,7 +759,7 @@ int Leader::AllocateContext(void)
         {
             mContextUsed |= 1 << i;
             rval = i;
-            dprintf("Allocated Context ID = %d\n", rval);
+            otLogInfoNetData("Allocated Context ID = %d\n", rval);
             ExitNow();
         }
     }
@@ -768,7 +770,7 @@ exit:
 
 ThreadError Leader::FreeContext(uint8_t aContextId)
 {
-    dprintf("Free Context Id = %d\n", aContextId);
+    otLogInfoNetData("Free Context Id = %d\n", aContextId);
     RemoveContext(aContextId);
     mContextUsed &= ~(1 << aContextId);
     mVersion++;
@@ -805,7 +807,7 @@ ThreadError Leader::RemoveRloc(uint16_t aRloc16)
                 continue;
             }
 
-            dump("remove prefix done", mTlvs, mLength);
+            otDumpDebgNetData("remove prefix done", mTlvs, mLength);
             break;
         }
 
@@ -819,7 +821,7 @@ ThreadError Leader::RemoveRloc(uint16_t aRloc16)
         cur = cur->GetNext();
     }
 
-    dump("remove done", mTlvs, mLength);
+    otDumpDebgNetData("remove done", mTlvs, mLength);
 
     return kThreadError_None;
 }
@@ -976,7 +978,7 @@ ThreadError Leader::RemoveContext(uint8_t aContextId)
                 continue;
             }
 
-            dump("remove prefix done", mTlvs, mLength);
+            otDumpDebgNetData("remove prefix done", mTlvs, mLength);
             break;
         }
 
@@ -990,7 +992,7 @@ ThreadError Leader::RemoveContext(uint8_t aContextId)
         cur = cur->GetNext();
     }
 
-    dump("remove done", mTlvs, mLength);
+    otDumpDebgNetData("remove done", mTlvs, mLength);
 
     return kThreadError_None;
 }

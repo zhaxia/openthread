@@ -20,6 +20,8 @@
  */
 
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
+#include <common/logging.hpp>
 #include <common/message.hpp>
 #include <common/thread_error.hpp>
 #include <net/icmp6.hpp>
@@ -443,7 +445,7 @@ ThreadError ForwardMessage(Message &message, MessageInfo &messageInfo)
     }
     else
     {
-        dump("no route", &messageInfo.GetSockAddr(), 16);
+        otDumpDebgIp6("no route", &messageInfo.GetSockAddr(), 16);
         ExitNow(error = kThreadError_NoRoute);
     }
 

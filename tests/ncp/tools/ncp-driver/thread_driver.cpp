@@ -24,6 +24,8 @@
 
 #include <cmdline.h>
 
+#include <common/code_utils.hpp>
+#include <common/debug.hpp>
 #include <thread_driver.hpp>
 #include <serial_port.hpp>
 
@@ -130,7 +132,6 @@ ThreadError ThreadDriver::Start()
 
                 serial_read(buf, buf_length);
 
-                dump("serial", buf, buf_length);
                 mHdlcDecoder.Decode(buf, buf_length);
 
                 printf("serial read\n");

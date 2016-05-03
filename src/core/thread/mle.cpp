@@ -19,10 +19,10 @@
  *   This file implements MLE functionality required for the Thread Child, Router and Leader roles.
  */
 
-#include <assert.h>
-
 #include <thread/mle.hpp>
 #include <common/code_utils.hpp>
+#include <common/debug.hpp>
+#include <common/logging.hpp>
 #include <common/encoding.hpp>
 #include <crypto/aes_ccm.hpp>
 #include <mac/mac_frame.hpp>
@@ -220,6 +220,8 @@ DeviceState Mle::GetDeviceState(void) const
     return mDeviceState;
 }
 
+extern "C" void otLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...);
+
 ThreadError Mle::SetStateDetached(void)
 {
     mAddressResolver->Clear();
@@ -228,7 +230,7 @@ ThreadError Mle::SetStateDetached(void)
     mParentRequestTimer.Stop();
     mMesh->SetRxOnWhenIdle(true);
     mMleRouter->HandleDetachStart();
-    dprintf("Mode -> Detached\n");
+    otLogInfoMle("Mode -> Detached\n");
     return kThreadError_None;
 }
 
@@ -248,7 +250,7 @@ ThreadError Mle::SetStateChild(uint16_t aRloc16)
         mMleRouter->HandleChildStart(mParentRequestMode);
     }
 
-    dprintf("Mode -> Child\n");
+    otLogInfoMle("Mode -> Child\n");
     return kThreadError_None;
 }
 
@@ -874,11 +876,11 @@ ThreadError Mle::SendParentRequest(void)
     switch (mParentRequestState)
     {
     case kParentRequestRouter:
-        dprintf("Sent parent request to routers\n");
+        otLogInfoMle("Sent parent request to routers\n");
         break;
 
     case kParentRequestChild:
-        dprintf("Sent parent request to all devices\n");
+        otLogInfoMle("Sent parent request to all devices\n");
         break;
 
     default:
@@ -923,7 +925,7 @@ ThreadError Mle::SendChildIdRequest(void)
     destination.m16[0] = HostSwap16(0xfe80);
     destination.SetIid(mParent.mMacAddr);
     SuccessOrExit(error = SendMessage(*message, destination));
-    dprintf("Sent Child ID Request\n");
+    otLogInfoMle("Sent Child ID Request\n");
 
     if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) == 0)
     {
@@ -952,7 +954,7 @@ ThreadError Mle::SendDataRequest(const Ip6::Address &aDestination, const uint8_t
 
     SuccessOrExit(error = SendMessage(*message, aDestination));
 
-    dprintf("Sent Data Request\n");
+    otLogInfoMle("Sent Data Request\n");
 
 exit:
 
@@ -993,7 +995,7 @@ ThreadError Mle::SendDataResponse(const Ip6::Address &aDestination, const uint8_
 
     SuccessOrExit(error = SendMessage(*message, aDestination));
 
-    dprintf("Sent Data Response\n");
+    otLogInfoMle("Sent Data Response\n");
 
 exit:
 
@@ -1050,7 +1052,7 @@ ThreadError Mle::SendChildUpdateRequest(void)
     destination.SetIid(mParent.mMacAddr);
     SuccessOrExit(error = SendMessage(*message, destination));
 
-    dprintf("Sent Child Update Request\n");
+    otLogInfoMle("Sent Child Update Request\n");
 
     if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) == 0)
     {
@@ -1273,10 +1275,10 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     {
         if (keySequence == mKeyManager->GetCurrentKeySequence())
             VerifyOrExit(neighbor->mPreviousKey == true || frameCounter >= neighbor->mValid.mMleFrameCounter,
-                         dprintf("mle frame counter reject 1\n"));
+                         otLogDebgMle("mle frame counter reject 1\n"));
         else if (keySequence == mKeyManager->GetPreviousKeySequence())
             VerifyOrExit(neighbor->mPreviousKey == true && frameCounter >= neighbor->mValid.mMleFrameCounter,
-                         dprintf("mle frame counter reject 2\n"));
+                         otLogDebgMle("mle frame counter reject 2\n"));
         else
         {
             assert(false);
@@ -1293,7 +1295,8 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
                      command == Header::kCommandParentRequest ||
                      command == Header::kCommandParentResponse ||
                      command == Header::kCommandChildIdRequest ||
-                     command == Header::kCommandChildUpdateRequest, dprintf("mle sequence unknown! %d\n", command));
+                     command == Header::kCommandChildUpdateRequest,
+                     otLogDebgMle("mle sequence unknown! %d\n", command));
     }
 
     switch (command)
@@ -1420,7 +1423,7 @@ ThreadError Mle::HandleDataRequest(const Message &aMessage, const Ip6::MessageIn
     ThreadError error = kThreadError_None;
     TlvRequestTlv tlvRequest;
 
-    dprintf("Received Data Request\n");
+    otLogInfoMle("Received Data Request\n");
 
     // TLV Request
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kTlvRequest, sizeof(tlvRequest), tlvRequest));
@@ -1439,7 +1442,7 @@ ThreadError Mle::HandleDataResponse(const Message &aMessage, const Ip6::MessageI
     NetworkDataTlv networkData;
     int8_t diff;
 
-    dprintf("Received Data Response\n");
+    otLogInfoMle("Received Data Response\n");
 
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kNetworkData, sizeof(networkData), networkData));
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kLeaderData, sizeof(leaderData), leaderData));
@@ -1494,7 +1497,7 @@ ThreadError Mle::HandleParentResponse(const Message &aMessage, const Ip6::Messag
     ChallengeTlv challenge;
     int8_t diff;
 
-    dprintf("Received Parent Response\n");
+    otLogInfoMle("Received Parent Response\n");
 
     // Response
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kResponse, sizeof(response), response));
@@ -1532,15 +1535,15 @@ ThreadError Mle::HandleParentResponse(const Message &aMessage, const Ip6::Messag
             break;
 
         case kMleAttachBetterPartition:
-            dprintf("partition info  %d %d %d %d\n",
-                    leaderData.GetWeighting(), peerPartitionId,
-                    mLeaderData.GetWeighting(), mLeaderData.GetPartitionId());
+            otLogDebgMle("partition info  %d %d %d %d\n",
+                         leaderData.GetWeighting(), peerPartitionId,
+                         mLeaderData.GetWeighting(), mLeaderData.GetPartitionId());
 
             if ((leaderData.GetWeighting() < mLeaderData.GetWeighting()) ||
                 (leaderData.GetWeighting() == mLeaderData.GetWeighting() &&
                  peerPartitionId <= mLeaderData.GetPartitionId()))
             {
-                ExitNow(dprintf("ignore parent response\n"));
+                ExitNow(otLogDebgMle("ignore parent response\n"));
             }
 
             break;
@@ -1630,7 +1633,7 @@ ThreadError Mle::HandleChildIdResponse(const Message &aMessage, const Ip6::Messa
     RouteTlv route;
     uint8_t numRouters;
 
-    dprintf("Received Child ID Response\n");
+    otLogInfoMle("Received Child ID Response\n");
 
     VerifyOrExit(mParentRequestState == kChildIdRequest, ;);
 
@@ -1706,7 +1709,7 @@ ThreadError Mle::HandleChildUpdateResponse(const Message &aMessage, const Ip6::M
     TimeoutTlv timeout;
     uint8_t tlvs[] = {Tlv::kLeaderData, Tlv::kNetworkData};
 
-    dprintf("Received Child Update Response\n");
+    otLogInfoMle("Received Child Update Response\n");
 
     // Status
     if (Tlv::GetTlv(aMessage, Tlv::kStatus, sizeof(status), status) == kThreadError_None)

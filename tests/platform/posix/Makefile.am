@@ -42,6 +42,7 @@ libopenthread_posix_a_SOURCES          = \
     atomic.c                             \
     cli_posix.cpp                        \
     cmdline.c                            \
+    logging.c                            \
     radio.cpp                            \
     random.c                             \
     serial.c                             \

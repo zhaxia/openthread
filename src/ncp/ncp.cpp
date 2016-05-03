@@ -58,8 +58,6 @@ ThreadError Ncp::Stop()
 ThreadError Ncp::Send(uint8_t protocol, uint8_t *frame,
                       uint16_t frameLength)
 {
-    printf("here s\n");
-
     uint8_t *cur = mSendFrame;
     uint16_t outLength;
 

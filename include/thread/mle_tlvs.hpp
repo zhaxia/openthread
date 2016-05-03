@@ -22,6 +22,8 @@
 #ifndef MLE_TLVS_HPP_
 #define MLE_TLVS_HPP_
 
+#include <string.h>
+
 #include <common/encoding.hpp>
 #include <common/message.hpp>
 #include <common/thread_error.hpp>

@@ -19,6 +19,8 @@
  *   This file implements a protobuf interface to the OpenThread stack.
  */
 
+#include <stdio.h>
+
 #include <common/code_utils.hpp>
 #include <ncp/ncp.hpp>
 

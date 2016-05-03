@@ -23,6 +23,7 @@
 #define MESSAGE_HPP_
 
 #include <stdint.h>
+#include <string.h>
 
 #include <openthread.h>
 #include <openthread-core-config.h>
