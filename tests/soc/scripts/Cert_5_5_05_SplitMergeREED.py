@@ -74,6 +74,14 @@ class Cert_5_5_5_SplitMergeREED(unittest.TestCase):
         self.nodes[LEADER1].set_state('leader')
         self.assertEqual(self.nodes[LEADER1].get_state(), 'leader')
 
+        self.nodes[ROUTER2].start()
+        time.sleep(3)
+        self.assertEqual(self.nodes[ROUTER2].get_state(), 'router')
+
+        self.nodes[REED2].start()
+        time.sleep(3)
+        self.assertEqual(self.nodes[REED2].get_state(), 'child')
+
         self.nodes[ROUTER3].start()
         time.sleep(3)
         self.assertEqual(self.nodes[ROUTER3].get_state(), 'router')
@@ -82,21 +90,11 @@ class Cert_5_5_5_SplitMergeREED(unittest.TestCase):
         time.sleep(3)
         self.assertEqual(self.nodes[ROUTER1].get_state(), 'router')
 
-        self.nodes[REED2].start()
-        time.sleep(3)
-        self.assertEqual(self.nodes[REED2].get_state(), 'child')
-
-        self.nodes[ROUTER2].start()
-        time.sleep(3)
-        self.assertEqual(self.nodes[ROUTER2].get_state(), 'router')
-
         self.nodes[ROUTER3].stop()
         time.sleep(150)
 
         self.assertEqual(self.nodes[REED2].get_state(), 'router')
         self.assertEqual(self.nodes[ROUTER1].get_state(), 'router')
-
-        time.sleep(30)
 
         addrs = self.nodes[LEADER1].get_addrs()
         for addr in addrs:
