@@ -93,8 +93,10 @@ exit:
 
 ThreadError serial_send(const uint8_t *buf, uint16_t buf_length)
 {
-    write(fd_, buf, buf_length);
-    return kThreadError_None;
+    ThreadError error = kThreadError_None;
+    VerifyOrExit(write(fd_, buf, buf_length) == buf_length, error = kThreadError_NoBufs);
+exit:
+    return error;
 }
 
 int serial_get_fd()

@@ -538,7 +538,7 @@ ThreadError NcpBase::ProcessWhitelist(ThreadControl &message)
     }
 
     case THREAD_WHITELIST__TYPE__ADD:
-        whitelist.Add(*reinterpret_cast<Mac::ExtAddress *>(message.whitelist.address[0].data));
+        whitelist.Add(*reinterpret_cast<Mac::ExtAddress *>(&message.whitelist.address[0]));
         break;
 
     case THREAD_WHITELIST__TYPE__CLEAR:
@@ -546,7 +546,7 @@ ThreadError NcpBase::ProcessWhitelist(ThreadControl &message)
         break;
 
     case THREAD_WHITELIST__TYPE__DELETE:
-        whitelist.Remove(*reinterpret_cast<Mac::ExtAddress *>(message.whitelist.address[0].data));
+        whitelist.Remove(*reinterpret_cast<Mac::ExtAddress *>(&message.whitelist.address[0]));
         break;
 
     case _THREAD_WHITELIST__TYPE_IS_INT_SIZE:

@@ -856,7 +856,7 @@ int main(int argc, char *argv[])
     // send request
     if (write(ipc_fd, buf, buf_length) < 0)
     {
-        printf("%s\n", strerror(errno));
+	printf("%s\n", strerror(errno));
     }
 
     // receive response

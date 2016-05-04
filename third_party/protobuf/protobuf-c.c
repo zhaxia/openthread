@@ -875,15 +875,6 @@ repeated_field_pack(const ProtobufCFieldDescriptor *field,
   }
 }
 
-static size_t
-unknown_field_pack(const ProtobufCMessageUnknownField *field, uint8_t *out)
-{
-  size_t rv = tag_pack(field->tag, out);
-  out[0] |= field->wire_type;
-  memcpy(out + rv, field->data, field->len);
-  return rv + field->len;
-}
-
 /**@}*/
 
 size_t
@@ -1045,69 +1036,7 @@ scan_length_prefixed_data(size_t len, const uint8_t *data,
   return hdr_len + val;
 }
 
-static size_t
-max_b128_numbers(size_t len, const uint8_t *data)
-{
-  size_t rv = 0;
-  while (len--)
-    if ((*data++ & 0x80) == 0)
-      ++rv;
-  return rv;
-}
-
 /**@}*/
-
-/**
- * Count packed elements.
- *
- * Given a raw slab of packed-repeated values, determine the number of
- * elements. This function detects certain kinds of errors but not
- * others; the remaining error checking is done by
- * parse_packed_repeated_member().
- */
-static protobuf_c_boolean
-count_packed_elements(ProtobufCType type,
-                      size_t len, const uint8_t *data, size_t *count_out)
-{
-  switch (type) {
-    case PROTOBUF_C_TYPE_SFIXED32:
-    case PROTOBUF_C_TYPE_FIXED32:
-    case PROTOBUF_C_TYPE_FLOAT:
-      if (len % 4 != 0) {
-        PROTOBUF_C_UNPACK_ERROR("length must be a multiple of 4 for fixed-length 32-bit types");
-        return FALSE;
-      }
-      *count_out = len / 4;
-      return TRUE;
-    case PROTOBUF_C_TYPE_SFIXED64:
-    case PROTOBUF_C_TYPE_FIXED64:
-    case PROTOBUF_C_TYPE_DOUBLE:
-      if (len % 8 != 0) {
-        PROTOBUF_C_UNPACK_ERROR("length must be a multiple of 8 for fixed-length 64-bit types");
-        return FALSE;
-      }
-      *count_out = len / 8;
-      return TRUE;
-    case PROTOBUF_C_TYPE_INT32:
-    case PROTOBUF_C_TYPE_SINT32:
-    case PROTOBUF_C_TYPE_ENUM:
-    case PROTOBUF_C_TYPE_UINT32:
-    case PROTOBUF_C_TYPE_INT64:
-    case PROTOBUF_C_TYPE_SINT64:
-    case PROTOBUF_C_TYPE_UINT64:
-      *count_out = max_b128_numbers(len, data);
-      return TRUE;
-    case PROTOBUF_C_TYPE_BOOL:
-      *count_out = len;
-      return TRUE;
-    case PROTOBUF_C_TYPE_STRING:
-    case PROTOBUF_C_TYPE_BYTES:
-    case PROTOBUF_C_TYPE_MESSAGE:
-    default:
-      PROTOBUF_C_UNPACK_ERROR("bad protobuf-c type %u for packed-repeated", type);
-      return FALSE;
-  }
-}
 
 static inline uint32_t
 parse_uint32(unsigned len, const uint8_t *data)

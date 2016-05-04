@@ -40,8 +40,8 @@ namespace Thread {
 namespace Mle {
 
 Mle::Mle() :
-    mNetifHandler(&HandleUnicastAddressesChanged, this),
-    mParentRequestTimer(&HandleParentRequestTimer, this)
+    mParentRequestTimer(&HandleParentRequestTimer, this),
+    mNetifHandler(&HandleUnicastAddressesChanged, this)
 {
 }
 
