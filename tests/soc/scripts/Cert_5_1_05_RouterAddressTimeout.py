@@ -63,6 +63,8 @@ class Cert_5_1_05_RouterAddressTimeout(unittest.TestCase):
         self.assertEqual(self.nodes[ROUTER1].get_state(), 'router')
         self.assertNotEqual(self.nodes[ROUTER1].get_addr16(), rloc16)
 
+        rloc16 = self.nodes[ROUTER1].get_addr16()
+
         self.nodes[ROUTER1].stop()
         time.sleep(300)
         self.nodes[ROUTER1].start()
