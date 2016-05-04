@@ -107,6 +107,7 @@ check_SCRIPTS                                                     += \
     scripts/Cert_5_5_02_LeaderReboot.py                              \
     scripts/Cert_5_5_03_SplitMergeChildren.py                        \
     scripts/Cert_5_5_04_SplitMergeRouters.py                         \
+    scripts/Cert_5_5_05_SplitMergeREED.py                            \
     scripts/Cert_5_5_06_SplitWeight.py                               \
     scripts/Cert_5_5_07_SplitMergeThreeWay.py                        \
     scripts/Cert_5_5_08_SplitRoutersLostLeader.py                    \
@@ -117,7 +118,6 @@ check_SCRIPTS                                                     += \
 #  Failing
 #    scripts/Cert_5_1_04_RouterAddressReallocation.py                 \
 #    scripts/Cert_5_1_05_RouterAddressTimeout.py                      \
-#    scripts/Cert_5_5_05_SplitMergeREED.py                            \
 #    $(NULL)
 
 endif # OPENTHREAD_WITH_ESSENTIAL_TESTS_ONLY
