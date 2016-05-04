@@ -71,7 +71,7 @@ VERSION_FILE                      := $(if $(wildcard $(builddir)/.local-version)
 # package was bootstrapped.
 #
 
-OPENTHREAD_VERSION     ?= $(shell cat $(VERSION_FILE) 2> /dev/null)
+OPENTHREAD_VERSION                ?= $(shell cat $(VERSION_FILE) 2> /dev/null)
 
 PACKAGE_VERSION                    = $(OPENTHREAD_VERSION)
 VERSION                            = $(PACKAGE_VERSION)

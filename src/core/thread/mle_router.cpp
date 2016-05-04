@@ -19,8 +19,6 @@
  *   This file implements MLE functionality required for the Thread Router and Leader roles.
  */
 
-#include <assert.h>
-
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/logging.hpp>

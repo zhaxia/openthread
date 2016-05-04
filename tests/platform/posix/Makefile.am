@@ -24,7 +24,9 @@ libopenthread_posix_a_CPPFLAGS         = \
     -I$(top_srcdir)/src/core             \
     -I$(top_srcdir)/tests                \
     -I$(top_srcdir)/tests/platform/posix \
+    $(OPENTHREAD_TARGET_DEFINES)         \
     -D_BSD_SOURCE                        \
+    -D_GNU_SOURCE                        \
     $(NULL)
 
 libopenthread_posix_a_CXXFLAGS         = \
@@ -33,6 +35,7 @@ libopenthread_posix_a_CXXFLAGS         = \
     -I$(top_srcdir)/src/core             \
     -I$(top_srcdir)/tests                \
     -I$(top_srcdir)/tests/platform/posix \
+    $(OPENTHREAD_TARGET_DEFINES)         \
     -std=c++11                           \
     $(NULL)
 
