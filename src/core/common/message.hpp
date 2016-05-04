@@ -25,10 +25,9 @@
 #include <stdint.h>
 #include <string.h>
 
-#include <openthread.h>
+#include <openthread-types.h>
 #include <openthread-core-config.h>
 #include <common/code_utils.hpp>
-#include <common/thread_error.hpp>
 #include <mac/mac_frame.hpp>
 
 namespace Thread {

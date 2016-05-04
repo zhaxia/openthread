@@ -22,7 +22,7 @@
 #ifndef NETWORK_DATA_HPP_
 #define NETWORK_DATA_HPP_
 
-#include <common/thread_error.hpp>
+#include <openthread-types.h>
 #include <thread/lowpan.hpp>
 #include <thread/network_data_tlvs.hpp>
 

@@ -25,8 +25,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <openthread-types.h>
 #include <common/tasklet.hpp>
-#include <common/thread_error.hpp>
 #include <platform/alarm.h>
 
 namespace Thread {

@@ -22,7 +22,6 @@
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/message.hpp>
-#include <common/thread_error.hpp>
 #include <net/ip6.hpp>
 
 namespace Thread {

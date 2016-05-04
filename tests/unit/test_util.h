@@ -17,9 +17,10 @@
 #ifndef TEST_UTIL_H
 #define TEST_UTIL_H
 
-#include <common/thread_error.hpp>
 #include <stdio.h>
 #include <stdlib.h>
+
+#include <openthread-types.h>
 
 #define SuccessOrQuit(ERR, MSG)                 \
   do { \

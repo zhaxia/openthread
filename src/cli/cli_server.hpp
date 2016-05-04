@@ -22,7 +22,6 @@
 #ifndef CLI_SERVER_HPP_
 #define CLI_SERVER_HPP_
 
-#include <common/thread_error.hpp>
 #include <common/message.hpp>
 
 namespace Thread {

@@ -22,7 +22,6 @@
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/logging.hpp>
-#include <common/thread_error.hpp>
 #include <crypto/aes_ccm.hpp>
 #include <mac/mac.hpp>
 #include <mac/mac_frame.hpp>

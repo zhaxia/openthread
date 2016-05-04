@@ -26,7 +26,7 @@
 
 #include <stdint.h>
 
-#include <common/thread_error.hpp>
+#include <openthread-types.h>
 
 #ifdef __cplusplus
 extern "C" {

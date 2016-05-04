@@ -24,7 +24,8 @@
 #define OPENTHREAD_H_
 
 #include <stdint.h>
-#include <common/thread_error.hpp>
+
+#include <openthread-types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -199,32 +200,6 @@ const uint8_t *otGetExtendedPanId(void);
 void otSetExtendedPanId(const uint8_t *aExtendedPanId);
 
 /**
- * This structure represents an MLE Link Mode configuration.
- */
-typedef struct otLinkModeConfig
-{
-    /**
-     * 1, if the sender has its receiver on when not transmitting.  0, otherwise.
-     */
-    uint8_t mRxOnWhenIdle : 1;
-
-    /**
-     * 1, if the sender will use IEEE 802.15.4 to secure all data requests.  0, otherwise.
-     */
-    uint8_t mSecureDataRequests : 1;
-
-    /**
-     * 1, if the sender is an FFD.  0, otherwise.
-     */
-    uint8_t mDeviceType : 1;
-
-    /**
-     * 1, if the sender requires the full Network Data.  0, otherwise.
-     */
-    uint8_t mNetworkData : 1;
-} otLinkModeConfig;
-
-/**
  * Get the MLE Link Mode configuration.
  *
  * @returns The MLE Link Mode configuration.
@@ -356,79 +331,6 @@ void otSetLocalLeaderWeight(uint8_t aWeight);
  *
  */
 
-enum
-{
-    kIp6AddressSize = 16,
-};
-
-/**
- * This structure represents an IPv6 address.
- */
-typedef struct otIp6Address
-{
-    union
-    {
-        uint8_t  m8[kIp6AddressSize];
-        uint16_t m16[kIp6AddressSize / sizeof(uint16_t)];
-        uint32_t m32[kIp6AddressSize / sizeof(uint32_t)];
-    };
-} __attribute__((packed)) otIp6Address;
-
-/**
- * This structure represents an IPv6 prefix.
- */
-typedef struct otIp6Prefix
-{
-    otIp6Address  mPrefix;  ///< The IPv6 prefix.
-    uint8_t       mLength;  ///< The IPv6 prefix length.
-} otIp6Prefix;
-
-/**
- * This structure represents a Border Router configuration.
- */
-typedef struct otBorderRouterConfig
-{
-    /**
-     * TRUE, if this border router is a DHCPv6 Agent that supplies other configuration data.  FALSE, otherwise.
-     */
-    otIp6Prefix mPrefix;
-
-    /**
-     * A 2-bit signed integer indicating router preference as defined in RFC 4291.
-     */
-    int8_t      mPreference : 2;
-
-    /**
-     * TRUE, if @p mPrefix is preferred and should e used for address autoconfiguration.  FALSE, otherwise.
-     */
-    uint8_t     mSlaacPreferred : 1;
-
-    /**
-     * TRUE, if @p mPrefix is valid and should be used for address autoconfiguration.  FALSE, otherwise.
-     */
-    uint8_t     mSlaacValid : 1;
-
-    /**
-     * TRUE, if this border router is a DHCPv6 Agent that supplies IPv6 address configuration.  FALSE, otherwise.
-     */
-    uint8_t     mDhcp : 1;
-
-    /**
-     * TRUE, if this border router is a DHCPv6 Agent that supplies other configuration data.  FALSE, otherwise.
-     */
-    uint8_t     mConfigure : 1;
-
-    /**
-     * TRUE, if this border router is a default route for @p mPrefix.  FALSE, otherwise.
-     */
-    uint8_t     mDefaultRoute : 1;
-
-    /**
-     * TRUE, if this configuration is considered Stable Network Data.  FALSE, otherwise.
-     */
-    uint8_t     mStable : 1;
-} otBorderRouterConfig;
-
 /**
  * Add a border router configuration to the local network data.
  *
@@ -454,27 +356,6 @@ ThreadError otAddBorderRouter(const otBorderRouterConfig *aConfig);
  * @sa otSendServerData
  */
 ThreadError otRemoveBorderRouter(const otIp6Prefix *aPrefix);
-
-/**
- * This structure represents an External Route configuration.
- */
-typedef struct otExternalRouteConfig
-{
-    /**
-     * The prefix for the off-mesh route.
-     */
-    otIp6Prefix mPrefix;
-
-    /**
-     * A 2-bit signed integer indicating router preference as defined in RFC 4291.
-     */
-    int8_t      mPreference : 2;
-
-    /**
-     * TRUE, if this configuration is considered Stable Network Data.  FALSE, otherwise.
-     */
-    uint8_t     mStable : 1;
-} otExternalRouteConfig;
 
 /**
  * Add an external route configuration to the local network data.
@@ -700,16 +581,6 @@ void otEnableMacWhitelist();
 ThreadError otBecomeDetached();
 
 /**
- * Represents any restrictions on the attach process.
- */
-typedef enum otMleAttachFilter
-{
-    kMleAttachAnyPartition    = 0,  ///< Attach to any Thread partition.
-    kMleAttachSamePartition   = 1,  ///< Attach to the same Thread partition.
-    kMleAttachBetterPartition = 2,  ///< Attach to a better (i.e. higher weight/partition id) Thread partition.
-} otMleAttachFilter;
-
-/**
  * Attempt to reattach as a child.
  *
  * @param[in]  aFilter  Identifies whether to join any, same, or better partition.
@@ -753,18 +624,6 @@ ThreadError otBecomeLeader();
  * @{
  *
  */
-
-/**
- * Represents a Thread device role.
- */
-enum otDeviceRole
-{
-    kDeviceRoleDisabled,  ///< The Thread stack is disabled.
-    kDeviceRoleDetached,  ///< Not currently participating in a Thread network/partition.
-    kDeviceRoleChild,     ///< The Thread Child role.
-    kDeviceRoleRouter,    ///< The Thread Router role.
-    kDeviceRoleLeader,    ///< The Thread Leader role.
-};
 
 /**
  * Get the device role.
@@ -830,19 +689,6 @@ uint8_t otGetStableNetworkDataVersion();
  * @}
  *
  */
-
-/**
- * This structure represents an IPv6 network interface address.
- *
- */
-typedef struct otNetifAddress
-{
-    otIp6Address           mAddress;            ///< The IPv6 address.
-    uint32_t               mPreferredLifetime;  ///< The Preferred Lifetime.
-    uint32_t               mValidLifetime;      ///< The Valid lifetime.
-    uint8_t                mPrefixLength;       ///< The Prefix length.
-    struct otNetifAddress *mNext;               ///< A pointer to the next network interface address.
-} otNetifAddress;
 
 /**
  * Test if two IPv6 addresses are the same.
@@ -1093,47 +939,6 @@ int otWriteMessage(otMessage aMessage, uint16_t aOffset, const void *aBuf, uint1
  * @{
  *
  */
-
-/**
- * This structure represents an IPv6 socket address.
- */
-typedef struct otSockAddr
-{
-    otIp6Address mAddress;  ///< An IPv6 address.
-    uint16_t     mPort;     ///< A transport-layer port.
-    uint8_t      mScopeId;  ///< An IPv6 scope identifier.
-} otSockAddr;
-
-/**
- * This structure represents the local and peer IPv6 socket addresses.
- */
-typedef struct otMessageInfo
-{
-    otIp6Address mSockAddr;     ///< The local IPv6 address.
-    otIp6Address mPeerAddr;     ///< The peer IPv6 address.
-    uint16_t     mSockPort;     ///< The local transport-layer port.
-    uint16_t     mPeerPort;     ///< The peer transport-layer port.
-    uint8_t      mInterfaceId;  ///< An IPv6 interface identifier.
-    uint8_t      mHopLimit;     ///< The IPv6 Hop Limit.
-    const void  *mLinkInfo;     ///< A pointer to link-specific information.
-} otMessageInfo;
-
-/**
- * This callback allows OpenThread to inform the application of a received UDP message.
- */
-typedef void (*otUdpReceive)(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
-
-/**
- * This structure represents a UDP socket.
- */
-typedef struct otUdpSocket
-{
-    otSockAddr           mSockName;  ///< The local IPv6 socket address.
-    otSockAddr           mPeerName;  ///< The peer IPv6 socket address.
-    otUdpReceive         mHandler;   ///< A function pointer to the application callback.
-    void                *mContext;   ///< A pointer to application-specific context.
-    struct otUdpSocket *mNext;       ///< A pointer to the next UDP socket.
-} otUdpSocket;
 
 /**
  * Allocate a new message buffer for sending a UDP message.

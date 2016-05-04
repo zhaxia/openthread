@@ -22,7 +22,6 @@
 #include <coap/coap_header.hpp>
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
-#include <common/thread_error.hpp>
 
 namespace Thread {
 namespace Coap {

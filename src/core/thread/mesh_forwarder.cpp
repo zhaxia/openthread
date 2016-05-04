@@ -24,7 +24,6 @@
 #include <common/logging.hpp>
 #include <common/encoding.hpp>
 #include <common/message.hpp>
-#include <common/thread_error.hpp>
 #include <net/ip6.hpp>
 #include <net/netif.hpp>
 #include <net/udp6.hpp>

@@ -22,7 +22,7 @@
 #ifndef TASKLET_HPP_
 #define TASKLET_HPP_
 
-#include <common/thread_error.hpp>
+#include <openthread-types.h>
 
 namespace Thread {
 

@@ -24,9 +24,9 @@
 
 #include <stddef.h>
 
+#include <openthread-types.h>
 #include <common/encoding.hpp>
 #include <common/message.hpp>
-#include <common/thread_error.hpp>
 #include <net/ip6_address.hpp>
 #include <net/netif.hpp>
 #include <net/socket.hpp>

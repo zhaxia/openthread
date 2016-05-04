@@ -22,8 +22,8 @@
 #ifndef HDLC_HPP_
 #define HDLC_HPP_
 
+#include <openthread-types.h>
 #include <common/message.hpp>
-#include <common/thread_error.hpp>
 
 namespace Thread {
 

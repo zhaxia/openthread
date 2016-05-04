@@ -25,7 +25,7 @@
 #include <limits.h>
 #include <stdint.h>
 
-#include <common/thread_error.hpp>
+#include <openthread-types.h>
 #include <platform/radio.h>
 
 namespace Thread {

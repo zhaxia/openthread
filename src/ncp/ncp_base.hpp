@@ -24,8 +24,8 @@
 
 #include <ncp/ncp.pb-c.h>
 
+#include <openthread-types.h>
 #include <common/message.hpp>
-#include <common/thread_error.hpp>
 #include <thread/thread_netif.hpp>
 
 enum

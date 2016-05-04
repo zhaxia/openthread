@@ -20,7 +20,6 @@
  */
 
 #include <common/code_utils.hpp>
-#include <common/thread_error.hpp>
 #include <common/timer.hpp>
 #include <platform/alarm.h>
 

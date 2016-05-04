@@ -20,9 +20,9 @@
 #include <sys/socket.h>
 #include <pthread.h>
 
+#include <openthread-types.h>
 #include <cli/cli_server.hpp>
 #include <common/tasklet.hpp>
-#include <common/thread_error.hpp>
 
 namespace Thread {
 namespace Cli {

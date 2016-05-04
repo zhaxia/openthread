@@ -20,7 +20,6 @@
  */
 
 #include <common/code_utils.hpp>
-#include <common/thread_error.hpp>
 #include <crypto/hmac.hpp>
 #include <crypto/sha256.hpp>
 #include <thread/key_manager.hpp>
