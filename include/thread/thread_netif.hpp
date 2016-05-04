@@ -22,7 +22,7 @@
 #ifndef THREAD_NETIF_HPP_
 #define THREAD_NETIF_HPP_
 
-#include <common/thread_error.hpp>
+#include <openthread-types.h>
 #include <mac/mac.hpp>
 #include <net/netif.hpp>
 #include <thread/address_resolver.hpp>

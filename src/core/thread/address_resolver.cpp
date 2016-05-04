@@ -24,7 +24,6 @@
 #include <common/debug.hpp>
 #include <common/logging.hpp>
 #include <common/encoding.hpp>
-#include <common/thread_error.hpp>
 #include <mac/mac_frame.hpp>
 #include <platform/random.h>
 #include <thread/address_resolver.hpp>

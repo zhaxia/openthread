@@ -24,7 +24,7 @@
 
 #include <stdint.h>
 
-#include <common/thread_error.hpp>
+#include <openthread-types.h>
 
 namespace Thread {
 namespace Crypto {

@@ -17,8 +17,8 @@
 #ifndef SERIAL_PORT_HPP_
 #define SERIAL_PORT_HPP_
 
+#include <openthread-types.h>
 #include <common/code_utils.hpp>
-#include <common/thread_error.hpp>
 
 namespace Thread {
 

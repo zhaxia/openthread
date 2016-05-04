@@ -22,7 +22,6 @@
 #include <string.h>
 
 #include <common/code_utils.hpp>
-#include <common/thread_error.hpp>
 #include <crypto/sha256.hpp>
 
 namespace Thread {

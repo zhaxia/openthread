@@ -24,7 +24,7 @@
 
 #include <stdint.h>
 
-#include <common/thread_error.hpp>
+#include <openthread-config.h>
 #include <crypto/hash.hpp>
 
 namespace Thread {

@@ -26,9 +26,9 @@
 #include <cmdline.h>
 #include <ncp/ncp.pb-c.h>
 
+#include <openthread-types.h>
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
-#include <common/thread_error.hpp>
 
 namespace Thread {
 

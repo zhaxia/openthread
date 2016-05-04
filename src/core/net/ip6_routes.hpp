@@ -22,8 +22,8 @@
  *   This file includes definitions for manipulating IPv6 routing tables.
  */
 
+#include <openthread-types.h>
 #include <common/message.hpp>
-#include <common/thread_error.hpp>
 #include <net/ip6_address.hpp>
 
 namespace Thread {

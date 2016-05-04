@@ -25,7 +25,6 @@
 #include <common/debug.hpp>
 #include <common/logging.hpp>
 #include <common/message.hpp>
-#include <common/thread_error.hpp>
 #include <net/icmp6.hpp>
 #include <net/ip6.hpp>
 

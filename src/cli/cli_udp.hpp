@@ -22,9 +22,8 @@
 #ifndef CLI_UDP_HPP_
 #define CLI_UDP_HPP_
 
-#include <openthread.h>
+#include <openthread-types.h>
 #include <cli/cli_server.hpp>
-#include <common/thread_error.hpp>
 
 namespace Thread {
 namespace Cli {

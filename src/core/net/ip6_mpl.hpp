@@ -22,8 +22,8 @@
  *   This file includes definitions for MPL.
  */
 
+#include <openthread-types.h>
 #include <common/message.hpp>
-#include <common/thread_error.hpp>
 #include <common/timer.hpp>
 #include <net/ip6.hpp>
 

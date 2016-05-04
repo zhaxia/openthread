@@ -30,7 +30,6 @@
 
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
-#include <common/thread_error.hpp>
 #include <mac/mac.hpp>
 #include <platform/radio.h>
 

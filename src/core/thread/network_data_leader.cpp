@@ -25,7 +25,6 @@
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <common/message.hpp>
-#include <common/thread_error.hpp>
 #include <common/timer.hpp>
 #include <mac/mac_frame.hpp>
 #include <platform/random.h>

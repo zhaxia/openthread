@@ -22,8 +22,8 @@
 #ifndef CLI_SERIAL_HPP_
 #define CLI_SERIAL_HPP_
 
+#include <openthread-types.h>
 #include <cli/cli_server.hpp>
-#include <common/thread_error.hpp>
 
 namespace Thread {
 namespace Cli {
