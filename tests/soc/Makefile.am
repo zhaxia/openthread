@@ -94,6 +94,7 @@ check_SCRIPTS                                                      = \
 if !OPENTHREAD_WITH_MINIMUM_SET_OF_TESTS
 
 check_SCRIPTS                                                     += \
+    scripts/Cert_5_1_04_RouterAddressReallocation.py                 \
     scripts/Cert_5_1_05_RouterAddressTimeout.py                      \
     scripts/Cert_5_1_07_MaxChildCount.py                             \
     scripts/Cert_5_2_02_LeaderReject1Hop.py                          \
@@ -115,10 +116,6 @@ check_SCRIPTS                                                     += \
     scripts/Cert_6_2_01_NewPartition.py                              \
     scripts/Cert_6_2_02_NewPartition.py                              \
     $(NULL)
-
-#  Failing
-#    scripts/Cert_5_1_04_RouterAddressReallocation.py                 \
-#    $(NULL)
 
 endif # OPENTHREAD_WITH_ESSENTIAL_TESTS_ONLY
 
