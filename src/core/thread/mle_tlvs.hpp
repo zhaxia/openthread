@@ -24,7 +24,7 @@
 
 #include <string.h>
 
-#include <openthread-config.h>
+#include <openthread-types.h>
 #include <common/encoding.hpp>
 #include <common/message.hpp>
 #include <net/ip6_address.hpp>
