@@ -319,7 +319,7 @@ NL_RESTORE_WERROR
 #
 AC_CONFIG_FILES([
 Makefile
-fps/Makefile
+third_party/Makefile
 src/Makefile
 tests/Makefile
 doc/Makefile

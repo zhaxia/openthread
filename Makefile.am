@@ -16,7 +16,6 @@
 
 include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
-ACLOCAL_AMFLAGS                     = -I third_party/nlbuild-autotools/autoconf/m4
 AM_MAKEFLAGS                        = --no-print-directory
 
 SUBDIRS                             = \
@@ -29,7 +28,7 @@ EXTRA_DIST                          = \
     .default-version                  \
     bootstrap                         \
     bootstrap-configure               \
-    $(srcdir)/third_party/nlbuild-autotools \
+    $(srcdir)/third_party             \
     $(NULL)
 
 BUILT_SOURCES                       = \

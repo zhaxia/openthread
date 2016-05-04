@@ -211,7 +211,7 @@ fi
 
 # Create the skeleton directories
 
-DIRS="doc fps include src tests"
+DIRS="doc third_party include src tests"
 
 for dir in ${DIRS}; do
     log "Creating \"${dir}\"..."
@@ -225,7 +225,7 @@ populate "${DIR}" 775 bootstrap           .
 populate "${DIR}" 664 Makefile.am         .
 populate "${DIR}" 664 Makefile.am         doc
 populate "${DIR}" 664 Doxyfile.in         doc
-populate "${DIR}" 664 Makefile.am         fps
+populate "${DIR}" 664 Makefile.am         third_party 
 populate "${DIR}" 664 Makefile.am         src
 populate "${DIR}" 664 Makefile.am         tests
 link     "${DIR}" 775 bootstrap-configure .
