@@ -28,6 +28,13 @@
 
 static void *serial_receive_thread(void *arg);
 
+#ifndef __APPLE__
+int posix_openpt(int oflag);
+int grantpt(int fildes);
+int unlockpt(int fd);
+char *ptsname(int fd);
+#endif
+
 extern struct gengetopt_args_info args_info;
 
 static uint8_t s_receive_buffer[128];
@@ -62,6 +69,7 @@ ThreadError otSerialEnable(void)
     VerifyOrExit((path = ptsname(s_fd)) != NULL, perror("ptsname"); error = kThreadError_Error);
     printf("%s\n", path);
     free(path);
+
 #endif
 
     // check if file descriptor is pointing to a TTY device

@@ -854,7 +854,10 @@ int main(int argc, char *argv[])
     }
 
     // send request
-    write(ipc_fd, buf, buf_length);
+    if (write(ipc_fd, buf, buf_length) < 0)
+    {
+        printf("%s\n", strerror(errno));
+    }
 
     // receive response
     buf_length = read(ipc_fd, buf, sizeof(buf));

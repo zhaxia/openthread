@@ -28,7 +28,7 @@ namespace Hdlc {
 /**
  * This method updates an FCS.
  *
- * @param[in]  aFcs   The FCS to update. 
+ * @param[in]  aFcs   The FCS to update.
  * @param[in]  aByte  The intput byte value.
  *
  * @returns The updated FCS.

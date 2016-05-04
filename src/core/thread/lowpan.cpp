@@ -163,7 +163,7 @@ int Lowpan::CompressMulticast(const Ip6::Address &aIpAddr, uint16_t &aHcCtl, uin
 
     aHcCtl |= kHcMulticast;
 
-    for (int i = 2; i < sizeof(Ip6::Address); i++)
+    for (unsigned int i = 2; i < sizeof(Ip6::Address); i++)
     {
         if (aIpAddr.m8[i])
         {

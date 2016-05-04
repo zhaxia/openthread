@@ -57,10 +57,10 @@ void Mac::StartCsmaBackoff(void)
 }
 
 Mac::Mac(void):
+    mBeginTransmit(&HandleBeginTransmit, this),
     mAckTimer(&HandleAckTimer, this),
     mBackoffTimer(&HandleBeginTransmit, this),
-    mReceiveTimer(&HandleReceiveTimer, this),
-    mBeginTransmit(&HandleBeginTransmit, this)
+    mReceiveTimer(&HandleReceiveTimer, this)
 {
 }
 

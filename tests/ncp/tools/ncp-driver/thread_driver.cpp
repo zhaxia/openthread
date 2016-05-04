@@ -310,7 +310,12 @@ void ThreadDriver::HandleFrame(uint8_t *buf, uint16_t buf_length)
     {
     case 0:
         ProcessThreadControl(buf, buf_length);
-        write(ipc_fd_, buf, buf_length);
+
+        if (write(ipc_fd_, buf, buf_length) < 0)
+        {
+            printf("%s\n", strerror(errno));
+        }
+
         break;
 
     case 1:
