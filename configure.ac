@@ -26,7 +26,7 @@ AC_PREREQ([2.68])
 # Initialize autoconf for the package
 #
 AC_INIT([OPENTHREAD],
-        m4_esyscmd([third_party/nlbuild-autotools/scripts/mkversion -b `cat .default-version` .]),
+        m4_esyscmd([third_party/nlbuild-autotools/repo/scripts/mkversion -b `cat .default-version` .]),
         [@PACKAGE_EMAIL@],
         [openthread],
         [@PACKAGE_URL@])
@@ -34,7 +34,7 @@ AC_INIT([OPENTHREAD],
 # Tell the rest of the build system the absolute path where the
 # nlbuild-autotools repository is rooted at.
 
-AC_SUBST(nlbuild_autotools_stem,[third_party/nlbuild-autotools])
+AC_SUBST(nlbuild_autotools_stem,[third_party/nlbuild-autotools/repo])
 AC_SUBST(abs_top_nlbuild_autotools_dir,[\${abs_top_srcdir}/\${nlbuild_autotools_stem}])
 
 #
@@ -62,12 +62,12 @@ AC_CONFIG_SRCDIR([include/openthread.h])
 # Tell autoconf where to find auxilliary build tools (e.g. config.guess,
 # install-sh, missing, etc.)
 #
-AC_CONFIG_AUX_DIR([third_party/nlbuild-autotools/autoconf])
+AC_CONFIG_AUX_DIR([third_party/nlbuild-autotools/repo/autoconf])
 
 #
 # Tell autoconf where to find auxilliary M4 macros
 #
-AC_CONFIG_MACRO_DIR([third_party/nlbuild-autotools/autoconf/m4])
+AC_CONFIG_MACRO_DIR([third_party/nlbuild-autotools/repo/autoconf/m4])
 
 #
 # Tell autoconf what file the package is using to aggregate C preprocessor
