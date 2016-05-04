@@ -56,7 +56,7 @@ AC_SUBST(LIBOPENTHREAD_VERSION_INFO,     [${LIBOPENTHREAD_VERSION_CURRENT}:${LIB
 # Check the sanity of the source directory by checking for the
 # presence of a key watch file
 #
-AC_CONFIG_SRCDIR([include/thread/thread_netif.hpp])
+AC_CONFIG_SRCDIR([include/openthread.h])
 
 #
 # Tell autoconf where to find auxilliary build tools (e.g. config.guess,
