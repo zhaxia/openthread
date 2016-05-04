@@ -67,6 +67,12 @@ typedef uint16_t ShortAddress;
 class ExtAddress
 {
 public:
+    /**
+     * This method converts an IPv6 Interface Identifer to an IEEE 802.15.4 Extended Address.
+     *
+     * @param[in]  aIpAddress  A reference to the IPv6 address.
+     *
+     */
     void Set(const Ip6::Address &aIpAddress);
 
     enum

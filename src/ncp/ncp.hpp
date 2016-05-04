@@ -34,7 +34,6 @@ class Ncp : public NcpBase
 public:
     Ncp();
 
-    ThreadError Init() final;
     ThreadError Start() final;
     ThreadError Stop() final;
 

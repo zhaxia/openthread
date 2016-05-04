@@ -32,12 +32,6 @@ NcpBase::NcpBase():
 {
 }
 
-ThreadError NcpBase::Init()
-{
-    mNetif.Init();
-    return kThreadError_None;
-}
-
 ThreadError NcpBase::Start()
 {
     mNetif.RegisterHandler(mNetifHandler);
@@ -177,12 +171,12 @@ ThreadError NcpBase::ProcessPrimitive(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveKey(ThreadControl &message)
 {
-    KeyManager *key_manager = mNetif.GetKeyManager();
+    KeyManager &key_manager = mNetif.GetKeyManager();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE_BYTES:
-        key_manager->SetMasterKey(message.primitive.bytes.data, message.primitive.bytes.len);
+        key_manager.SetMasterKey(message.primitive.bytes.data, message.primitive.bytes.len);
         break;
 
     default:
@@ -192,7 +186,7 @@ ThreadError NcpBase::ProcessPrimitiveKey(ThreadControl &message)
     message.primitive.value_case = THREAD_PRIMITIVE__VALUE_BYTES;
 
     uint8_t keyLength;
-    const uint8_t *key = key_manager->GetMasterKey(&keyLength);
+    const uint8_t *key = key_manager.GetMasterKey(&keyLength);
     memcpy(message.primitive.bytes.data, key, keyLength);
     message.primitive.bytes.len = keyLength;
 
@@ -201,12 +195,12 @@ ThreadError NcpBase::ProcessPrimitiveKey(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveKeySequence(ThreadControl &message)
 {
-    KeyManager *key_manager = mNetif.GetKeyManager();
+    KeyManager &key_manager = mNetif.GetKeyManager();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE_UINT32:
-        key_manager->SetCurrentKeySequence(message.primitive.uint32);
+        key_manager.SetCurrentKeySequence(message.primitive.uint32);
         break;
 
     default:
@@ -214,25 +208,25 @@ ThreadError NcpBase::ProcessPrimitiveKeySequence(ThreadControl &message)
     }
 
     message.primitive.value_case = THREAD_PRIMITIVE__VALUE_UINT32;
-    message.primitive.uint32 = key_manager->GetCurrentKeySequence();
+    message.primitive.uint32 = key_manager.GetCurrentKeySequence();
 
     return kThreadError_None;
 }
 
 ThreadError NcpBase::ProcessPrimitiveMeshLocalPrefix(ThreadControl &message)
 {
-    Mle::MleRouter *mle = mNetif.GetMle();
+    Mle::MleRouter &mle = mNetif.GetMle();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE_BYTES:
-        mle->SetMeshLocalPrefix(message.primitive.bytes.data);
+        mle.SetMeshLocalPrefix(message.primitive.bytes.data);
 
     // fall through
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_BYTES;
         message.primitive.bytes.len = 8;
-        memcpy(message.primitive.bytes.data, mle->GetMeshLocalPrefix(), 8);
+        memcpy(message.primitive.bytes.data, mle.GetMeshLocalPrefix(), 8);
         break;
 
     default:
@@ -244,17 +238,17 @@ ThreadError NcpBase::ProcessPrimitiveMeshLocalPrefix(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveMode(ThreadControl &message)
 {
-    Mle::MleRouter *mle = mNetif.GetMle();
+    Mle::MleRouter &mle = mNetif.GetMle();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE_UINT32:
-        mle->SetDeviceMode(message.primitive.uint32);
+        mle.SetDeviceMode(message.primitive.uint32);
 
     // fall through
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_UINT32;
-        message.primitive.uint32 = mle->GetDeviceMode();
+        message.primitive.uint32 = mle.GetDeviceMode();
         break;
 
     default:
@@ -293,12 +287,12 @@ ThreadError NcpBase::ProcessPrimitiveStatus(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveTimeout(ThreadControl &message)
 {
-    Mle::MleRouter *mle = mNetif.GetMle();
+    Mle::MleRouter &mle = mNetif.GetMle();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE_UINT32:
-        mle->SetTimeout(message.primitive.uint32);
+        mle.SetTimeout(message.primitive.uint32);
         break;
 
     default:
@@ -306,24 +300,24 @@ ThreadError NcpBase::ProcessPrimitiveTimeout(ThreadControl &message)
     }
 
     message.primitive.value_case = THREAD_PRIMITIVE__VALUE_UINT32;
-    message.primitive.uint32 = mle->GetTimeout();
+    message.primitive.uint32 = mle.GetTimeout();
 
     return kThreadError_None;
 }
 
 ThreadError NcpBase::ProcessPrimitiveChannel(ThreadControl &message)
 {
-    Mac::Mac *mac = mNetif.GetMac();
+    Mac::Mac &mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE_UINT32:
-        mac->SetChannel(message.primitive.uint32);
+        mac.SetChannel(message.primitive.uint32);
 
     // fall through
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_UINT32;
-        message.primitive.uint32 = mac->GetChannel();
+        message.primitive.uint32 = mac.GetChannel();
         return kThreadError_None;
 
     default:
@@ -335,17 +329,17 @@ ThreadError NcpBase::ProcessPrimitiveChannel(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitivePanId(ThreadControl &message)
 {
-    Mac::Mac *mac = mNetif.GetMac();
+    Mac::Mac &mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE_UINT32:
-        mac->SetPanId(message.primitive.uint32);
+        mac.SetPanId(message.primitive.uint32);
 
     // fall through
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_UINT32;
-        message.primitive.uint32 = mac->GetPanId();
+        message.primitive.uint32 = mac.GetPanId();
         return kThreadError_None;
 
     default:
@@ -357,18 +351,18 @@ ThreadError NcpBase::ProcessPrimitivePanId(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveExtendedPanId(ThreadControl &message)
 {
-    Mac::Mac *mac = mNetif.GetMac();
+    Mac::Mac &mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE_BYTES:
-        mac->SetExtendedPanId(message.primitive.bytes.data);
+        mac.SetExtendedPanId(message.primitive.bytes.data);
 
     // fall through
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_BYTES;
         message.primitive.bytes.len = 8;
-        memcpy(message.primitive.bytes.data, mac->GetExtendedPanId(), 8);
+        memcpy(message.primitive.bytes.data, mac.GetExtendedPanId(), 8);
         return kThreadError_None;
 
     default:
@@ -380,18 +374,18 @@ ThreadError NcpBase::ProcessPrimitiveExtendedPanId(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveNetworkName(ThreadControl &message)
 {
-    Mac::Mac *mac = mNetif.GetMac();
+    Mac::Mac &mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE_BYTES:
-        mac->SetNetworkName(reinterpret_cast<const char *>(message.primitive.bytes.data));
+        mac.SetNetworkName(reinterpret_cast<const char *>(message.primitive.bytes.data));
 
     // fall through
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_BYTES;
         message.primitive.bytes.len = 16;
-        memcpy(message.primitive.bytes.data, mac->GetNetworkName(), 16);
+        memcpy(message.primitive.bytes.data, mac.GetNetworkName(), 16);
         return kThreadError_None;
 
     default:
@@ -403,13 +397,13 @@ ThreadError NcpBase::ProcessPrimitiveNetworkName(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveShortAddr(ThreadControl &message)
 {
-    Mac::Mac *mac = mNetif.GetMac();
+    Mac::Mac &mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_UINT32;
-        message.primitive.uint32 = mac->GetShortAddress();
+        message.primitive.uint32 = mac.GetShortAddress();
         return kThreadError_None;
 
     default:
@@ -421,14 +415,14 @@ ThreadError NcpBase::ProcessPrimitiveShortAddr(ThreadControl &message)
 
 ThreadError NcpBase::ProcessPrimitiveExtAddr(ThreadControl &message)
 {
-    Mac::Mac *mac = mNetif.GetMac();
+    Mac::Mac &mac = mNetif.GetMac();
 
     switch (message.primitive.value_case)
     {
     case THREAD_PRIMITIVE__VALUE__NOT_SET:
         message.primitive.value_case = THREAD_PRIMITIVE__VALUE_BYTES;
         message.primitive.bytes.len = 8;
-        memcpy(message.primitive.bytes.data, mac->GetExtAddress(), 8);
+        memcpy(message.primitive.bytes.data, mac.GetExtAddress(), 8);
         return kThreadError_None;
 
     default:
@@ -440,26 +434,26 @@ ThreadError NcpBase::ProcessPrimitiveExtAddr(ThreadControl &message)
 
 ThreadError NcpBase::ProcessState(ThreadControl &message)
 {
-    Mle::MleRouter *mle = mNetif.GetMle();
+    Mle::MleRouter &mle = mNetif.GetMle();
 
     if (message.state.has_state)
     {
         switch (message.state.state)
         {
         case THREAD_STATE__STATE__DETACHED:
-            mle->BecomeDetached();
+            mle.BecomeDetached();
             break;
 
         case THREAD_STATE__STATE__CHILD:
-            mle->BecomeChild(kMleAttachSamePartition);
+            mle.BecomeChild(kMleAttachSamePartition);
             break;
 
         case THREAD_STATE__STATE__ROUTER:
-            mle->BecomeRouter();
+            mle.BecomeRouter();
             break;
 
         case THREAD_STATE__STATE__LEADER:
-            mle->BecomeLeader();
+            mle.BecomeLeader();
             break;
 
         case _THREAD_STATE__STATE_IS_INT_SIZE:
@@ -469,7 +463,7 @@ ThreadError NcpBase::ProcessState(ThreadControl &message)
 
     message.state.has_state = true;
 
-    switch (mle->GetDeviceState())
+    switch (mle.GetDeviceState())
     {
     case Mle::kDeviceStateDisabled:
     case Mle::kDeviceStateDetached:
@@ -494,7 +488,7 @@ ThreadError NcpBase::ProcessState(ThreadControl &message)
 
 ThreadError NcpBase::ProcessWhitelist(ThreadControl &message)
 {
-    Mac::Whitelist &whitelist = mNetif.GetMac()->GetWhitelist();
+    Mac::Whitelist &whitelist = mNetif.GetMac().GetWhitelist();
 
     switch (message.whitelist.type)
     {
@@ -571,7 +565,7 @@ ThreadError NcpBase::ProcessScanRequest(ThreadControl &message)
         scan_interval = static_cast<uint16_t>(message.scan_request.scan_interval_per_channel);
     }
 
-    return mNetif.GetMac()->ActiveScan(scan_interval, channel_mask, &HandleActiveScanResult, this);
+    return mNetif.GetMac().ActiveScan(scan_interval, channel_mask, &HandleActiveScanResult, this);
 }
 
 void NcpBase::HandleActiveScanResult(void *context, Mac::ActiveScanResult *result)

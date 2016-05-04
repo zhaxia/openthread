@@ -56,13 +56,13 @@ class MleRouter: public Mle
     friend class Mle;
 
 public:
-    MleRouter(void);
-
     /**
-     * This method initializes the object.
+     * This constructor initializes the object.
+     *
+     * @param[in]  aThreadNetif  A reference to the Thread network interface.
      *
      */
-    ThreadError Init(ThreadNetif &aNetif);
+    explicit MleRouter(ThreadNetif &aThreadNetif);
 
     /**
      * This method generates an Address Solicit request for a Router ID.
@@ -400,7 +400,7 @@ private:
     int8_t mPreviousRouterId;
     uint32_t mAdvertiseInterval;
 
-    Coap::Server *mCoapServer;
+    Coap::Server &mCoapServer;
     uint8_t mCoapToken[2];
     uint16_t mCoapMessageId;
 };

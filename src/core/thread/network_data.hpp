@@ -76,6 +76,12 @@ public:
     };
 
     /**
+     * This constructor initializes the object.
+     *
+     */
+    NetworkData(void);
+
+    /**
      * This method provides a full or stable copy of the Thread Network Data.
      *
      * @param[in]     aStable      TRUE when copying the stable version, FALSE when copying the full version.
@@ -86,12 +92,6 @@ public:
     void GetNetworkData(bool aStable, uint8_t *aData, uint8_t &aDataLength);
 
 protected:
-    /**
-     * This method initializes the Thread Network Data.
-     *
-     */
-    void Init() { mLength = 0; }
-
     /**
      * This method returns a pointer to the Border Router TLV within a given Prefix TLV.
      *

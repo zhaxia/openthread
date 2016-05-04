@@ -106,7 +106,7 @@ public:
     typedef void (*FrameHandler)(void *aContext, uint8_t *aFrame, uint16_t aFrameLength);
 
     /**
-     * This method initializes the decoder.
+     * This constructor initializes the decoder.
      *
      * @param[in]  aOutBuf        A pointer to the output buffer.
      * @param[in]  aOutLength     Size of the output buffer in bytes.
@@ -114,7 +114,7 @@ public:
      * @param[in]  aContext       A pointer to arbitrary context information.
      *
      */
-    void Init(uint8_t *aOutBuf, uint16_t aOutLength, FrameHandler aFrameHandler, void *aContext);
+    Decoder(uint8_t *aOutBuf, uint16_t aOutLength, FrameHandler aFrameHandler, void *aContext);
 
     /**
      * This method streams bytes into the decoder.

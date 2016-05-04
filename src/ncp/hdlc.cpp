@@ -166,7 +166,7 @@ exit:
     return error;
 }
 
-void Decoder::Init(uint8_t *aOutBuf, uint16_t aOutLength, FrameHandler aFrameHandler, void *aContext)
+Decoder::Decoder(uint8_t *aOutBuf, uint16_t aOutLength, FrameHandler aFrameHandler, void *aContext)
 {
     mState = kStateNoSync;
     mFrameHandler = aFrameHandler;

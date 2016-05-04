@@ -21,6 +21,7 @@
 #include <openthread.h>
 #include <platform/atomic.h>
 #include <platform/posix/cli_posix.hpp>
+#include <platform.h>
 
 extern "C" void SleepStart(void);
 struct gengetopt_args_info args_info;
@@ -37,6 +38,10 @@ int main(int argc, char *argv[])
     {
         exit(1);
     }
+
+    hwAlarmInit();
+    hwRadioInit();
+    hwRandomInit();
 
     otInit();
     sCliServer.Start();

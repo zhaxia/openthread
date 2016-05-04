@@ -27,6 +27,11 @@
 namespace Thread {
 namespace NetworkData {
 
+NetworkData::NetworkData(void)
+{
+    mLength = 0;
+}
+
 void NetworkData::GetNetworkData(bool aStable, uint8_t *aData, uint8_t &aDataLength)
 {
     assert(aData != NULL);

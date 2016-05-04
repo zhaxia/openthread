@@ -44,6 +44,10 @@ namespace Crypto {
 class Hmac
 {
 public:
+    /**
+     * This constructor intializes the object.
+     *
+     */
     explicit Hmac(Hash &aHash);
 
     /**
@@ -71,9 +75,9 @@ public:
     void Input(const void *aBuf, uint16_t aBufLength);
 
     /**
-     * This method finalizes the has computation.
+     * This method finalizes the hash computation.
      *
-     * @parma[out]  aHash  A pointer to the output buffer.
+     * @param[out]  aHash  A pointer to the output buffer.
      *
      */
     void Finalize(uint8_t *aHash);

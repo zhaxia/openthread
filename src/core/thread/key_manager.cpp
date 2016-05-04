@@ -33,9 +33,9 @@ static const uint8_t kThreadString[] =
     'T', 'h', 'r', 'e', 'a', 'd',
 };
 
-KeyManager::KeyManager(ThreadNetif &netif)
+KeyManager::KeyManager(ThreadNetif &aThreadNetif):
+    mNetif(aThreadNetif)
 {
-    mNetif = &netif;
 }
 
 const uint8_t *KeyManager::GetMasterKey(uint8_t *aKeyLength) const
@@ -94,17 +94,17 @@ void KeyManager::UpdateNeighbors()
     Router *routers;
     Child *children;
 
-    routers = mNetif->GetMle()->GetParent();
+    routers = mNetif.GetMle().GetParent();
     routers->mPreviousKey = true;
 
-    routers = mNetif->GetMle()->GetRouters(&numNeighbors);
+    routers = mNetif.GetMle().GetRouters(&numNeighbors);
 
     for (int i = 0; i < numNeighbors; i++)
     {
         routers[i].mPreviousKey = true;
     }
 
-    children = mNetif->GetMle()->GetChildren(&numNeighbors);
+    children = mNetif.GetMle().GetChildren(&numNeighbors);
 
     for (int i = 0; i < numNeighbors; i++)
     {

@@ -90,7 +90,7 @@ ThreadError otRadioSetShortAddress(uint16_t address)
     return kThreadError_None;
 }
 
-void otRadioInit()
+void hwRadioInit()
 {
     struct sockaddr_in sockaddr;
     memset(&sockaddr, 0, sizeof(sockaddr));

@@ -25,6 +25,7 @@ namespace Thread {
 class ThreadDriver
 {
 public:
+    ThreadDriver();
     ThreadError Start();
 
 private:

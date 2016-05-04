@@ -49,12 +49,12 @@ class Local: public NetworkData
 {
 public:
     /**
-     * This method initializes the local Network Data.
+     * This constructor initializes the local Network Data.
      *
      * @param[in]  aNetif  A reference to the Thread network interface.
      *
      */
-    void Init(ThreadNetif &aNetif);
+    explicit Local(ThreadNetif &aNetif);
 
     /**
      * This method adds a Border Router entry to the Thread Network Data.
@@ -134,7 +134,7 @@ private:
     uint8_t         mCoapToken[2];
     uint16_t        mCoapMessageId;
 
-    Mle::MleRouter *mMle;
+    Mle::MleRouter &mMle;
 };
 
 }  // namespace NetworkData

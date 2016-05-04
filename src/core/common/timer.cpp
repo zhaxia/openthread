@@ -29,11 +29,6 @@ static Tasklet  sTask(&TimerScheduler::FireTimers, NULL);
 static Timer   *sHead = NULL;
 static Timer   *sTail = NULL;
 
-void TimerScheduler::Init(void)
-{
-    otAlarmInit();
-}
-
 void TimerScheduler::Add(Timer &aTimer)
 {
     VerifyOrExit(aTimer.mNext == NULL && sTail != &aTimer, ;);

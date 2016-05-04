@@ -516,7 +516,7 @@ class MessageQueue
 {
 public:
     /**
-     * Initialize the message queue.
+     * This constructor initializes the message queue.
      *
      */
     MessageQueue(void);

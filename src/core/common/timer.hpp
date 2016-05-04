@@ -53,12 +53,6 @@ class TimerScheduler
 
 public:
     /**
-     * This static method initializes the timer service.
-     *
-     */
-    static void Init(void);
-
-    /**
      * This static method adds a timer instance to the timer scheduler.
      *
      * @param[in]  aTimer  A reference to the timer instance.

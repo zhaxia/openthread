@@ -74,7 +74,13 @@ public:
         kHopsLeft = 14,
     };
 
-    explicit Lowpan(ThreadNetif &netif);
+    /**
+     * This constructor initializes the object.
+     *
+     * @param[in]  aThreadNetif  A reference to the Thread network interface.
+     *
+     */
+    explicit Lowpan(ThreadNetif &aThreadNetif);
 
     /**
      * This method indicates whether or not the header is a LOWPAN_IPHC header.
@@ -195,7 +201,7 @@ private:
     static ThreadError CopyContext(const Context &aContext, Ip6::Address &aAddress);
     static ThreadError ComputeIid(const Mac::Address &aMacAddr, const Context &aContext, Ip6::Address &aIpAddress);
 
-    NetworkData::Leader *mNetworkData;
+    NetworkData::Leader &mNetworkData;
 };
 
 /**

@@ -62,10 +62,10 @@ public:
     };
 
     /**
-     * This method initializes the whitelist filter.
+     * This constructor initializes the whitelist filter.
      *
      */
-    void Init(void);
+    Whitelist(void);
 
     /**
      * This method enables the whitelist filter.

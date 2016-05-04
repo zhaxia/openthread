@@ -53,15 +53,13 @@ namespace NetworkData {
 class Leader: public NetworkData
 {
 public:
-    Leader(void);
-
     /**
-     * This method initializes the object.
+     * This constructor initializes the object.
      *
-     * @param[in]  aNetif  A reference to the Thread network interface.
+     * @param[in]  aThreadNetif  A reference to the Thread network interface.
      *
      */
-    ThreadError Init(ThreadNetif &aNetif);
+    explicit Leader(ThreadNetif &aThreadNetif);
 
     /**
      * This method reset the Thread Network Data.
@@ -243,9 +241,9 @@ private:
     uint8_t         mStableVersion;
     uint8_t         mVersion;
 
-    Coap::Server   *mCoapServer;
-    Ip6::Netif     *mNetif;
-    Mle::MleRouter *mMle;
+    Coap::Server   &mCoapServer;
+    Ip6::Netif     &mNetif;
+    Mle::MleRouter &mMle;
 };
 
 /**

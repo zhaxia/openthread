@@ -305,18 +305,13 @@ private:
 class Mle
 {
 public:
-    Mle();
-
     /**
-     * This method initializes the MLE object.
+     * This constructor initializes the MLE object.
      *
-     * @param[in]  aNetif  A reference to the Thread network interface.
-     *
-     * @retval kThreadError_None  Successfully initialized the object.
-     * @retval kThreadError_Busy  The object was already initialized.
+     * @param[in]  aThreadNetif  A reference to the Thread network interface.
      *
      */
-    ThreadError Init(ThreadNetif &aNetif);
+    explicit Mle(ThreadNetif &aThreadNetif);
 
     /**
      * This method starts the MLE protocol operation.
@@ -881,13 +876,13 @@ protected:
      */
     ThreadError SetStateChild(uint16_t aRloc16);
 
-    AddressResolver     *mAddressResolver;  ///< The Address Resolver object.
-    KeyManager          *mKeyManager;       ///< The Key Manager object.
-    MeshForwarder       *mMesh;             ///< The Mesh Forwarding object.
-    Mac::Mac            *mMac;              ///< The MAC object.
-    MleRouter           *mMleRouter;        ///< The MLE Router object.
-    NetworkData::Leader *mNetworkData;      ///< The Network Data object.
-    ThreadNetif         *mNetif;            ///< The Thread Network Interface object.
+    ThreadNetif         &mNetif;            ///< The Thread Network Interface object.
+    AddressResolver     &mAddressResolver;  ///< The Address Resolver object.
+    KeyManager          &mKeyManager;       ///< The Key Manager object.
+    Mac::Mac            &mMac;              ///< The MAC object.
+    MeshForwarder       &mMesh;             ///< The Mesh Forwarding object.
+    MleRouter           &mMleRouter;        ///< The MLE Router object.
+    NetworkData::Leader &mNetworkData;      ///< The Network Data object.
 
     LeaderDataTlv mLeaderData;              ///< Last received Leader Data TLV.
 

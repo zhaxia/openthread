@@ -51,18 +51,18 @@ static void DumpLine(otLogLevel aLogLevel, otLogRegion aLogRegion, const void *a
         if (i < aLength)
         {
             snprintf(cur, sizeof(buf) - (cur - buf), " %02X", ((uint8_t *)(aBuf))[i]);
-	    cur += strlen(cur);
+            cur += strlen(cur);
         }
         else
         {
             snprintf(cur, sizeof(buf) - (cur - buf), " ..");
-	    cur += strlen(cur);
+            cur += strlen(cur);
         }
 
         if (!((i + 1) % 8))
         {
             snprintf(cur, sizeof(buf) - (cur - buf), " |");
-	    cur += strlen(cur);
+            cur += strlen(cur);
         }
     }
 
@@ -76,12 +76,12 @@ static void DumpLine(otLogLevel aLogLevel, otLogRegion aLogRegion, const void *a
         if (i < aLength && isprint(c))
         {
             snprintf(cur, sizeof(buf) - (cur - buf), "%c", c);
-	    cur += strlen(cur);
+            cur += strlen(cur);
         }
         else
         {
             snprintf(cur, sizeof(buf) - (cur - buf), ".");
-	    cur += strlen(cur);
+            cur += strlen(cur);
         }
     }
 
@@ -94,13 +94,13 @@ void otDump(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aId, const
     const int width = 72;
     char buf[80];
     char *cur = buf;
-    
+
     otLog(aLogLevel, aLogRegion, "\n");
 
     for (int i = 0; i < (width - idlen) / 2 - 5; i++)
     {
         snprintf(cur, sizeof(buf) - (cur - buf), "=");
-	cur += strlen(cur);
+        cur += strlen(cur);
     }
 
     snprintf(cur, sizeof(buf) - (cur - buf), "[%s len=%03d]", aId, aLength);
@@ -109,7 +109,7 @@ void otDump(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aId, const
     for (int i = 0; i < (width - idlen) / 2 - 4; i++)
     {
         snprintf(cur, sizeof(buf) - (cur - buf), "=");
-	cur += strlen(cur);
+        cur += strlen(cur);
     }
 
     otLog(aLogLevel, aLogRegion, "%s\n", buf);
@@ -120,10 +120,11 @@ void otDump(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aId, const
     }
 
     cur = buf;
+
     for (int i = 0; i < width; i++)
     {
         snprintf(cur, sizeof(buf) - (cur - buf), "-");
-	cur += strlen(cur);
+        cur += strlen(cur);
     }
 
     otLog(aLogLevel, aLogRegion, "%s\n", buf);

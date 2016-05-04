@@ -59,7 +59,13 @@ struct ThreadMessageInfo;
 class MeshForwarder
 {
 public:
-    explicit MeshForwarder(ThreadNetif &aNetif);
+    /**
+     * This constructor initializes the object.
+     *
+     * @param[in]  aThreadNetif  A reference to the Thread network interface.
+     *
+     */
+    explicit MeshForwarder(ThreadNetif &aThreadNetif);
 
     /**
      * This method enables mesh forwarding and the IEEE 802.15.4 MAC layer.
@@ -191,12 +197,12 @@ private:
     Tasklet mScheduleTransmissionTask;
     bool mEnabled;
 
-    Lowpan::Lowpan *mLowpan;
-    Ip6::Netif *mNetif;
-    AddressResolver *mAddressResolver;
-    Mac::Mac *mMac;
-    NetworkData::Leader *mNetworkData;
-    Mle::MleRouter *mMle;
+    Ip6::Netif &mNetif;
+    AddressResolver &mAddressResolver;
+    Lowpan::Lowpan &mLowpan;
+    Mac::Mac &mMac;
+    Mle::MleRouter &mMle;
+    NetworkData::Leader &mNetworkData;
 };
 
 /**
