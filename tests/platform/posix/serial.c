@@ -14,26 +14,25 @@
  *    limitations under the License.
  */
 
+#include <fcntl.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <stdlib.h>
 #include <termios.h>
 #include <unistd.h>
-// Linux build needs these
-#include <stdlib.h>
-#include <fcntl.h>
 
+#include <common/code_utils.hpp>
 #include <platform/posix/cmdline.h>
 #include <platform/serial.h>
-#include <common/code_utils.hpp>
 
 static void *serial_receive_thread(void *arg);
 
-#ifndef __APPLE__
+#ifdef OPENTHREAD_TARGET_LINUX
 int posix_openpt(int oflag);
 int grantpt(int fildes);
 int unlockpt(int fd);
 char *ptsname(int fd);
-#endif
+#endif  // OPENTHREAD_TARGET_LINUX
 
 extern struct gengetopt_args_info args_info;
 
@@ -50,7 +49,7 @@ ThreadError otSerialEnable(void)
     char cmd[256];
 
     // open file
-#if __APPLE__
+#ifdef OPENTHREAD_TARGET_DARWIN
 
     asprintf(&path, "/dev/ptyp%d", args_info.nodeid_arg);
     VerifyOrExit((s_fd = open(path, O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
@@ -59,7 +58,7 @@ ThreadError otSerialEnable(void)
     // print pty path
     printf("/dev/ttyp%d\n", args_info.nodeid_arg);
 
-#else
+#elif defined(OPENTHREAD_TARGET_LINUX)
 
     VerifyOrExit((s_fd = posix_openpt(O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
     VerifyOrExit(grantpt(s_fd) == 0, perror("grantpt"); error = kThreadError_Error);
@@ -68,8 +67,9 @@ ThreadError otSerialEnable(void)
     // print pty path
     VerifyOrExit((path = ptsname(s_fd)) != NULL, perror("ptsname"); error = kThreadError_Error);
     printf("%s\n", path);
-    free(path);
 
+#else
+#error "Unknown platform."
 #endif
 
     // check if file descriptor is pointing to a TTY device

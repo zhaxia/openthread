@@ -46,6 +46,9 @@ ncp_ctl_LDADD                                  = \
     -lpthread                                    \
     $(NULL)
 
-ncp_ctl_SOURCES = main.cpp cmdline.c
+ncp_ctl_SOURCES                                = \
+    main.cpp                                     \
+    cmdline.c                                    \
+    $(NULL)
 
 include $(abs_top_nlbuild_autotools_dir)/automake/post.am

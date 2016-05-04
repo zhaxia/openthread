@@ -29,6 +29,7 @@ SUBDIRS                                 = \
     src                                   \
     $(NULL)
 
+if OPENTHREAD_BUILD_TOOLS
 if OPENTHREAD_TARGET_DARWIN
 SUBDIRS += tools
 endif  # OPENTHREAD_TARGET_DARWIN
@@ -36,6 +37,7 @@ endif  # OPENTHREAD_TARGET_DARWIN
 if OPENTHREAD_TARGET_LINUX
 SUBDIRS += tools
 endif  # OPENTHREAD_TARGET_LINUX
+endif  # OPENTHREAD_BUILD_TOOLS
 
 all:
 

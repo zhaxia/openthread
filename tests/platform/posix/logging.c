@@ -21,10 +21,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <sys/time.h>
-
-#ifndef __APPLE__
 #include <time.h>
-#endif
 
 #include <platform/logging.h>
 
@@ -36,17 +33,13 @@ void otLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ..
 
     gettimeofday(&tv, NULL);
     strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
-#ifdef __APPLE__
-    printf("%s.%06d ", timeString, tv.tv_usec);
-#else
-    printf("%s.%06ld ", timeString, tv.tv_usec);
-#endif
+    printf("%s.%06d ", timeString, (uint32_t)tv.tv_usec);
 
     switch (aLogLevel)
     {
     case kLogLevelNone:
-	printf("NONE ");
-	break;
+        printf("NONE ");
+        break;
 
     case kLogLevelCrit:
         printf("CRIT ");

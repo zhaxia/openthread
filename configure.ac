@@ -201,9 +201,6 @@ AC_CHECK_TOOL(STRIP, strip)
 AC_PROG_INSTALL
 AC_PROG_LN_S
 
-AC_PATH_PROG(CMP, cmp)
-AC_PATH_PROG(PERL, perl)
-
 #
 # Checks for specific compiler characteristics
 #
@@ -315,6 +312,30 @@ if test "${nl_cv_build_tests}" = "yes"; then
 fi
 
 #
+# Tools
+#
+
+AC_MSG_CHECKING([whether to build tools])
+AC_ARG_ENABLE(tools,
+    [AS_HELP_STRING([--disable-tools],[Disable building of tools @<:@default=no@:>@.])],
+    [
+        case "${enableval}" in
+
+        no|yes)
+            build_tools=${enableval}
+            ;;
+
+        *)
+            AC_MSG_ERROR([Invalid value ${enableval} for --enable-tools])
+            ;;
+
+        esac
+    ],
+    [build_tools=yes])
+AC_MSG_RESULT(${build_tools})
+AM_CONDITIONAL([OPENTHREAD_BUILD_TOOLS], [test "${build_tools}" = "yes"])
+
+#
 # Documentation
 #
 
@@ -337,10 +358,6 @@ AM_CONDITIONAL(OPENTHREAD_BUILD_DOCS, [test "${nl_cv_build_docs}" = "yes"])
 AC_MSG_NOTICE([checking required package dependencies])
 
 # NL_WITH_PACKAGE(...)
-
-# Check if the build host has pkg-config
-
-AC_PATH_PROG([PKG_CONFIG],[pkg-config])
 
 #
 # Check for headers
@@ -436,13 +453,12 @@ AC_MSG_NOTICE([
   Lcov                                      : ${LCOV:--}
   Genhtml                                   : ${GENHTML:--}
   Build tests                               : ${nl_cv_build_tests}
+  Build tools                               : ${build_tools}
   Minimum set of tests                      : ${enable_minimum_set_of_tests}
   Prefix                                    : ${prefix}
-  Shadow directory program                  : ${LNDIR}
   Documentation support                     : ${nl_cv_build_docs}
   Doxygen                                   : ${DOXYGEN:--}
   GraphViz dot                              : ${DOT:--}
-  PERL                                      : ${PERL:--}
   C Preprocessor                            : ${CPP}
   C Compiler                                : ${CC}
   C++ Preprocessor                          : ${CXXCPP}
