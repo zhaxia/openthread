@@ -386,11 +386,20 @@ ThreadError MeshForwarder::UpdateMeshRoute(Message &aMessage)
 
     aMessage.Read(0, meshHeader.GetHeaderLength(), &meshHeader);
 
-    if ((neighbor = mMle->GetNeighbor(meshHeader.GetDestination())) == NULL)
+    nextHop = mMle->GetNextHop(meshHeader.GetDestination());
+
+    if (nextHop != Mac::kShortAddrInvalid)
     {
-        VerifyOrExit((nextHop = mMle->GetNextHop(meshHeader.GetDestination())) != Mac::kShortAddrInvalid,
-                     error = kThreadError_Drop);
-        VerifyOrExit((neighbor = mMle->GetNeighbor(nextHop)) != NULL, error = kThreadError_Drop);
+        neighbor = mMle->GetNeighbor(nextHop);
+    }
+    else
+    {
+        neighbor = mMle->GetNeighbor(meshHeader.GetDestination());
+    }
+
+    if (neighbor == NULL)
+    {
+        ExitNow(error = kThreadError_Drop);
     }
 
     mMacDest.mLength = sizeof(mMacDest.mShortAddress);
