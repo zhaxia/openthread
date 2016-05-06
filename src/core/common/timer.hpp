@@ -49,7 +49,7 @@ class Timer;
  */
 class TimerScheduler
 {
-    friend Timer;
+    friend class Timer;
 
 public:
     /**
@@ -95,7 +95,7 @@ private:
  */
 class Timer
 {
-    friend TimerScheduler;
+    friend class TimerScheduler;
 
 public:
     /**

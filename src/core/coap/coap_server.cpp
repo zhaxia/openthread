@@ -34,7 +34,7 @@ Server::Server(uint16_t aPort)
 ThreadError Server::Start()
 {
     ThreadError error;
-    Ip6::SockAddr sockaddr = {};
+    Ip6::SockAddr sockaddr;
     sockaddr.mPort = mPort;
 
     SuccessOrExit(error = mSocket.Open(&HandleUdpReceive, this));

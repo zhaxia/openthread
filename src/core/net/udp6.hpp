@@ -108,7 +108,7 @@ private:
  */
 class Udp
 {
-    friend UdpSocket;
+    friend class UdpSocket;
 
 public:
     /**
@@ -155,11 +155,19 @@ private:
     static UdpSocket *sSockets;
 };
 
+struct UdpHeaderPoD
+{
+    uint16_t mSource;
+    uint16_t mDestination;
+    uint16_t mLength;
+    uint16_t mChecksum;
+} __attribute__((packed));
+
 /**
  * This class implements UDP header generation and parsing.
  *
  */
-class UdpHeader
+class UdpHeader: private UdpHeaderPoD
 {
 public:
     /**
@@ -232,7 +240,7 @@ public:
      * @returns The byte offset for the UDP Length.
      *
      */
-    static uint8_t GetLengthOffset(void) { return offsetof(UdpHeader, mLength); }
+    static uint8_t GetLengthOffset(void) { return offsetof(UdpHeaderPoD, mLength); }
 
     /**
      * This static method returns the byte offset for the UDP Checksum.
@@ -240,13 +248,8 @@ public:
      * @returns The byte offset for the UDP Checksum.
      *
      */
-    static uint8_t GetChecksumOffset(void) { return offsetof(UdpHeader, mChecksum); }
+    static uint8_t GetChecksumOffset(void) { return offsetof(UdpHeaderPoD, mChecksum); }
 
-private:
-    uint16_t mSource;
-    uint16_t mDestination;
-    uint16_t mLength;
-    uint16_t mChecksum;
 } __attribute__((packed));
 
 /**

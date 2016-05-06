@@ -22,7 +22,6 @@ libopenthread_cli_a_CPPFLAGS =        \
     -I$(top_srcdir)/include           \
     -I$(top_srcdir)/src               \
     -I$(top_srcdir)/src/core          \
-    -std=c++11                        \
     $(OPENTHREAD_TARGET_DEFINES)      \
     $(NULL)
 

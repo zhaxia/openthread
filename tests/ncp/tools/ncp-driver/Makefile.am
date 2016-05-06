@@ -35,7 +35,6 @@ ncp_driver_CXXFLAGS                            = \
     -I$(top_srcdir)/src/core                     \
     -I$(top_srcdir)/test                         \
     -I$(top_srcdir)/third_party                  \
-    -std=c++11                                   \
     $(OPENTHREAD_TARGET_DEFINES)                 \
     $(NULL)
 

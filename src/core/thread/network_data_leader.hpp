@@ -230,9 +230,9 @@ private:
         kContextIdReuseDelay = 48 * 60 * 60,  ///< CONTEXT_ID_REUSE_DELAY (seconds)
         kStateUpdatePeriod   = 1000,          ///< State update period in milliseconds
     };
-    uint16_t mContextUsed = 0;
+    uint16_t mContextUsed;
     uint32_t mContextLastUsed[kNumContextIds];
-    uint32_t mContextIdReuseDelay = kContextIdReuseDelay;
+    uint32_t mContextIdReuseDelay;
     Timer mTimer;
 
     Ip6::NetifUnicastAddress mAddresses[4];

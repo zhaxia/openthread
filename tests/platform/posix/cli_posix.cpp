@@ -15,6 +15,7 @@
  */
 
 #include <netinet/in.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/select.h>
@@ -33,8 +34,8 @@ namespace Cli {
 Socket::Socket():
     mReceivedTask(&ReceivedTask, this)
 {
-    mMutex = PTHREAD_MUTEX_INITIALIZER;
-    mConditionVariable = PTHREAD_COND_INITIALIZER;
+    pthread_mutex_init(&mMutex, NULL);
+    pthread_cond_init(&mConditionVariable, NULL);
 }
 
 ThreadError Socket::Start()

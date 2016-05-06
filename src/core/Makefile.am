@@ -20,7 +20,6 @@ lib_LIBRARIES                       = libopenthread.a
 
 libopenthread_a_CPPFLAGS =            \
     -I$(top_srcdir)/include           \
-    -std=c++11                        \
     $(OPENTHREAD_TARGET_DEFINES)      \
     $(NULL)
 

@@ -204,15 +204,15 @@ private:
 
     uint32_t mPreviousKeySequence;
     uint8_t mPreviousKey[otCryptoSha256Size];
-    bool mPreviousKeyValid = false;
+    bool mPreviousKeyValid;
 
     uint32_t mCurrentKeySequence;
     uint8_t mCurrentKey[otCryptoSha256Size];
 
     uint8_t mTemporaryKey[otCryptoSha256Size];
 
-    uint32_t mMacFrameCounter = 0;
-    uint32_t mMleFrameCounter = 0;
+    uint32_t mMacFrameCounter;
+    uint32_t mMleFrameCounter;
 
     ThreadNetif &mNetif;
 };

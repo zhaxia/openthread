@@ -34,11 +34,11 @@ class Ncp : public NcpBase
 public:
     Ncp();
 
-    ThreadError Start() final;
-    ThreadError Stop() final;
+    ThreadError Start();
+    ThreadError Stop();
 
-    ThreadError Send(uint8_t protocol, uint8_t *frame, uint16_t frameLength) final;
-    ThreadError SendMessage(uint8_t protocol, Message &message) final;
+    ThreadError Send(uint8_t protocol, uint8_t *frame, uint16_t frameLength);
+    ThreadError SendMessage(uint8_t protocol, Message &message);
 
     static void HandleFrame(void *context, uint8_t *aBuf, uint16_t aBufLength);
     static void SendDoneTask(void *context);

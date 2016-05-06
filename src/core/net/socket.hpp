@@ -48,7 +48,7 @@ public:
      * @returns A reference to the local socket address.
      *
      */
-    Address &GetSockAddr() { return *static_cast<Address *>(&mSockAddr);}
+    Address &GetSockAddr(void) { return *static_cast<Address *>(&mSockAddr);}
 
     /**
      * This method returns a reference to the local socket address.
@@ -56,7 +56,7 @@ public:
      * @returns A reference to the local socket address.
      *
      */
-    const Address &GetSockAddr() const { return *static_cast<const Address *>(&mSockAddr);}
+    const Address &GetSockAddr(void) const { return *static_cast<const Address *>(&mSockAddr);}
 
     /**
      * This method returns a reference to the peer socket address.
@@ -64,7 +64,7 @@ public:
      * @returns A reference to the peer socket address.
      *
      */
-    Address &GetPeerAddr() { return *static_cast<Address *>(&mPeerAddr);}
+    Address &GetPeerAddr(void) { return *static_cast<Address *>(&mPeerAddr);}
 
     /**
      * This method returns a reference to the peer socket address.
@@ -72,7 +72,7 @@ public:
      * @returns A reference to the peer socket address.
      *
      */
-    const Address &GetPeerAddr() const { return *static_cast<const Address *>(&mPeerAddr);}
+    const Address &GetPeerAddr(void) const { return *static_cast<const Address *>(&mPeerAddr);}
 };
 
 /**
@@ -83,12 +83,10 @@ class SockAddr: public otSockAddr
 {
 public:
     /**
-     * This method returns a reference to the IPv6 address.
-     *
-     * @returns A reference to the IPv6 address.
+     * This constructor initializes the object.
      *
      */
-    Address &GetAddress() { return *static_cast<Address *>(&mAddress); }
+    SockAddr(void) { memset(&mAddress, 0, sizeof(mAddress)), mPort = 0, mScopeId = 0; }
 
     /**
      * This method returns a reference to the IPv6 address.
@@ -96,7 +94,15 @@ public:
      * @returns A reference to the IPv6 address.
      *
      */
-    const Address &GetAddress() const { return *static_cast<const Address *>(&mAddress); }
+    Address &GetAddress(void) { return *static_cast<Address *>(&mAddress); }
+
+    /**
+     * This method returns a reference to the IPv6 address.
+     *
+     * @returns A reference to the IPv6 address.
+     *
+     */
+    const Address &GetAddress(void) const { return *static_cast<const Address *>(&mAddress); }
 };
 
 /**

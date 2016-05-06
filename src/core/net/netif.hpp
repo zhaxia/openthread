@@ -415,13 +415,13 @@ private:
     static void HandleUnicastChangedTask(void *aContext);
     void HandleUnicastChangedTask(void);
 
-    NetifHandler *mHandlers = NULL;
-    NetifUnicastAddress *mUnicastAddresses = NULL;
-    NetifMulticastAddress *mMulticastAddresses = NULL;
-    int mInterfaceId = -1;
-    bool mAllRoutersSubscribed = false;
+    NetifHandler *mHandlers;
+    NetifUnicastAddress *mUnicastAddresses;
+    NetifMulticastAddress *mMulticastAddresses;
+    int mInterfaceId;
+    bool mAllRoutersSubscribed;
     Tasklet mUnicastChangedTask;
-    Netif *mNext = NULL;
+    Netif *mNext;
 
     static Netif *sNetifListHead;
     static int sNextInterfaceId;

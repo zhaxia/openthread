@@ -170,7 +170,7 @@ public:
 private:
     Entry mWhitelist[kMaxEntries];
 
-    bool mEnabled = false;
+    bool mEnabled;
 };
 
 /**

@@ -33,6 +33,12 @@ int Netif::sNextInterfaceId = 1;
 Netif::Netif() :
     mUnicastChangedTask(&HandleUnicastChangedTask, this)
 {
+    mHandlers = NULL;
+    mUnicastAddresses = NULL;
+    mMulticastAddresses = NULL;
+    mInterfaceId = -1;
+    mAllRoutersSubscribed = false;
+    mNext = NULL;
 }
 
 ThreadError Netif::RegisterHandler(NetifHandler &aHandler)

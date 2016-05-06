@@ -35,6 +35,9 @@ static const uint8_t kThreadString[] =
 KeyManager::KeyManager(ThreadNetif &aThreadNetif):
     mNetif(aThreadNetif)
 {
+    mPreviousKeyValid = false;
+    mMacFrameCounter = 0;
+    mMleFrameCounter = 0;
 }
 
 const uint8_t *KeyManager::GetMasterKey(uint8_t *aKeyLength) const

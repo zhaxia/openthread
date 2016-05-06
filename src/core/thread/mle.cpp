@@ -122,7 +122,7 @@ Mle::Mle(ThreadNetif &aThreadNetif) :
 ThreadError Mle::Start(void)
 {
     ThreadError error = kThreadError_None;
-    Ip6::SockAddr sockaddr = {};
+    Ip6::SockAddr sockaddr;
 
     // memcpy(&sockaddr.mAddr, &mLinkLocal64.GetAddress(), sizeof(sockaddr.mAddr));
     sockaddr.mPort = kUdpPort;

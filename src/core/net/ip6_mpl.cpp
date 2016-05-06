@@ -30,6 +30,7 @@ Mpl::Mpl():
     mTimer(&HandleTimer, this)
 {
     memset(mEntries, 0, sizeof(mEntries));
+    mSequence = 0;
 }
 
 void Mpl::InitOption(OptionMpl &aOption, uint16_t aSeed)
