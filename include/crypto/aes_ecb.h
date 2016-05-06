@@ -17,7 +17,7 @@
 /**
  * @file
  * @brief
- *   This file includes the platform abstraction for true random number generation.
+ *   This file includes the platform abstraction for AES ECB computations.
  */
 
 #ifndef AES_ECB_H_

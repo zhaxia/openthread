@@ -17,7 +17,7 @@
 /**
  * @file
  * @brief
- *   This file includes the platform abstraction for true random number generation.
+ *   This file includes the platform abstraction for HMAC SHA-256 computations.
  */
 
 #ifndef HMAC_SHA256_H_

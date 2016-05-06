@@ -26,7 +26,7 @@ void TestHmacSha256()
     {
         const char *key;
         const char *data;
-        uint8_t hash[Thread::Crypto::Sha256::kHashSize];
+        uint8_t hash[otCryptoSha256Size];
     } tests[] =
     {
         {
@@ -46,9 +46,7 @@ void TestHmacSha256()
         },
     };
 
-    Thread::Crypto::Sha256 sha256;
-    Thread::Crypto::Hmac hmac(sha256);
-    uint8_t hash[Thread::Crypto::Sha256::kHashSize];
+    uint8_t hash[otCryptoSha256Size];
 
     for (int i = 0; tests[i].key != NULL; i++)
     {
