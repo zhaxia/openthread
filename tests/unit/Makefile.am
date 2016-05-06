@@ -37,11 +37,13 @@ AM_CPPFLAGS                                    = \
     -I$(top_srcdir)/include                      \
     -I$(top_srcdir)/src                          \
     -I$(top_srcdir)/src/core                     \
+    -I$(top_srcdir)/third_party/mbedtls/repo/include \
     $(NULL)
 
 COMMON_LDADD                                   = \
     $(top_srcdir)/src/core/libopenthread.a       \
     $(top_srcdir)/tests/platform/posix/libopenthread-posix.a       \
+    $(top_srcdir)/third_party/mbedtls/libmbedcrypto.a       \
     -lpthread                                    \
     $(NULL)
 
@@ -52,10 +54,7 @@ check_PROGRAMS                                 = \
     test-hmac-sha256                             \
     test-mac-frame                               \
     test-message                                 \
-    test-sha256                                  \
     $(NULL)
-
-###test-hmac-sha256                             
 
 # Test applications and scripts that should be built and run when the
 # 'check' target is run.
@@ -83,9 +82,6 @@ test_mac_frame_SOURCES       = test_mac_frame.cpp
 
 test_message_LDADD           = $(COMMON_LDADD)
 test_message_SOURCES         = test_message.cpp
-
-test_sha256_LDADD            = $(COMMON_LDADD)
-test_sha256_SOURCES          = test_sha256.cpp
 
 endif # OPENTHREAD_BUILD_TESTS
 

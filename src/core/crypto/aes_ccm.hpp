@@ -25,7 +25,7 @@
 #include <stdint.h>
 
 #include <openthread-types.h>
-#include <crypto/aes_ecb.hpp>
+#include <crypto/aes_ecb.h>
 
 namespace Thread {
 namespace Crypto {
@@ -41,9 +41,18 @@ namespace Crypto {
  * This class implements AES CCM computation.
  *
  */
-class AesCcm: public AesEcb
+class AesCcm
 {
 public:
+    /**
+     * This method sets the key.
+     *
+     * @param[in]  aKey        A pointer to the key.
+     * @param[in]  aKeyLength  Length of the key in bytes.
+     *
+     */
+    ThreadError SetKey(const uint8_t *aKey, uint16_t aKeyLength);
+
     /**
      * This method initializes the AES CCM computation.
      *
@@ -87,9 +96,9 @@ public:
     void Finalize(void *aTag, uint8_t *aTagLength);
 
 private:
-    uint8_t mBlock[kAesBlockSize];
-    uint8_t mCtr[kAesBlockSize];
-    uint8_t mCtrPad[kAesBlockSize];
+    uint8_t mBlock[otAesBlockSize];
+    uint8_t mCtr[otAesBlockSize];
+    uint8_t mCtrPad[otAesBlockSize];
     uint8_t mNonceLength;
     uint32_t mHeaderLength;
     uint32_t mHeaderCur;

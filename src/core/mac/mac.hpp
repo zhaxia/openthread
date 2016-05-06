@@ -25,7 +25,6 @@
 #include <openthread-core-config.h>
 #include <common/tasklet.hpp>
 #include <common/timer.hpp>
-#include <crypto/aes_ecb.hpp>
 #include <mac/mac_frame.hpp>
 #include <mac/mac_whitelist.hpp>
 #include <platform/radio.h>

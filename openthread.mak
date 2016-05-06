@@ -23,9 +23,6 @@ OPENTHREAD_CORE_SOURCES                   = \
     src/core/common/tasklet.cpp             \
     src/core/common/timer.cpp               \
     src/core/crypto/aes_ccm.cpp             \
-    src/core/crypto/aes_ecb.cpp             \
-    src/core/crypto/hmac.cpp                \
-    src/core/crypto/sha256.cpp              \
     src/core/mac/mac.cpp                    \
     src/core/mac/mac_frame.cpp              \
     src/core/mac/mac_whitelist.cpp          \
@@ -48,6 +45,17 @@ OPENTHREAD_CORE_SOURCES                   = \
     src/core/thread/network_data_leader.cpp \
     src/core/thread/thread_netif.cpp        \
     src/core/thread/thread_tlvs.cpp         \
+    third_party/mbedtls/mbedcrypto.c        \
+    third_party/mbedtls/repo/library/aes.c                  \
+    third_party/mbedtls/repo/library/md.c                   \
+    third_party/mbedtls/repo/library/md_wrap.c              \
+    third_party/mbedtls/repo/library/memory_buffer_alloc.c  \
+    third_party/mbedtls/repo/library/platform.c             \
+    third_party/mbedtls/repo/library/sha256.c               \
+    $(NULL)
+
+OPENTHREAD_CORE_DEFINES                     = \
+    MBEDTLS_CONFIG_FILE=\"mbedtls-config.h\"  \
     $(NULL)
 
 OPENTHREAD_NCP_SOURCES                    = \

@@ -31,6 +31,7 @@ soc_CPPFLAGS                                   = \
 soc_LDADD                                      = \
     $(top_srcdir)/src/core/libopenthread.a       \
     $(top_srcdir)/tests/platform/posix/libopenthread-posix.a     \
+    $(top_srcdir)/third_party/mbedtls/libmbedcrypto.a \
     $(top_srcdir)/src/cli/libopenthread-cli.a    \
     -lpthread                                    \
     $(NULL)

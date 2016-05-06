@@ -25,7 +25,6 @@
 #include <openthread.h>
 #include <common/encoding.hpp>
 #include <common/timer.hpp>
-#include <crypto/aes_ecb.hpp>
 #include <mac/mac.hpp>
 #include <net/udp6.hpp>
 #include <thread/mle_constants.hpp>

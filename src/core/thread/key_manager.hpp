@@ -25,7 +25,7 @@
 #include <stdint.h>
 
 #include <openthread-types.h>
-#include <crypto/sha256.hpp>
+#include <crypto/hmac_sha256.h>
 
 namespace Thread {
 
@@ -203,13 +203,13 @@ private:
     uint8_t mMasterKeyLength;
 
     uint32_t mPreviousKeySequence;
-    uint8_t mPreviousKey[Crypto::Sha256::kHashSize];
+    uint8_t mPreviousKey[otCryptoSha256Size];
     bool mPreviousKeyValid = false;
 
     uint32_t mCurrentKeySequence;
-    uint8_t mCurrentKey[Crypto::Sha256::kHashSize];
+    uint8_t mCurrentKey[otCryptoSha256Size];
 
-    uint8_t mTemporaryKey[Crypto::Sha256::kHashSize];
+    uint8_t mTemporaryKey[otCryptoSha256Size];
 
     uint32_t mMacFrameCounter = 0;
     uint32_t mMleFrameCounter = 0;
