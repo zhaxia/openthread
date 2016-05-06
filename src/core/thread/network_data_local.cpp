@@ -32,10 +32,10 @@
 namespace Thread {
 namespace NetworkData {
 
-void Local::Init(ThreadNetif &netif)
+Local::Local(ThreadNetif &aThreadNetif):
+    NetworkData(),
+    mMle(aThreadNetif.GetMle())
 {
-    NetworkData::Init();
-    mMle = netif.GetMle();
 }
 
 ThreadError Local::AddOnMeshPrefix(const uint8_t *aPrefix, uint8_t aPrefixLength, int8_t aPrf,
@@ -175,14 +175,14 @@ ThreadError Local::UpdateRloc(PrefixTlv &aPrefix)
 ThreadError Local::UpdateRloc(HasRouteTlv &aHasRoute)
 {
     HasRouteEntry *entry = aHasRoute.GetEntry(0);
-    entry->SetRloc(mMle->GetRloc16());
+    entry->SetRloc(mMle.GetRloc16());
     return kThreadError_None;
 }
 
 ThreadError Local::UpdateRloc(BorderRouterTlv &aBorderRouter)
 {
     BorderRouterEntry *entry = aBorderRouter.GetEntry(0);
-    entry->SetRloc(mMle->GetRloc16());
+    entry->SetRloc(mMle.GetRloc16());
     return kThreadError_None;
 }
 

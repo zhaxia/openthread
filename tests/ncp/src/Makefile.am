@@ -23,6 +23,7 @@ ncp_CPPFLAGS                                   = \
     -I$(top_srcdir)/src                          \
     -I$(top_srcdir)/src/core                     \
     -I$(top_srcdir)/tests                        \
+    -I$(top_srcdir)/tests/platform/posix         \
     -I$(top_srcdir)/third_party                  \
     -std=c++11                                   \
     $(OPENTHREAD_TARGET_DEFINES)                 \

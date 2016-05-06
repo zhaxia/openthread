@@ -69,7 +69,7 @@ public:
     /**
      * This method finalizes the hash computation.
      *
-     * @parma[out]  aHash  A pointer to the output buffer.
+     * @param[out]  aHash  A pointer to the output buffer.
      *
      */
     virtual void Finalize(uint8_t *aHash) = 0;

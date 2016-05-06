@@ -88,6 +88,10 @@ private:
 class Server
 {
 public:
+    /**
+     * This constructor initializes the object.
+     *
+     */
     explicit Server(uint16_t aPort);
 
     /**

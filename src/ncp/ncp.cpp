@@ -30,17 +30,10 @@ static Tasklet sReceiveTask(&Ncp::ReceiveTask, NULL);
 static Ncp *sNcp;
 
 Ncp::Ncp():
-    NcpBase()
+    NcpBase(),
+    mHdlcDecoder(mReceiveFrame, sizeof(mReceiveFrame), &HandleFrame, this)
 {
-}
-
-ThreadError Ncp::Init()
-{
-    super_t::Init();
-    mHdlcDecoder.Init(mReceiveFrame, sizeof(mReceiveFrame), &HandleFrame, this);
     sNcp = this;
-
-    return kThreadError_None;
 }
 
 ThreadError Ncp::Start()

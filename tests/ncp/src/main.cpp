@@ -21,6 +21,7 @@
 #include <common/code_utils.hpp>
 #include <ncp/ncp.hpp>
 #include <platform/atomic.h>
+#include <platform.h>
 
 extern "C" void SleepStart(void);
 
@@ -38,9 +39,12 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    hwAlarmInit();
+    hwRadioInit();
+    hwRandomInit();
+
     otInit();
 
-    sNcp.Init();
     sNcp.Start();
 
     while (1)

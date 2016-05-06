@@ -32,7 +32,7 @@ static pthread_t s_thread;
 static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_cond = PTHREAD_COND_INITIALIZER;
 
-void otAlarmInit(void)
+void hwAlarmInit(void)
 {
     gettimeofday(&s_start, NULL);
     pthread_create(&s_thread, NULL, alarm_thread, NULL);

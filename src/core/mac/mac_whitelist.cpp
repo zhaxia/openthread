@@ -27,7 +27,7 @@
 namespace Thread {
 namespace Mac {
 
-void Whitelist::Init(void)
+Whitelist::Whitelist(void)
 {
     mEnabled = false;
 

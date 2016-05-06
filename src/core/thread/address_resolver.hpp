@@ -54,7 +54,11 @@ class ThreadTargetTlv;
 class AddressResolver
 {
 public:
-    explicit AddressResolver(ThreadNetif &netif);
+    /**
+     * This constructor initializes the object.
+     *
+     */
+    explicit AddressResolver(ThreadNetif &aThreadNetif);
 
     /**
      * This method clears the EID-to-RLOC cache.
@@ -156,10 +160,10 @@ private:
     Ip6::UdpSocket mSocket;
     Timer mTimer;
 
-    MeshForwarder *mMeshForwarder;
-    Coap::Server *mCoapServer;
-    Mle::MleRouter *mMle;
-    Ip6::Netif *mNetif;
+    MeshForwarder &mMeshForwarder;
+    Coap::Server &mCoapServer;
+    Mle::MleRouter &mMle;
+    Ip6::Netif &mNetif;
 };
 
 /**

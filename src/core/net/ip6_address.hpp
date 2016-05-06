@@ -193,7 +193,7 @@ public:
     /**
      * This method sets the Interface Identifier.
      *
-     * @param[in]  aIid  A reference to the IEEE EUI-64 address.
+     * @param[in]  aEui64  A reference to the IEEE EUI-64 address.
      *
      */
     void SetIid(const Mac::ExtAddress &aEui64);

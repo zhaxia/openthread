@@ -43,7 +43,6 @@ class NcpBase
 public:
     NcpBase();
 
-    virtual ThreadError Init();
     virtual ThreadError Start();
     virtual ThreadError Stop();
 

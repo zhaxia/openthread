@@ -31,11 +31,14 @@
 
 namespace Thread {
 
+ThreadDriver::ThreadDriver():
+    mHdlcDecoder(mSerialFrame, sizeof(mSerialFrame), &HandleFrame, this)
+{
+}
+
 ThreadError ThreadDriver::Start()
 {
     ThreadError error = kThreadError_None;
-
-    mHdlcDecoder.Init(mSerialFrame, sizeof(mSerialFrame), &HandleFrame, this);
 
     // setup communication with NCP
     serial_enable();

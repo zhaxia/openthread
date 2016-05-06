@@ -33,9 +33,9 @@ using Thread::Encoding::BigEndian::HostSwap16;
 namespace Thread {
 namespace Lowpan {
 
-Lowpan::Lowpan(ThreadNetif &aNetif)
+Lowpan::Lowpan(ThreadNetif &aThreadNetif):
+    mNetworkData(aThreadNetif.GetNetworkDataLeader())
 {
-    mNetworkData = aNetif.GetNetworkDataLeader();
 }
 
 ThreadError Lowpan::CopyContext(const Context &aContext, Ip6::Address &aAddress)
@@ -211,15 +211,15 @@ int Lowpan::Compress(Message &aMessage, const Mac::Address &aMacSource, const Ma
 
     aMessage.Read(0, sizeof(ip6Header), &ip6Header);
 
-    if (mNetworkData->GetContext(ip6Header.GetSource(), srcContext) != kThreadError_None)
+    if (mNetworkData.GetContext(ip6Header.GetSource(), srcContext) != kThreadError_None)
     {
-        mNetworkData->GetContext(0, srcContext);
+        mNetworkData.GetContext(0, srcContext);
         srcContextValid = false;
     }
 
-    if (mNetworkData->GetContext(ip6Header.GetDestination(), dstContext) != kThreadError_None)
+    if (mNetworkData.GetContext(ip6Header.GetDestination(), dstContext) != kThreadError_None)
     {
-        mNetworkData->GetContext(0, dstContext);
+        mNetworkData.GetContext(0, dstContext);
         dstContextValid = false;
     }
 
@@ -490,12 +490,12 @@ int Lowpan::DecompressBaseHeader(Ip6::Header &ip6Header, const Mac::Address &aMa
 
     if ((hcCtl & kHcContextId) != 0)
     {
-        if (mNetworkData->GetContext(cur[0] >> 4, srcContext) != kThreadError_None)
+        if (mNetworkData.GetContext(cur[0] >> 4, srcContext) != kThreadError_None)
         {
             srcContextValid = false;
         }
 
-        if (mNetworkData->GetContext(cur[0] & 0xf, dstContext) != kThreadError_None)
+        if (mNetworkData.GetContext(cur[0] & 0xf, dstContext) != kThreadError_None)
         {
             dstContextValid = false;
         }
@@ -504,8 +504,8 @@ int Lowpan::DecompressBaseHeader(Ip6::Header &ip6Header, const Mac::Address &aMa
     }
     else
     {
-        mNetworkData->GetContext(0, srcContext);
-        mNetworkData->GetContext(0, dstContext);
+        mNetworkData.GetContext(0, srcContext);
+        mNetworkData.GetContext(0, dstContext);
     }
 
     memset(&ip6Header, 0, sizeof(ip6Header));

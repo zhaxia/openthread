@@ -39,26 +39,18 @@ using Thread::Encoding::BigEndian::HostSwap16;
 namespace Thread {
 namespace NetworkData {
 
-Leader::Leader(void):
+Leader::Leader(ThreadNetif &aThreadNetif):
     mTimer(&HandleTimer, this),
-    mServerData(OPENTHREAD_URI_SERVER_DATA, &HandleServerData, this)
+    mServerData(OPENTHREAD_URI_SERVER_DATA, &HandleServerData, this),
+    mCoapServer(aThreadNetif.GetCoapServer()),
+    mNetif(aThreadNetif),
+    mMle(aThreadNetif.GetMle())
 {
-}
-
-ThreadError Leader::Init(ThreadNetif &aNetif)
-{
-    mCoapServer = aNetif.GetCoapServer();
-    mNetif = &aNetif;
-    mMle = aNetif.GetMle();
-
     Reset();
-
-    return kThreadError_None;
 }
 
 void Leader::Reset(void)
 {
-    NetworkData::Init();
     memset(mAddresses, 0, sizeof(mAddresses));
     memset(mContextLastUsed, 0, sizeof(mContextLastUsed));
     mVersion = otRandomGet();
@@ -68,7 +60,7 @@ void Leader::Reset(void)
 
 void Leader::Start(void)
 {
-    mCoapServer->AddResource(mServerData);
+    mCoapServer.AddResource(mServerData);
 }
 
 void Leader::Stop(void)
@@ -103,9 +95,9 @@ ThreadError Leader::GetContext(const Ip6::Address &aAddress, Lowpan::Context &aC
 
     aContext.mPrefixLength = 0;
 
-    if (PrefixMatch(mMle->GetMeshLocalPrefix(), aAddress.m8, 64) >= 0)
+    if (PrefixMatch(mMle.GetMeshLocalPrefix(), aAddress.m8, 64) >= 0)
     {
-        aContext.mPrefix = mMle->GetMeshLocalPrefix();
+        aContext.mPrefix = mMle.GetMeshLocalPrefix();
         aContext.mPrefixLength = 64;
         aContext.mContextId = 0;
     }
@@ -152,7 +144,7 @@ ThreadError Leader::GetContext(uint8_t aContextId, Lowpan::Context &aContext)
 
     if (aContextId == 0)
     {
-        aContext.mPrefix = mMle->GetMeshLocalPrefix();
+        aContext.mPrefix = mMle.GetMeshLocalPrefix();
         aContext.mPrefixLength = 64;
         aContext.mContextId = 0;
         ExitNow(error = kThreadError_None);
@@ -203,7 +195,7 @@ ThreadError Leader::ConfigureAddresses(void)
             continue;
         }
 
-        mNetif->RemoveUnicastAddress(mAddresses[i]);
+        mNetif.RemoveUnicastAddress(mAddresses[i]);
         mAddresses[i].mValidLifetime = 0;
     }
 
@@ -273,7 +265,7 @@ ThreadError Leader::ConfigureAddress(PrefixTlv &aPrefix)
         mAddresses[i].mPrefixLength = aPrefix.GetPrefixLength();
         mAddresses[i].mPreferredLifetime = entry->IsPreferred() ? 0xffffffff : 0;
         mAddresses[i].mValidLifetime = 0xffffffff;
-        mNetif->AddUnicastAddress(mAddresses[i]);
+        mNetif.AddUnicastAddress(mAddresses[i]);
         break;
     }
 
@@ -286,7 +278,7 @@ bool Leader::IsOnMesh(const Ip6::Address &aAddress)
     PrefixTlv *prefix;
     bool rval = false;
 
-    if (memcmp(aAddress.m8, mMle->GetMeshLocalPrefix(), 8) == 0)
+    if (memcmp(aAddress.m8, mMle.GetMeshLocalPrefix(), 8) == 0)
     {
         ExitNow(rval = true);
     }
@@ -410,7 +402,7 @@ ThreadError Leader::ExternalRouteLookup(uint8_t aDomainId, const Ip6::Address &a
                     if (rvalRoute == NULL ||
                         entry->GetPreference() > rvalRoute->GetPreference() ||
                         (entry->GetPreference() == rvalRoute->GetPreference() &&
-                         mMle->GetRouteCost(entry->GetRloc()) < mMle->GetRouteCost(rvalRoute->GetRloc())))
+                         mMle.GetRouteCost(entry->GetRloc()) < mMle.GetRouteCost(rvalRoute->GetRloc())))
                     {
                         rvalRoute = entry;
                         rval_plen = plen;
@@ -469,7 +461,7 @@ ThreadError Leader::DefaultRouteLookup(PrefixTlv &aPrefix, uint16_t *aRloc16)
             if (route == NULL ||
                 entry->GetPreference() > route->GetPreference() ||
                 (entry->GetPreference() == route->GetPreference() &&
-                 mMle->GetRouteCost(entry->GetRloc()) < mMle->GetRouteCost(route->GetRloc())))
+                 mMle.GetRouteCost(entry->GetRloc()) < mMle.GetRouteCost(route->GetRloc())))
             {
                 route = entry;
             }
@@ -505,14 +497,14 @@ void Leader::SetNetworkData(uint8_t aVersion, uint8_t aStableVersion, bool aStab
     otDumpDebgNetData("set network data", mTlvs, mLength);
 
     ConfigureAddresses();
-    mMle->HandleNetworkDataUpdate();
+    mMle.HandleNetworkDataUpdate();
 }
 
 void Leader::RemoveBorderRouter(uint16_t aRloc16)
 {
     RemoveRloc(aRloc16);
     ConfigureAddresses();
-    mMle->HandleNetworkDataUpdate();
+    mMle.HandleNetworkDataUpdate();
 }
 
 void Leader::HandleServerData(void *aContext, Coap::Header &aHeader, Message &aMessage,
@@ -559,7 +551,7 @@ void Leader::SendServerDataResponse(const Coap::Header &aRequestHeader, const Ip
     SuccessOrExit(error = message->Append(responseHeader.GetBytes(), responseHeader.GetLength()));
     SuccessOrExit(error = message->Append(aTlvs, aTlvsLength));
 
-    SuccessOrExit(error = mCoapServer->SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = mCoapServer.SendMessage(*message, aMessageInfo));
 
     otLogInfoNetData("Sent network data registration acknowledgment\n");
 
@@ -582,7 +574,7 @@ ThreadError Leader::RegisterNetworkData(uint16_t aRloc16, uint8_t *aTlvs, uint8_
     mStableVersion++;
 
     ConfigureAddresses();
-    mMle->HandleNetworkDataUpdate();
+    mMle.HandleNetworkDataUpdate();
 
 exit:
     return error;
@@ -774,7 +766,7 @@ ThreadError Leader::FreeContext(uint8_t aContextId)
     mContextUsed &= ~(1 << aContextId);
     mVersion++;
     mStableVersion++;
-    mMle->HandleNetworkDataUpdate();
+    mMle.HandleNetworkDataUpdate();
     return kThreadError_None;
 }
 

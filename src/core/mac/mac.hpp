@@ -186,18 +186,12 @@ class Mac
 {
 public:
     /**
-     * This constructor creates the MAC object.
+     * This constructor initializes the MAC object.
+     *
+     * @param[in]  aThreadNetif  A reference to the network interface using this MAC.
      *
      */
-    Mac(void);
-
-    /**
-     * This method initializes the MAC.
-     *
-     * @param[in]  aNetif  A reference to the network interface using this MAC.
-     *
-     */
-    ThreadError Init(ThreadNetif &aNetif);
+    explicit Mac(ThreadNetif &aThreadNetif);
 
     /**
      * This method starts the MAC.
@@ -428,7 +422,8 @@ private:
     Timer mBackoffTimer;
     Timer mReceiveTimer;
 
-    KeyManager *mKeyManager;
+    KeyManager &mKeyManager;
+    Mle::MleRouter &mMle;
 
     ExtAddress mExtAddress;
     ShortAddress mShortAddress;
@@ -441,7 +436,6 @@ private:
     Frame mReceiveFrame;
     Sender *mSendHead, *mSendTail;
     Receiver *mReceiveHead, *mReceiveTail;
-    Mle::MleRouter *mMle;
 
     enum
     {

@@ -46,23 +46,18 @@ ThreadNetif::ThreadNetif(void):
     mAddressResolver(*this),
     mKeyManager(*this),
     mLowpan(*this),
-    mMeshForwarder(*this)
+    mMac(*this),
+    mMeshForwarder(*this),
+    mMleRouter(*this),
+    mNetworkDataLocal(*this),
+    mNetworkDataLeader(*this)
 {
+    mKeyManager.SetMasterKey(kThreadMasterKey, sizeof(kThreadMasterKey));
 }
 
 const char *ThreadNetif::GetName(void) const
 {
     return name;
-}
-
-ThreadError ThreadNetif::Init(void)
-{
-    mKeyManager.SetMasterKey(kThreadMasterKey, sizeof(kThreadMasterKey));
-    mMac.Init(*this);
-    mMleRouter.Init(*this);
-    mNetworkDataLocal.Init(*this);
-    mNetworkDataLeader.Init(*this);
-    return kThreadError_None;
 }
 
 ThreadError ThreadNetif::Up(void)

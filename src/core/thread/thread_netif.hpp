@@ -46,13 +46,11 @@ namespace Thread {
 class ThreadNetif: public Ip6::Netif
 {
 public:
-    ThreadNetif(void);
-
     /**
-     * This method initializes the Thread network interface.
+     * This constructor initializes the Thread network interface.
      *
      */
-    ThreadError Init(void);
+    ThreadNetif(void);
 
     /**
      * This method enables the Thread network interface.
@@ -121,7 +119,7 @@ public:
      * @returns A pointer to the address resolver object.
      *
      */
-    AddressResolver *GetAddressResolver(void) { return &mAddressResolver; }
+    AddressResolver &GetAddressResolver(void) { return mAddressResolver; }
 
     /**
      * This method returns a pointer to the coap server object.
@@ -129,7 +127,7 @@ public:
      * @returns A pointer to the coap server object.
      *
      */
-    Coap::Server *GetCoapServer(void) { return &mCoapServer; }
+    Coap::Server &GetCoapServer(void) { return mCoapServer; }
 
     /**
      * This method returns a pointer to the key manager object.
@@ -137,7 +135,7 @@ public:
      * @returns A pointer to the key manager object.
      *
      */
-    KeyManager *GetKeyManager(void) { return &mKeyManager; }
+    KeyManager &GetKeyManager(void) { return mKeyManager; }
 
     /**
      * This method returns a pointer to the lowpan object.
@@ -145,7 +143,7 @@ public:
      * @returns A pointer to the lowpan object.
      *
      */
-    Lowpan::Lowpan *GetLowpan(void) { return &mLowpan; }
+    Lowpan::Lowpan &GetLowpan(void) { return mLowpan; }
 
     /**
      * This method returns a pointer to the mac object.
@@ -153,7 +151,7 @@ public:
      * @returns A pointer to the mac object.
      *
      */
-    Mac::Mac *GetMac(void) { return &mMac; }
+    Mac::Mac &GetMac(void) { return mMac; }
 
     /**
      * This method returns a pointer to the mle object.
@@ -161,7 +159,7 @@ public:
      * @returns A pointer to the mle object.
      *
      */
-    Mle::MleRouter *GetMle(void) { return &mMleRouter; }
+    Mle::MleRouter &GetMle(void) { return mMleRouter; }
 
     /**
      * This method returns a pointer to the mesh forwarder object.
@@ -169,7 +167,7 @@ public:
      * @returns A pointer to the mesh forwarder object.
      *
      */
-    MeshForwarder *GetMeshForwarder(void) { return &mMeshForwarder; }
+    MeshForwarder &GetMeshForwarder(void) { return mMeshForwarder; }
 
     /**
      * This method returns a pointer to the network data local object.
@@ -177,7 +175,7 @@ public:
      * @returns A pointer to the network data local object.
      *
      */
-    NetworkData::Local *GetNetworkDataLocal(void) { return &mNetworkDataLocal; }
+    NetworkData::Local &GetNetworkDataLocal(void) { return mNetworkDataLocal; }
 
     /**
      * This method returns a pointer to the network data leader object.
@@ -185,7 +183,7 @@ public:
      * @returns A pointer to the network data leader object.
      *
      */
-    NetworkData::Leader *GetNetworkDataLeader(void) { return &mNetworkDataLeader; }
+    NetworkData::Leader &GetNetworkDataLeader(void) { return mNetworkDataLeader; }
 
 private:
     Coap::Server mCoapServer;

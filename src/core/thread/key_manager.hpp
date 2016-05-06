@@ -43,7 +43,13 @@ class ThreadNetif;
 class KeyManager
 {
 public:
-    explicit KeyManager(ThreadNetif &netif);
+    /**
+     * This constructor initializes the object.
+     *
+     * @param[in]  aThreadNetif  A reference to the Thread network interface.
+     *
+     */
+    explicit KeyManager(ThreadNetif &aThreadNetif);
 
     /**
      * This method returns a pointer to the Thread Master Key
@@ -208,7 +214,7 @@ private:
     uint32_t mMacFrameCounter = 0;
     uint32_t mMleFrameCounter = 0;
 
-    ThreadNetif *mNetif;
+    ThreadNetif &mNetif;
 };
 
 /**
