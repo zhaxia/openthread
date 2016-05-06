@@ -16,9 +16,9 @@
 
 #include "test_util.h"
 #include <common/debug.hpp>
-#include <crypto/hmac.hpp>
-#include <crypto/sha256.hpp>
 #include <string.h>
+
+#include <crypto/hmac_sha256.h>
 
 void TestHmacSha256()
 {
@@ -26,7 +26,7 @@ void TestHmacSha256()
     {
         const char *key;
         const char *data;
-        uint8_t hash[Thread::Crypto::Sha256::kHashSize];
+        uint8_t hash[otCryptoSha256Size];
     } tests[] =
     {
         {
@@ -46,16 +46,13 @@ void TestHmacSha256()
         },
     };
 
-    Thread::Crypto::Sha256 sha256;
-    Thread::Crypto::Hmac hmac(sha256);
-    uint8_t hash[Thread::Crypto::Sha256::kHashSize];
+    uint8_t hash[otCryptoSha256Size];
 
     for (int i = 0; tests[i].key != NULL; i++)
     {
-        hmac.SetKey(tests[i].key, strlen(tests[i].key));
-        hmac.Init();
-        hmac.Input(tests[i].data, strlen(tests[i].data));
-        hmac.Finalize(hash);
+        otCryptoHmacSha256Start(tests[i].key, strlen(tests[i].key));
+        otCryptoHmacSha256Update(tests[i].data, strlen(tests[i].data));
+        otCryptoHmacSha256Finish(hash);
 
         VerifyOrQuit(memcmp(hash, tests[i].hash, sizeof(tests[i].hash)) == 0,
                      "HMAC-SHA-256 failed\n");

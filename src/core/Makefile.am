@@ -33,9 +33,6 @@ libopenthread_a_SOURCES             = \
     common/tasklet.cpp                \
     common/timer.cpp                  \
     crypto/aes_ccm.cpp                \
-    crypto/aes_ecb.cpp                \
-    crypto/hmac.cpp                   \
-    crypto/sha256.cpp                 \
     mac/mac.cpp                       \
     mac/mac_frame.cpp                 \
     mac/mac_whitelist.cpp             \

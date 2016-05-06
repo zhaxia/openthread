@@ -18,22 +18,23 @@ include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
 bin_PROGRAMS = ncp
 
-ncp_CPPFLAGS                                   = \
-    -I$(top_srcdir)/include                      \
-    -I$(top_srcdir)/src                          \
-    -I$(top_srcdir)/src/core                     \
-    -I$(top_srcdir)/tests                        \
-    -I$(top_srcdir)/tests/platform/posix         \
-    -I$(top_srcdir)/third_party                  \
-    -std=c++11                                   \
-    $(OPENTHREAD_TARGET_DEFINES)                 \
+ncp_CPPFLAGS                                                = \
+    -I$(top_srcdir)/include                                   \
+    -I$(top_srcdir)/src                                       \
+    -I$(top_srcdir)/src/core                                  \
+    -I$(top_srcdir)/tests                                     \
+    -I$(top_srcdir)/tests/platform/posix                      \
+    -I$(top_srcdir)/third_party                               \
+    -std=c++11                                                \
+    $(OPENTHREAD_TARGET_DEFINES)                              \
     $(NULL)
 
-ncp_LDADD                                      = \
-    $(top_srcdir)/src/ncp/libopenthread-ncp.a    \
-    $(top_srcdir)/src/core/libopenthread.a       \
-    $(top_srcdir)/tests/platform/posix/libopenthread-posix.a            \
-    -lpthread                                    \
+ncp_LDADD                                                   = \
+    $(top_srcdir)/src/ncp/libopenthread-ncp.a                 \
+    $(top_srcdir)/src/core/libopenthread.a                    \
+    $(top_srcdir)/tests/platform/posix/libopenthread-posix.a  \
+    $(top_srcdir)/third_party/mbedtls/libmbedcrypto.a         \
+    -lpthread                                                 \
     $(NULL)
 
 ncp_SOURCES = main.cpp

@@ -408,6 +408,8 @@ src/Makefile
 src/cli/Makefile
 src/core/Makefile
 src/ncp/Makefile
+third_party/Makefile
+third_party/mbedtls/Makefile
 tests/Makefile
 tests/platform/Makefile
 tests/platform/posix/Makefile
