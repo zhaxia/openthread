@@ -77,12 +77,12 @@ enum
  */
 struct ActiveScanResult
 {
-    uint8_t  mNetworkName[kNetworkNameSize];   ///<  The Thread Network Name.
-    uint8_t  mExtPanid[kExtPanIdSize];         ///<  The Thread Extended PAN ID.
-    uint8_t  mExtAddr[ExtAddress::kLength];    ///<  The IEEE 802.15.4 Extended Address.
-    uint16_t mPanId;                           ///<  The IEEE 802.15.4 PAN ID.
-    uint8_t  mChannel;                         ///<  The IEEE 802.15.4 Channel.
-    int8_t   mRssi;                            ///<  The RSSI in dBm.
+    char     mNetworkName[kNetworkNameSize];  ///<  The Thread Network Name.
+    uint8_t  mExtPanid[kExtPanIdSize];        ///<  The Thread Extended PAN ID.
+    uint8_t  mExtAddr[ExtAddress::kLength];   ///<  The IEEE 802.15.4 Extended Address.
+    uint16_t mPanId;                          ///<  The IEEE 802.15.4 PAN ID.
+    uint8_t  mChannel;                        ///<  The IEEE 802.15.4 Channel.
+    int8_t   mRssi;                           ///<  The RSSI in dBm.
 };
 
 /**

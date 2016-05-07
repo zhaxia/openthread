@@ -460,7 +460,7 @@ void Interpreter::ProcessNetworkName(int argc, char *argv[])
 {
     if (argc == 0)
     {
-        sResponse.Append("%s\n", otGetNetworkName());
+        sResponse.Append("%.*s\n", OT_NETWORK_NAME_SIZE, otGetNetworkName());
     }
     else
     {
