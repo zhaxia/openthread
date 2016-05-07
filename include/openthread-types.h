@@ -73,6 +73,8 @@ typedef enum ThreadError
  *
  */
 
+#define OT_NETWORK_NAME_SIZE  16  ///< Network name size (bytes).
+
 /**
  * This structure represents an MLE Link Mode configuration.
  */

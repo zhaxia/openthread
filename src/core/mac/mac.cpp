@@ -19,6 +19,8 @@
  *   This file implements the subset of IEEE 802.15.4 primitives required for Thread.
  */
 
+#include <string.h>
+
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/logging.hpp>
@@ -92,8 +94,8 @@ Mac::Mac(ThreadNetif &aThreadNetif):
         mExtAddress.mBytes[i] = otRandomGet();
     }
 
-    memcpy(mExtendedPanid, sExtendedPanidInit, sizeof(mExtendedPanid));
-    memcpy(mNetworkName, sNetworkNameInit, sizeof(mNetworkName));
+    SetExtendedPanId(sExtendedPanidInit);
+    SetNetworkName(sNetworkNameInit);
 
     mBeaconSequence = otRandomGet();
     mDataSequence = otRandomGet();
@@ -257,6 +259,7 @@ const char *Mac::GetNetworkName(void) const
 
 ThreadError Mac::SetNetworkName(const char *aNetworkName)
 {
+    memset(mNetworkName, 0, sizeof(mNetworkName));
     strncpy(mNetworkName, aNetworkName, sizeof(mNetworkName));
     return kThreadError_None;
 }
@@ -958,12 +961,12 @@ void Mac::HandleBeaconFrame(void)
     payload++;
 
     // network name
-    memcpy(result.mNetworkName, payload, sizeof(result.mNetworkName));
-    payload += 16;
+    strncpy(result.mNetworkName, reinterpret_cast<char*>(payload), kNetworkNameSize);
+    payload += kNetworkNameSize;
 
     // extended panid
-    memcpy(result.mExtPanid, payload, sizeof(result.mExtPanid));
-    payload += 8;
+    memcpy(result.mExtPanid, payload, kExtPanIdSize);
+    payload += kExtPanIdSize;
 
     // extended address
     mReceiveFrame.GetSrcAddr(address);
