@@ -15,13 +15,18 @@
  */
 
 #include "test_util.h"
+#include <openthread.h>
 #include <common/debug.hpp>
 #include <mac/mac_frame.hpp>
 #include <string.h>
 
 namespace Thread {
 
-void TestMacHeader()
+extern"C" void otSignalTaskletPending(void)
+{
+}
+
+void TestMacHeader(void)
 {
     static const struct
     {
@@ -67,7 +72,7 @@ void TestMacHeader()
 
 }  // namespace Thread
 
-int main()
+int main(void)
 {
     Thread::TestMacHeader();
     printf("All tests passed\n");

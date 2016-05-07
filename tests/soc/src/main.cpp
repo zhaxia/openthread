@@ -28,6 +28,10 @@ struct gengetopt_args_info args_info;
 
 Thread::Cli::Socket sCliServer;
 
+void otSignalTaskletPending(void)
+{
+}
+
 int main(int argc, char *argv[])
 {
     uint32_t atomic_state;

@@ -28,6 +28,10 @@ extern "C" void SleepStart(void);
 struct gengetopt_args_info args_info;
 Thread::Ncp sNcp;
 
+void otSignalTaskletPending(void)
+{
+}
+
 int main(int argc, char *argv[])
 {
     uint32_t atomic_state;

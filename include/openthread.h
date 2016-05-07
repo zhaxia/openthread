@@ -100,17 +100,23 @@ extern "C" {
 void otInit();
 
 /**
- * Run the next queued tasklet in the OpenThread library.
+ * Run the next queued tasklet in OpenThread.
  */
 void otProcessNextTasklet(void);
 
 /**
- * Indicates whether or not the Thread stack has tasklets pending.
+ * Indicates whether or not OpenThread has tasklets pending.
  *
  * @retval TRUE   If there are tasklets pending.
  * @retval FALSE  If there are no tasklets pending.
  */
 bool otAreTaskletsPending(void);
+
+/**
+ * OpenThread calls this function when the tasklet queue transitions from empty to non-empty.
+ *
+ */
+extern void otSignalTaskletPending(void);
 
 /**
  * @}

@@ -19,6 +19,7 @@
  *   This file implements the tasklet scheduler.
  */
 
+#include <openthread.h>
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/tasklet.hpp>
@@ -26,8 +27,8 @@
 
 namespace Thread {
 
-static Tasklet *sHead = NULL;
-static Tasklet *sTail = NULL;
+Tasklet *TaskletScheduler::sHead = NULL;
+Tasklet *TaskletScheduler::sTail = NULL;
 
 Tasklet::Tasklet(Handler aHandler, void *aContext)
 {
@@ -52,6 +53,7 @@ ThreadError TaskletScheduler::Post(Tasklet &aTasklet)
     {
         sHead = &aTasklet;
         sTail = &aTasklet;
+        otSignalTaskletPending();
     }
     else
     {

@@ -49,6 +49,7 @@ typedef enum ThreadError
     kThreadError_Abort = 12,
     kThreadError_NotImplemented = 13,
     kThreadError_InvalidState = 14,
+    kThreadError_NoTasklets = 15,
     kThreadError_Error = 255,
 } ThreadError;
 

@@ -15,12 +15,17 @@
  */
 
 #include "test_util.h"
+#include <openthread.h>
 #include <common/debug.hpp>
 #include <string.h>
 
 #include <crypto/hmac_sha256.h>
 
-void TestHmacSha256()
+extern"C" void otSignalTaskletPending(void)
+{
+}
+
+void TestHmacSha256(void)
 {
     static const struct
     {
@@ -59,7 +64,7 @@ void TestHmacSha256()
     }
 }
 
-int main()
+int main(void)
 {
     TestHmacSha256();
     printf("All tests passed\n");
