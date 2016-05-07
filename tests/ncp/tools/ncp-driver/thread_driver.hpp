@@ -43,7 +43,7 @@ private:
     static void HandleSendMessageDone(void *context);
 
     TunNetif tun_netif_;
-    int ipc_fd_ = -1;
+    int ipc_fd_;
 
     Hdlc::Decoder mHdlcDecoder;
     uint8_t mSerialFrame[512];

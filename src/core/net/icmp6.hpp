@@ -40,11 +40,33 @@ namespace Ip6 {
  *
  */
 
+enum
+{
+    kIcmp6DataSize = 4,
+};
+
+/**
+ * This structure represents an ICMPv6 header.
+ *
+ */
+struct IcmpHeaderPoD
+{
+    uint8_t      mType;      ///< Type
+    uint8_t      mCode;      ///< Code
+    uint16_t     mChecksum;  ///< Checksum
+    union
+    {
+        uint8_t  m8[kIcmp6DataSize / sizeof(uint8_t)];
+        uint16_t m16[kIcmp6DataSize / sizeof(uint16_t)];
+        uint32_t m32[kIcmp6DataSize / sizeof(uint32_t)];
+    } mData;                 ///< Message-specific data
+} __attribute__((packed));
+
 /**
  * This class implements ICMPv6 header generation and parsing.
  *
  */
-class IcmpHeader
+class IcmpHeader: private IcmpHeaderPoD
 {
 public:
     /**
@@ -158,7 +180,7 @@ public:
      * @returns The byte offset of the Checksum field.
      *
      */
-    static uint8_t GetChecksumOffset() { return offsetof(IcmpHeader, mChecksum); }
+    static uint8_t GetChecksumOffset() { return offsetof(IcmpHeaderPoD, mChecksum); }
 
     /**
      * This static method returns the byte offset of the ICMPv6 payload.
@@ -166,23 +188,8 @@ public:
      * @returns The Byte offset of the ICMPv6 payload.
      *
      */
-    static uint8_t GetDataOffset() { return offsetof(IcmpHeader, mData); }
+    static uint8_t GetDataOffset() { return offsetof(IcmpHeaderPoD, mData); }
 
-private:
-    enum
-    {
-        kDataSize = 4,
-    };
-
-    uint8_t      mType;
-    uint8_t      mCode;
-    uint16_t     mChecksum;
-    union
-    {
-        uint8_t  m8[kDataSize / sizeof(uint8_t)];
-        uint16_t m16[kDataSize / sizeof(uint16_t)];
-        uint32_t m32[kDataSize / sizeof(uint32_t)];
-    } mData;
 } __attribute__((packed));
 
 /**

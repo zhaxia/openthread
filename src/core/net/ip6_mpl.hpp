@@ -194,7 +194,7 @@ private:
     void HandleTimer();
 
     Timer mTimer;
-    uint8_t mSequence = 0;
+    uint8_t mSequence;
 
     struct MplEntry
     {

@@ -34,6 +34,7 @@ namespace Thread {
 ThreadDriver::ThreadDriver():
     mHdlcDecoder(mSerialFrame, sizeof(mSerialFrame), &HandleFrame, this)
 {
+    ipc_fd_ = -1;
 }
 
 ThreadError ThreadDriver::Start()

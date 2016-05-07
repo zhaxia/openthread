@@ -79,7 +79,7 @@ public:
      * @returns A pointer to a NULL-terminated string that names the interface.
      *
      */
-    const char *GetName(void) const final;
+    const char *GetName(void) const;
 
     /**
      * This method retrieves the link address.
@@ -87,7 +87,7 @@ public:
      * @param[out]  aAddress  A reference to the link address.
      *
      */
-    ThreadError GetLinkAddress(Ip6::LinkAddress &aAddress) const final;
+    ThreadError GetLinkAddress(Ip6::LinkAddress &aAddress) const;
 
     /**
      * This method submits a message to the network interface.
@@ -97,7 +97,7 @@ public:
      * @retval kThreadError_None  Successfully submitted the message to the interface.
      *
      */
-    ThreadError SendMessage(Message &aMessage) final;
+    ThreadError SendMessage(Message &aMessage);
 
     /**
      * This method performs a route lookup.
@@ -110,8 +110,7 @@ public:
      * @retval kThreadError_NoRoute  Could not find a valid route.
      *
      */
-    ThreadError RouteLookup(const Ip6::Address &aSource, const Ip6::Address &aDestination,
-                            uint8_t *aPrefixMatch) final;
+    ThreadError RouteLookup(const Ip6::Address &aSource, const Ip6::Address &aDestination, uint8_t *aPrefixMatch);
 
     /**
      * This method returns a pointer to the address resolver object.

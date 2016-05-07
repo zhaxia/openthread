@@ -86,11 +86,35 @@ enum IpProto
     kProtoDstOpts  = 60,  ///< Destination Options for IPv6
 };
 
+enum
+{
+    kVersionClassFlowSize = 4,  ///< Combined size of Version, Class, Flow Label in bytes.
+};
+
+/**
+ * This structure represents an IPv6 header.
+ *
+ */
+struct HeaderPoD
+{
+    union
+    {
+        uint8_t   m8[kVersionClassFlowSize / sizeof(uint8_t)];
+        uint16_t  m16[kVersionClassFlowSize / sizeof(uint16_t)];
+        uint32_t  m32[kVersionClassFlowSize / sizeof(uint32_t)];
+    } mVersionClassFlow;           ///< Version, Class, Flow Label
+    uint16_t      mPayloadLength;  ///< Payload Length
+    uint8_t       mNextHeader;     ///< Next Header
+    uint8_t       mHopLimit;       ///< Hop Limit
+    otIp6Address  mSource;         ///< Source
+    otIp6Address  mDestination;    ///< Destination
+} __attribute__((packed));
+
 /**
  * This class implements IPv6 header generation and parsing.
  *
  */
-class Header
+class Header: private HeaderPoD
 {
 public:
     /**
@@ -162,7 +186,7 @@ public:
      * @returns A reference to the IPv6 Source address.
      *
      */
-    Address &GetSource() { return mSource; }
+    Address &GetSource() { return static_cast<Address &>(mSource); }
 
     /**
      * This method sets the IPv6 Source address.
@@ -178,7 +202,7 @@ public:
      * @returns A reference to the IPv6 Destination address.
      *
      */
-    Address &GetDestination() { return mDestination; }
+    Address &GetDestination() { return static_cast<Address &>(mDestination); }
 
     /**
      * This method sets the IPv6 Destination address.
@@ -194,7 +218,7 @@ public:
      * @returns The byte offset of the IPv6 Payload Length field.
      *
      */
-    static uint8_t GetPayloadLengthOffset() { return offsetof(Header, mPayloadLength); }
+    static uint8_t GetPayloadLengthOffset() { return offsetof(HeaderPoD, mPayloadLength); }
 
     /**
      * This static method returns the byte offset of the IPv6 Hop Limit field.
@@ -202,7 +226,7 @@ public:
      * @returns The byte offset of the IPv6 Hop Limit field.
      *
      */
-    static uint8_t GetHopLimitOffset() { return offsetof(Header, mHopLimit); }
+    static uint8_t GetHopLimitOffset() { return offsetof(HeaderPoD, mHopLimit); }
 
     /**
      * This static method returns the size of the IPv6 Hop Limit field.
@@ -210,7 +234,7 @@ public:
      * @returns The size of the IPv6 Hop Limit field.
      *
      */
-    static uint8_t GetHopLimitSize() { return sizeof(mHopLimit); }
+    static uint8_t GetHopLimitSize() { return sizeof(uint8_t); }
 
     /**
      * This static method returns the byte offset of the IPv6 Destination field.
@@ -218,27 +242,14 @@ public:
      * @returns The byte offset of the IPv6 Destination field.
      *
      */
-    static uint8_t GetDestinationOffset() { return offsetof(Header, mDestination); }
+    static uint8_t GetDestinationOffset() { return offsetof(HeaderPoD, mDestination); }
 
 private:
     enum
     {
         kVersion6 = 0x60,
         kVersionMask = 0xf0,
-        kVersionClassFlowSize = 4,
     };
-
-    union
-    {
-        uint8_t  m8[kVersionClassFlowSize / sizeof(uint8_t)];
-        uint16_t m16[kVersionClassFlowSize / sizeof(uint16_t)];
-        uint32_t m32[kVersionClassFlowSize / sizeof(uint32_t)];
-    } mVersionClassFlow;
-    uint16_t mPayloadLength;
-    uint8_t  mNextHeader;
-    uint8_t  mHopLimit;
-    Address  mSource;
-    Address  mDestination;
 } __attribute__((packed));
 
 /**
@@ -556,6 +567,7 @@ public:
      *
      */
     static void SetNcpReceivedHandler(NcpReceivedDatagramHandler aHandler, void *aContext);
+
 };
 
 /**

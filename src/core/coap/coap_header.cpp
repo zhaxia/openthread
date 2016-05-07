@@ -31,7 +31,7 @@ void Header::Init(void)
     mHeaderLength = kMinHeaderLength;
     mOptionLast = 0;
     mNextOptionOffset = 0;
-    mOption = {0, 0, NULL};
+    memset(&mOption, 0, sizeof(mOption));
     memset(mHeader, 0, sizeof(mHeader));
 }
 

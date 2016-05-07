@@ -56,6 +56,8 @@ void Leader::Reset(void)
     mVersion = otRandomGet();
     mStableVersion = otRandomGet();
     mLength = 0;
+    mContextUsed = 0;
+    mContextIdReuseDelay = kContextIdReuseDelay;
 }
 
 void Leader::Start(void)

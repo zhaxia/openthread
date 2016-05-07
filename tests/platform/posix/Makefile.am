@@ -36,7 +36,6 @@ libopenthread_posix_a_CXXFLAGS         = \
     -I$(top_srcdir)/tests                \
     -I$(top_srcdir)/tests/platform/posix \
     $(OPENTHREAD_TARGET_DEFINES)         \
-    -std=c++11                           \
     $(NULL)
 
 libopenthread_posix_a_SOURCES          = \

@@ -125,7 +125,7 @@ exit:
 ThreadError AddressResolver::SendAddressQuery(const Ip6::Address &aEid)
 {
     ThreadError error;
-    Ip6::SockAddr sockaddr = {};
+    Ip6::SockAddr sockaddr;
     Message *message;
     Coap::Header header;
     ThreadTargetTlv targetTlv;
@@ -279,7 +279,7 @@ ThreadError AddressResolver::SendAddressError(const ThreadTargetTlv &aTarget, co
     Message *message;
     Coap::Header header;
     Ip6::MessageInfo messageInfo;
-    Ip6::SockAddr sockaddr = {};
+    Ip6::SockAddr sockaddr;
 
     sockaddr.mPort = kCoapUdpPort;
     mSocket.Open(&HandleUdpReceive, this);
@@ -573,9 +573,9 @@ void AddressResolver::HandleDstUnreach(void *aContext, Message &aMessage, const 
 void AddressResolver::HandleDstUnreach(Message &aMessage, const Ip6::MessageInfo &aMessageInfo,
                                        const Ip6::IcmpHeader &aIcmpHeader)
 {
-    VerifyOrExit(aIcmpHeader.GetCode() == Ip6::IcmpHeader::kCodeDstUnreachNoRoute, ;);
-
     Ip6::Header ip6Header;
+
+    VerifyOrExit(aIcmpHeader.GetCode() == Ip6::IcmpHeader::kCodeDstUnreachNoRoute, ;);
     VerifyOrExit(aMessage.Read(aMessage.GetOffset(), sizeof(ip6Header), &ip6Header) == sizeof(ip6Header), ;);
 
     for (int i = 0; i < kCacheEntries; i++)
