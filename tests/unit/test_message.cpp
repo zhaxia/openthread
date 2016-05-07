@@ -15,11 +15,16 @@
  */
 
 #include "test_util.h"
+#include <openthread.h>
 #include <common/debug.hpp>
 #include <common/message.hpp>
 #include <string.h>
 
-void TestMessage()
+extern"C" void otSignalTaskletPending(void)
+{
+}
+
+void TestMessage(void)
 {
     Thread::Message *message;
     uint8_t writeBuffer[1024];
@@ -48,7 +53,7 @@ void TestMessage()
                   "Message::Free failed\n");
 }
 
-int main()
+int main(void)
 {
     TestMessage();
     printf("All tests passed\n");

@@ -113,13 +113,9 @@ public:
     static void RunNextTasklet(void);
 
 private:
-    /**
-     * This static method pops the next tasklet from the run queue.
-     *
-     * @returns A pointer to the next tasklet or NULL if there are no tasklets on the run queue.
-     *
-     */
     static Tasklet *PopTasklet(void);
+    static Tasklet *sHead;
+    static Tasklet *sTail;
 };
 
 /**

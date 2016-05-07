@@ -15,14 +15,19 @@
  */
 
 #include "test_util.h"
+#include <openthread.h>
 #include <common/debug.hpp>
 #include <crypto/aes_ccm.hpp>
 #include <string.h>
 
+extern"C" void otSignalTaskletPending(void)
+{
+}
+
 /**
  * Verifies test vectors from IEEE 802.15.4-2006 Annex C Section C.2.1
  */
-void TestMacBeaconFrame()
+void TestMacBeaconFrame(void)
 {
     uint8_t key[] =
     {
@@ -213,7 +218,7 @@ void TestMacCommandFrame()
                  "TestMacCommandFrame decrypt failed\n");
 }
 
-int main()
+int main(void)
 {
     TestMacBeaconFrame();
     TestMacDataFrame();
