@@ -101,10 +101,11 @@ exit:
     return error;
 }
 
-void MeshForwarder::HandleResolved(const Ip6::Address &aEid)
+void MeshForwarder::HandleResolved(const Ip6::Address &aEid, ThreadError aError)
 {
     Message *cur, *next;
     Ip6::Address ip6Dst;
+    bool enqueuedMessage = false;
 
     for (cur = mResolvingQueue.GetHead(); cur; cur = next)
     {
@@ -120,11 +121,23 @@ void MeshForwarder::HandleResolved(const Ip6::Address &aEid)
         if (memcmp(&ip6Dst, &aEid, sizeof(ip6Dst)) == 0)
         {
             mResolvingQueue.Dequeue(*cur);
-            mSendQueue.Enqueue(*cur);
+
+            if (aError == kThreadError_None)
+            {
+                mSendQueue.Enqueue(*cur);
+                enqueuedMessage = true;
+            }
+            else
+            {
+                Message::Free(*cur);
+            }
         }
     }
 
-    mScheduleTransmissionTask.Post();
+    if (enqueuedMessage)
+    {
+        mScheduleTransmissionTask.Post();
+    }
 }
 
 void MeshForwarder::ScheduleTransmissionTask(void *aContext)

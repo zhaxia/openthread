@@ -98,10 +98,11 @@ public:
     /**
      * This method is called by the address resolver when an EID-to-RLOC mapping has been resolved.
      *
-     * @param[in]  aEid  A reference to the EID that has been resolved.
+     * @param[in]  aEid    A reference to the EID that has been resolved.
+     * @param[in]  aError  kThreadError_None on success and kThreadError_Drop otherwise.
      *
      */
-    void HandleResolved(const Ip6::Address &aEid);
+    void HandleResolved(const Ip6::Address &aEid, ThreadError aError);
 
     /**
      * This method indicates whether or not rx-on-when-idle mode is enabled.

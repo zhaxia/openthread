@@ -100,20 +100,35 @@ ThreadError AddressResolver::Resolve(const Ip6::Address &aEid, uint16_t &aRloc16
     switch (entry->mState)
     {
     case Cache::kStateInvalid:
-        memcpy(&entry->mTarget, &aEid, sizeof(entry->mTarget));
-        entry->mState = Cache::kStateDiscover;
+        entry->mTarget = aEid;
+        entry->mRloc16 = Mac::kShortAddrInvalid;
         entry->mTimeout = kAddressQueryTimeout;
-        mTimer.Start(kStateUpdatePeriod);
+        entry->mFailures = 0;
+        entry->mRetryTimeout = kAddressQueryInitialRetryDelay;
+        entry->mState = Cache::kStateQuery;
         SendAddressQuery(aEid);
         error = kThreadError_AddressQuery;
         break;
 
-    case Cache::kStateDiscover:
-    case Cache::kStateRetry:
-        error = kThreadError_AddressQuery;
+    case Cache::kStateQuery:
+        if (entry->mTimeout > 0)
+        {
+            error = kThreadError_AddressQuery;
+        }
+        else if (entry->mTimeout == 0 && entry->mRetryTimeout == 0)
+        {
+            entry->mTimeout = kAddressQueryTimeout;
+            SendAddressQuery(aEid);
+            error = kThreadError_AddressQuery;
+        }
+        else
+        {
+            error = kThreadError_Drop;
+        }
+
         break;
 
-    case Cache::kStateValid:
+    case Cache::kStateCached:
         aRloc16 = entry->mRloc16;
         break;
     }
@@ -169,6 +184,11 @@ ThreadError AddressResolver::SendAddressQuery(const Ip6::Address &aEid)
 
 exit:
 
+    if (mTimer.IsRunning() == false)
+    {
+        mTimer.Start(kStateUpdatePeriod);
+    }
+
     if (error != kThreadError_None && message != NULL)
     {
         Message::Free(*message);
@@ -211,18 +231,19 @@ void AddressResolver::HandleAddressNotification(Coap::Header &aHeader, Message &
 
     for (int i = 0; i < kCacheEntries; i++)
     {
-        if (memcmp(&mCache[i].mTarget, targetTlv.GetTarget(), sizeof(mCache[i].mTarget)) == 0)
+        if (mCache[i].mTarget == *targetTlv.GetTarget())
         {
-            if (mCache[i].mState != Cache::kStateValid ||
-                memcmp(mCache[i].mIid, mlIidTlv.GetIid(), sizeof(mCache[i].mIid)) == 0)
+            if (mCache[i].mState != Cache::kStateCached ||
+                memcmp(mCache[i].mMeshLocalIid, mlIidTlv.GetIid(), sizeof(mCache[i].mMeshLocalIid)) == 0)
             {
-                memcpy(mCache[i].mIid, mlIidTlv.GetIid(), sizeof(mCache[i].mIid));
+                memcpy(mCache[i].mMeshLocalIid, mlIidTlv.GetIid(), sizeof(mCache[i].mMeshLocalIid));
                 mCache[i].mRloc16 = rloc16Tlv.GetRloc16();
+                mCache[i].mRetryTimeout = 0;
                 mCache[i].mTimeout = 0;
-                mCache[i].mFailureCount = 0;
-                mCache[i].mState = Cache::kStateValid;
+                mCache[i].mFailures = 0;
+                mCache[i].mState = Cache::kStateCached;
                 SendAddressNotificationResponse(aHeader, aMessageInfo);
-                mMeshForwarder.HandleResolved(*targetTlv.GetTarget());
+                mMeshForwarder.HandleResolved(*targetTlv.GetTarget(), kThreadError_None);
             }
             else
             {
@@ -536,24 +557,34 @@ void AddressResolver::HandleTimer()
 
     for (int i = 0; i < kCacheEntries; i++)
     {
-        switch (mCache[i].mState)
+        if (mCache[i].mState != Cache::kStateQuery)
         {
-        case Cache::kStateDiscover:
+            continue;
+        }
+
+        continueTimer = true;
+
+        if (mCache[i].mTimeout > 0)
+        {
             mCache[i].mTimeout--;
 
             if (mCache[i].mTimeout == 0)
             {
-                mCache[i].mState = Cache::kStateInvalid;
-            }
-            else
-            {
-                continueTimer = true;
-            }
+                mCache[i].mFailures++;
+                mCache[i].mRetryTimeout = kAddressQueryInitialRetryDelay * (1 << mCache[i].mFailures);
 
-            break;
+                if (mCache[i].mRetryTimeout > kAddressQueryMaxRetryDelay)
+                {
+                    mCache[i].mRetryTimeout = kAddressQueryMaxRetryDelay;
+                    mCache[i].mFailures--;
+                }
 
-        default:
-            break;
+                mMeshForwarder.HandleResolved(mCache[i].mTarget, kThreadError_Drop);
+            }
+        }
+        else if (mCache[i].mRetryTimeout > 0)
+        {
+            mCache[i].mRetryTimeout--;
         }
     }
 

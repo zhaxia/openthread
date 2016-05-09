@@ -106,19 +106,20 @@ private:
 
     struct Cache
     {
-        Ip6::Address mTarget;
-        uint8_t mIid[Ip6::Address::kInterfaceIdentifierSize];
+        Ip6::Address      mTarget;
+        uint8_t           mMeshLocalIid[Ip6::Address::kInterfaceIdentifierSize];
         Mac::ShortAddress mRloc16;
-        uint8_t mTimeout;
-        uint8_t mFailureCount : 4;
+        uint16_t          mRetryTimeout;
+        uint8_t           mTimeout;
+        uint8_t           mFailures;
+
         enum State
         {
-            kStateInvalid = 0,
-            kStateDiscover = 1,
-            kStateRetry = 2,
-            kStateValid = 3,
+            kStateInvalid,
+            kStateQuery,
+            kStateCached,
         };
-        State mState : 2;
+        State             mState;
     };
 
     ThreadError SendAddressQuery(const Ip6::Address &aEid);
