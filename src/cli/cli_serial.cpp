@@ -32,8 +32,8 @@
 namespace Thread {
 namespace Cli {
 
-static const uint8_t VT102_ERASE_EOL[] = "\033[K";
-static const uint8_t CRNL[] = "\r\n";
+static const uint8_t sEraseString[] = {'\b', ' ', '\b'};
+static const uint8_t CRNL[] = {'\r', '\n'};
 static Serial *sServer;
 
 Tasklet Serial::sReceiveTask(&ReceiveTask, NULL);
@@ -73,14 +73,14 @@ void Serial::ReceiveTask(void)
 
     buf = otSerialGetReceivedBytes(&bufLength);
 
-    cur = buf;
-    end = cur + bufLength;
+    end = buf + bufLength;
 
-    for (; cur < end; cur++)
+    for (cur = buf; cur < end; cur++)
     {
         switch (*cur)
         {
         case '\r':
+	case '\n':
             otSerialSend(CRNL, sizeof(CRNL));
             break;
 
@@ -109,7 +109,7 @@ void Serial::ReceiveTask(void)
             if (mRxLength > 0)
             {
                 mRxBuffer[--mRxLength] = '\0';
-                otSerialSend(VT102_ERASE_EOL, sizeof(VT102_ERASE_EOL));
+                otSerialSend(sEraseString, sizeof(sEraseString));
             }
 
             break;
@@ -142,7 +142,6 @@ ThreadError Serial::ProcessCommand(void)
 
     Interpreter::ProcessLine(mRxBuffer, mRxLength, *this);
 
-exit:
     mRxLength = 0;
 
     return error;

@@ -18,16 +18,11 @@
 import os
 import sys
 import pexpect
-import re
-import subprocess
-import time
 import unittest
-import pprint
 
 class Node:
     def __init__(self, nodeid):
         self.nodeid = nodeid
-        self.pp = pprint.PrettyPrinter(indent=4)
         self.verbose = int(float(os.getenv('VERBOSE', 0)))
         self.node_type = os.getenv('NODE_TYPE', 'sim')
 
@@ -50,41 +45,23 @@ class Node:
             cmd = '%s/src/soc' % builddir
         else:
             cmd = './soc'
-        cmd += ' --nodeid=%d' % nodeid
+        cmd += ' --nodeid=%d -S' % nodeid
 
-        if self.verbose:
-            self.node_process = subprocess.Popen(cmd.split())
-        else:
-            self.node_process = subprocess.Popen(cmd.split(),
-                stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-
-	time.sleep(0.5)
-
-        cmd = 'nc -u 127.0.0.1 %d' % (8000 + nodeid)
         self.pexpect = pexpect.spawn(cmd, timeout=2)
-        #print "\nNode %d : %s" % (nodeid, self.pp.pformat(self.pexpect))
 
     def __init_soc(self, nodeid):
         """ Initialize a System-on-a-chip node connected via UART. """
         import fdpexpect
         serialPort = '/dev/ttyUSB%d' % ((nodeid-1)*2)
         self.pexpect = fdpexpect.fdspawn(os.open(serialPort, os.O_RDWR|os.O_NONBLOCK|os.O_NOCTTY))
-        #print "\nNode %d %s : %s" % (nodeid, serialPort, self.pp.pformat(self.pexpect))
 
     def __del__(self):
         if self.node_type == 'sim':
             self.send_command('shutdown')
             self.pexpect.expect('Done')
-            self.node_process.wait()
 
         self.pexpect.terminate()
         self.pexpect.close(force=True)
-
-    def get_stdout(self):
-        return self.node_process.stdout.read()
-
-    def get_stderr(self):
-        return self.node_process.stderr.read()
 
     def send_command(self, cmd):
         print self.nodeid, ":", cmd

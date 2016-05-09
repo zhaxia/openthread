@@ -33,7 +33,7 @@ void otLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ..
 
     gettimeofday(&tv, NULL);
     strftime(timeString, sizeof(timeString), "%Y-%m-%d %H:%M:%S", localtime(&tv.tv_sec));
-    printf("%s.%06d ", timeString, (uint32_t)tv.tv_usec);
+    fprintf(stderr, "%s.%06d ", timeString, (uint32_t)tv.tv_usec);
 
     switch (aLogLevel)
     {

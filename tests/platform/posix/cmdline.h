@@ -53,10 +53,13 @@ struct gengetopt_args_info
   int nodeid_arg;	/**< @brief Node ID.  */
   char * nodeid_orig;	/**< @brief Node ID original value given at command line.  */
   const char *nodeid_help; /**< @brief Node ID help description.  */
+  int stdserial_flag;	/**< @brief Use stdin/stdout for serial (default=on).  */
+  const char *stdserial_help; /**< @brief Use stdin/stdout for serial help description.  */
   
   unsigned int help_given ;	/**< @brief Whether help was given.  */
   unsigned int version_given ;	/**< @brief Whether version was given.  */
   unsigned int nodeid_given ;	/**< @brief Whether nodeid was given.  */
+  unsigned int stdserial_given ;	/**< @brief Whether stdserial was given.  */
 
 } ;
 

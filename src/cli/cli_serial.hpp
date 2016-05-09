@@ -24,6 +24,7 @@
 
 #include <openthread-types.h>
 #include <cli/cli_server.hpp>
+#include <common/tasklet.hpp>
 
 namespace Thread {
 namespace Cli {
@@ -43,7 +44,7 @@ public:
      * @retval kThreadError_None  Successfully started the server.
      *
      */
-    ThreadError Start(void) final;
+    ThreadError Start(void);
 
     /**
      * This method delivers output to the client.
@@ -54,7 +55,7 @@ public:
      * @retval kThreadError_None  Successfully delivered output the client.
      *
      */
-    ThreadError Output(const char *aBuf, uint16_t aBufLength) final;
+    ThreadError Output(const char *aBuf, uint16_t aBufLength);
 
     static Tasklet sReceiveTask;
 

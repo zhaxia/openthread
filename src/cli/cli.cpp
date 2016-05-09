@@ -27,6 +27,7 @@
 
 #include "cli.hpp"
 #include <common/encoding.hpp>
+#include <platform/serial.h>
 
 using Thread::Encoding::BigEndian::HostSwap16;
 
@@ -825,6 +826,7 @@ void Interpreter::ProcessShutdown(int argc, char *argv[])
 {
     sResponse.Append("Done\r\n");
     sServer->Output(sResponse.GetResponse(), sResponse.GetResponseLength());
+    otSerialDisable();
     exit(0);
 }
 
