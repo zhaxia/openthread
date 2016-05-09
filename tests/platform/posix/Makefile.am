@@ -41,7 +41,6 @@ libopenthread_posix_a_CXXFLAGS         = \
 libopenthread_posix_a_SOURCES          = \
     alarm.c                              \
     atomic.c                             \
-    cli_posix.cpp                        \
     cmdline.c                            \
     logging.c                            \
     radio.cpp                            \

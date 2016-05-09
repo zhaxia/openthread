@@ -37,7 +37,10 @@ char *ptsname(int fd);
 extern struct gengetopt_args_info args_info;
 
 static uint8_t s_receive_buffer[128];
-static int s_fd;
+static int s_in_fd;
+static int s_out_fd;
+static struct termios s_in_termios;
+static struct termios s_out_termios;
 static pthread_t s_pthread;
 static sem_t *s_semaphore;
 
@@ -48,61 +51,104 @@ ThreadError otSerialEnable(void)
     char *path;
     char cmd[256];
 
-    // open file
+    if (args_info.stdserial_given == 1)
+    {
+        s_in_fd = dup(STDIN_FILENO);
+        s_out_fd = dup(STDOUT_FILENO);
+        dup2(STDERR_FILENO, STDOUT_FILENO);
+    }
+    else
+    {
+        // open file
 #ifdef OPENTHREAD_TARGET_DARWIN
 
-    asprintf(&path, "/dev/ptyp%d", args_info.nodeid_arg);
-    VerifyOrExit((s_fd = open(path, O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
-    free(path);
+        asprintf(&path, "/dev/ptyp%d", args_info.nodeid_arg);
+        VerifyOrExit((s_in_fd = open(path, O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
+        free(path);
 
-    // print pty path
-    printf("/dev/ttyp%d\n", args_info.nodeid_arg);
+        // print pty path
+        printf("/dev/ttyp%d\n", args_info.nodeid_arg);
 
 #elif defined(OPENTHREAD_TARGET_LINUX)
 
-    VerifyOrExit((s_fd = posix_openpt(O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
-    VerifyOrExit(grantpt(s_fd) == 0, perror("grantpt"); error = kThreadError_Error);
-    VerifyOrExit(unlockpt(s_fd) == 0, perror("unlockpt"); error = kThreadError_Error);
+        VerifyOrExit((s_in_fd = posix_openpt(O_RDWR | O_NOCTTY)) >= 0, perror("posix_openpt"); error = kThreadError_Error);
+        VerifyOrExit(grantpt(s_in_fd) == 0, perror("grantpt"); error = kThreadError_Error);
+        VerifyOrExit(unlockpt(s_in_fd) == 0, perror("unlockpt"); error = kThreadError_Error);
 
-    // print pty path
-    VerifyOrExit((path = ptsname(s_fd)) != NULL, perror("ptsname"); error = kThreadError_Error);
-    printf("%s\n", path);
+        // print pty path
+        VerifyOrExit((path = ptsname(s_in_fd)) != NULL, perror("ptsname"); error = kThreadError_Error);
+        printf("%s\n", path);
 
 #else
 #error "Unknown platform."
 #endif
 
-    // check if file descriptor is pointing to a TTY device
-    VerifyOrExit(isatty(s_fd), error = kThreadError_Error);
+        // check if file descriptor is pointing to a TTY device
+        VerifyOrExit(isatty(s_in_fd), error = kThreadError_Error);
 
-    // get current configuration
-    VerifyOrExit(tcgetattr(s_fd, &termios) == 0, perror("tcgetattr"); error = kThreadError_Error);
+        s_out_fd = dup(s_in_fd);
+    }
 
-    // turn off input processing
-    termios.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
+    if (isatty(s_in_fd))
+    {
+        // get current configuration
+        VerifyOrExit(tcgetattr(s_in_fd, &termios) == 0, perror("tcgetattr"); error = kThreadError_Error);
+        s_in_termios = termios;
 
-    // turn off output processing
-    termios.c_oflag = 0;
+        // turn off input processing
+        termios.c_iflag &= ~(IGNBRK | BRKINT | ICRNL | INLCR | PARMRK | INPCK | ISTRIP | IXON);
 
-    // turn off line processing
-    termios.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+        // turn off output processing
+        termios.c_oflag = 0;
 
-    // turn off character processing
-    termios.c_cflag &= ~(CSIZE | PARENB);
-    termios.c_cflag |= CS8;
+        // turn off line processing
+        termios.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
 
-    // return 1 byte at a time
-    termios.c_cc[VMIN]  = 1;
+        // turn off character processing
+        termios.c_cflag &= ~(CSIZE | PARENB);
+        termios.c_cflag |= CS8;
 
-    // turn off inter-character timer
-    termios.c_cc[VTIME] = 0;
+        // return 1 byte at a time
+        termios.c_cc[VMIN]  = 1;
 
-    // configure baud rate
-    VerifyOrExit(cfsetispeed(&termios, B115200) == 0, perror("cfsetispeed"); error = kThreadError_Error);
-    VerifyOrExit(cfsetospeed(&termios, B115200) == 0, perror("cfsetispeed"); error = kThreadError_Error);
+        // turn off inter-character timer
+        termios.c_cc[VTIME] = 0;
 
-    // set configuration
-    VerifyOrExit(tcsetattr(s_fd, TCSAFLUSH, &termios) == 0, perror("tcsetattr"); error = kThreadError_Error);
+        // configure baud rate
+        VerifyOrExit(cfsetispeed(&termios, B115200) == 0, perror("cfsetispeed"); error = kThreadError_Error);
+
+        // set configuration
+        VerifyOrExit(tcsetattr(s_in_fd, TCSAFLUSH, &termios) == 0, perror("tcsetattr"); error = kThreadError_Error);
+    }
+
+    if (isatty(s_out_fd))
+    {
+        // get current configuration
+        VerifyOrExit(tcgetattr(s_out_fd, &termios) == 0, perror("tcgetattr"); error = kThreadError_Error);
+        s_out_termios = termios;
+
+        // turn off output processing
+        termios.c_oflag = 0;
+
+        // turn off line processing
+        termios.c_lflag &= ~(ECHO | ECHONL | ICANON | IEXTEN | ISIG);
+
+        // turn off character processing
+        termios.c_cflag &= ~(CSIZE | PARENB);
+        termios.c_cflag |= CS8;
+
+        // return 1 byte at a time
+        termios.c_cc[VMIN]  = 1;
+
+        // turn off inter-character timer
+        termios.c_cc[VTIME] = 0;
+
+        // configure baud rate
+        VerifyOrExit(cfsetospeed(&termios, B115200) == 0, perror("cfsetospeed"); error = kThreadError_Error);
+
+        // set configuration
+        VerifyOrExit(tcsetattr(s_out_fd, TCSAFLUSH, &termios) == 0, perror("tcsetattr"); error = kThreadError_Error);
+    }
 
     snprintf(cmd, sizeof(cmd), "thread_serial_semaphore_%d", args_info.nodeid_arg);
     s_semaphore = sem_open(cmd, O_CREAT, 0644, 0);
@@ -111,7 +157,8 @@ ThreadError otSerialEnable(void)
     return error;
 
 exit:
-    close(s_fd);
+    close(s_in_fd);
+    close(s_out_fd);
     return error;
 }
 
@@ -119,7 +166,10 @@ ThreadError otSerialDisable(void)
 {
     ThreadError error = kThreadError_None;
 
-    close(s_fd);
+    tcsetattr(s_out_fd, TCSAFLUSH, &s_out_termios);
+    tcsetattr(s_in_fd, TCSAFLUSH, &s_in_termios);
+    close(s_in_fd);
+    close(s_out_fd);
 
     return error;
 }
@@ -128,7 +178,7 @@ ThreadError otSerialSend(const uint8_t *aBuf, uint16_t aBufLength)
 {
     ThreadError error = kThreadError_None;
 
-    VerifyOrExit(write(s_fd, aBuf, aBufLength) >= 0, error = kThreadError_Error);
+    VerifyOrExit(write(s_out_fd, aBuf, aBufLength) >= 0, error = kThreadError_Error);
     otSerialSignalSendDone();
 
 exit:
@@ -147,11 +197,11 @@ void *serial_receive_thread(void *aContext)
     while (1)
     {
         FD_ZERO(&fds);
-        FD_SET(s_fd, &fds);
+        FD_SET(s_in_fd, &fds);
 
-        rval = select(s_fd + 1, &fds, NULL, NULL, NULL);
+        rval = select(s_in_fd + 1, &fds, NULL, NULL, NULL);
 
-        if (rval >= 0 && FD_ISSET(s_fd, &fds))
+        if (rval >= 0 && FD_ISSET(s_in_fd, &fds))
         {
             otSerialSignalReceive();
             sem_wait(s_semaphore);
@@ -164,8 +214,18 @@ void *serial_receive_thread(void *aContext)
 const uint8_t *otSerialGetReceivedBytes(uint16_t *aBufLength)
 {
     size_t length;
+    int i;
 
-    length = read(s_fd, s_receive_buffer, sizeof(s_receive_buffer));
+    length = read(s_in_fd, s_receive_buffer, sizeof(s_receive_buffer));
+
+    for (i = 0; i < length; i++)
+    {
+        if (s_receive_buffer[i] == 0x03)
+        {
+            otSerialDisable();
+            exit(0);
+        }
+    }
 
     if (aBufLength != NULL)
     {

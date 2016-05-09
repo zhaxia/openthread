@@ -19,14 +19,14 @@
 #include <platform/posix/cmdline.h>
 
 #include <openthread.h>
+#include <cli/cli_serial.hpp>
 #include <platform/atomic.h>
-#include <platform/posix/cli_posix.hpp>
 #include <platform.h>
 
 extern "C" void SleepStart(void);
 struct gengetopt_args_info args_info;
 
-Thread::Cli::Socket sCliServer;
+Thread::Cli::Serial sCliServer;
 
 void otSignalTaskletPending(void)
 {

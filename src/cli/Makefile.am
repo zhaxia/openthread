@@ -27,6 +27,7 @@ libopenthread_cli_a_CPPFLAGS =        \
 
 libopenthread_cli_a_SOURCES         = \
     cli.cpp                           \
+    cli_serial.cpp                    \
     $(NULL)
 
 include_HEADERS                     = \

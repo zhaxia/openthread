@@ -19,3 +19,4 @@ version "0.1"
 purpose ""
 
 option  "nodeid" - "Node ID" int yes
+option  "stdserial" S "Use stdin/stdout for serial" flag on
