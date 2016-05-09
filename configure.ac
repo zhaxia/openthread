@@ -27,9 +27,9 @@ AC_PREREQ([2.68])
 #
 AC_INIT([OPENTHREAD],
         m4_esyscmd([third_party/nlbuild-autotools/repo/scripts/mkversion -b `cat .default-version` .]),
-        [@PACKAGE_EMAIL@],
+        [openthread-devel@googlegroups.com],
         [openthread],
-        [@PACKAGE_URL@])
+        [http://github.com/openthread/openthread])
 
 # Tell the rest of the build system the absolute path where the
 # nlbuild-autotools repository is rooted at.
