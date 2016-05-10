@@ -40,12 +40,13 @@ class Node:
 
     def __init_sim(self, nodeid):
         """ Initialize a simulation node. """
-        if "abs_builddir" in os.environ.keys():
-            builddir = os.environ['abs_builddir']
-            cmd = '%s/src/soc' % builddir
+        if "top_srcdir" in os.environ.keys():
+            srcdir = os.environ['top_srcdir']
+            cmd = '%s/examples/cli/soc' % srcdir
         else:
             cmd = './soc'
         cmd += ' --nodeid=%d -S' % nodeid
+        print cmd
 
         self.pexpect = pexpect.spawn(cmd, timeout=2)
 

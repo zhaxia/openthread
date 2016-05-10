@@ -1,8 +1,10 @@
 *.a
 *.gcda
 *.gcno
+*.log
 *.o
 *.pyc
+*.trs
 *~
 .deps
 .dirstamp
