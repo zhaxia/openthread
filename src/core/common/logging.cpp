@@ -85,7 +85,7 @@ static void DumpLine(otLogLevel aLogLevel, otLogRegion aLogRegion, const void *a
         }
     }
 
-    otLog(aLogLevel, aLogRegion, "%s\n", buf);
+    otPlatLog(aLogLevel, aLogRegion, "%s\n", buf);
 }
 
 void otDump(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aId, const void *aBuf, const int aLength)
@@ -95,7 +95,7 @@ void otDump(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aId, const
     char buf[80];
     char *cur = buf;
 
-    otLog(aLogLevel, aLogRegion, "\n");
+    otPlatLog(aLogLevel, aLogRegion, "\n");
 
     for (int i = 0; i < (width - idlen) / 2 - 5; i++)
     {
@@ -112,7 +112,7 @@ void otDump(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aId, const
         cur += strlen(cur);
     }
 
-    otLog(aLogLevel, aLogRegion, "%s\n", buf);
+    otPlatLog(aLogLevel, aLogRegion, "%s\n", buf);
 
     for (int i = 0; i < aLength; i += 16)
     {
@@ -127,7 +127,7 @@ void otDump(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aId, const
         cur += strlen(cur);
     }
 
-    otLog(aLogLevel, aLogRegion, "%s\n", buf);
+    otPlatLog(aLogLevel, aLogRegion, "%s\n", buf);
 }
 
 #ifdef __cplusplus

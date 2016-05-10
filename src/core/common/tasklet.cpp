@@ -45,7 +45,7 @@ ThreadError Tasklet::Post(void)
 ThreadError TaskletScheduler::Post(Tasklet &aTasklet)
 {
     ThreadError error = kThreadError_None;
-    uint32_t    state = otAtomicBegin();
+    uint32_t    state = otPlatAtomicBegin();
 
     VerifyOrExit(sTail != &aTasklet && aTasklet.mNext == NULL, error = kThreadError_Busy);
 
@@ -62,7 +62,7 @@ ThreadError TaskletScheduler::Post(Tasklet &aTasklet)
     }
 
 exit:
-    otAtomicEnd(state);
+    otPlatAtomicEnd(state);
 
     return error;
 }
@@ -96,9 +96,9 @@ void TaskletScheduler::RunNextTasklet(void)
     uint32_t  state;
     Tasklet  *task;
 
-    state = otAtomicBegin();
+    state = otPlatAtomicBegin();
     task = PopTasklet();
-    otAtomicEnd(state);
+    otPlatAtomicEnd(state);
 
     if (task != NULL)
     {

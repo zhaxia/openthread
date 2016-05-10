@@ -47,6 +47,12 @@ void hwRadioInit(void);
  */
 void hwRandomInit(void);
 
+/**
+ * This method puts the thread executing OpenThread to sleep.
+ *
+ */
+void hwSleep(void);
+
 #ifdef __cplusplus
 }  // extern "C"
 #endif

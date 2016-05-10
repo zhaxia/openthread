@@ -25,7 +25,7 @@
 
 #include <platform/logging.h>
 
-void otLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...)
+void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...)
 {
     struct timeval tv;
     char timeString[40];

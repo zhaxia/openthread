@@ -165,7 +165,7 @@ public:
      * @returns The current time in milliseconds.
      *
      */
-    static uint32_t GetNow(void) { return otAlarmGetNow(); }
+    static uint32_t GetNow(void) { return otPlatAlarmGetNow(); }
 
     /**
      * This static method returns the number of milliseonds given seconds.

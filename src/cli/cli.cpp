@@ -826,7 +826,7 @@ void Interpreter::ProcessShutdown(int argc, char *argv[])
 {
     sResponse.Append("Done\r\n");
     sServer->Output(sResponse.GetResponse(), sResponse.GetResponseLength());
-    otSerialDisable();
+    otPlatSerialDisable();
     exit(0);
 }
 

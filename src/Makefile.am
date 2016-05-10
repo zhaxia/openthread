@@ -21,7 +21,6 @@ include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 DIST_SUBDIRS                            = \
     cli                                   \
     core                                  \
-    ncp                                   \
     $(NULL)
 
 # Always build (e.g. for 'make all') these subdirectories.
@@ -29,7 +28,6 @@ DIST_SUBDIRS                            = \
 SUBDIRS                                 = \
     cli                                   \
     core                                  \
-    ncp                                   \
     $(NULL)
 
 all:

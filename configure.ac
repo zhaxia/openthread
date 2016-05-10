@@ -407,7 +407,6 @@ Makefile
 src/Makefile
 src/cli/Makefile
 src/core/Makefile
-src/ncp/Makefile
 third_party/Makefile
 third_party/mbedtls/Makefile
 examples/Makefile
@@ -415,11 +414,6 @@ examples/platform/Makefile
 examples/platform/posix/Makefile
 examples/cli/Makefile
 tests/Makefile
-tests/ncp/Makefile
-tests/ncp/src/Makefile
-tests/ncp/tools/Makefile
-tests/ncp/tools/ncp-ctl/Makefile
-tests/ncp/tools/ncp-driver/Makefile
 tests/scripts/Makefile
 tests/unit/Makefile
 doc/Makefile

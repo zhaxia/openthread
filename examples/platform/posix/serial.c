@@ -44,7 +44,7 @@ static struct termios s_out_termios;
 static pthread_t s_pthread;
 static sem_t *s_semaphore;
 
-ThreadError otSerialEnable(void)
+ThreadError otPlatSerialEnable(void)
 {
     ThreadError error = kThreadError_None;
     struct termios termios;
@@ -162,7 +162,7 @@ exit:
     return error;
 }
 
-ThreadError otSerialDisable(void)
+ThreadError otPlatSerialDisable(void)
 {
     ThreadError error = kThreadError_None;
 
@@ -174,18 +174,18 @@ ThreadError otSerialDisable(void)
     return error;
 }
 
-ThreadError otSerialSend(const uint8_t *aBuf, uint16_t aBufLength)
+ThreadError otPlatSerialSend(const uint8_t *aBuf, uint16_t aBufLength)
 {
     ThreadError error = kThreadError_None;
 
     VerifyOrExit(write(s_out_fd, aBuf, aBufLength) >= 0, error = kThreadError_Error);
-    otSerialSignalSendDone();
+    otPlatSerialSignalSendDone();
 
 exit:
     return error;
 }
 
-void otSerialHandleSendDone(void)
+void otPlatSerialHandleSendDone(void)
 {
 }
 
@@ -203,7 +203,7 @@ void *serial_receive_thread(void *aContext)
 
         if (rval >= 0 && FD_ISSET(s_in_fd, &fds))
         {
-            otSerialSignalReceive();
+            otPlatSerialSignalReceive();
             sem_wait(s_semaphore);
         }
     }
@@ -211,7 +211,7 @@ void *serial_receive_thread(void *aContext)
     return NULL;
 }
 
-const uint8_t *otSerialGetReceivedBytes(uint16_t *aBufLength)
+const uint8_t *otPlatSerialGetReceivedBytes(uint16_t *aBufLength)
 {
     size_t length;
     int i;
@@ -222,7 +222,7 @@ const uint8_t *otSerialGetReceivedBytes(uint16_t *aBufLength)
     {
         if (s_receive_buffer[i] == 0x03)
         {
-            otSerialDisable();
+            otPlatSerialDisable();
             exit(0);
         }
     }
@@ -235,7 +235,7 @@ const uint8_t *otSerialGetReceivedBytes(uint16_t *aBufLength)
     return s_receive_buffer;
 }
 
-void otSerialHandleReceiveDone(void)
+void otPlatSerialHandleReceiveDone(void)
 {
     sem_post(s_semaphore);
 }

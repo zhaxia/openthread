@@ -53,8 +53,8 @@ void Leader::Reset(void)
 {
     memset(mAddresses, 0, sizeof(mAddresses));
     memset(mContextLastUsed, 0, sizeof(mContextLastUsed));
-    mVersion = otRandomGet();
-    mStableVersion = otRandomGet();
+    mVersion = otPlatRandomGet();
+    mStableVersion = otPlatRandomGet();
     mLength = 0;
     mContextUsed = 0;
     mContextIdReuseDelay = kContextIdReuseDelay;
@@ -261,7 +261,7 @@ ThreadError Leader::ConfigureAddress(PrefixTlv &aPrefix)
 
         for (size_t j = 8; j < sizeof(mAddresses[i].mAddress); j++)
         {
-            mAddresses[i].mAddress.m8[j] = otRandomGet();
+            mAddresses[i].mAddress.m8[j] = otPlatRandomGet();
         }
 
         mAddresses[i].mPrefixLength = aPrefix.GetPrefixLength();

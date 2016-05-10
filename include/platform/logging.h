@@ -86,7 +86,7 @@ typedef enum otLogRegion
  * @param[in]  ...         Arguments for the format specification.
  *
  */
-void otLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...);
+void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...);
 
 /**
  * @def otLogCrit
@@ -99,7 +99,7 @@ void otLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ..
  *
  */
 #if OPENTHREAD_CONFIG_LOG_LEVEL >= OPENTHREAD_LOG_LEVEL_CRIT
-#define otLogCrit(aRegion, aFormat, ...)  otLog(kLogLevelCrit, aRegion, aFormat, ## __VA_ARGS__)
+#define otLogCrit(aRegion, aFormat, ...)  otPlatLog(kLogLevelCrit, aRegion, aFormat, ## __VA_ARGS__)
 #else
 #define otLogCrit(aRegion, aFormat, ...)
 #endif
@@ -115,7 +115,7 @@ void otLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ..
  *
  */
 #if OPENTHREAD_CONFIG_LOG_LEVEL >= OPENTHREAD_LOG_LEVEL_WARN
-#define otLogWarn(aRegion, aFormat, ...)  otLog(kLogLevelWarn, aRegion, aFormat, ## __VA_ARGS__)
+#define otLogWarn(aRegion, aFormat, ...)  otPlatLog(kLogLevelWarn, aRegion, aFormat, ## __VA_ARGS__)
 #else
 #define otLogWarn(aRegion, aFormat, ...)
 #endif
@@ -131,7 +131,7 @@ void otLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ..
  *
  */
 #if OPENTHREAD_CONFIG_LOG_LEVEL >= OPENTHREAD_LOG_LEVEL_INFO
-#define otLogInfo(aRegion, aFormat, ...)  otLog(kLogLevelInfo, aRegion, aFormat, ## __VA_ARGS__)
+#define otLogInfo(aRegion, aFormat, ...)  otPlatLog(kLogLevelInfo, aRegion, aFormat, ## __VA_ARGS__)
 #else
 #define otLogInfo(aRegion, aFormat, ...)
 #endif
@@ -147,7 +147,7 @@ void otLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ..
  *
  */
 #if OPENTHREAD_CONFIG_LOG_LEVEL >= OPENTHREAD_LOG_LEVEL_DEBG
-#define otLogDebg(aRegion, aFormat, ...)  otLog(kLogLevelDebg, aRegion, aFormat, ## __VA_ARGS__)
+#define otLogDebg(aRegion, aFormat, ...)  otPlatLog(kLogLevelDebg, aRegion, aFormat, ## __VA_ARGS__)
 #else
 #define otLogDebg(aRegion, aFormat, ...)
 #endif
