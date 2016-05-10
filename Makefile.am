@@ -21,6 +21,7 @@ AM_MAKEFLAGS                        = --no-print-directory
 SUBDIRS                             = \
     src                               \
     third_party                       \
+    examples                          \
     tests                             \
     doc                               \
     $(NULL)

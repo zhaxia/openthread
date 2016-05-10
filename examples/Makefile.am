@@ -19,17 +19,15 @@ include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 # Always package (e.g. for 'make dist') these subdirectories.
 
 DIST_SUBDIRS                            = \
-    ncp                                   \
-    scripts                               \
-    unit                                  \
+    platform                              \
+    cli                                   \
     $(NULL)
 
 # Always build (e.g. for 'make all') these subdirectories.
 
 SUBDIRS                                 = \
-    ncp                                   \
-    scripts                               \
-    unit                                  \
+    platform                              \
+    cli                                   \
     $(NULL)
 
 all:

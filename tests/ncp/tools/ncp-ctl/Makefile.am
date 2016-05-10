@@ -23,7 +23,7 @@ ncp_ctl_CPPFLAGS                               = \
     -I$(top_srcdir)/lib                          \
     -I$(top_srcdir)/src                          \
     -I$(top_srcdir)/src/core                     \
-    -I$(top_srcdir)/tests                        \
+    -I$(top_srcdir)/examples                     \
     -I$(top_srcdir)/third_party                  \
     $(OPENTHREAD_TARGET_DEFINES)                 \
     $(NULL)
@@ -33,7 +33,7 @@ ncp_ctl_CXXFLAGS                               = \
     -I$(top_srcdir)/lib                          \
     -I$(top_srcdir)/src                          \
     -I$(top_srcdir)/src/core                     \
-    -I$(top_srcdir)/tests                        \
+    -I$(top_srcdir)/examples                     \
     -I$(top_srcdir)/third_party                  \
     $(OPENTHREAD_TARGET_DEFINES)                 \
     $(NULL)
@@ -41,7 +41,7 @@ ncp_ctl_CXXFLAGS                               = \
 ncp_ctl_LDADD                                  = \
     $(top_srcdir)/src/ncp/libopenthread-ncp.a    \
     $(top_srcdir)/src/core/libopenthread.a       \
-    $(top_srcdir)/tests/platform/posix/libopenthread-posix.a     \
+    $(top_srcdir)/examples/platform/posix/libopenthread-posix.a     \
     -lpthread                                    \
     $(NULL)
 

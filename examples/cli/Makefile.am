@@ -16,26 +16,27 @@
 
 include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
-bin_PROGRAMS = ncp
+bin_PROGRAMS = soc
 
-ncp_CPPFLAGS                                                   = \
+soc_CPPFLAGS                                                   = \
     -I$(top_srcdir)/include                                      \
     -I$(top_srcdir)/src                                          \
     -I$(top_srcdir)/src/core                                     \
     -I$(top_srcdir)/examples                                     \
     -I$(top_srcdir)/examples/platform/posix                      \
-    -I$(top_srcdir)/third_party                                  \
     $(OPENTHREAD_TARGET_DEFINES)                                 \
     $(NULL)
 
-ncp_LDADD                                                      = \
-    $(top_srcdir)/src/ncp/libopenthread-ncp.a                    \
+soc_LDADD                                                      = \
     $(top_srcdir)/src/core/libopenthread.a                       \
+    $(top_srcdir)/src/cli/libopenthread-cli.a                    \
     $(top_srcdir)/examples/platform/posix/libopenthread-posix.a  \
     $(top_srcdir)/third_party/mbedtls/libmbedcrypto.a            \
     -lpthread                                                    \
     $(NULL)
 
-ncp_SOURCES = main.cpp
+soc_SOURCES                                                    = \
+    main.cpp                                                     \
+    $(NULL)
 
 include $(abs_top_nlbuild_autotools_dir)/automake/post.am
