@@ -43,12 +43,12 @@ extern "C" {
 /**
  * Begin critical section.
  */
-uint32_t otAtomicBegin();
+uint32_t otPlatAtomicBegin();
 
 /**
  * End critical section.
  */
-void otAtomicEnd(uint32_t state);
+void otPlatAtomicEnd(uint32_t state);
 
 /**
  * @}

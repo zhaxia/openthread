@@ -110,14 +110,14 @@ exit:
 
 void TimerScheduler::SetAlarm(void)
 {
-    uint32_t now = otAlarmGetNow();
+    uint32_t now = otPlatAlarmGetNow();
     int32_t  minRemaining = (1UL << 31) - 1;
     uint32_t elapsed;
     int32_t  remaining;
 
     if (sHead == NULL)
     {
-        otAlarmStop();
+        otPlatAlarmStop();
         ExitNow();
     }
 
@@ -138,21 +138,21 @@ void TimerScheduler::SetAlarm(void)
     }
     else
     {
-        otAlarmStartAt(now, minRemaining);
+        otPlatAlarmStartAt(now, minRemaining);
     }
 
 exit:
     {}
 }
 
-extern "C" void otAlarmSignalFired(void)
+extern "C" void otPlatAlarmSignalFired(void)
 {
     Thread::sTask.Post();
 }
 
 void TimerScheduler::FireTimers(void *aContext)
 {
-    uint32_t now = otAlarmGetNow();
+    uint32_t now = otPlatAlarmGetNow();
     uint32_t elapsed;
 
     for (Timer *cur = sHead; cur; cur = cur->mNext)

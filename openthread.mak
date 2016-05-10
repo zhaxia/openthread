@@ -58,28 +58,8 @@ OPENTHREAD_CORE_DEFINES                                   = \
     MBEDTLS_CONFIG_FILE=\"mbedtls-config.h\"                \
     $(NULL)
 
-OPENTHREAD_NCP_SOURCES                                    = \
-    src/ncp/hdlc.cpp                                        \
-    src/ncp/ncp.cpp                                         \
-    src/ncp/ncp_base.cpp                                    \
-    src/ncp/ncp.pb-c.c                                      \
-    $(NULL)
-
 OPENTHREAD_CLI_SOURCES                                    = \
-    src/cli/cli_command.cpp                                 \
-    src/cli/cli_ifconfig.cpp                                \
-    src/cli/cli_ip.cpp                                      \
-    src/cli/cli_mac.cpp                                     \
-    src/cli/cli_netdata.cpp                                 \
-    src/cli/cli_ping.cpp                                    \
-    src/cli/cli_route.cpp                                   \
+    src/cli/cli.cpp                                         \
     src/cli/cli_serial.cpp                                  \
-    src/cli/cli_server.cpp                                  \
-    src/cli/cli_shutdown.cpp                                \
-    src/cli/cli_thread.cpp                                  \
     src/cli/cli_udp.cpp                                     \
-    $(NULL)
-
-OPENTHREAD_PROTOBUF_SOURCES                               = \
-    third_party/protobuf/protobuf-c.c                       \
     $(NULL)

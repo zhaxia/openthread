@@ -52,7 +52,7 @@ void Mac::StartCsmaBackoff(void)
     }
 
     backoff = (kUnitBackoffPeriod * kPhyUsPerSymbol * (1 << backoffExponent)) / 1000;
-    backoff = (otRandomGet() % backoff) + kMinBackoff;
+    backoff = (otPlatRandomGet() % backoff) + kMinBackoff;
 
     mBackoffTimer.Start(backoff);
 }
@@ -91,14 +91,14 @@ Mac::Mac(ThreadNetif &aThreadNetif):
 
     for (size_t i = 0; i < sizeof(mExtAddress); i++)
     {
-        mExtAddress.mBytes[i] = otRandomGet();
+        mExtAddress.mBytes[i] = otPlatRandomGet();
     }
 
     SetExtendedPanId(sExtendedPanidInit);
     SetNetworkName(sNetworkNameInit);
 
-    mBeaconSequence = otRandomGet();
-    mDataSequence = otRandomGet();
+    mBeaconSequence = otPlatRandomGet();
+    mDataSequence = otPlatRandomGet();
 }
 
 ThreadError Mac::Start(void)
@@ -107,11 +107,11 @@ ThreadError Mac::Start(void)
 
     VerifyOrExit(mState == kStateDisabled, ;);
 
-    SuccessOrExit(error = otRadioEnable());
+    SuccessOrExit(error = otPlatRadioEnable());
 
     SetExtendedPanId(mExtendedPanid);
-    otRadioSetPanId(mPanId);
-    otRadioSetShortAddress(mShortAddress);
+    otPlatRadioSetPanId(mPanId);
+    otPlatRadioSetShortAddress(mShortAddress);
     {
         uint8_t buf[8];
 
@@ -120,7 +120,7 @@ ThreadError Mac::Start(void)
             buf[i] = mExtAddress.mBytes[7 - i];
         }
 
-        otRadioSetExtendedAddress(buf);
+        otPlatRadioSetExtendedAddress(buf);
     }
     mState = kStateIdle;
     NextOperation();
@@ -133,7 +133,7 @@ ThreadError Mac::Stop(void)
 {
     ThreadError error = kThreadError_None;
 
-    SuccessOrExit(error = otRadioDisable());
+    SuccessOrExit(error = otPlatRadioDisable());
     mAckTimer.Stop();
     mBackoffTimer.Stop();
     mState = kStateDisabled;
@@ -238,7 +238,7 @@ ShortAddress Mac::GetShortAddress(void) const
 ThreadError Mac::SetShortAddress(ShortAddress aShortAddress)
 {
     mShortAddress = aShortAddress;
-    return otRadioSetShortAddress(aShortAddress);
+    return otPlatRadioSetShortAddress(aShortAddress);
 }
 
 uint8_t Mac::GetChannel(void) const
@@ -272,7 +272,7 @@ uint16_t Mac::GetPanId(void) const
 ThreadError Mac::SetPanId(uint16_t aPanId)
 {
     mPanId = aPanId;
-    return otRadioSetPanId(mPanId);
+    return otPlatRadioSetPanId(mPanId);
 }
 
 const uint8_t *Mac::GetExtendedPanId(void) const
@@ -325,18 +325,18 @@ void Mac::NextOperation(void)
 
     case kStateActiveScan:
         mReceiveFrame.SetChannel(mScanChannel);
-        otRadioReceive(&mReceiveFrame);
+        otPlatRadioReceive(&mReceiveFrame);
         break;
 
     default:
         if (mRxOnWhenIdle || mReceiveTimer.IsRunning())
         {
             mReceiveFrame.SetChannel(mChannel);
-            otRadioReceive(&mReceiveFrame);
+            otPlatRadioReceive(&mReceiveFrame);
         }
         else
         {
-            otRadioSleep();
+            otPlatRadioSleep();
         }
 
         break;
@@ -495,7 +495,7 @@ void Mac::HandleBeginTransmit(void)
 {
     ThreadError error = kThreadError_None;
 
-    if (otRadioIdle() != kThreadError_None)
+    if (otPlatRadioIdle() != kThreadError_None)
     {
         mBeginTransmit.Post();
         ExitNow();
@@ -529,7 +529,7 @@ void Mac::HandleBeginTransmit(void)
     // Security Processing
     ProcessTransmitSecurity();
 
-    SuccessOrExit(error = otRadioTransmit(&mSendFrame));
+    SuccessOrExit(error = otPlatRadioTransmit(&mSendFrame));
 
     if (mSendFrame.GetAckRequest())
     {
@@ -545,7 +545,7 @@ exit:
     }
 }
 
-extern "C" void otRadioSignalTransmitDone(void)
+extern "C" void otPlatRadioSignalTransmitDone(void)
 {
     sTransmitDoneTask.Post();
 }
@@ -560,7 +560,7 @@ void Mac::TransmitDoneTask(void)
     ThreadError error;
     bool rxPending;
 
-    error = otRadioHandleTransmitDone(&rxPending);
+    error = otPlatRadioHandleTransmitDone(&rxPending);
 
     mAckTimer.Stop();
 
@@ -615,7 +615,7 @@ void Mac::HandleAckTimer(void *aContext)
 
 void Mac::HandleAckTimer(void)
 {
-    otRadioIdle();
+    otPlatRadioIdle();
 
     switch (mState)
     {
@@ -813,7 +813,7 @@ exit:
     return error;
 }
 
-extern "C" void otRadioSignalReceiveDone(void)
+extern "C" void otPlatRadioSignalReceiveDone(void)
 {
     sReceiveDoneTask.Post();
 }
@@ -833,7 +833,7 @@ void Mac::ReceiveDoneTask(void)
     Whitelist::Entry *entry;
     int8_t rssi;
 
-    error = otRadioHandleReceiveDone();
+    error = otPlatRadioHandleReceiveDone();
     VerifyOrExit(error == kThreadError_None, ;);
 
     mReceiveFrame.GetSrcAddr(srcaddr);

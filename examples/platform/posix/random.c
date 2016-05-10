@@ -34,7 +34,7 @@ void hwRandomInit(void)
     s_state = args_info.nodeid_arg;
 }
 
-uint32_t otRandomGet(void)
+uint32_t otPlatRandomGet(void)
 {
     uint32_t mlcg, p, q;
     uint64_t tmpstate;

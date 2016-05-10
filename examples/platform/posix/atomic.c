@@ -18,23 +18,24 @@
 #include <stdio.h>
 
 #include <platform/atomic.h>
+#include <platform/posix/platform.h>
 
 static pthread_mutex_t s_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t s_cond = PTHREAD_COND_INITIALIZER;
 
-uint32_t otAtomicBegin(void)
+uint32_t otPlatAtomicBegin(void)
 {
     pthread_mutex_lock(&s_mutex);
     return 0;
 }
 
-void otAtomicEnd(uint32_t state)
+void otPlatAtomicEnd(uint32_t state)
 {
     pthread_mutex_unlock(&s_mutex);
     pthread_cond_signal(&s_cond);
 }
 
-void SleepStart(void)
+void hwSleep(void)
 {
     pthread_cond_wait(&s_cond, &s_mutex);
 }

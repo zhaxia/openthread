@@ -38,7 +38,7 @@ void hwAlarmInit(void)
     pthread_create(&s_thread, NULL, alarm_thread, NULL);
 }
 
-uint32_t otAlarmGetNow(void)
+uint32_t otPlatAlarmGetNow(void)
 {
     struct timeval tv;
 
@@ -48,7 +48,7 @@ uint32_t otAlarmGetNow(void)
     return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 }
 
-void otAlarmStartAt(uint32_t t0, uint32_t dt)
+void otPlatAlarmStartAt(uint32_t t0, uint32_t dt)
 {
     pthread_mutex_lock(&s_mutex);
     s_alarm = t0 + dt;
@@ -57,7 +57,7 @@ void otAlarmStartAt(uint32_t t0, uint32_t dt)
     pthread_cond_signal(&s_cond);
 }
 
-void otAlarmStop(void)
+void otPlatAlarmStop(void)
 {
     pthread_mutex_lock(&s_mutex);
     s_is_running = false;
@@ -84,7 +84,7 @@ void *alarm_thread(void *arg)
         else
         {
             // alarm is running
-            remaining = s_alarm - otAlarmGetNow();
+            remaining = s_alarm - otPlatAlarmGetNow();
 
             if (remaining > 0)
             {
@@ -105,7 +105,7 @@ void *alarm_thread(void *arg)
                 // alarm has passed, signal
                 s_is_running = false;
                 pthread_mutex_unlock(&s_mutex);
-                otAlarmSignalFired();
+                otPlatAlarmSignalFired();
             }
         }
     }

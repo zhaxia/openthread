@@ -46,15 +46,15 @@ Serial::Serial(void)
 ThreadError Serial::Start(void)
 {
     mRxLength = 0;
-    otSerialEnable();
+    otPlatSerialEnable();
     return kThreadError_None;
 }
 
-extern "C" void otSerialSignalSendDone(void)
+extern "C" void otPlatSerialSignalSendDone(void)
 {
 }
 
-extern "C" void otSerialSignalReceive(void)
+extern "C" void otPlatSerialSignalReceive(void)
 {
     Serial::sReceiveTask.Post();
 }
@@ -71,7 +71,7 @@ void Serial::ReceiveTask(void)
     const uint8_t *cur;
     const uint8_t *end;
 
-    buf = otSerialGetReceivedBytes(&bufLength);
+    buf = otPlatSerialGetReceivedBytes(&bufLength);
 
     end = buf + bufLength;
 
@@ -81,11 +81,11 @@ void Serial::ReceiveTask(void)
         {
         case '\r':
 	case '\n':
-            otSerialSend(CRNL, sizeof(CRNL));
+            otPlatSerialSend(CRNL, sizeof(CRNL));
             break;
 
         default:
-            otSerialSend(cur, 1);
+            otPlatSerialSend(cur, 1);
             break;
         }
     }
@@ -109,7 +109,7 @@ void Serial::ReceiveTask(void)
             if (mRxLength > 0)
             {
                 mRxBuffer[--mRxLength] = '\0';
-                otSerialSend(sEraseString, sizeof(sEraseString));
+                otPlatSerialSend(sEraseString, sizeof(sEraseString));
             }
 
             break;
@@ -123,7 +123,7 @@ void Serial::ReceiveTask(void)
         bufLength--;
     }
 
-    otSerialHandleReceiveDone();
+    otPlatSerialHandleReceiveDone();
 }
 
 ThreadError Serial::ProcessCommand(void)
@@ -149,7 +149,7 @@ ThreadError Serial::ProcessCommand(void)
 
 ThreadError Serial::Output(const char *aBuf, uint16_t aBufLength)
 {
-    return otSerialSend(reinterpret_cast<const uint8_t *>(aBuf), aBufLength);
+    return otPlatSerialSend(reinterpret_cast<const uint8_t *>(aBuf), aBufLength);
 }
 
 }  // namespace Cli

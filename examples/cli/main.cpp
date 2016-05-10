@@ -23,7 +23,6 @@
 #include <platform/atomic.h>
 #include <platform.h>
 
-extern "C" void SleepStart(void);
 struct gengetopt_args_info args_info;
 
 Thread::Cli::Serial sCliServer;
@@ -54,14 +53,14 @@ int main(int argc, char *argv[])
     {
         otProcessNextTasklet();
 
-        atomic_state = otAtomicBegin();
+        atomic_state = otPlatAtomicBegin();
 
         if (!otAreTaskletsPending())
         {
-            SleepStart();
+            hwSleep();
         }
 
-        otAtomicEnd(atomic_state);
+        otPlatAtomicEnd(atomic_state);
     }
 
     return 0;

@@ -198,7 +198,7 @@ ThreadError Local::Register(const Ip6::Address &aDestination)
 
     for (size_t i = 0; i < sizeof(mCoapToken); i++)
     {
-        mCoapToken[i] = otRandomGet();
+        mCoapToken[i] = otPlatRandomGet();
     }
 
     header.Init();
