@@ -8,7 +8,7 @@ OpenThread test scripts use this CLI to execute test cases.
 ## OpenThread Command List
 
 * [channel](#channel)
-* [childidtimeout](#childidtimeout)
+* [childtimeout](#childtimeout)
 * [contextreusedelay](#contextreusedelay)
 * [extaddr](#extaddr)
 * [extpanid](#extpanid)

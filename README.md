@@ -4,11 +4,11 @@
 
 OpenThread is an open-source implementation of the [Thread](http://threadgroup.org/technology/ourtechnology) networking protocol. With OpenThread, Nest is making the technology used in Nest products more broadly available to accelerate the development of products for the connected home.
 
-The Thread specification defines a IPv6-based reliable, secure and low-power wireless device-to-device communication protocol for home applications. More information about Thread can be found on [threadgroup.org](http://www.threadgroup.org/).
+The Thread specification defines an IPv6-based reliable, secure and low-power wireless device-to-device communication protocol for home applications. More information about Thread can be found on [threadgroup.org](http://www.threadgroup.org/).
 
 ## Features
-- Highly portable: OS and platform agnostic, with a PHY abstraction layer
-- Can support End Device, Router, Leader & Border Router in the Thread network
+- Highly portable: OS and platform agnostic, with a radio abstraction layer
+- Implements the End Device, Router, Leader & Border Router roles
 - Small memory footprint
 
 OpenThread implements all Thread networking layers, including IPv6, 6LoWPAN, IEEE 802.15.4 with MAC security, Mesh Link Establishment, and Mesh Routing.
@@ -34,10 +34,10 @@ File/Folder	 | Provides
 -------|--------
 doc | Doxygen docs
 examples | Sample applications demonstrating various parts of OpenThread
-include | Includes header files for OpenThread API.
-src | The core implementation of the Thread standard.
-tests | Unit and Thread conformance tests.
-third_party | Non-OpenThread code used by examples, e.g, protobuf.
+include | Includes header files for OpenThread API
+src | The core implementation of the Thread standard
+tests | Unit and Thread conformance tests
+third_party | Third-party code used by OpenThread
 
 
 # Getting Help

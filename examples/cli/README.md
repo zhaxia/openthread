@@ -79,3 +79,7 @@ Done
 $ ping fdde:ad00:beef:0:558:f56b:d688:799
 16 bytes from fdde:ad00:beef:0:558:f56b:d688:799: icmp_seq=1 hlim=64
 ```
+
+## 4. Ready for More?
+
+See the [OpenThread CLI Reference README.md](../../src/cli/README.md) to explore more.
