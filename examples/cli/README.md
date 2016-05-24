@@ -26,14 +26,14 @@ $ ./soc --nodeid=1 -S
 Start OpenThread:
 
 ```bash
-$ start
+start
 Done
 ```
 
 Wait a few seconds and verify that the device has become a Thread Leader:
 
 ```bash
-$ state
+state
 leader
 Done
 ```
@@ -41,7 +41,7 @@ Done
 View IPv6 addresses assigned to Node 1's Thread interface:
 
 ```bash
-$ ipaddr
+ipaddr
 fdde:ad00:beef:0:0:ff:fe00:0
 fe80:0:0:0:0:ff:fe00:0
 fdde:ad00:beef:0:558:f56b:d688:799
@@ -61,25 +61,27 @@ $ ./soc --nodeid=2 -S
 Start OpenThread:
 
 ```bash
-$ start
+start
 Done
 ```
 
 Wait a few seconds and verify that the device has become a Thread Router:
 
 ```bash
-$ state
-leader
+state
+router
 Done
 ```
 
 ## 3. Ping Node 1 from Node 2
 
 ```bash
-$ ping fdde:ad00:beef:0:558:f56b:d688:799
+ping fdde:ad00:beef:0:558:f56b:d688:799
 16 bytes from fdde:ad00:beef:0:558:f56b:d688:799: icmp_seq=1 hlim=64
 ```
 
-## 4. Ready for More?
+## 4. Want More?
+
+You may note that the example above did not include any network parameter configuration, such as the IEEE 802.15.4 PAN ID or the Thread Master Key.  OpenThread currently implements default values for network parameters.  However, you may use the CLI to change network parameters, other configurations, and perform other operations.
 
 See the [OpenThread CLI Reference README.md](../../src/cli/README.md) to explore more.
