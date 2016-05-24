@@ -1,28 +1,29 @@
 /*
- *    Copyright (c) 2016, Nest Labs, Inc.
- *    All rights reserved.
+ *  Copyright (c) 2016, Nest Labs, Inc.
+ *  All rights reserved.
  *
- *    Redistribution and use in source and binary forms, with or without
- *    modification, are permitted provided that the following conditions are met:
- *    1. Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *    2. Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *    3. Neither the name of the copyright holder nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *  3. Neither the name of the copyright holder nor the
+ *     names of its contributors may be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
  *
- *    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- *    ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- *    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- *    DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY
- *    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- *    (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- *    LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- *    ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- *    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- *    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
  */
 
 /**
@@ -44,17 +45,22 @@
 
 namespace Thread {
 
+// This needs to not be static until the NCP
+// the OpenThread API is capable enough for
+// of of the features in the NCP.
+ThreadNetif *sThreadNetif;
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Allocate the structure using "raw" storage.
 #define otDEFINE_ALIGNED_VAR(name, size, align_type)            \
     align_type name[(((size) + (sizeof (align_type) - 1)) / sizeof (align_type))]
 
 static otDEFINE_ALIGNED_VAR(sThreadNetifRaw, sizeof(ThreadNetif), uint64_t);
 
-static ThreadNetif *sThreadNetif;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
+static void HandleActiveScanResult(void *aContext, Mac::Frame *aFrame);
 
 void otInit()
 {
@@ -106,6 +112,7 @@ const uint8_t *otGetExtendedPanId(void)
 void otSetExtendedPanId(const uint8_t *aExtendedPanId)
 {
     sThreadNetif->GetMac().SetExtendedPanId(aExtendedPanId);
+    sThreadNetif->GetMle().SetMeshLocalPrefix(aExtendedPanId);
 }
 
 otLinkModeConfig otGetLinkMode(void)
@@ -183,12 +190,12 @@ ThreadError otSetNetworkName(const char *aNetworkName)
     return sThreadNetif->GetMac().SetNetworkName(aNetworkName);
 }
 
-uint16_t otGetPanId(void)
+otPanId otGetPanId(void)
 {
     return sThreadNetif->GetMac().GetPanId();
 }
 
-ThreadError otSetPanId(uint16_t aPanId)
+ThreadError otSetPanId(otPanId aPanId)
 {
     return sThreadNetif->GetMac().SetPanId(aPanId);
 }
@@ -467,6 +474,57 @@ ThreadError otEnable(void)
 ThreadError otDisable(void)
 {
     return sThreadNetif->Down();
+}
+
+ThreadError otActiveScan(uint16_t aScanChannels, uint16_t aScanDuration, otHandleActiveScanResult aCallback)
+{
+    return sThreadNetif->GetMac().ActiveScan(aScanChannels, aScanDuration, &HandleActiveScanResult,
+                                             reinterpret_cast<void *>(aCallback));
+}
+
+bool otActiveScanInProgress(void)
+{
+    return sThreadNetif->GetMac().IsActiveScanInProgress();
+}
+
+void HandleActiveScanResult(void *aContext, Mac::Frame *aFrame)
+{
+    otHandleActiveScanResult handler = reinterpret_cast<otHandleActiveScanResult>(aContext);
+    otActiveScanResult result = {};
+    Mac::Address address;
+    Mac::Beacon *beacon;
+    uint8_t payloadLength;
+
+    if (aFrame == NULL)
+    {
+        handler(NULL);
+        ExitNow();
+    }
+
+    SuccessOrExit(aFrame->GetSrcAddr(address));
+    VerifyOrExit(address.mLength == sizeof(address.mExtAddress), ;);
+    memcpy(&result.mExtAddress, &address.mExtAddress, sizeof(result.mExtAddress));
+
+    aFrame->GetSrcPanId(result.mPanId);
+    result.mChannel = aFrame->GetChannel();
+    result.mRssi = aFrame->GetPower();
+
+    payloadLength = aFrame->GetPayloadLength();
+    beacon = reinterpret_cast<Mac::Beacon *>(aFrame->GetPayload());
+
+    if (payloadLength >= sizeof(*beacon) && beacon->IsValid())
+    {
+        result.mVersion = beacon->GetProtocolVersion();
+        result.mIsJoinable = beacon->IsJoiningPermitted();
+        result.mIsNative = beacon->IsNative();
+        result.mNetworkName = beacon->GetNetworkName();
+        result.mExtPanId = beacon->GetExtendedPanId();
+    }
+
+    handler(&result);
+
+exit:
+    return;
 }
 
 otMessage otNewUdpMessage()
