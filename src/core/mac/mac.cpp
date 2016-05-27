@@ -50,9 +50,6 @@ static const uint8_t sExtendedPanidInit[] = {0xde, 0xad, 0x00, 0xbe, 0xef, 0x00,
 static const char sNetworkNameInit[] = "OpenThread";
 static Mac *sMac;
 
-static Tasklet sReceiveDoneTask(&Mac::ReceiveDoneTask, NULL);
-static Tasklet sTransmitDoneTask(&Mac::TransmitDoneTask, NULL);
-
 void Mac::StartCsmaBackoff(void)
 {
     uint32_t backoffExponent = kMinBE + mTransmitAttempts + mCsmaAttempts;
@@ -63,8 +60,8 @@ void Mac::StartCsmaBackoff(void)
         backoffExponent = kMaxBE;
     }
 
-    backoff = (kUnitBackoffPeriod * kPhyUsPerSymbol * (1 << backoffExponent)) / 1000;
-    backoff = (otPlatRandomGet() % backoff) + kMinBackoff;
+    backoff = kMinBackoff + (kUnitBackoffPeriod * kPhyUsPerSymbol * (1 << backoffExponent)) / 1000;
+    backoff = (otPlatRandomGet() % backoff);
 
     mBackoffTimer.Start(backoff);
 }
@@ -481,26 +478,16 @@ exit:
     }
 }
 
-extern "C" void otPlatRadioSignalTransmitDone(void)
+extern "C" void otPlatRadioTransmitDone(bool aRxPending, ThreadError aError)
 {
-    sTransmitDoneTask.Post();
+    sMac->TransmitDoneTask(aRxPending, aError);
 }
 
-void Mac::TransmitDoneTask(void *aContext)
+void Mac::TransmitDoneTask(bool aRxPending, ThreadError aError)
 {
-    sMac->TransmitDoneTask();
-}
-
-void Mac::TransmitDoneTask(void)
-{
-    ThreadError error;
-    bool rxPending;
-
-    error = otPlatRadioHandleTransmitDone(&rxPending);
-
     mAckTimer.Stop();
 
-    if (error == kThreadError_ChannelAccessFailure &&
+    if (aError == kThreadError_ChannelAccessFailure &&
         mCsmaAttempts < kMaxCSMABackoffs)
     {
         mCsmaAttempts++;
@@ -521,7 +508,7 @@ void Mac::TransmitDoneTask(void)
         break;
 
     case kStateTransmitData:
-        if (rxPending)
+        if (aRxPending)
         {
             mReceiveTimer.Start(kDataPollTimeout);
         }
@@ -530,7 +517,7 @@ void Mac::TransmitDoneTask(void)
             mReceiveTimer.Stop();
         }
 
-        SentFrame(error == kThreadError_None);
+        SentFrame(aError == kThreadError_None);
         break;
 
     default:
@@ -672,6 +659,8 @@ ThreadError Mac::ProcessReceiveSecurity(const Address &aSrcAddr, Neighbor *aNeig
     const uint8_t *macKey;
     Crypto::AesCcm aesCcm;
 
+    mReceiveFrame.SetSecurityValid(false);
+
     if (mReceiveFrame.GetSecurityEnabled() == false)
     {
         ExitNow();
@@ -744,23 +733,19 @@ ThreadError Mac::ProcessReceiveSecurity(const Address &aSrcAddr, Neighbor *aNeig
 
     aNeighbor->mValid.mLinkFrameCounter = frameCounter + 1;
 
+    mReceiveFrame.SetSecurityValid(true);
+
 exit:
     return error;
 }
 
-extern "C" void otPlatRadioSignalReceiveDone(void)
+extern "C" void otPlatRadioReceiveDone(ThreadError aError)
 {
-    sReceiveDoneTask.Post();
+    sMac->ReceiveDoneTask(aError);
 }
 
-void Mac::ReceiveDoneTask(void *aContext)
+void Mac::ReceiveDoneTask(ThreadError aError)
 {
-    sMac->ReceiveDoneTask();
-}
-
-void Mac::ReceiveDoneTask(void)
-{
-    ThreadError error;
     Address srcaddr;
     Address dstaddr;
     PanId panid;
@@ -768,8 +753,7 @@ void Mac::ReceiveDoneTask(void)
     Whitelist::Entry *entry;
     int8_t rssi;
 
-    error = otPlatRadioHandleReceiveDone();
-    VerifyOrExit(error == kThreadError_None, ;);
+    VerifyOrExit(aError == kThreadError_None, ;);
 
     mReceiveFrame.GetSrcAddr(srcaddr);
     neighbor = mMle.GetNeighbor(srcaddr);

@@ -75,6 +75,8 @@ enum
 
     kPhyBitsPerOctet    = 8,
     kPhyUsPerSymbol     = ((kPhyBitsPerOctet / kPhySymbolsPerOctet) * 1000000) / kPhyBitRate,
+
+    kPhyNoLqi           = 0,       ///< LQI measurement not supported
 };
 
 /**
@@ -97,6 +99,8 @@ typedef struct RadioPacket
     uint8_t mPsdu[kMaxPHYPacketSize];  ///< The PSDU.
     uint8_t mChannel;                  ///< Channel used to transmit/receive the frame.
     int8_t  mPower;                    ///< Transmit/receive power in dBm.
+    uint8_t mLqi;                      ///< Link Quality Indicator for received frames.
+    bool    mSecurityValid;            ///< Security Enabled flag is set and frame passes security checks.
 } RadioPacket;
 
 /**
@@ -162,7 +166,7 @@ ThreadError otPlatRadioSetShortAddress(uint16_t aShortAddress);
 /**
  * Intialize the radio.
  */
-void otPlatRadioInit();
+void otPlatRadioInit(void);
 
 /**
  * Enable the radio.
@@ -204,9 +208,6 @@ ThreadError otPlatRadioIdle(void);
  * 2. Remain in Receive until a packet is received or reception is aborted.
  * 3. Return to Idle.
  *
- * Upon completion of the receive sequence, otPlatRadioSignalReceiveDone() is called to signal completion to the MAC
- * layer.
- *
  * @param[in]  aPacket  A pointer to a packet buffer.
  *
  * @note The channel is specified in @p aPacket.
@@ -217,21 +218,13 @@ ThreadError otPlatRadioIdle(void);
 ThreadError otPlatRadioReceive(RadioPacket *aPacket);
 
 /**
- * Signal that a packet has been received.
+ * The radio driver calls this method to notify OpenThread of a received packet.
  *
- * This may be called from interrupt context.  The MAC layer will then schedule a call to otPlatRadioHandleReceive().
- */
-
-extern void otPlatRadioSignalReceiveDone(void);
-
-/**
- * Complete the receive sequence.
+ * @param[in]  aError   ::kThreadError_None when successfully received a frame, ::kThreadError_Abort when reception
+ *                      was aborted and a frame was not received.
  *
- * @retval ::kThreadError_None          Successfully received a frame.
- * @retval ::kThreadError_Abort         Reception was aborted and a frame was not received.
- * @retval ::kThreadError_InvalidState  The radio was not in Receive.
  */
-ThreadError otPlatRadioHandleReceiveDone(void);
+extern void otPlatRadioReceiveDone(ThreadError error);
 
 /**
  * Begins the transmit sequence on the radio.
@@ -240,9 +233,6 @@ ThreadError otPlatRadioHandleReceiveDone(void);
  * 1. Transitioning the radio to Transmit from Idle.
  * 2. Transmits the psdu on the given channel and at the given transmit power.
  * 3. Return to Idle.
- *
- * Upon completion of the transmit sequence, otPlatRadioSignalTransmitDone() is called to signal completion to the MAC
- * layer.
  *
  * @param[in]  aPacket  A pointer to a packet buffer.
  *
@@ -256,25 +246,16 @@ ThreadError otPlatRadioHandleReceiveDone(void);
 ThreadError otPlatRadioTransmit(RadioPacket *aPacket);
 
 /**
- * Signal that the requested transmission is complete.
+ * The radio driver calls this method to notify OpenThread that the transmission has completed.
  *
- * This may be called from interrupt context.  OpenThread will then schedule a call to
- * otPlatRadio_handle_transmit_done().
+ * @param[in]  aFramePending  TRUE if an ACK frame was received and the Frame Pending bit was set.
+ * @param[in]  aError  ::kThreadError_None when the frame was transmitted, ::kThreadError_NoAck when the frame was
+ *                     transmitted but no ACK was received, ::kThreadError_ChannelAccessFailure when the transmission
+ *                     could not take place due to activity on the channel, ::kThreadError_Abort when transmission was
+ *                     aborted for other reasons.
+ *
  */
-extern void otPlatRadioSignalTransmitDone(void);
-
-/**
- * Complete the transmit sequence on the radio.
- *
- * @param[out]  aFramePending  TRUE if an ACK frame was received and the Frame Pending bit was set.
- *
- * @retval ::kThreadError_None          The frame was transmitted.
- * @retval ::kThreadError_NoAck         The frame was transmitted, but no ACK was received.
- * @retval ::kThreadError_CcaFailed     The transmission was aborted due to CCA failure.
- * @retval ::kThreadError_Abort         The transmission was aborted for other reasons.
- * @retval ::kThreadError_InvalidState  The radio did not transmit a packet.
- */
-ThreadError otPlatRadioHandleTransmitDone(bool *aFramePending);
+extern void otPlatRadioTransmitDone(bool aFramePending, ThreadError error);
 
 /**
  * Get the most recent RSSI measurement.
