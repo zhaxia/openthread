@@ -28,7 +28,8 @@
 #include <stdlib.h>
 
 #include <ncp/ncp.hpp>
-#include <platform.h>
+#include <platform/platform.h>
+#include <posix-platform.h>
 
 Thread::Ncp sNcp;
 

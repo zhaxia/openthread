@@ -35,11 +35,12 @@
  */
 
 #include <platform/random.h>
-#include "platform.h"
+#include <platform/platform.h>
+#include <posix-platform.h>
 
 static uint32_t s_state = 1;
 
-void PlatformRandomInit(void)
+void posixPlatformRandomInit(void)
 {
     s_state = NODE_ID;
 }

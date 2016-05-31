@@ -40,16 +40,14 @@
 
 #include <openthread.h>
 #include <platform/alarm.h>
-
-#include "platform.h"
-
-uint32_t NODE_ID = 1;
+#include <platform/platform.h>
+#include <posix-platform.h>
 
 void PlatformInit(void)
 {
-    PlatformAlarmInit();
-    PlatformRadioInit();
-    PlatformRandomInit();
+    posixPlatformAlarmInit();
+    posixPlatformRadioInit();
+    posixPlatformRandomInit();
 }
 
 void PlatformProcessDrivers(void)
@@ -63,9 +61,9 @@ void PlatformProcessDrivers(void)
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);
 
-    PlatformSerialUpdateFdSet(&read_fds, &write_fds, &max_fd);
-    PlatformRadioUpdateFdSet(&read_fds, &write_fds, &max_fd);
-    PlatformAlarmUpdateTimeout(&timeout);
+    posixPlatformSerialUpdateFdSet(&read_fds, &write_fds, &max_fd);
+    posixPlatformRadioUpdateFdSet(&read_fds, &write_fds, &max_fd);
+    posixPlatformAlarmUpdateTimeout(&timeout);
 
     if (!otAreTaskletsPending())
     {
@@ -73,8 +71,8 @@ void PlatformProcessDrivers(void)
         assert(rval >= 0 && errno != ETIME);
     }
 
-    PlatformSerialProcess();
-    PlatformRadioProcess();
-    PlatformAlarmProcess();
+    posixPlatformSerialProcess();
+    posixPlatformRadioProcess();
+    posixPlatformAlarmProcess();
 }
 

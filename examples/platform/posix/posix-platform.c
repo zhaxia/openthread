@@ -26,87 +26,13 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stdbool.h>
-#include <stdio.h>
-#include <string.h>
-#include <sys/time.h>
+/**
+ * @file
+ * @brief
+ *   This file includes the platform-specific initializers.
+ */
 
-#include <platform/alarm.h>
 #include <posix-platform.h>
 
-static bool s_is_running = false;
-static uint32_t s_alarm = 0;
-static struct timeval s_start;
+uint32_t NODE_ID = 1;
 
-void posixPlatformAlarmInit(void)
-{
-    gettimeofday(&s_start, NULL);
-}
-
-uint32_t otPlatAlarmGetNow(void)
-{
-    struct timeval tv;
-
-    gettimeofday(&tv, NULL);
-    timersub(&tv, &s_start, &tv);
-
-    return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
-}
-
-void otPlatAlarmStartAt(uint32_t t0, uint32_t dt)
-{
-    s_alarm = t0 + dt;
-    s_is_running = true;
-}
-
-void otPlatAlarmStop(void)
-{
-    s_is_running = false;
-}
-
-void posixPlatformAlarmUpdateTimeout(struct timeval *aTimeout)
-{
-    int32_t remaining;
-
-    if (aTimeout == NULL)
-    {
-        return;
-    }
-
-    if (s_is_running)
-    {
-        remaining = s_alarm - otPlatAlarmGetNow();
-
-        if (remaining > 0)
-        {
-            aTimeout->tv_sec = remaining / 1000;
-            aTimeout->tv_usec = (remaining % 1000) * 1000;
-        }
-        else
-        {
-            aTimeout->tv_sec = 0;
-            aTimeout->tv_usec = 0;
-        }
-    }
-    else
-    {
-        aTimeout->tv_sec = 10;
-        aTimeout->tv_usec = 0;
-    }
-}
-
-void posixPlatformAlarmProcess(void)
-{
-    int32_t remaining;
-
-    if (s_is_running)
-    {
-        remaining = s_alarm - otPlatAlarmGetNow();
-
-        if (remaining <= 0)
-        {
-            s_is_running = false;
-            otPlatAlarmFired();
-        }
-    }
-}

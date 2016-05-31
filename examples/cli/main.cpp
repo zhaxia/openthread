@@ -30,7 +30,8 @@
 
 #include <openthread.h>
 #include <cli/cli_serial.hpp>
-#include <platform.h>
+#include <platform/platform.h>
+#include <posix-platform.h>
 
 Thread::Cli::Serial sCliServer;
 

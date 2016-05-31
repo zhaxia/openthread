@@ -29,7 +29,7 @@
 /**
  * @file
  * @brief
- *   This file includes the platform-specific initializers.
+ *   This file includes the platform initializers.
  */
 
 #ifndef PLATFORM_H_
@@ -44,12 +44,6 @@ extern "C" {
 #endif
 
 /**
- * Unique ID used by a simulated node.
- *
- */
-extern uint32_t NODE_ID;
-
-/**
  * This method performs all platform-specific initialization.
  *
  */
@@ -61,78 +55,9 @@ void PlatformInit(void);
  */
 void PlatformProcessDrivers(void);
 
-/**
- * This method initializes the alarm service used by OpenThread.
- *
- */
-void PlatformAlarmInit(void);
-
-/**
- * This method retrieves the time remaining until the alarm fires.
- *
- * @param[out]  aTimeval  A pointer to the timeval struct.
- *
- */
-void PlatformAlarmUpdateTimeout(struct timeval *tv);
-
-/**
- * This method performs alarm driver processing.
- *
- */
-void PlatformAlarmProcess(void);
-
-/**
- * This method initializes the radio service used by OpenThread.
- *
- */
-void PlatformRadioInit(void);
-
-/**
- * This method updates the file descriptor sets with file descriptors used by the radio driver.
- *
- * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
- * @param[inout]  aWriteFdSet  A pointer to the write file descriptors.
- * @param[inout]  aMaxFd       A pointer to the max file descriptor.
- *
- */
-void PlatformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd);
-
-/**
- * This method performs radio driver processing.
- *
- */
-void PlatformRadioProcess(void);
-
-/**
- * This method initializes the random number service used by OpenThread.
- *
- */
-void PlatformRandomInit(void);
-
-/**
- * This method updates the file descriptor sets with file descriptors used by the serial driver.
- *
- * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
- * @param[inout]  aWriteFdSet  A pointer to the write file descriptors.
- * @param[inout]  aMaxFd       A pointer to the max file descriptor.
- *
- */
-void PlatformSerialUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd);
-
-/**
- * This method performs radio driver processing.
- *
- */
-void PlatformSerialProcess(void);
-
-/**
- * This method puts the thread executing OpenThread to sleep.
- *
- */
-void PlatformSleep(void);
-
 #ifdef __cplusplus
 }  // extern "C"
 #endif
 
 #endif  // PLATFORM_H_
+

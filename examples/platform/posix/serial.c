@@ -35,7 +35,8 @@
 
 #include <common/code_utils.hpp>
 #include <platform/serial.h>
-#include "platform.h"
+#include <platform/platform.h>
+#include <posix-platform.h>
 
 #ifdef OPENTHREAD_TARGET_LINUX
 int posix_openpt(int oflag);
@@ -162,7 +163,7 @@ exit:
     return error;
 }
 
-void PlatformSerialUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd)
+void posixPlatformSerialUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd)
 {
     if (aReadFdSet != NULL)
     {
@@ -185,7 +186,7 @@ void PlatformSerialUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMa
     }
 }
 
-void PlatformSerialProcess(void)
+void posixPlatformSerialProcess(void)
 {
     const int flags = POLLRDNORM | POLLERR | POLLNVAL | POLLHUP;
     struct pollfd pollfd = { s_in_fd, flags, 0 };
