@@ -32,41 +32,47 @@
  *   This file includes the platform-specific initializers.
  */
 
-#ifndef PLATFORM_H_
-#define PLATFORM_H_
-
+#include <assert.h>
+#include <errno.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <sys/time.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include <openthread.h>
+#include <platform/alarm.h>
+#include <platform/platform.h>
+#include <posix-platform.h>
 
-/**
- * This method initializes the alarm service used by OpenThread.
- *
- */
-void hwAlarmInit(void);
+void PlatformInit(void)
+{
+    posixPlatformAlarmInit();
+    posixPlatformRadioInit();
+    posixPlatformRandomInit();
+}
 
-/**
- * This method initializes the radio service used by OpenThread.
- *
- */
-void hwRadioInit(void);
+void PlatformProcessDrivers(void)
+{
+    fd_set read_fds;
+    fd_set write_fds;
+    int max_fd = -1;
+    struct timeval timeout;
+    int rval;
 
-/**
- * This method initializes the random number service used by OpenThread.
- *
- */
-void hwRandomInit(void);
+    FD_ZERO(&read_fds);
+    FD_ZERO(&write_fds);
 
-/**
- * This method puts the thread executing OpenThread to sleep.
- *
- */
-void hwSleep(void);
+    posixPlatformSerialUpdateFdSet(&read_fds, &write_fds, &max_fd);
+    posixPlatformRadioUpdateFdSet(&read_fds, &write_fds, &max_fd);
+    posixPlatformAlarmUpdateTimeout(&timeout);
 
-#ifdef __cplusplus
-}  // extern "C"
-#endif
+    if (!otAreTaskletsPending())
+    {
+        rval = select(max_fd + 1, &read_fds, &write_fds, NULL, &timeout);
+        assert(rval >= 0 && errno != ETIME);
+    }
 
-#endif  // PLATFORM_H_
+    posixPlatformSerialProcess();
+    posixPlatformRadioProcess();
+    posixPlatformAlarmProcess();
+}
+

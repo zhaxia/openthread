@@ -29,80 +29,92 @@
 /**
  * @file
  * @brief
- *   This file includes the platform abstraction for serial communication.
+ *   This file includes the posix platform-specific initializers.
  */
 
-#ifndef SERIAL_H_
-#define SERIAL_H_
+#ifndef POSIX_PLATFORM_H_
+#define POSIX_PLATFORM_H_
 
 #include <stdint.h>
-
-#include <openthread-types.h>
+#include <sys/select.h>
+#include <sys/time.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @defgroup serial Serial
- * @ingroup platform
- *
- * @brief
- *   This module includes the platform abstraction for serial communication.
- *
- * @{
+ * Unique node ID.
  *
  */
+extern uint32_t NODE_ID;
 
 /**
- * Enable the serial.
+ * This method initializes the alarm service used by OpenThread.
  *
- * @retval ::kThreadError_None  Successfully enabled the serial.
- * @retval ::kThreadError_Fail  Failed to enabled the serial.
  */
-ThreadError otPlatSerialEnable(void);
+void posixPlatformAlarmInit(void);
 
 /**
- * Disable the serial.
+ * This method retrieves the time remaining until the alarm fires.
  *
- * @retval ::kThreadError_None  Successfully disabled the serial.
- * @retval ::kThreadError_Fail  Failed to disable the serial.
+ * @param[out]  aTimeval  A pointer to the timeval struct.
+ *
  */
-ThreadError otPlatSerialDisable(void);
+void posixPlatformAlarmUpdateTimeout(struct timeval *tv);
 
 /**
- * Send bytes over the serial.
+ * This method performs alarm driver processing.
  *
- * @param[in] aBuf        A pointer to the data buffer.
- * @param[in] aBufLength  Number of bytes to transmit.
- *
- * @retval ::kThreadError_None  Successfully started transmission.
- * @retval ::kThreadError_Fail  Failed to start the transmission.
  */
-ThreadError otPlatSerialSend(const uint8_t *aBuf, uint16_t aBufLength);
+void posixPlatformAlarmProcess(void);
 
 /**
- * The serial driver calls this method to notify OpenThread that the requested bytes have been sent.
+ * This method initializes the radio service used by OpenThread.
  *
  */
-extern void otPlatSerialSendDone(void);
+void posixPlatformRadioInit(void);
 
 /**
- * The serial driver calls this method to notify OpenThread that bytes have been received.
+ * This method updates the file descriptor sets with file descriptors used by the radio driver.
  *
- * @param[in]  aBuf        A pointer to the received bytes.
- * @param[in]  aBufLength  The number of bytes received.
+ * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
+ * @param[inout]  aWriteFdSet  A pointer to the write file descriptors.
+ * @param[inout]  aMaxFd       A pointer to the max file descriptor.
  *
  */
-extern void otPlatSerialReceived(const uint8_t *aBuf, uint16_t aBufLength);
+void posixPlatformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd);
 
 /**
- * @}
+ * This method performs radio driver processing.
  *
  */
+void posixPlatformRadioProcess(void);
+
+/**
+ * This method initializes the random number service used by OpenThread.
+ *
+ */
+void posixPlatformRandomInit(void);
+
+/**
+ * This method updates the file descriptor sets with file descriptors used by the serial driver.
+ *
+ * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
+ * @param[inout]  aWriteFdSet  A pointer to the write file descriptors.
+ * @param[inout]  aMaxFd       A pointer to the max file descriptor.
+ *
+ */
+void posixPlatformSerialUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd);
+
+/**
+ * This method performs radio driver processing.
+ *
+ */
+void posixPlatformSerialProcess(void);
 
 #ifdef __cplusplus
 }  // extern "C"
 #endif
 
-#endif  // SERIAL_H_
+#endif  // POSIX_PLATFORM_H_

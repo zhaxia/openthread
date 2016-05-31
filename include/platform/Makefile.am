@@ -29,9 +29,9 @@
 include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
 include_HEADERS                         = \
-    atomic.h                              \
     alarm.h                               \
     logging.h                             \
+    platform.h                            \
     radio.h                               \
     random.h                              \
     serial.h                              \

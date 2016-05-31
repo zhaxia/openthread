@@ -35,15 +35,14 @@
  */
 
 #include <platform/random.h>
-#include <platform/posix/cmdline.h>
-
-extern struct gengetopt_args_info args_info;
+#include <platform/platform.h>
+#include <posix-platform.h>
 
 static uint32_t s_state = 1;
 
-void hwRandomInit(void)
+void posixPlatformRandomInit(void)
 {
-    s_state = args_info.nodeid_arg;
+    s_state = NODE_ID;
 }
 
 uint32_t otPlatRandomGet(void)

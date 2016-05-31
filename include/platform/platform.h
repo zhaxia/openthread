@@ -29,46 +29,35 @@
 /**
  * @file
  * @brief
- *   This file includes the platform abstraction to support critical sections.
+ *   This file includes the platform initializers.
  */
 
-#ifndef ATOMIC_H_
-#define ATOMIC_H_
+#ifndef PLATFORM_H_
+#define PLATFORM_H_
 
 #include <stdint.h>
+#include <sys/select.h>
+#include <sys/time.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @defgroup atomic Atomic
- * @ingroup platform
- *
- * @brief
- *   This module includes the platform abstraction to support critical sections.
- *
- * @{
+ * This method performs all platform-specific initialization.
  *
  */
+void PlatformInit(void);
 
 /**
- * Begin critical section.
- */
-uint32_t otPlatAtomicBegin(void);
-
-/**
- * End critical section.
- */
-void otPlatAtomicEnd(uint32_t state);
-
-/**
- * @}
+ * This method performs all platform-specific processing.
  *
  */
+void PlatformProcessDrivers(void);
 
 #ifdef __cplusplus
-}  // end of extern "C"
+}  // extern "C"
 #endif
 
-#endif  // ATOMIC_H_
+#endif  // PLATFORM_H_
+
