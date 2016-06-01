@@ -26,43 +26,36 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @file
- *   This file implements a pseudo-random number generator.
- *
- * @warning
- *   This implementation is not a true random number generator and does @em satisfy the Thread requirements.
- */
+#include <stdlib.h>
 
-#include <platform/random.h>
-#include <platform/platform.h>
+#include <openthread.h>
+#include <cli/cli_serial.hpp>
 #include <posix-platform.h>
 
-static uint32_t s_state = 1;
+Thread::Cli::Serial sCliServer;
 
-void posixPlatformRandomInit(void)
+void otSignalTaskletPending(void)
 {
-    s_state = NODE_ID;
 }
 
-uint32_t otPlatRandomGet(void)
+int main(int argc, char *argv[])
 {
-    uint32_t mlcg, p, q;
-    uint64_t tmpstate;
-
-    tmpstate = (uint64_t)33614 * (uint64_t)s_state;
-    q = tmpstate & 0xffffffff;
-    q = q >> 1;
-    p = tmpstate >> 32;
-    mlcg = p + q;
-
-    if (mlcg & 0x80000000)
+    if (argc != 2)
     {
-        mlcg &= 0x7fffffff;
-        mlcg++;
+        exit(1);
     }
 
-    s_state = mlcg;
+    NODE_ID = atoi(argv[1]);
 
-    return mlcg;
+    posixPlatformInit();
+    otInit();
+    sCliServer.Start();
+
+    while (1)
+    {
+        otProcessNextTasklet();
+        posixPlatformProcessDrivers();
+    }
+
+    return 0;
 }

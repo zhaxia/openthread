@@ -40,17 +40,19 @@
 
 #include <openthread.h>
 #include <platform/alarm.h>
-#include <platform/platform.h>
 #include <posix-platform.h>
 
-void PlatformInit(void)
+uint32_t NODE_ID = 1;
+uint32_t WELLKNOWN_NODE_ID = 34;
+
+void posixPlatformInit(void)
 {
     posixPlatformAlarmInit();
     posixPlatformRadioInit();
     posixPlatformRandomInit();
 }
 
-void PlatformProcessDrivers(void)
+void posixPlatformProcessDrivers(void)
 {
     fd_set read_fds;
     fd_set write_fds;

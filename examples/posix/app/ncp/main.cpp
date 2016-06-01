@@ -28,7 +28,6 @@
 #include <stdlib.h>
 
 #include <ncp/ncp.hpp>
-#include <platform/platform.h>
 #include <posix-platform.h>
 
 Thread::Ncp sNcp;
@@ -45,7 +44,7 @@ int main(int argc, char *argv[])
     }
 
     NODE_ID = atoi(argv[1]);
-    PlatformInit();
+    posixPlatformInit();
     otInit();
 
     sNcp.Start();
@@ -53,7 +52,7 @@ int main(int argc, char *argv[])
     while (1)
     {
         otProcessNextTasklet();
-	PlatformProcessDrivers();
+	posixPlatformProcessDrivers();
     }
 
     return 0;
