@@ -35,7 +35,6 @@
  */
 
 #include <platform/random.h>
-#include <platform/platform.h>
 #include <posix-platform.h>
 
 static uint32_t s_state = 1;

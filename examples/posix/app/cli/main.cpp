@@ -26,53 +26,36 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @file
- * @brief
- *   This file includes the platform-specific initializers.
- */
-
-#include <assert.h>
-#include <errno.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <sys/time.h>
+#include <stdlib.h>
 
 #include <openthread.h>
-#include <platform/alarm.h>
-#include <platform/platform.h>
+#include <cli/cli_serial.hpp>
 #include <posix-platform.h>
 
-void PlatformInit(void)
+Thread::Cli::Serial sCliServer;
+
+void otSignalTaskletPending(void)
 {
-    posixPlatformAlarmInit();
-    posixPlatformRadioInit();
-    posixPlatformRandomInit();
 }
 
-void PlatformProcessDrivers(void)
+int main(int argc, char *argv[])
 {
-    fd_set read_fds;
-    fd_set write_fds;
-    int max_fd = -1;
-    struct timeval timeout;
-    int rval;
-
-    FD_ZERO(&read_fds);
-    FD_ZERO(&write_fds);
-
-    posixPlatformSerialUpdateFdSet(&read_fds, &write_fds, &max_fd);
-    posixPlatformRadioUpdateFdSet(&read_fds, &write_fds, &max_fd);
-    posixPlatformAlarmUpdateTimeout(&timeout);
-
-    if (!otAreTaskletsPending())
+    if (argc != 2)
     {
-        rval = select(max_fd + 1, &read_fds, &write_fds, NULL, &timeout);
-        assert(rval >= 0 && errno != ETIME);
+        exit(1);
     }
 
-    posixPlatformSerialProcess();
-    posixPlatformRadioProcess();
-    posixPlatformAlarmProcess();
-}
+    NODE_ID = atoi(argv[1]);
 
+    posixPlatformInit();
+    otInit();
+    sCliServer.Start();
+
+    while (1)
+    {
+        otProcessNextTasklet();
+        posixPlatformProcessDrivers();
+    }
+
+    return 0;
+}

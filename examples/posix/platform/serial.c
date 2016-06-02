@@ -35,7 +35,6 @@
 
 #include <common/code_utils.hpp>
 #include <platform/serial.h>
-#include <platform/platform.h>
 #include <posix-platform.h>
 
 #ifdef OPENTHREAD_TARGET_LINUX

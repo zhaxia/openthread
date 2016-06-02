@@ -34,8 +34,7 @@ ncp_CPPFLAGS                                                   = \
     -I$(top_srcdir)/include                                      \
     -I$(top_srcdir)/src                                          \
     -I$(top_srcdir)/src/core                                     \
-    -I$(top_srcdir)/examples                                     \
-    -I$(top_srcdir)/examples/platform/posix                      \
+    -I$(top_srcdir)/examples/posix/platform                      \
     -I$(top_srcdir)/third_party                                  \
     $(OPENTHREAD_TARGET_DEFINES)                                 \
     $(NULL)
@@ -43,7 +42,7 @@ ncp_CPPFLAGS                                                   = \
 ncp_LDADD                                                       = \
     $(top_builddir)/src/ncp/libopenthread-ncp.a                   \
     $(top_builddir)/src/core/libopenthread.a                      \
-    $(top_builddir)/examples/platform/posix/libopenthread-posix.a \
+    $(top_builddir)/examples/posix/platform/libopenthread-posix.a \
     $(top_builddir)/third_party/mbedtls/libmbedcrypto.a           \
     $(NULL)
 
