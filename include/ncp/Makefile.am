@@ -28,25 +28,13 @@
 
 include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
-# Always package (e.g. for 'make dist') these subdirectories.
-
-DIST_SUBDIRS                            = \
-    cli                                   \
-    ncp                                   \
+ot_ncp_headers                          = \
+    ncp.h                                 \
     $(NULL)
 
-# Always build (e.g. for 'make all') these subdirectories.
+ot_ncpdir = $(includedir)/ncp
+dist_ot_ncp_HEADERS = $(ot_ncp_headers)
 
-SUBDIRS                                 = \
-    cli                                   \
-    ncp                                   \
-    $(NULL)
-
-# Always pretty (e.g. for 'make pretty') these subdirectories.
-
-PRETTY_SUBDIRS                          = \
-    cli                                   \
-    ncp                                   \
-    $(NULL)
+install-headers: install-includeHEADERS
 
 include $(abs_top_nlbuild_autotools_dir)/automake/post.am
