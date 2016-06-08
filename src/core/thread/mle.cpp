@@ -842,6 +842,7 @@ ThreadError Mle::SendParentRequest(void)
     }
 
     VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
+    message->SetLinkSecurityEnabled(false);
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandParentRequest));
     SuccessOrExit(error = AppendMode(*message, mDeviceMode));
     SuccessOrExit(error = AppendChallenge(*message, mParentRequest.mChallenge, sizeof(mParentRequest.mChallenge)));
@@ -850,6 +851,12 @@ ThreadError Mle::SendParentRequest(void)
     {
     case kParentRequestRouter:
         scanMask = ScanMaskTlv::kRouterFlag;
+
+        if (mParentRequestMode == kMleAttachSamePartition)
+        {
+            scanMask |= ScanMaskTlv::kEndDeviceFlag;
+        }
+
         break;
 
     case kParentRequestChild:
@@ -902,6 +909,7 @@ ThreadError Mle::SendChildIdRequest(void)
     Ip6::Address destination;
 
     VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
+    message->SetLinkSecurityEnabled(false);
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandChildIdRequest));
     SuccessOrExit(error = AppendResponse(*message, mChildIdRequest.mChallenge, mChildIdRequest.mChallengeLength));
     SuccessOrExit(error = AppendLinkFrameCounter(*message));
@@ -945,6 +953,7 @@ ThreadError Mle::SendDataRequest(const Ip6::Address &aDestination, const uint8_t
     Message *message;
 
     VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
+    message->SetLinkSecurityEnabled(false);
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandDataRequest));
     SuccessOrExit(error = AppendTlvRequest(*message, aTlvs, aTlvsLength));
 
@@ -970,6 +979,7 @@ ThreadError Mle::SendDataResponse(const Ip6::Address &aDestination, const uint8_
     bool stableOnly;
 
     VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
+    message->SetLinkSecurityEnabled(false);
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandDataResponse));
 
     neighbor = mMleRouter.GetNeighbor(aDestination);
@@ -1010,6 +1020,7 @@ ThreadError Mle::SendChildUpdateRequest(void)
     Message *message;
 
     VerifyOrExit((message = Ip6::Udp::NewMessage(0)) != NULL, ;);
+    message->SetLinkSecurityEnabled(false);
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandChildUpdateRequest));
     SuccessOrExit(error = AppendMode(*message, mDeviceMode));
 
@@ -1053,6 +1064,7 @@ ThreadError Mle::SendChildUpdateRequest(void)
     if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) == 0)
     {
         mMesh.SetPollPeriod(kAttachDataPollPeriod);
+        mMesh.SetRxOnWhenIdle(false);
     }
 
 exit:
@@ -1730,7 +1742,8 @@ ThreadError Mle::HandleChildUpdateResponse(const Message &aMessage, const Ip6::M
                      error = kThreadError_Drop);
 
         SetStateChild(GetRloc16());
-        break;
+
+    // fall through
 
     case kDeviceStateChild:
         // Leader Data
@@ -1752,11 +1765,12 @@ ThreadError Mle::HandleChildUpdateResponse(const Message &aMessage, const Ip6::M
             ExitNow();
         }
 
-        // Timeout
-        SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kTimeout, sizeof(timeout), timeout));
-        VerifyOrExit(timeout.IsValid(), error = kThreadError_Parse);
-
-        mTimeout = timeout.GetTimeout();
+        // Timeout optional
+        if (Tlv::GetTlv(aMessage, Tlv::kTimeout, sizeof(timeout), timeout) == kThreadError_None)
+        {
+            VerifyOrExit(timeout.IsValid(), error = kThreadError_Parse);
+            mTimeout = timeout.GetTimeout();
+        }
 
         if ((mode.GetMode() & ModeTlv::kModeRxOnWhenIdle) == 0)
         {
