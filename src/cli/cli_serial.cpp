@@ -31,8 +31,6 @@
  *   This file implements the CLI server on the serial service.
  */
 
-#include <new>
-
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,12 +41,14 @@
 #include <cli/cli_serial.hpp>
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
+#include <common/new.hpp>
 #include <common/tasklet.hpp>
 #include <platform/serial.h>
 
 namespace Thread {
 namespace Cli {
 
+static const char sCommandPrompt[] = {'>', ' '};
 static const char sEraseString[] = {'\b', ' ', '\b'};
 static const char CRNL[] = {'\r', '\n'};
 static Serial *sServer;
@@ -93,14 +93,15 @@ void Serial::ReceiveTask(const uint8_t *aBuf, uint16_t aBufLength)
                 ProcessCommand();
             }
 
+            Output(sCommandPrompt, sizeof(sCommandPrompt));
+
             break;
 
         case '\b':
         case 127:
-            Output(sEraseString, sizeof(sEraseString));
-
             if (mRxLength > 0)
             {
+                Output(sEraseString, sizeof(sEraseString));
                 mRxBuffer[--mRxLength] = '\0';
             }
 

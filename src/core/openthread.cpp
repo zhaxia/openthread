@@ -31,13 +31,12 @@
  *   This file implements the top-level interface to the OpenThread stack.
  */
 
-#include <new>
-
 #include <openthread.h>
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/logging.hpp>
 #include <common/message.hpp>
+#include <common/new.hpp>
 #include <common/tasklet.hpp>
 #include <common/timer.hpp>
 #include <platform/random.h>
@@ -111,6 +110,18 @@ void otSetExtendedPanId(const uint8_t *aExtendedPanId)
     sThreadNetif->GetMle().SetMeshLocalPrefix(aExtendedPanId);
 }
 
+ThreadError otGetLeaderRloc(otIp6Address *aAddress)
+{
+    ThreadError error;
+
+    VerifyOrExit(aAddress != NULL, error = kThreadError_InvalidArgs);
+
+    error = sThreadNetif->GetMle().GetLeaderAddress(*static_cast<Ip6::Address *>(aAddress));
+
+exit:
+    return error;
+}
+
 otLinkModeConfig otGetLinkMode(void)
 {
     otLinkModeConfig config = {};
@@ -176,6 +187,45 @@ ThreadError otSetMasterKey(const uint8_t *aKey, uint8_t aKeyLength)
     return sThreadNetif->GetKeyManager().SetMasterKey(aKey, aKeyLength);
 }
 
+const otIp6Address *otGetMeshLocalEid(void)
+{
+    return sThreadNetif->GetMle().GetMeshLocal64();
+}
+
+const uint8_t *otGetMeshLocalPrefix(void)
+{
+    return sThreadNetif->GetMle().GetMeshLocalPrefix();
+}
+
+ThreadError otSetMeshLocalPrefix(const uint8_t *aMeshLocalPrefix)
+{
+    return sThreadNetif->GetMle().SetMeshLocalPrefix(aMeshLocalPrefix);
+}
+
+ThreadError otGetNetworkDataLeader(bool aStable, uint8_t *aData, uint8_t *aDataLength)
+{
+    ThreadError error = kThreadError_None;
+
+    VerifyOrExit(aData != NULL && aDataLength != NULL, error = kThreadError_InvalidArgs);
+
+    sThreadNetif->GetNetworkDataLeader().GetNetworkData(aStable, aData, *aDataLength);
+
+exit:
+    return error;
+}
+
+ThreadError otGetNetworkDataLocal(bool aStable, uint8_t *aData, uint8_t *aDataLength)
+{
+    ThreadError error = kThreadError_None;
+
+    VerifyOrExit(aData != NULL && aDataLength != NULL, error = kThreadError_InvalidArgs);
+
+    sThreadNetif->GetNetworkDataLocal().GetNetworkData(aStable, aData, *aDataLength);
+
+exit:
+    return error;
+}
+
 const char *otGetNetworkName(void)
 {
     return sThreadNetif->GetMac().GetNetworkName();
@@ -194,6 +244,11 @@ otPanId otGetPanId(void)
 ThreadError otSetPanId(otPanId aPanId)
 {
     return sThreadNetif->GetMac().SetPanId(aPanId);
+}
+
+otShortAddress otGetShortAddress(void)
+{
+    return sThreadNetif->GetMac().GetShortAddress();
 }
 
 uint8_t otGetLocalLeaderWeight(void)
@@ -437,6 +492,29 @@ uint8_t otGetStableNetworkDataVersion(void)
     return sThreadNetif->GetMle().GetLeaderDataTlv().GetStableDataVersion();
 }
 
+void otSetLinkPcapCallback(otLinkPcapCallback aPcapCallback)
+{
+    sThreadNetif->GetMac().SetPcapCallback(aPcapCallback);
+}
+
+bool otIsLinkPromiscuous(void)
+{
+    return sThreadNetif->GetMac().IsPromiscuous();
+}
+
+ThreadError otSetLinkPromiscuous(bool aPromiscuous)
+{
+    ThreadError error = kThreadError_None;
+
+    // cannot enable IEEE 802.15.4 promiscuous mode if the Thread interface is enabled
+    VerifyOrExit(sThreadNetif->IsUp() == false, error = kThreadError_Busy);
+
+    sThreadNetif->GetMac().SetPromiscuous(aPromiscuous);
+
+exit:
+    return error;
+}
+
 bool otIsIp6AddressEqual(const otIp6Address *a, const otIp6Address *b)
 {
     return *static_cast<const Ip6::Address *>(a) == *static_cast<const Ip6::Address *>(b);
@@ -464,7 +542,15 @@ ThreadError otRemoveUnicastAddress(otNetifAddress *address)
 
 ThreadError otEnable(void)
 {
-    return sThreadNetif->Up();
+    ThreadError error = kThreadError_None;
+
+    // cannot enable the Thread stack if IEEE 802.15.4 promiscuous mode is enabled
+    VerifyOrExit(otPlatRadioGetPromiscuous() == false, error = kThreadError_Busy);
+
+    SuccessOrExit(error = sThreadNetif->Up());
+
+exit:
+    return error;
 }
 
 ThreadError otDisable(void)
@@ -522,6 +608,17 @@ void HandleActiveScanResult(void *aContext, Mac::Frame *aFrame)
 
 exit:
     return;
+}
+
+void otSetReceiveIp6DatagramCallback(otReceiveIp6DatagramCallback aCallback)
+{
+    Ip6::Ip6::SetReceiveDatagramCallback(aCallback);
+}
+
+ThreadError otSendIp6Datagram(otMessage aMessage)
+{
+    return Ip6::Ip6::HandleDatagram(*static_cast<Message *>(aMessage), NULL, sThreadNetif->GetInterfaceId(),
+                                    NULL, true);
 }
 
 otMessage otNewUdpMessage(void)
