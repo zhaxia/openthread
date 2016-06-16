@@ -211,7 +211,7 @@ bool otActiveScanInProgress(void);
  * @defgroup config-general  General
  *
  * @brief
- *   This module includes functions that manage configuration parameters for the Thread Child, Router, and Leader rols.
+ *   This module includes functions that manage configuration parameters for the Thread Child, Router, and Leader roles.
  *
  * @{
  *
@@ -433,7 +433,7 @@ otShortAddress otGetShortAddress(void);
 /**
  * Get the list of IPv6 addresses assigned to the Thread interface.
  *
- * @returns A pointer to the first Network Inteface Address.
+ * @returns A pointer to the first Network Interface Address.
  */
 const otNetifAddress *otGetUnicastAddresses(void);
 
@@ -456,6 +456,24 @@ ThreadError otAddUnicastAddress(otNetifAddress *aAddress);
  * @retval kThreadErrorNotFound  The Network Interface Address point to by @p aAddress was not added.
  */
 ThreadError otRemoveUnicastAddress(otNetifAddress *aAddress);
+
+/**
+ * This function pointer is called to notify certain configuration or state changes within OpenThread.
+ *
+ * @param[in]  aFlags    A bit-field indicating specific state that has changed.
+ * @param[in]  aContext  A pointer to application-specific context.
+ *
+ */
+typedef void (*otStateChangedCallback)(uint32_t aFlags, void *aContext);
+
+/**
+ * This function registers a callback to indicate when certain configuration or state changes within OpenThread.
+ *
+ * @param[in]  aCallback  A pointer to a function that is called with certain configuration or state changes.
+ * @param[in]  aContext   A pointer to application-specific context.
+ *
+ */
+void otSetStateChangedCallback(otStateChangedCallback aCallback, void *aContext);
 
 /**
  * @}
@@ -902,6 +920,13 @@ bool otIsLinkPromiscuous(void);
 ThreadError otSetLinkPromiscuous(bool aPromiscuous);
 
 /**
+ * Get the MAC layer counters.
+ *
+ * @returns A pointer to the MAC layer counters.
+ */
+const otMacCounters *otGetMacCounters(void);
+
+/**
  * @}
  *
  */
@@ -937,11 +962,6 @@ ThreadError otIp6AddressFromString(const char *aString, otIp6Address *aAddress);
  * @{
  *
  */
-
-/**
- * This type points to an OpenThread message buffer.
- */
-typedef void *otMessage;
 
 /**
  * Free an allocated message buffer.
@@ -1171,8 +1191,8 @@ otMessage otNewUdpMessage(void);
  * @param[in]  aCallback  A pointer to the application callback function.
  * @param[in]  aContext   A pointer to application-specific context.
  *
- * @retval kThreadErrorNone  Successfully openned the socket.
- * @retval kThreadErrorBusy  Socket is already openned.
+ * @retval kThreadErrorNone  Successfully opened the socket.
+ * @retval kThreadErrorBusy  Socket is already opened.
  *
  * @sa otNewUdpMessage
  * @sa otCloseUdpSocket

@@ -61,6 +61,7 @@ enum
  * This structure represents an ICMPv6 header.
  *
  */
+OT_TOOL_PACKED_BEGIN
 struct IcmpHeaderPoD
 {
     uint8_t      mType;      ///< Type
@@ -72,12 +73,13 @@ struct IcmpHeaderPoD
         uint16_t m16[kIcmp6DataSize / sizeof(uint16_t)];
         uint32_t m32[kIcmp6DataSize / sizeof(uint32_t)];
     } mData;                 ///< Message-specific data
-} __attribute__((packed));
+} OT_TOOL_PACKED_END;
 
 /**
  * This class implements ICMPv6 header generation and parsing.
  *
  */
+OT_TOOL_PACKED_BEGIN
 class IcmpHeader: private IcmpHeaderPoD
 {
 public:
@@ -202,7 +204,7 @@ public:
      */
     static uint8_t GetDataOffset() { return offsetof(IcmpHeaderPoD, mData); }
 
-} __attribute__((packed));
+} OT_TOOL_PACKED_END;
 
 /**
  * This class implements an ICMPv6 echo client.
@@ -237,7 +239,7 @@ public:
      *
      * @param[in]  aDestination    The socket address of the destination.
      * @param[in]  aPayload        A pointer to the data payload to send.
-     * @param[in]  aPayloadLength  The number of data payoad bytes.
+     * @param[in]  aPayloadLength  The number of data payload bytes.
      *
      * @retval kThreadError_None    An ICMPv6 Echo Request message was enqueued.
      * @retval kThreadError_NoBufs  Insufficient buffers available to generate an ICMPv6 Echo Request message.
@@ -275,7 +277,7 @@ public:
      * @param[in]  aContext      A pointer to arbitrary context information.
      * @param[in]  aMessage      A reference to the received message.
      * @param[in]  aMessageInfo  A reference to message information associated with @p aMessage.
-     * @param[in]  aIcmpHeader   A reference to the receievd ICMPv6 header.
+     * @param[in]  aIcmpHeader   A reference to the received ICMPv6 header.
      *
      */
     typedef void (*DstUnreachHandler)(void *aContext, Message &aMesage, const MessageInfo &aMessageInfo,
@@ -342,7 +344,7 @@ public:
     /**
      * This static method handles an ICMPv6 message.
      *
-     * @param[in]  aMessage      A reference to the ICMPv6 mesasge.
+     * @param[in]  aMessage      A reference to the ICMPv6 message.
      * @param[in]  aMessageInfo  A reference to the message info associated with @p aMessage.
      *
      * @retval kThreadError_None    Successfully processed the ICMPv6 message.

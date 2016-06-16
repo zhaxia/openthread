@@ -107,6 +107,7 @@ enum
  * This structure represents an IPv6 header.
  *
  */
+OT_TOOL_PACKED_BEGIN
 struct HeaderPoD
 {
     union
@@ -120,12 +121,13 @@ struct HeaderPoD
     uint8_t       mHopLimit;       ///< Hop Limit
     otIp6Address  mSource;         ///< Source
     otIp6Address  mDestination;    ///< Destination
-} __attribute__((packed));
+} OT_TOOL_PACKED_END;
 
 /**
  * This class implements IPv6 header generation and parsing.
  *
  */
+OT_TOOL_PACKED_BEGIN
 class Header: private HeaderPoD
 {
 public:
@@ -262,12 +264,13 @@ private:
         kVersion6 = 0x60,
         kVersionMask = 0xf0,
     };
-} __attribute__((packed));
+} OT_TOOL_PACKED_END;
 
 /**
  * This class implements IPv6 Extension Header generation and processing.
  *
  */
+OT_TOOL_PACKED_BEGIN
 class ExtensionHeader
 {
 public:
@@ -306,20 +309,22 @@ public:
 private:
     uint8_t mNextHeader;
     uint8_t mLength;
-} __attribute__((packed));
+} OT_TOOL_PACKED_END;
 
 /**
  * This class implements IPv6 Hop-by-Hop Options Header generation and parsing.
  *
  */
+OT_TOOL_PACKED_BEGIN
 class HopByHopHeader: public ExtensionHeader
 {
-} __attribute__((packed));
+} OT_TOOL_PACKED_END;
 
 /**
  * This class implements IPv6 Options generation and parsing.
  *
  */
+OT_TOOL_PACKED_BEGIN
 class OptionHeader
 {
 public:
@@ -379,12 +384,13 @@ public:
 private:
     uint8_t mType;
     uint8_t mLength;
-} __attribute__((packed));
+} OT_TOOL_PACKED_END;
 
 /**
  * This class implements IPv6 Fragment Header generation and parsing.
  *
  */
+OT_TOOL_PACKED_BEGIN
 class FragmentHeader
 {
 public:
@@ -459,7 +465,7 @@ private:
     };
     uint16_t mOffsetMore;
     uint32_t mIdentification;
-} __attribute__((packed));
+} OT_TOOL_PACKED_END;
 
 /**
  * This class implements the core IPv6 message processing.
@@ -502,9 +508,9 @@ public:
      *
      * @param[in]  aMessage          A reference to the message.
      * @param[in]  aNetif            A pointer to the network interface that received the message.
-     * @param[in]  aInterfaceId      The interface identier of the network interface that received the message.
+     * @param[in]  aInterfaceId      The interface identifier of the network interface that received the message.
      * @param[in]  aLinkMessageInfo  A pointer to link-specific message information.
-     * @param[in]  aFromNcpHost      TRUE if the message was submited by the NCP host, FALSE otherwise.
+     * @param[in]  aFromNcpHost      TRUE if the message was submitted by the NCP host, FALSE otherwise.
      *
      * @retval kThreadError_None   Successfully processed the message.
      * @retval kThreadError_Drop   Message processing failed and the message should be dropped.
@@ -556,14 +562,14 @@ public:
      * @param[in]  aLength       The IPv6 Payload Length value.
      * @param[in]  aProto        The IPv6 Next Header value.
      *
-     * @returns The psuedoheader checksum.
+     * @returns The pseudoheader checksum.
      *
      */
     static uint16_t ComputePseudoheaderChecksum(const Address &aSource, const Address &aDestination,
                                                 uint16_t aLength, IpProto aProto);
 
     /**
-     * This function registers a callback to provide receivd raw IPv6 datagrams.
+     * This function registers a callback to provide received raw IPv6 datagrams.
      *
      * @param[in]  aCallback  A pointer to a function that is called when an IPv6 datagram is received or NULL to disable
      *                        the callback.

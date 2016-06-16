@@ -37,6 +37,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include <platform/toolchain.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -79,6 +80,36 @@ typedef enum ThreadError
      * Not currently attached to a Thread Partition.
      */
     kThreadError_Detached = 18,
+
+    /**
+     * FCS check failure while receiving.
+     */
+    kThreadError_FcsErr = 19,
+
+    /**
+     * No frame received.
+     */
+    kThreadError_NoFrameReceived = 20,
+
+    /**
+     * Received a frame from an unknown neighbor.
+     */
+    kThreadError_UnknownNeighbor = 21,
+
+    /**
+     * Received a frame from an invalid source address.
+     */
+    kThreadError_InvalidSourceAddress = 22,
+
+    /**
+     * Received a frame filtered by the whitelist.
+     */
+    kThreadError_WhitelistFiltered = 23,
+
+    /**
+     * Received a frame filtered by the destination address check.
+     */
+    kThreadError_DestinationAddressFiltered = 24,
 
     kThreadError_Error = 255,
 } ThreadError;
@@ -141,7 +172,7 @@ typedef struct otActiveScanResult
  * @defgroup config-general  General
  *
  * @brief
- *   This module includes functions that manage configuration parameters for the Thread Child, Router, and Leader rols.
+ *   This module includes functions that manage configuration parameters for the Thread Child, Router, and Leader roles.
  *
  * @{
  *
@@ -176,6 +207,24 @@ typedef struct otLinkModeConfig
 } otLinkModeConfig;
 
 /**
+ * This enumeration represents flags that indicate what configuration or state has changed within OpenThread.
+ *
+ */
+enum
+{
+    OT_IP6_ADDRESS_ADDED    = 1 << 0,  ///< IPv6 address was added
+    OT_IP6_ADDRESS_REMOVED  = 1 << 1,  ///< IPv6 address was removed
+
+    OT_NET_STATE            = 1 << 2,  ///< Device state (offline, detached, attached) changed
+    OT_NET_ROLE             = 1 << 3,  ///< Device role (disabled, detached, child, router, leader) changed
+    OT_NET_PARTITION_ID     = 1 << 4,  ///< Partition ID changed
+    OT_NET_KEY_SEQUENCE     = 1 << 5,  ///< Thread Key Sequence changed
+
+    OT_THREAD_CHILD_ADDED   = 1 << 6,  ///< Child was added
+    OT_THREAD_CHILD_REMOVED = 1 << 7   ///< Child was removed
+};
+
+/**
  * @}
  */
 
@@ -197,7 +246,7 @@ enum
 /**
  * This structure represents an IPv6 address.
  */
-typedef struct otIp6Address
+typedef OT_TOOL_PACKED_BEGIN struct otIp6Address
 {
     union
     {
@@ -205,7 +254,7 @@ typedef struct otIp6Address
         uint16_t m16[kIp6AddressSize / sizeof(uint16_t)];
         uint32_t m32[kIp6AddressSize / sizeof(uint32_t)];
     };
-} __attribute__((packed)) otIp6Address;
+} OT_TOOL_PACKED_END otIp6Address;
 
 /**
  * This structure represents an IPv6 prefix.
@@ -339,6 +388,38 @@ typedef enum
     kDeviceRoleRouter,    ///< The Thread Router role.
     kDeviceRoleLeader,    ///< The Thread Leader role.
 } otDeviceRole;
+
+/**
+ * This structure represents the MAC layer counters.
+ */
+typedef struct otMacCounters
+{
+    uint32_t mTxTotal;                ///< The total number of transmissions.
+    uint32_t mTxAckRequested;         ///< The number of transmissions with ack request.
+    uint32_t mTxAcked;                ///< The number of transmissions that were acked.
+    uint32_t mTxNoAckRequested;       ///< The number of transmissions without ack request.
+    uint32_t mTxData;                 ///< The number of transmitted data.
+    uint32_t mTxDataPoll;             ///< The number of transmitted data poll.
+    uint32_t mTxBeacon;               ///< The number of transmitted beacon.
+    uint32_t mTxBeaconRequest;        ///< The number of transmitted beacon request.
+    uint32_t mTxOther;                ///< The number of transmitted other types of frames.
+    uint32_t mTxRetry;                ///< The number of retransmission times.
+    uint32_t mTxErrCca;               ///< The number of CCA failure times.
+    uint32_t mRxTotal;                ///< The total number of received packets.
+    uint32_t mRxData;                 ///< The number of received data.
+    uint32_t mRxDataPoll;             ///< The number of received data poll.
+    uint32_t mRxBeacon;               ///< The number of received beacon.
+    uint32_t mRxBeaconRequest;        ///< The number of received beacon request.
+    uint32_t mRxOther;                ///< The number of received other types of frames.
+    uint32_t mRxWhitelistFiltered;    ///< The number of received packets filtered by whitelist.
+    uint32_t mRxDestAddrFiltered;     ///< The number of received packets filtered by destination check.
+    uint32_t mRxErrNoFrame;           ///< The number of received packets that do not contain contents.
+    uint32_t mRxErrUnknownNeighbor;   ///< The number of received packets from unknown neighbor.
+    uint32_t mRxErrInvalidSrcAddr;    ///< The number of received packets whose source address is invalid.
+    uint32_t mRxErrSec;               ///< The number of received packets with security error.
+    uint32_t mRxErrFcs;               ///< The number of received packets with FCS error.
+    uint32_t mRxErrOther;             ///< The number of received packets with other error.
+} otMacCounters;
 
 /**
  * @}

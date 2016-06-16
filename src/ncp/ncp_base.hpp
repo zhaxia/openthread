@@ -88,14 +88,14 @@ private:
     void HandleActiveScanResult(otActiveScanResult *result);
 
     /**
-     * Trampoline for RunUpdateAddressesTask().
+     * Trampoline for UpdateChangedProps().
      */
-    static void RunUpdateAddressesTask(void *context);
+    static void UpdateChangedProps(void *context);
 
-    void RunUpdateAddressesTask(void);
+    void UpdateChangedProps(void);
 
 
-    static void HandleUnicastAddressesChanged(void *context);
+    static void HandleNetifStateChanged(uint32_t flags, void *context);
 
 private:
 
@@ -278,8 +278,6 @@ private:
 
 private:
 
-    Ip6::NetifHandler mNetifHandler;
-
     spinel_status_t mLastStatus;
 
     uint32_t mSupportedChannelMask;
@@ -292,9 +290,11 @@ private:
 
     spinel_prop_key_t mQueuedGetKey;
 
-    Tasklet mUpdateAddressesTask;
+    Tasklet mUpdateChangedPropsTask;
 
     MessageQueue mSendQueue;
+
+    uint32_t mChangedFlags;
 
 protected:
     /**

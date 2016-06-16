@@ -106,6 +106,7 @@ enum DeviceState
  * This class implements MLE Header generation and parsing.
  *
  */
+OT_TOOL_PACKED_BEGIN
 class Header
 {
 public:
@@ -307,7 +308,7 @@ private:
     uint32_t mFrameCounter;
     uint8_t mKeyIdentifier[5];
     uint8_t mCommand;
-} __attribute__((packed));
+} OT_TOOL_PACKED_END;
 
 /**
  * This class implements MLE functionality required by the Thread EndDevices, Router, and Leader roles.
@@ -507,7 +508,7 @@ public:
     const Ip6::Address *GetMeshLocal64(void) const;
 
     /**
-     * This method notifes MLE that the Network Data has changed.
+     * This method notifies MLE that the Network Data has changed.
      *
      */
     void HandleNetworkDataUpdate(void);
@@ -534,7 +535,7 @@ public:
     /**
      * This method returns the most recently received Leader Data TLV.
      *
-     * @returns  A reference to the most recently receievd Leader Data TLV.
+     * @returns  A reference to the most recently received Leader Data TLV.
      *
      */
     const LeaderDataTlv &GetLeaderDataTlv(void);
@@ -887,6 +888,16 @@ protected:
      */
     ThreadError SetStateChild(uint16_t aRloc16);
 
+    /**
+     * This method sets the Leader's Partition ID, Weighting, and Router ID values.
+     *
+     * @param[in]  aPartitionId     The Leader's Partition ID value.
+     * @param[in]  aWeighting       The Leader's Weighting value.
+     * @param[in]  aLeaderRouterId  The Leader's Router ID value.
+     *
+     */
+    void SetLeaderData(uint32_t aPartitionId, uint8_t aWeighting, uint8_t aLeaderRouterId);
+
     ThreadNetif         &mNetif;            ///< The Thread Network Interface object.
     AddressResolver     &mAddressResolver;  ///< The Address Resolver object.
     KeyManager          &mKeyManager;       ///< The Key Manager object.
@@ -927,8 +938,8 @@ private:
     void GenerateNonce(const Mac::ExtAddress &aMacAddr, uint32_t aFrameCounter, uint8_t aSecurityLevel,
                        uint8_t *aNonce);
 
-    static void HandleUnicastAddressesChanged(void *aContext);
-    void HandleUnicastAddressesChanged(void);
+    static void HandleNetifStateChanged(uint32_t aFlags, void *aContext);
+    void HandleNetifStateChanged(uint32_t aFlags);
     static void HandleParentRequestTimer(void *aContext);
     void HandleParentRequestTimer(void);
     static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
@@ -969,7 +980,7 @@ private:
     Ip6::NetifMulticastAddress mLinkLocalAllThreadNodes;
     Ip6::NetifMulticastAddress mRealmLocalAllThreadNodes;
 
-    Ip6::NetifHandler mNetifHandler;
+    Ip6::NetifCallback mNetifCallback;
 };
 
 }  // namespace Mle
