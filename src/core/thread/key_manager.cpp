@@ -72,6 +72,8 @@ ThreadError KeyManager::SetMasterKey(const void *aKey, uint8_t aKeyLength)
     mCurrentKeySequence = 0;
     ComputeKey(mCurrentKeySequence, mCurrentKey);
 
+    mNetif.SetStateChangedFlags(OT_NET_KEY_SEQUENCE);
+
 exit:
     return error;
 }
@@ -136,6 +138,8 @@ void KeyManager::SetCurrentKeySequence(uint32_t aKeySequence)
     mMleFrameCounter = 0;
 
     UpdateNeighbors();
+
+    mNetif.SetStateChangedFlags(OT_NET_KEY_SEQUENCE);
 }
 
 const uint8_t *KeyManager::GetCurrentMacKey() const

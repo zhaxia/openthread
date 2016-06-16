@@ -49,6 +49,8 @@ namespace Thread {
 // of of the features in the NCP.
 ThreadNetif *sThreadNetif;
 
+static Ip6::NetifCallback sNetifCallback;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -106,8 +108,15 @@ const uint8_t *otGetExtendedPanId(void)
 
 void otSetExtendedPanId(const uint8_t *aExtendedPanId)
 {
+    uint8_t mlPrefix[8];
+
     sThreadNetif->GetMac().SetExtendedPanId(aExtendedPanId);
-    sThreadNetif->GetMle().SetMeshLocalPrefix(aExtendedPanId);
+
+    mlPrefix[0] = 0xfd;
+    memcpy(mlPrefix + 1, aExtendedPanId, 5);
+    mlPrefix[6] = 0x00;
+    mlPrefix[7] = 0x00;
+    sThreadNetif->GetMle().SetMeshLocalPrefix(mlPrefix);
 }
 
 ThreadError otGetLeaderRloc(otIp6Address *aAddress)
@@ -515,6 +524,11 @@ exit:
     return error;
 }
 
+const otMacCounters *otGetMacCounters(void)
+{
+    return &sThreadNetif->GetMac().GetCounters();
+}
+
 bool otIsIp6AddressEqual(const otIp6Address *a, const otIp6Address *b)
 {
     return *static_cast<const Ip6::Address *>(a) == *static_cast<const Ip6::Address *>(b);
@@ -538,6 +552,12 @@ ThreadError otAddUnicastAddress(otNetifAddress *address)
 ThreadError otRemoveUnicastAddress(otNetifAddress *address)
 {
     return sThreadNetif->RemoveUnicastAddress(*static_cast<Ip6::NetifUnicastAddress *>(address));
+}
+
+void otSetStateChangedCallback(otStateChangedCallback aCallback, void *aContext)
+{
+    sNetifCallback.Set(aCallback, aContext);
+    sThreadNetif->RegisterCallback(sNetifCallback);
 }
 
 ThreadError otEnable(void)
@@ -691,7 +711,7 @@ ThreadError otBindUdpSocket(otUdpSocket *aSocket, otSockAddr *aSockName)
     return socket->Bind(*reinterpret_cast<const Ip6::SockAddr *>(aSockName));
 }
 
-ThreadError otSendUdpMessage(otUdpSocket *aSocket, otMessage aMessage, const otMessageInfo *aMessageInfo)
+ThreadError otSendUdp(otUdpSocket *aSocket, otMessage aMessage, const otMessageInfo *aMessageInfo)
 {
     Ip6::UdpSocket *socket = reinterpret_cast<Ip6::UdpSocket *>(aSocket);
     return socket->SendTo(*reinterpret_cast<Message *>(aMessage),

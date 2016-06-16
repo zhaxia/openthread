@@ -52,6 +52,7 @@ namespace Ip6 {
  * This class implements an IPv6 address object.
  *
  */
+OT_TOOL_PACKED_BEGIN
 class Address: public otIp6Address
 {
 public:
@@ -98,7 +99,7 @@ public:
     bool IsLoopback(void) const;
 
     /**
-     * This method indicates whether or not the IPv6 address scope is Interafce-Local.
+     * This method indicates whether or not the IPv6 address scope is Interface-Local.
      *
      * @retval TRUE   If the IPv6 address scope is Interface-Local.
      * @retval FALSE  If the IPv6 address scope is not Interface-Local.
@@ -286,7 +287,7 @@ private:
     {
         kInterfaceIdentifierOffset = 8,  ///< Interface Identifier offset in bytes.
     };
-} __attribute__((packed));
+} OT_TOOL_PACKED_END;
 
 /**
  * @}
