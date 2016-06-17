@@ -1078,21 +1078,27 @@ exit:
 void Interpreter::ProcessLine(char *aBuf, uint16_t aBufLength, Server &aServer)
 {
     char *argv[kMaxArgs];
-    char *cmd;
-    int argc;
-    char *last;
+    int argc = 0;
+    char *cmd = aBuf;
 
     sServer = &aServer;
 
-    VerifyOrExit((cmd = strtok_r(aBuf, " ", &last)) != NULL, ;);
+    VerifyOrExit(cmd != NULL, ;);
 
-    for (argc = 0; argc < kMaxArgs; argc++)
+    for (++cmd; (cmd < aBuf + aBufLength) && (cmd != NULL); ++cmd)
     {
-        if ((argv[argc] = strtok_r(NULL, " ", &last)) == NULL)
+        if (*cmd == ' ')
         {
-            break;
+            *cmd = '\0';
+        }
+
+        if (*(cmd - 1) == '\0' && *cmd != ' ')
+        {
+            argv[argc++] = cmd;
         }
     }
+
+    cmd = aBuf;
 
     for (unsigned int i = 0; i < sizeof(sCommands) / sizeof(sCommands[0]); i++)
     {
