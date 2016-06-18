@@ -395,10 +395,10 @@ exit:
 void Interpreter::ProcessMasterKey(int argc, char *argv[])
 {
     ThreadError error = kThreadError_None;
-    uint8_t keyLength;
 
     if (argc == 0)
     {
+        uint8_t keyLength;
         const uint8_t *key = otGetMasterKey(&keyLength);
 
         for (int i = 0; i < keyLength; i++)
@@ -410,6 +410,7 @@ void Interpreter::ProcessMasterKey(int argc, char *argv[])
     }
     else
     {
+        int8_t keyLength;
         uint8_t key[16];
 
         VerifyOrExit((keyLength = Hex2Bin(argv[0], key, sizeof(key))) >= 0, error = kThreadError_Parse);
@@ -1078,21 +1079,29 @@ exit:
 void Interpreter::ProcessLine(char *aBuf, uint16_t aBufLength, Server &aServer)
 {
     char *argv[kMaxArgs];
+    int argc = 0;
     char *cmd;
-    int argc;
-    char *last;
 
     sServer = &aServer;
 
-    VerifyOrExit((cmd = strtok_r(aBuf, " ", &last)) != NULL, ;);
+    VerifyOrExit(aBuf != NULL, ;);
 
-    for (argc = 0; argc < kMaxArgs; argc++)
+    for (; *aBuf == ' '; aBuf++, aBufLength--);
+
+    for (cmd = aBuf + 1; (cmd < aBuf + aBufLength) && (cmd != NULL); ++cmd)
     {
-        if ((argv[argc] = strtok_r(NULL, " ", &last)) == NULL)
+        if (*cmd == ' ' || *cmd == '\r' || *cmd == '\n')
         {
-            break;
+            *cmd = '\0';
+        }
+
+        if (*(cmd - 1) == '\0' && *cmd != ' ')
+        {
+            argv[argc++] = cmd;
         }
     }
+
+    cmd = aBuf;
 
     for (unsigned int i = 0; i < sizeof(sCommands) / sizeof(sCommands[0]); i++)
     {
