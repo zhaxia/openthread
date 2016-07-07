@@ -34,7 +34,8 @@ ot_platform_headers                      =\
     platform.h                            \
     radio.h                               \
     random.h                              \
-    serial.h                              \
+    uart.h                                \
+    spi-slave.h                           \
     toolchain.h                           \
     $(NULL)
 
