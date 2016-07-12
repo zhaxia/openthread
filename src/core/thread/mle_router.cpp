@@ -224,6 +224,7 @@ ThreadError MleRouter::BecomeLeader(void)
 
     mRouterId = (mPreviousRouterId != kMaxRouterId) ? AllocateRouterId(mPreviousRouterId) : AllocateRouterId();
     VerifyOrExit(mRouterId >= 0, error = kThreadError_NoBufs);
+    mPreviousRouterId = mRouterId;
 
     memcpy(&mRouters[mRouterId].mMacAddr, mMac.GetExtAddress(), sizeof(mRouters[mRouterId].mMacAddr));
 
@@ -1015,16 +1016,16 @@ uint8_t MleRouter::LqiToCost(uint8_t aLqi)
     switch (aLqi)
     {
     case 1:
-        return 6;
+        return kLqi1LinkCost;
 
     case 2:
-        return 2;
+        return kLqi2LinkCost;
 
     case 3:
-        return 1;
+        return kLqi3LinkCost;
 
     default:
-        return 16;
+        return kLqi0LinkCost;
     }
 }
 
