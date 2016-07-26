@@ -19,14 +19,21 @@ $ make -f examples/Makefile-posix
 Spawn the process:
 
 ```bash
-$ cd openthread/examples/posix/app/cli
+$ cd <path-to-openthread>/output/<platform>/bin
 $ ./ot-cli 1
 ```
 
-Start OpenThread:
+Bring up the IPv6 interface:
 
 ```bash
-> start
+> ifconfig up
+Done
+```
+
+Start Thread protocol operation:
+
+```bash
+> thread start
 Done
 ```
 
@@ -54,14 +61,21 @@ Done
 Spawn the process:
 
 ```bash
-$ cd openthread/examples/posix/app/cli
+$ cd <path-to-openthread>/output/<platform>/bin
 $ ./ot-cli 2
 ```
 
-Start OpenThread:
+Bring up the IPv6 interface:
 
 ```bash
-> start
+> ifconfig up
+Done
+```
+
+Start Thread protocol operation:
+
+```bash
+> thread start
 Done
 ```
 

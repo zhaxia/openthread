@@ -40,6 +40,7 @@
 #include <mac/mac_frame.hpp>
 #include <net/netif.hpp>
 #include <net/udp6.hpp>
+#include <platform/radio.h>
 #include <platform/random.h>
 #include <thread/address_resolver.hpp>
 #include <thread/key_manager.hpp>
@@ -144,6 +145,10 @@ ThreadError Mle::Start(void)
     ThreadError error = kThreadError_None;
     Ip6::SockAddr sockaddr;
 
+    // cannot bring up the interface if IEEE 802.15.4 promiscuous mode is enabled
+    VerifyOrExit(otPlatRadioGetPromiscuous() == false, error = kThreadError_Busy);
+    VerifyOrExit(mNetif.IsUp(), error = kThreadError_InvalidState);
+
     // memcpy(&sockaddr.mAddr, &mLinkLocal64.GetAddress(), sizeof(sockaddr.mAddr));
     sockaddr.mPort = kUdpPort;
     SuccessOrExit(error = mSocket.Open(&HandleUdpReceive, this));
@@ -156,7 +161,7 @@ ThreadError Mle::Start(void)
     {
         BecomeChild(kMleAttachAnyPartition);
     }
-    else if (GetChildId(GetRloc16()) == 0)
+    else if (IsActiveRouter(GetRloc16()))
     {
         mMleRouter.BecomeRouter();
     }
@@ -173,18 +178,12 @@ exit:
 
 ThreadError Mle::Stop(void)
 {
-    ThreadError error = kThreadError_None;
-
-    VerifyOrExit(mDeviceState != kDeviceStateDisabled, error = kThreadError_Busy);
-
     SetStateDetached();
     mSocket.Close();
     mNetif.RemoveUnicastAddress(mLinkLocal16);
     mNetif.RemoveUnicastAddress(mMeshLocal16);
     mDeviceState = kDeviceStateDisabled;
-
-exit:
-    return error;
+    return kThreadError_None;
 }
 
 ThreadError Mle::BecomeDetached(void)
@@ -370,21 +369,6 @@ ThreadError Mle::SetMeshLocalPrefix(const uint8_t *aMeshLocalPrefix)
     mNetif.SetStateChangedFlags(OT_IP6_ML_ADDR_CHANGED);
 
     return kThreadError_None;
-}
-
-const uint8_t Mle::GetChildId(uint16_t aRloc16) const
-{
-    return aRloc16 & kMaxChildId;
-}
-
-const uint8_t Mle::GetRouterId(uint16_t aRloc16) const
-{
-    return aRloc16 >> kRouterIdOffset;
-}
-
-const uint16_t Mle::GetRloc16(uint8_t aRouterId) const
-{
-    return static_cast<uint16_t>(aRouterId) << kRouterIdOffset;
 }
 
 const Ip6::Address *Mle::GetLinkLocalAllThreadNodesAddress(void) const
