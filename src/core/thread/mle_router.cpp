@@ -522,6 +522,7 @@ ThreadError MleRouter::SendLinkRequest(Neighbor *aNeighbor)
 
     case kDeviceStateChild:
         SuccessOrExit(error = AppendSourceAddress(*message));
+        SuccessOrExit(error = AppendLeaderData(*message));
         break;
 
     case kDeviceStateRouter:
@@ -1073,7 +1074,7 @@ ThreadError MleRouter::ProcessRouteTlv(const RouteTlv &aRoute)
     bool old;
 
     // check for newer route data
-    if (diff > 0 || mDeviceState == kDeviceStateDetached)
+    if (diff > 0 || mDeviceState == kDeviceStateDetached || mDeviceState == kDeviceStateChild)
     {
         mRouterIdSequence = aRoute.GetRouterIdSequence();
         mRouterIdSequenceLastUpdated = Timer::GetNow();
@@ -1102,6 +1103,76 @@ exit:
     return error;
 }
 
+bool MleRouter::IsSingleton(void)
+{
+    bool rval = true;
+
+    switch (mDeviceState)
+    {
+    case kDeviceStateDisabled:
+    case kDeviceStateDetached:
+        ExitNow(rval = true);
+        break;
+
+    case kDeviceStateChild:
+        ExitNow(rval = ((mDeviceMode & ModeTlv::kModeFFD) == 0));
+        break;
+
+    case kDeviceStateRouter:
+        ExitNow(rval = false);
+        break;
+
+    case kDeviceStateLeader:
+
+        // not a singleton if any other routers exist
+        for (int i = 0; i < kMaxRouterId; i++)
+        {
+            if (i != mRouterId && mRouters[i].mAllocated)
+            {
+                ExitNow(rval = false);
+            }
+        }
+
+        // not a singleton if any children are REEDs
+        for (int i = 0; i < kMaxChildren; i++)
+        {
+            if (mChildren[i].mState == Neighbor::kStateValid && (mChildren[i].mMode & ModeTlv::kModeFFD))
+            {
+                ExitNow(rval = false);
+            }
+        }
+
+        break;
+    }
+
+exit:
+    return rval;
+}
+
+int MleRouter::ComparePartitions(bool aSingletonA, const LeaderDataTlv &aLeaderDataA,
+                                 bool aSingletonB, const LeaderDataTlv &aLeaderDataB)
+{
+    int rval = 0;
+
+    if (aSingletonA != aSingletonB)
+    {
+        ExitNow(rval = aSingletonB ? 1 : -1);
+    }
+
+    if (aLeaderDataA.GetWeighting() != aLeaderDataB.GetWeighting())
+    {
+        ExitNow(rval = aLeaderDataA.GetWeighting() > aLeaderDataB.GetWeighting() ? 1 : -1);
+    }
+
+    if (aLeaderDataA.GetPartitionId() != aLeaderDataB.GetPartitionId())
+    {
+        ExitNow(rval = aLeaderDataA.GetPartitionId() > aLeaderDataB.GetPartitionId() ? 1 : -1);
+    }
+
+exit:
+    return rval;
+}
+
 ThreadError MleRouter::HandleAdvertisement(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     ThreadError error = kThreadError_None;
@@ -1110,7 +1181,7 @@ ThreadError MleRouter::HandleAdvertisement(const Message &aMessage, const Ip6::M
     SourceAddressTlv sourceAddress;
     LeaderDataTlv leaderData;
     RouteTlv route;
-    uint32_t peerParitionId;
+    uint32_t partitionId;
     Router *router;
     Neighbor *neighbor;
     uint8_t routerId;
@@ -1120,6 +1191,7 @@ ThreadError MleRouter::HandleAdvertisement(const Message &aMessage, const Ip6::M
 
     // Source Address
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kSourceAddress, sizeof(sourceAddress), sourceAddress));
+    VerifyOrExit(sourceAddress.IsValid(), error = kThreadError_Parse);
 
     // Remove stale neighbors
     if ((neighbor = GetNeighbor(macAddr)) != NULL &&
@@ -1130,23 +1202,37 @@ ThreadError MleRouter::HandleAdvertisement(const Message &aMessage, const Ip6::M
 
     // Leader Data
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kLeaderData, sizeof(leaderData), leaderData));
+    VerifyOrExit(leaderData.IsValid(), error = kThreadError_Parse);
 
-    peerParitionId = leaderData.GetPartitionId();
+    // Route Data
+    SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kRoute, sizeof(route), route));
+    VerifyOrExit(route.IsValid(), error = kThreadError_Parse);
 
-    if (peerParitionId != mLeaderData.GetPartitionId())
+    partitionId = leaderData.GetPartitionId();
+
+    if (partitionId != mLeaderData.GetPartitionId())
     {
         otLogDebgMle("different partition! %d %d %d %d\n",
                      leaderData.GetWeighting(), peerParitionId,
                      mLeaderData.GetWeighting(), mLeaderData.GetPartitionId());
 
-        if ((GetDeviceState() == kDeviceStateChild) && (memcmp(&mParent.mMacAddr, &macAddr, sizeof(mParent.mMacAddr)) == 0))
+        if (GetDeviceState() == kDeviceStateChild &&
+            memcmp(&mParent.mMacAddr, &macAddr, sizeof(mParent.mMacAddr)) == 0)
         {
             ExitNow();
         }
 
-        if ((leaderData.GetWeighting() > mLeaderData.GetWeighting()) ||
-            (leaderData.GetWeighting() == mLeaderData.GetWeighting() &&
-             peerParitionId > mLeaderData.GetPartitionId()))
+        routerCount = 0;
+
+        for (int i = 0; i < kMaxRouterId; i++)
+        {
+            if (route.IsRouterIdSet(i))
+            {
+                routerCount++;
+            }
+        }
+
+        if (ComparePartitions(routerCount <= 1, leaderData, IsSingleton(), mLeaderData) > 0)
         {
             otLogDebgMle("trying to migrate\n");
             BecomeChild(kMleAttachBetterPartition);
@@ -1166,10 +1252,6 @@ ThreadError MleRouter::HandleAdvertisement(const Message &aMessage, const Ip6::M
     }
 
     VerifyOrExit(IsActiveRouter(sourceAddress.GetRloc16()), ;);
-
-    // Route Data
-    SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kRoute, sizeof(route), route));
-    VerifyOrExit(route.IsValid(), error = kThreadError_Parse);
 
     if (mDeviceMode & ModeTlv::kModeFFD)
     {
@@ -2051,25 +2133,35 @@ Neighbor *MleRouter::GetNeighbor(uint16_t aAddress)
         ExitNow();
     }
 
-    if (mDeviceState == kDeviceStateChild && (rval = Mle::GetNeighbor(aAddress)) != NULL)
+    switch (mDeviceState)
     {
-        ExitNow();
-    }
+    case kDeviceStateDisabled:
+        break;
 
-    for (int i = 0; i < kMaxChildren; i++)
-    {
-        if (mChildren[i].mState == Neighbor::kStateValid && mChildren[i].mValid.mRloc16 == aAddress)
-        {
-            ExitNow(rval = &mChildren[i]);
-        }
-    }
+    case kDeviceStateDetached:
+    case kDeviceStateChild:
+        rval = Mle::GetNeighbor(aAddress);
+        break;
 
-    for (int i = 0; i < kMaxRouterId; i++)
-    {
-        if (mRouters[i].mState == Neighbor::kStateValid && mRouters[i].mValid.mRloc16 == aAddress)
+    case kDeviceStateRouter:
+    case kDeviceStateLeader:
+        for (int i = 0; i < kMaxChildren; i++)
         {
-            ExitNow(rval = &mRouters[i]);
+            if (mChildren[i].mState == Neighbor::kStateValid && mChildren[i].mValid.mRloc16 == aAddress)
+            {
+                ExitNow(rval = &mChildren[i]);
+            }
         }
+
+        for (int i = 0; i < kMaxRouterId; i++)
+        {
+            if (mRouters[i].mState == Neighbor::kStateValid && mRouters[i].mValid.mRloc16 == aAddress)
+            {
+                ExitNow(rval = &mRouters[i]);
+            }
+        }
+
+        break;
     }
 
 exit:
@@ -2080,27 +2172,37 @@ Neighbor *MleRouter::GetNeighbor(const Mac::ExtAddress &aAddress)
 {
     Neighbor *rval = NULL;
 
-    if (mDeviceState == kDeviceStateChild && (rval = Mle::GetNeighbor(aAddress)) != NULL)
+    switch (mDeviceState)
     {
-        ExitNow();
-    }
+    case kDeviceStateDisabled:
+        break;
 
-    for (int i = 0; i < kMaxChildren; i++)
-    {
-        if (mChildren[i].mState == Neighbor::kStateValid &&
-            memcmp(&mChildren[i].mMacAddr, &aAddress, sizeof(mChildren[i].mMacAddr)) == 0)
-        {
-            ExitNow(rval = &mChildren[i]);
-        }
-    }
+    case kDeviceStateDetached:
+    case kDeviceStateChild:
+        rval = Mle::GetNeighbor(aAddress);
+        break;
 
-    for (int i = 0; i < kMaxRouterId; i++)
-    {
-        if (mRouters[i].mState == Neighbor::kStateValid &&
-            memcmp(&mRouters[i].mMacAddr, &aAddress, sizeof(mRouters[i].mMacAddr)) == 0)
+    case kDeviceStateRouter:
+    case kDeviceStateLeader:
+        for (int i = 0; i < kMaxChildren; i++)
         {
-            ExitNow(rval = &mRouters[i]);
+            if (mChildren[i].mState == Neighbor::kStateValid &&
+                memcmp(&mChildren[i].mMacAddr, &aAddress, sizeof(mChildren[i].mMacAddr)) == 0)
+            {
+                ExitNow(rval = &mChildren[i]);
+            }
         }
+
+        for (int i = 0; i < kMaxRouterId; i++)
+        {
+            if (mRouters[i].mState == Neighbor::kStateValid &&
+                memcmp(&mRouters[i].mMacAddr, &aAddress, sizeof(mRouters[i].mMacAddr)) == 0)
+            {
+                ExitNow(rval = &mRouters[i]);
+            }
+        }
+
+        break;
     }
 
 exit:
@@ -2836,16 +2938,25 @@ ThreadError MleRouter::AppendConnectivity(Message &aMessage)
     ConnectivityTlv tlv;
     uint8_t cost;
     uint8_t lqi;
+    uint8_t numChildren = 0;
 
     tlv.Init();
-    tlv.SetMaxChildCount(kMaxChildren);
-
-    // compute number of children
-    tlv.SetChildCount(0);
 
     for (int i = 0; i < kMaxChildren; i++)
     {
-        tlv.SetChildCount(tlv.GetChildCount() + mChildren[i].mState == Neighbor::kStateValid);
+        if (mChildren[i].mState == Neighbor::kStateValid)
+        {
+            numChildren++;
+        }
+    }
+
+    if ((kMaxChildren - numChildren) < (kMaxChildren / 3))
+    {
+        tlv.SetParentPriority(-1);
+    }
+    else
+    {
+        tlv.SetParentPriority(0);
     }
 
     // compute leader cost and link qualities
@@ -2890,8 +3001,15 @@ ThreadError MleRouter::AppendConnectivity(Message &aMessage)
         break;
     }
 
+    tlv.SetActiveRouters(0);
+
     for (int i = 0; i < kMaxRouterId; i++)
     {
+        if (mRouters[i].mAllocated)
+        {
+            tlv.SetActiveRouters(tlv.GetActiveRouters() + 1);
+        }
+
         if (mRouters[i].mState != Neighbor::kStateValid || i == mRouterId)
         {
             continue;
@@ -2922,6 +3040,8 @@ ThreadError MleRouter::AppendConnectivity(Message &aMessage)
 
     tlv.SetLeaderCost((cost < kMaxRouteCost) ? cost : static_cast<uint8_t>(kMaxRouteCost));
     tlv.SetIdSequence(mRouterIdSequence);
+    tlv.SetSedBufferSize(1280);
+    tlv.SetSedDatagramCount(1);
 
     SuccessOrExit(error = aMessage.Append(&tlv, sizeof(tlv)));
 
