@@ -94,6 +94,12 @@ private:
 
     void UpdateChangedProps(void);
 
+    /**
+     * Trampoline for SendDoneTask().
+     */
+    static void SendDoneTask(void *context);
+
+    void SendDoneTask(void);
 
     static void HandleNetifStateChanged(uint32_t flags, void *context);
 
@@ -117,12 +123,14 @@ private:
 
     void SendLastStatus(uint8_t header, spinel_status_t lastStatus);
 
-    void SendPropteryUpdate(uint8_t header, uint8_t command, spinel_prop_key_t key, const uint8_t *value_ptr,
+public:
+
+    ThreadError SendPropertyUpdate(uint8_t header, uint8_t command, spinel_prop_key_t key, const uint8_t *value_ptr,
                             uint16_t value_len);
 
-    void SendPropteryUpdate(uint8_t header, uint8_t command, spinel_prop_key_t key, Message &message);
+    ThreadError SendPropertyUpdate(uint8_t header, uint8_t command, spinel_prop_key_t key, Message &message);
 
-    void SendPropteryUpdate(uint8_t header, uint8_t command, spinel_prop_key_t key, const char *format, ...);
+    ThreadError SendPropertyUpdate(uint8_t header, uint8_t command, spinel_prop_key_t key, const char *format, ...);
 
 private:
 
@@ -308,6 +316,8 @@ private:
     uint16_t mScanPeriod;
 
     spinel_prop_key_t mQueuedGetKey;
+
+    Tasklet mSendDoneTask;
 
     Tasklet mUpdateChangedPropsTask;
 
