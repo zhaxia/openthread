@@ -12,6 +12,7 @@ OpenThread test scripts use the CLI to execute test cases.
 * [childtimeout](#childtimeout)
 * [contextreusedelay](#contextreusedelay)
 * [counter](#counter)
+* [discover](#discover)
 * [eidcache](#eidcache)
 * [extaddr](#extaddr)
 * [extpanid](#extpanid)
@@ -168,6 +169,20 @@ RxTotal: 11
     RxErrOther: 0
 ```
 
+### discover \[channel\]
+
+Perform an MLE Discovery operation.
+
+* channel: The channel to discover on.  If no channel is provided, the discovery will cover all valid channels.
+
+```bash
+> discover
+| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm | LQI |
++---+------------------+------------------+------+------------------+----+-----+-----+
+| 0 | OpenThread       | dead00beef00cafe | ffff | f1d92a82c8d8fe43 | 11 | -20 |   0 |
+Done
+```
+
 ### eidcache
 
 Print the EID-to-RLOC cache entries.
@@ -233,6 +248,16 @@ Bring down the IPv6 interface.
 
 ```bash
 > ifconfig down
+Done
+```
+
+### ifconfig
+
+Show the status of the IPv6 interface.
+
+```bash
+> ifconfig
+down
 Done
 ```
 
@@ -564,9 +589,9 @@ Perform an IEEE 802.15.4 Active Scan.
 
 ```bash
 > scan
-| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm |
-+---+------------------+------------------+------+------------------+----+-----+
-| 0 | OpenThread       | dead00beef00cafe | ffff | f1d92a82c8d8fe43 | 11 | -20 |
+| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm | LQI |
++---+------------------+------------------+------+------------------+----+-----+-----+
+| 0 | OpenThread       | dead00beef00cafe | ffff | f1d92a82c8d8fe43 | 11 | -20 |   0 |
 Done
 ```
 
