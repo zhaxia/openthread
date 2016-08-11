@@ -29,22 +29,51 @@
 /**
  * @file
  * @brief
- *   This file includes the posix platform-specific initializers.
- */
-
-#ifndef PLATFORM_H_
-#define PLATFORM_H_
-
-/**
- * This function performs all platform-specific initialization.
+ *   This file defines the platform diag interface.
  *
  */
-void PlatformInit(int argc, char *argv[]);
+
+#ifndef DIAG_H_
+#define DIAG_H_
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 /**
- * This function performs all platform-specific processing.
+ * @defgroup diag Diag
+ * @ingroup platform
+ *
+ * @brief
+ *   This module includes the platform abstraction for diagnostics features.
+ *
+ * @{
  *
  */
-void PlatformProcessDrivers(void);
 
-#endif  // PLATFORM_H_
+/**
+ * Process the platform specific diagnostics features.
+ *
+ * @param[in] argc  The argument counter of diagnostics command line.
+ * @param[in] argv  The argument vector of diagnostics command line.
+ * @param[out] aOutput  The diagnostics execution result.
+ */
+void otPlatDiagProcess(int argc, char *argv[], char *aOutput);
+
+/**
+ *  Set diagnostics mode.
+ */
+void otPlatDiagModeSet(bool aMode);
+
+/**
+ * Get diagnostics mode.
+ */
+bool otPlatDiagModeGet(void);
+
+#ifdef __cplusplus
+}  // end of extern "C"
+#endif
+
+#endif
