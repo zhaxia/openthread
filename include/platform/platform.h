@@ -29,35 +29,31 @@
 /**
  * @file
  * @brief
- *   This file includes the platform initializers.
+ *   This file defines the platform-specific initializers.
  */
 
 #ifndef PLATFORM_H_
 #define PLATFORM_H_
 
-#include <stdint.h>
-#include <sys/select.h>
-#include <sys/time.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/**
- * This method performs all platform-specific initialization.
- *
- */
-void PlatformInit(void);
 
 /**
- * This method performs all platform-specific processing.
+ * This function performs all platform-specific initialization.
+ *
+ */
+void PlatformInit(int argc, char *argv[]);
+
+/**
+ * This function performs all platform-specific processing.
  *
  */
 void PlatformProcessDrivers(void);
 
 #ifdef __cplusplus
-}  // extern "C"
+}  // end of extern "C"
 #endif
 
 #endif  // PLATFORM_H_
-
