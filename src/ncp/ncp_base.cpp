@@ -131,6 +131,7 @@ const NcpBase::GetPropertyHandlerEntry NcpBase::mGetPropertyHandlerTable[] =
     { SPINEL_PROP_THREAD_RLOC16, &NcpBase::GetPropertyHandler_THREAD_RLOC16 },
     { SPINEL_PROP_THREAD_ROUTER_UPGRADE_THRESHOLD, &NcpBase::GetPropertyHandler_THREAD_ROUTER_UPGRADE_THRESHOLD },
     { SPINEL_PROP_THREAD_CONTEXT_REUSE_DELAY, &NcpBase::GetPropertyHandler_THREAD_CONTEXT_REUSE_DELAY },
+    { SPINEL_PROP_THREAD_NETWORK_ID_TIMEOUT, &NcpBase::GetPropertyHandler_THREAD_NETWORK_ID_TIMEOUT },
 
     { SPINEL_PROP_IPV6_ML_PREFIX, &NcpBase::GetPropertyHandler_IPV6_ML_PREFIX },
     { SPINEL_PROP_IPV6_ML_ADDR, &NcpBase::GetPropertyHandler_IPV6_ML_ADDR },
@@ -192,6 +193,7 @@ const NcpBase::SetPropertyHandlerEntry NcpBase::mSetPropertyHandlerTable[] =
     { SPINEL_PROP_THREAD_LOCAL_LEADER_WEIGHT, &NcpBase::SetPropertyHandler_THREAD_LOCAL_LEADER_WEIGHT },
     { SPINEL_PROP_THREAD_ASSISTING_PORTS, &NcpBase::SetPropertyHandler_THREAD_ASSISTING_PORTS },
     { SPINEL_PROP_THREAD_ALLOW_LOCAL_NET_DATA_CHANGE, &NcpBase::SetPropertyHandler_THREAD_ALLOW_LOCAL_NET_DATA_CHANGE},
+    { SPINEL_PROP_THREAD_NETWORK_ID_TIMEOUT, &NcpBase::SetPropertyHandler_THREAD_NETWORK_ID_TIMEOUT },
 
     { SPINEL_PROP_STREAM_NET_INSECURE, &NcpBase::SetPropertyHandler_STREAM_NET_INSECURE },
     { SPINEL_PROP_STREAM_NET, &NcpBase::SetPropertyHandler_STREAM_NET },
@@ -346,6 +348,7 @@ NcpBase::NcpBase():
     mSupportedChannelMask = kPhySupportedChannelMask;
     mChannelMask = mSupportedChannelMask;
     mScanPeriod = 200; // ms
+    mShouldSignalEndOfScan = false;
     sNcpContext = this;
     mChangedFlags = NCP_PLAT_RESET_REASON;
     mAllowLocalNetworkDataChange = false;
@@ -430,6 +433,8 @@ void NcpBase::HandleActiveScanResult_Jump(otActiveScanResult *result)
 
 void NcpBase::HandleActiveScanResult(otActiveScanResult *result)
 {
+    ThreadError errorCode;
+
     if (result)
     {
         uint8_t flags = static_cast<uint8_t>(result->mVersion << SPINEL_BEACON_THREAD_FLAG_VERSION_SHIFT);
@@ -466,13 +471,21 @@ void NcpBase::HandleActiveScanResult(otActiveScanResult *result)
     {
         // We are finished with the scan, so send out
         // a property update indicating such.
-        SendPropertyUpdate(
+        errorCode = SendPropertyUpdate(
             SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0,
             SPINEL_CMD_PROP_VALUE_IS,
             SPINEL_PROP_MAC_SCAN_STATE,
             SPINEL_DATATYPE_UINT8_S,
             SPINEL_SCAN_STATE_IDLE
         );
+
+        // If we could not send the end of scan inidciator message now (no
+        // buffer space), we set `mShouldSignalEndOfScan` to true to send
+        // it out when buffer space becomes available.
+        if (errorCode != kThreadError_None)
+        {
+            mShouldSignalEndOfScan = true;
+        }
     }
 }
 
@@ -649,6 +662,20 @@ void NcpBase::HandleSpaceAvailableInTxBuffer(void)
             mDroppedReplyTid = SPINEL_GET_NEXT_TID(mDroppedReplyTid);
         }
         while ((mDroppedReplyTidBitSet & (1 << mDroppedReplyTid)) == 0);
+    }
+
+    if (mShouldSignalEndOfScan)
+    {
+        SuccessOrExit(
+            SendPropertyUpdate(
+                SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0,
+                SPINEL_CMD_PROP_VALUE_IS,
+                SPINEL_PROP_MAC_SCAN_STATE,
+                SPINEL_DATATYPE_UINT8_S,
+                SPINEL_SCAN_STATE_IDLE
+        ));
+
+        mShouldSignalEndOfScan = false;
     }
 
     UpdateChangedProps();
@@ -2004,6 +2031,17 @@ ThreadError NcpBase::GetPropertyHandler_THREAD_CONTEXT_REUSE_DELAY(uint8_t heade
            );
 }
 
+ThreadError NcpBase::GetPropertyHandler_THREAD_NETWORK_ID_TIMEOUT(uint8_t header, spinel_prop_key_t key)
+{
+    return SendPropertyUpdate(
+               header,
+               SPINEL_CMD_PROP_VALUE_IS,
+               key,
+               SPINEL_DATATYPE_UINT8_S,
+               otGetNetworkIdTimeout()
+           );
+}
+
 
 // ----------------------------------------------------------------------------
 // MARK: Individual Property Setters
@@ -2238,6 +2276,7 @@ ThreadError NcpBase::SetPropertyHandler_MAC_SCAN_STATE(uint8_t header, spinel_pr
 
         case SPINEL_SCAN_STATE_BEACON:
             gActiveScanContextHack = this;
+            mShouldSignalEndOfScan = false;
             errorCode = otActiveScan(
                             mChannelMask,
                             mScanPeriod,
@@ -3150,6 +3189,33 @@ ThreadError NcpBase::SetPropertyHandler_THREAD_CONTEXT_REUSE_DELAY(uint8_t heade
     if (parsedLength > 0)
     {
         otSetContextIdReuseDelay(i);
+
+        errorCode = HandleCommandPropertyGet(header, key);
+    }
+    else
+    {
+        errorCode = SendLastStatus(header, SPINEL_STATUS_PARSE_ERROR);
+    }
+
+    return errorCode;
+}
+
+ThreadError NcpBase::SetPropertyHandler_THREAD_NETWORK_ID_TIMEOUT(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr, uint16_t value_len)
+{
+    uint8_t i = 0;
+    spinel_ssize_t parsedLength;
+    ThreadError errorCode = kThreadError_None;
+
+    parsedLength = spinel_datatype_unpack(
+                       value_ptr,
+                       value_len,
+                       SPINEL_DATATYPE_UINT8_S,
+                       &i
+                   );
+
+    if (parsedLength > 0)
+    {
+        otSetNetworkIdTimeout(i);
 
         errorCode = HandleCommandPropertyGet(header, key);
     }

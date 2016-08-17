@@ -210,6 +210,16 @@ ThreadError otSetMasterKey(const uint8_t *aKey, uint8_t aKeyLength)
     return sThreadNetif->GetKeyManager().SetMasterKey(aKey, aKeyLength);
 }
 
+int8_t otGetMaxTransmitPower(void)
+{
+    return sThreadNetif->GetMac().GetMaxTransmitPower();
+}
+
+void otSetMaxTransmitPower(int8_t aPower)
+{
+    sThreadNetif->GetMac().SetMaxTransmitPower(aPower);
+}
+
 const otIp6Address *otGetMeshLocalEid(void)
 {
     return sThreadNetif->GetMle().GetMeshLocal64();
@@ -266,7 +276,17 @@ otPanId otGetPanId(void)
 
 ThreadError otSetPanId(otPanId aPanId)
 {
-    return sThreadNetif->GetMac().SetPanId(aPanId);
+    ThreadError error = kThreadError_None;
+
+    // do not allow setting PAN ID to broadcast if Thread is running
+    VerifyOrExit(aPanId != Mac::kPanIdBroadcast ||
+                 sThreadNetif->GetMle().GetDeviceState() != Mle::kDeviceStateDisabled,
+                 error = kThreadError_InvalidState);
+
+    error = sThreadNetif->GetMac().SetPanId(aPanId);
+
+exit:
+    return error;
 }
 
 bool otIsRouterRoleEnabled(void)
@@ -884,6 +904,7 @@ ThreadError otThreadStart(void)
     ThreadError error = kThreadError_None;
 
     VerifyOrExit(mEnabled, error = kThreadError_InvalidState);
+    VerifyOrExit(sThreadNetif->GetMac().GetPanId() != Mac::kPanIdBroadcast, error = kThreadError_InvalidState);
 
     error = sThreadNetif->GetMle().Start();
 
