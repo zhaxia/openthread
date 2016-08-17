@@ -514,19 +514,19 @@ void NcpBase::UpdateChangedProps(void)
     {
         if ((mChangedFlags & NCP_PLAT_RESET_REASON) != 0)
         {
-            mChangedFlags &= ~static_cast<uint32_t>(NCP_PLAT_RESET_REASON);
-            SendLastStatus(
+            SuccessOrExit(SendLastStatus(
                 SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0,
                 ResetReasonToSpinelStatus(otPlatGetResetReason())
-            );
+            ));
+            mChangedFlags &= ~static_cast<uint32_t>(NCP_PLAT_RESET_REASON);
         }
         else if ((mChangedFlags & OT_IP6_LL_ADDR_CHANGED) != 0)
         {
-            mChangedFlags &= ~static_cast<uint32_t>(OT_IP6_LL_ADDR_CHANGED);
-            HandleCommandPropertyGet(
+            SuccessOrExit(HandleCommandPropertyGet(
                 SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0,
                 SPINEL_PROP_IPV6_LL_ADDR
-            );
+            ));
+            mChangedFlags &= ~static_cast<uint32_t>(OT_IP6_LL_ADDR_CHANGED);
         }
         else if ((mChangedFlags & OT_IP6_ML_ADDR_CHANGED) != 0)
         {
@@ -1264,7 +1264,7 @@ ThreadError NcpBase::GetPropertyHandler_PHY_RSSI(uint8_t header, spinel_prop_key
                SPINEL_CMD_PROP_VALUE_IS,
                key,
                SPINEL_DATATYPE_INT8_S,
-               otPlatRadioGetNoiseFloor()
+               otPlatRadioGetRssi()
            );
 }
 
