@@ -227,6 +227,15 @@ ThreadError otThreadStart(void);
 ThreadError otThreadStop(void);
 
 /**
+ * This function indicates whether a node is the only router on the network.
+ *
+ * @retval TRUE   It is the only router in the network.
+ * @retval FALSE  It is a child or is not a single router in the network.
+ *
+ */
+bool otIsSingleton(void);
+
+/**
  * This function pointer is called during an IEEE 802.15.4 Active Scan when an IEEE 802.15.4 Beacon is received or
  * the scan completes.
  *
@@ -497,6 +506,19 @@ const char *otGetNetworkName(void);
  * @sa otGetNetworkName
  */
 ThreadError otSetNetworkName(const char *aNetworkName);
+
+/**
+ * This function gets the next On Mesh Prefix in the Network Data.
+ *
+ * @param[in]     aLocal     TRUE to retrieve from the local Network Data, FALSE for partition's Network Data
+ * @param[inout]  aIterator  A pointer to the Network Data iterator context.
+ * @param[out]    aConfig    A pointer to where the On Mesh Prefix information will be placed.
+ *
+ * @retval kThreadError_None      Successfully found the next On Mesh prefix.
+ * @retval kThreadError_NotFound  No subsequent On Mesh prefix exists in the Thread Network Data.
+ *
+ */
+ThreadError otGetNextOnMeshPrefix(bool aLocal, otNetworkDataIterator *aIterator, otBorderRouterConfig *aConfig);
 
 /**
  * Get the IEEE 802.15.4 PAN ID.
