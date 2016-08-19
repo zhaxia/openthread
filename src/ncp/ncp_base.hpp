@@ -34,6 +34,7 @@
 #define NCP_BASE_HPP_
 
 #include <openthread-types.h>
+#include <openthread-config.h>
 #include <common/message.hpp>
 #include <thread/thread_netif.hpp>
 
@@ -127,14 +128,14 @@ private:
     /**
      * Trampoline for HandleDatagramFromStack().
      */
-    static void HandleDatagramFromStack(otMessage aMessage);
+    static void HandleDatagramFromStack(otMessage aMessage, void *aContext);
 
     void HandleDatagramFromStack(Message &aMessage);
 
     /**
      * Trampoline for HandleActiveScanResult().
      */
-    static void HandleActiveScanResult_Jump(otActiveScanResult *result);
+    static void HandleActiveScanResult_Jump(otActiveScanResult *result, void *aContext);
 
     void HandleActiveScanResult(otActiveScanResult *result);
 
@@ -361,6 +362,11 @@ private:
     ThreadError SetPropertyHandler_CNTR_RESET(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
                                               uint16_t value_len);
 
+#if OPENTHREAD_ENABLE_DIAG
+    ThreadError SetPropertyHandler_NEST_STREAM_MFG(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
+                                                   uint16_t value_len);
+#endif
+
     ThreadError InsertPropertyHandler_IPV6_ADDRESS_TABLE(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
                                                          uint16_t value_len);
     ThreadError InsertPropertyHandler_THREAD_LOCAL_ROUTES(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
@@ -382,6 +388,8 @@ private:
                                                              const uint8_t *value_ptr,
                                                              uint16_t value_len);
     ThreadError RemovePropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr, uint16_t value_len);
+    ThreadError RemovePropertyHandler_THREAD_ACTIVE_ROUTER_IDS(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
+                                              uint16_t value_len);
 
 private:
     enum
