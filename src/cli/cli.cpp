@@ -87,6 +87,7 @@ const struct Command Interpreter::sCommands[] =
     { "rloc16", &ProcessRloc16 },
     { "route", &ProcessRoute },
     { "router", &ProcessRouter },
+    { "routerrole", &ProcessRouterRole },
     { "routerupgradethreshold", &ProcessRouterUpgradeThreshold },
     { "scan", &ProcessScan },
     { "singleton", &ProcessSingleton },
@@ -476,7 +477,7 @@ void Interpreter::ProcessDiscover(int argc, char *argv[])
         scanChannels = 1 << value;
     }
 
-    SuccessOrExit(error = otDiscover(scanChannels, 0, OT_PANID_BROADCAST, &HandleActiveScanResult));
+    SuccessOrExit(error = otDiscover(scanChannels, 0, OT_PANID_BROADCAST, &HandleActiveScanResult, NULL));
     sServer->OutputFormat("| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm | LQI |\r\n");
     sServer->OutputFormat("+---+------------------+------------------+------+------------------+----+-----+-----+\r\n");
 
@@ -1479,6 +1480,38 @@ exit:
     AppendResult(error);
 }
 
+void Interpreter::ProcessRouterRole(int argc, char *argv[])
+{
+    ThreadError error = kThreadError_None;
+
+    if (argc == 0)
+    {
+        if (otIsRouterRoleEnabled())
+        {
+            sServer->OutputFormat("Enabled\r\n");
+        }
+        else
+        {
+            sServer->OutputFormat("Disabled\r\n");
+        }
+    }
+    else if (strcmp(argv[0], "enable") == 0)
+    {
+        otSetRouterRoleEnabled(true);
+    }
+    else if (strcmp(argv[0], "disable") == 0)
+    {
+        otSetRouterRoleEnabled(false);
+    }
+    else
+    {
+        ExitNow(error = kThreadError_Parse);
+    }
+
+exit:
+    AppendResult(error);
+}
+
 void Interpreter::ProcessRouterUpgradeThreshold(int argc, char *argv[])
 {
     ThreadError error = kThreadError_None;
@@ -1510,7 +1543,7 @@ void Interpreter::ProcessScan(int argc, char *argv[])
         scanChannels = 1 << value;
     }
 
-    SuccessOrExit(error = otActiveScan(scanChannels, 0, &HandleActiveScanResult));
+    SuccessOrExit(error = otActiveScan(scanChannels, 0, &HandleActiveScanResult, NULL));
     sServer->OutputFormat("| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm | LQI |\r\n");
     sServer->OutputFormat("+---+------------------+------------------+------+------------------+----+-----+-----+\r\n");
 
@@ -1520,7 +1553,7 @@ exit:
     AppendResult(error);
 }
 
-void Interpreter::HandleActiveScanResult(otActiveScanResult *aResult)
+void Interpreter::HandleActiveScanResult(otActiveScanResult *aResult, void *aContext)
 {
     if (aResult == NULL)
     {
@@ -1543,6 +1576,7 @@ void Interpreter::HandleActiveScanResult(otActiveScanResult *aResult)
     sServer->OutputFormat("| %3d |\r\n", aResult->mLqi);
 
 exit:
+    (void)aContext;
     return;
 }
 
