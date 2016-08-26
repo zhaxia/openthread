@@ -57,6 +57,7 @@ const struct Command Interpreter::sCommands[] =
     { "blacklist", &ProcessBlacklist },
     { "channel", &ProcessChannel },
     { "child", &ProcessChild },
+    { "childmax", &ProcessChildMax },
     { "childtimeout", &ProcessChildTimeout },
     { "contextreusedelay", &ProcessContextIdReuseDelay },
     { "counter", &ProcessCounters },
@@ -334,7 +335,7 @@ void Interpreter::ProcessChild(int argc, char *argv[])
     }
 
     SuccessOrExit(error = ParseLong(argv[0], value));
-    SuccessOrExit(error = otGetChildInfoById(static_cast<uint8_t>(value), &childInfo));
+    SuccessOrExit(error = otGetChildInfoById(static_cast<uint16_t>(value), &childInfo));
 
     sServer->OutputFormat("Child ID: %d\r\n", childInfo.mChildId);
     sServer->OutputFormat("Rloc: %04x\r\n", childInfo.mRloc16);
@@ -375,6 +376,25 @@ void Interpreter::ProcessChild(int argc, char *argv[])
     sServer->OutputFormat("Age: %d\r\n", childInfo.mAge);
     sServer->OutputFormat("LQI: %d\r\n", childInfo.mLinkQualityIn);
     sServer->OutputFormat("RSSI: %d\r\n", childInfo.mAverageRssi);
+
+exit:
+    AppendResult(error);
+}
+
+void Interpreter::ProcessChildMax(int argc, char *argv[])
+{
+    ThreadError error = kThreadError_None;
+    long value;
+
+    if (argc == 0)
+    {
+        sServer->OutputFormat("%d\r\n", otGetMaxAllowedChildren());
+    }
+    else
+    {
+        SuccessOrExit(error = ParseLong(argv[0], value));
+        SuccessOrExit(error = otSetMaxAllowedChildren(static_cast<uint8_t>(value)));
+    }
 
 exit:
     AppendResult(error);
@@ -1550,7 +1570,7 @@ void Interpreter::ProcessRouter(int argc, char *argv[])
     }
 
     SuccessOrExit(error = ParseLong(argv[0], value));
-    SuccessOrExit(error = otGetRouterInfo(static_cast<uint8_t>(value), &routerInfo));
+    SuccessOrExit(error = otGetRouterInfo(static_cast<uint16_t>(value), &routerInfo));
 
     sServer->OutputFormat("Alloc: %d\r\n", routerInfo.mAllocated);
 
@@ -1889,6 +1909,9 @@ void Interpreter::ProcessLine(char *aBuf, uint16_t aBufLength, Server &aServer)
 
     for (cmd = aBuf + 1; (cmd < aBuf + aBufLength) && (cmd != NULL); ++cmd)
     {
+        VerifyOrExit(argc < kMaxArgs,
+                     sServer->OutputFormat("Error: too many args (max %d)\r\n", kMaxArgs));
+
         if (*cmd == ' ' || *cmd == '\r' || *cmd == '\n')
         {
             *cmd = '\0';
