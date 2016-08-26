@@ -94,6 +94,20 @@ ThreadError otSetChannel(uint8_t aChannel)
     return sThreadNetif->GetMac().SetChannel(aChannel);
 }
 
+uint8_t otGetMaxAllowedChildren(void)
+{
+    uint8_t aNumChildren;
+
+    (void)sThreadNetif->GetMle().GetChildren(&aNumChildren);
+
+    return aNumChildren;
+}
+
+ThreadError otSetMaxAllowedChildren(uint8_t aMaxChildren)
+{
+    return sThreadNetif->GetMle().SetMaxAllowedChildren(aMaxChildren);
+}
+
 uint32_t otGetChildTimeout(void)
 {
     return sThreadNetif->GetMle().GetTimeout();
@@ -410,9 +424,7 @@ ThreadError otRemoveExternalRoute(const otIp6Prefix *aPrefix)
 
 ThreadError otSendServerData(void)
 {
-    Ip6::Address destination;
-    sThreadNetif->GetMle().GetLeaderAddress(destination);
-    return sThreadNetif->GetNetworkDataLocal().Register(destination);
+    return sThreadNetif->GetNetworkDataLocal().SendServerDataNotification();
 }
 
 ThreadError otAddUnsecurePort(uint16_t aPort)
