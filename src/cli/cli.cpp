@@ -102,8 +102,6 @@ const struct Command Interpreter::sCommands[] =
 #endif
 };
 
-otNetifAddress Interpreter::sAddress;
-
 static otDEFINE_ALIGNED_VAR(sPingTimerBuf, sizeof(Timer), uint64_t);
 Timer *Interpreter::sPingTimer;
 
@@ -611,14 +609,15 @@ exit:
 ThreadError Interpreter::ProcessIpAddrAdd(int argc, char *argv[])
 {
     ThreadError error;
+    otNetifAddress aAddress;
 
     VerifyOrExit(argc > 0, error = kThreadError_Parse);
 
-    SuccessOrExit(error = otIp6AddressFromString(argv[0], &sAddress.mAddress));
-    sAddress.mPrefixLength = 64;
-    sAddress.mPreferredLifetime = 0xffffffff;
-    sAddress.mValidLifetime = 0xffffffff;
-    error = otAddUnicastAddress(&sAddress);
+    SuccessOrExit(error = otIp6AddressFromString(argv[0], &aAddress.mAddress));
+    aAddress.mPrefixLength = 64;
+    aAddress.mPreferredLifetime = 0xffffffff;
+    aAddress.mValidLifetime = 0xffffffff;
+    error = otAddUnicastAddress(&aAddress);
 
 exit:
     return error;
@@ -632,8 +631,7 @@ ThreadError Interpreter::ProcessIpAddrDel(int argc, char *argv[])
     VerifyOrExit(argc > 0, error = kThreadError_Parse);
 
     SuccessOrExit(error = otIp6AddressFromString(argv[0], &address));
-    VerifyOrExit(otIsIp6AddressEqual(&address, &sAddress.mAddress), error = kThreadError_Parse);
-    error = otRemoveUnicastAddress(&sAddress);
+    error = otRemoveUnicastAddress(&address);
 
 exit:
     return error;
@@ -794,9 +792,9 @@ void Interpreter::ProcessMasterKey(int argc, char *argv[])
     else
     {
         int keyLength;
-        uint8_t key[16];
+        uint8_t key[OT_MASTER_KEY_SIZE];
 
-        VerifyOrExit((keyLength = Hex2Bin(argv[0], key, sizeof(key))) >= 0, error = kThreadError_Parse);
+        VerifyOrExit((keyLength = Hex2Bin(argv[0], key, sizeof(key))) == OT_MASTER_KEY_SIZE, error = kThreadError_Parse);
         SuccessOrExit(error = otSetMasterKey(key, static_cast<uint8_t>(keyLength)));
     }
 
@@ -1989,7 +1987,7 @@ void Interpreter::HandleNetifStateChanged(uint32_t aFlags, void *aContext)
 
         if (!found)
         {
-            otRemoveUnicastAddress(address);
+            otRemoveUnicastAddress(&address->mAddress);
             address->mValidLifetime = 0;
         }
     }
