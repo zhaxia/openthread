@@ -26,99 +26,82 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef IP6_ROUTES_HPP_
-#define IP6_ROUTES_HPP_
-
 /**
  * @file
- *   This file includes definitions for manipulating IPv6 routing tables.
+ *   This file contains definitions for a CLI server on the CONSOLE service.
  */
+
+#ifndef CLI_CONSOLE_HPP_
+#define CLI_CONSOLE_HPP_
 
 #include <openthread-types.h>
-#include <common/message.hpp>
-#include <net/ip6_address.hpp>
+#include <cli/cli_server.hpp>
+#include <cli/cli-console.h>
 
 namespace Thread {
-namespace Ip6 {
+namespace Cli {
 
 /**
- * @addtogroup core-ip6-ip6
- *
- * @{
+ * This class implements the CLI server on top of the CONSOLE platform abstraction.
  *
  */
-
-/**
- * This structure represents an IPv6 route.
- *
- */
-struct Route
-{
-    Address       mPrefix;        ///< The IPv6 prefix.
-    uint8_t       mPrefixLength;  ///< The IPv6 prefix length.
-    int8_t        mInterfaceId;   ///< The interface identifier.
-    struct Route *mNext;          ///< A pointer to the next IPv6 route.
-};
-
-/**
- * This class implements IPv6 route management.
- *
- */
-class Routes
+class Console: public Server
 {
 public:
-    /**
-     * This constructor initializes the object.
-     *
-     * @param[in]  aIp6  A reference to the IPv6 network object.
-     *
-     */
-    Routes(Ip6 &aIp6);
+    Console(void);
 
     /**
-     * This method adds an IPv6 route.
+     * This method delivers raw characters to the client.
      *
-     * @param[in]  aRoute  A reference to the IPv6 route.
+     * @param[in]  aBuf        A pointer to a buffer.
+     * @param[in]  aBufLength  Number of bytes in the buffer.
      *
-     * @retval kThreadError_None  Successfully added the route.
-     * @retval kThreadError_Busy  The route was already added.
+     * @returns The number of bytes placed in the output queue.
      *
      */
-    ThreadError Add(Route &aRoute);
+    int Output(const char *aBuf, uint16_t aBufLength);
 
     /**
-     * This method removes an IPv6 route.
+     * This method delivers formatted output to the client.
      *
-     * @param[in]  aRoute  A reference to the IPv6 route.
+     * @param[in]  aFmt  A pointer to the format string.
+     * @param[in]  ...   A variable list of arguments to format.
      *
-     * @retval kThreadError_None         Successfully removed the route.
-     * @retval kThreadError_InvalidArgs  The route was not added.
+     * @returns The number of bytes placed in the output queue.
      *
      */
-    ThreadError Remove(Route &aRoute);
+    int OutputFormat(const char *fmt, ...);
 
     /**
-     * This method performs source-destination route lookup.
+     * This method sets a callback that is called when console has some output.
      *
-     * @param[in]  aSource       The IPv6 source address.
-     * @param[in]  aDestination  The IPv6 destination address.
-     *
-     * @returns The interface identifier for the best route or -1 if no route is available.
+     * @param[in]  aCallback   A pointer to a callback method.
      *
      */
-    int8_t Lookup(const Address &aSource, const Address &aDestination);
+    void SetOutputCallback(otCliConsoleOutputCallback aCallback);
+
+    /**
+     * This method sets a context that is returned with the callback.
+     *
+     * @param[in]  aContext   A pointer to a user context.
+     *
+     */
+    void SetContext(void *aContext);
+
+    void ReceiveTask(char *aBuf, uint16_t aBufLength);
 
 private:
-    Route *mRoutes;
-    Ip6 &mIp6;
+    enum
+    {
+        kMaxLineLength = 128,
+    };
+
+    otCliConsoleOutputCallback mCallback;
+    void *mContext;
+
 };
 
-/**
- * @}
- *
- */
-
-}  // namespace Ip6
+}  // namespace Cli
 }  // namespace Thread
 
-#endif  // NET_IP6_ROUTES_HPP_
+#endif  // CLI_CONSOLE_HPP_

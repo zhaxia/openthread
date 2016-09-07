@@ -28,62 +28,76 @@
 
 /**
  * @file
- * @brief
- *   This file includes the platform abstraction for true random number generation.
+ *   This file implements the CLI server on the CONSOLE service.
  */
 
-#ifndef RANDOM_H_
-#define RANDOM_H_
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-#include <stdint.h>
+#include <cli/cli.hpp>
+#include <cli/cli_console.hpp>
+#include <common/new.hpp>
 
-#include <openthread-types.h>
+namespace Thread {
+namespace Cli {
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+static Console *sServer;
 
-/**
- * @defgroup random Random
- * @ingroup platform
- *
- * @brief
- *   This module includes the platform abstraction to support critical sections.
- *
- * @{
- *
- */
+static otDEFINE_ALIGNED_VAR(sCliConsoleRaw, sizeof(Console), uint64_t);
 
-/**
- * Get a 32-bit random value.
- *
- * @returns A 32-bit random value.
- *
- */
-uint32_t otPlatRandomGet(void);
+extern "C" void otCliConsoleInit(otCliConsoleOutputCallback aCallback,
+                                 void *aContext)
+{
+    sServer = new(&sCliConsoleRaw) Console;
+    sServer->SetOutputCallback(aCallback);
+    sServer->SetContext(aContext);
+    Interpreter::Init();
+}
 
-/**
- * Get true random stream.
- *
- * @param[in]   aInputLength      The expected size of random values.
- * @param[out]  aOutput           A pointer to the buffer for the generated random stream. The pointer should never be NULL.
- * @param[out]  aOutputLength     A pointer to the generated size of random stream.
- *                                It is supposed to be the same as aInputLength, but maybe less than aInputLength.
- *                                The pointer should never be NULL.
- *
- * @retval kThreadError_None         Generate random successfully.
- * @retval kThreadError_Fail         Generate random fail.
- * @retval kThreadError_InvalidArgs  Invalid args.
- */
-ThreadError otPlatRandomSecureGet(uint16_t aInputLength, uint8_t *aOutput, uint16_t *aOutputLength);
+extern "C" void otCliConsoleInputLine(char *aBuf, uint16_t aBufLength)
+{
+    sServer->ReceiveTask(aBuf, aBufLength);
+}
 
-/**
- * @}
- *
- */
+Console::Console(void)
+    : mCallback(NULL)
+{
 
-#ifdef __cplusplus
-}  // end of extern "C"
-#endif
+}
 
-#endif  // RANDOM_H_
+void Console::SetContext(void *aContext)
+{
+    mContext = aContext;
+}
+
+void Console::SetOutputCallback(otCliConsoleOutputCallback aCallback)
+{
+    mCallback = aCallback;
+}
+
+void Console::ReceiveTask(char *aBuf, uint16_t aBufLength)
+{
+    Interpreter::ProcessLine(aBuf, aBufLength, *this);
+}
+
+int Console::Output(const char *aBuf, uint16_t aBufLength)
+{
+    return mCallback(aBuf, aBufLength, mContext);
+}
+
+int Console::OutputFormat(const char *fmt, ...)
+{
+    char buf[kMaxLineLength];
+    va_list ap;
+
+    va_start(ap, fmt);
+    vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
+
+    return Output(buf, static_cast<uint16_t>(strlen(buf)));
+}
+
+}  // namespace Cli
+}  // namespace Thread

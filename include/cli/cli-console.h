@@ -29,57 +29,51 @@
 /**
  * @file
  * @brief
- *   This file includes the platform abstraction for AES ECB computations.
+ *  This file defines the top-level functions for the OpenThread CLI server.
  */
 
-#ifndef AES_ECB_H_
-#define AES_ECB_H_
+#ifndef CLI_CONSOLE_H_
+#define CLI_CONSOLE_H_
 
 #include <stdint.h>
-
-#include <openthread-types.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @addtogroup core-security
+ * This function pointer is called to notify about Console output.
  *
- * @{
+ * @param[in]  aBuf        A pointer to a buffer with an output.
+ * @param[in]  aBufLength  A length of the output data stored in the buffer.
+ * @param[out] aContext    A user context pointer.
  *
- */
-
-enum
-{
-    otAesBlockSize = 16,  ///< AES-128 block size.
-};
-
-/**
- * This method sets the key.
- *
- * @param[in]  aKey        A pointer to the key.
- * @param[in]  aKeyLength  Length of the key in bytes.
+ * @returns                Number of bytes processed by the callback.
  *
  */
-void otCryptoAesEcbSetKey(const void *aKey, uint16_t aKeyLength);
+typedef int (*otCliConsoleOutputCallback)(const char *aBuf,
+                                          uint16_t aBufLength, void *aContext);
 
 /**
- * This method encrypts data.
+ * Initialize the CLI CONSOLE module.
  *
- * @param[in]   aInput   A pointer to the input.
- * @param[out]  aOutput  A pointer to the output.
+ * @param[in]  aCallback   A callback method called to process console output.
+ * @param[in]  aContext    A user context pointer.
  *
  */
-void otCryptoAesEcbEncrypt(const uint8_t aInput[otAesBlockSize], uint8_t aOutput[otAesBlockSize]);
+void otCliConsoleInit(otCliConsoleOutputCallback aCallback, void *aContext);
 
 /**
- * @}
+ * This method is called to feed in a console input line.
+ *
+ * @param[in]  aBuf        A pointer to a buffer with an input.
+ * @param[in]  aBufLength  A length of the input data stored in the buffer.
  *
  */
+void otCliConsoleInputLine(char *aBuf, uint16_t aBufLength);
 
 #ifdef __cplusplus
-}  // end of extern "C"
+}  // extern "C"
 #endif
 
-#endif  // AES_ECB_H_
+#endif
