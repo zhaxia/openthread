@@ -28,62 +28,74 @@
 
 /**
  * @file
- * @brief
- *   This file includes the platform abstraction for true random number generation.
+ *   This file includes definitions for performing HMAC SHA-256 computations.
  */
 
-#ifndef RANDOM_H_
-#define RANDOM_H_
+#ifndef HMAC_SHA256_HPP_
+#define HMAC_SHA256_HPP_
 
 #include <stdint.h>
 
-#include <openthread-types.h>
+#include <mbedtls/md.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace Thread {
+namespace Crypto {
 
 /**
- * @defgroup random Random
- * @ingroup platform
- *
- * @brief
- *   This module includes the platform abstraction to support critical sections.
+ * @addtogroup core-security
  *
  * @{
  *
  */
 
 /**
- * Get a 32-bit random value.
- *
- * @returns A 32-bit random value.
+ * This class implements HMAC SHA-256 computation.
  *
  */
-uint32_t otPlatRandomGet(void);
+class HmacSha256
+{
+public:
+    enum
+    {
+        kHashSize = 32,  ///< SHA-256 hash size (bytes)
+    };
 
-/**
- * Get true random stream.
- *
- * @param[in]   aInputLength      The expected size of random values.
- * @param[out]  aOutput           A pointer to the buffer for the generated random stream. The pointer should never be NULL.
- * @param[out]  aOutputLength     A pointer to the generated size of random stream.
- *                                It is supposed to be the same as aInputLength, but maybe less than aInputLength.
- *                                The pointer should never be NULL.
- *
- * @retval kThreadError_None         Generate random successfully.
- * @retval kThreadError_Fail         Generate random fail.
- * @retval kThreadError_InvalidArgs  Invalid args.
- */
-ThreadError otPlatRandomSecureGet(uint16_t aInputLength, uint8_t *aOutput, uint16_t *aOutputLength);
+    /**
+     * This method sets the key.
+     *
+     * @param[in]  aKey        A pointer to the key.
+     * @param[in]  aKeyLength  The key length in bytes.
+     *
+     */
+    void Start(const uint8_t *aKey, uint16_t aKeyLength);
+
+    /**
+     * This method inputs bytes into the HMAC computation.
+     *
+     * @param[in]  aBuf        A pointer to the input buffer.
+     * @param[in]  aBufLength  The length of @p aBuf in bytes.
+     *
+     */
+    void Update(const uint8_t *aBuf, uint16_t aBufLength);
+
+    /**
+     * This method finalizes the hash computation.
+     *
+     * @param[out]  aHash  A pointer to the output buffer.
+     *
+     */
+    void Finish(uint8_t aHash[kHashSize]);
+
+private:
+    mbedtls_md_context_t mContext;
+};
 
 /**
  * @}
  *
  */
 
-#ifdef __cplusplus
-}  // end of extern "C"
-#endif
+}  // namespace Crypto
+}  // namespace Thread
 
-#endif  // RANDOM_H_
+#endif  // HMAC_SHA256_HPP_

@@ -28,62 +28,33 @@
 
 /**
  * @file
- * @brief
- *   This file includes the platform abstraction for true random number generation.
+ *   This file implements HMAC SHA-256.
  */
 
-#ifndef RANDOM_H_
-#define RANDOM_H_
+#include <crypto/hmac_sha256.hpp>
 
-#include <stdint.h>
+namespace Thread {
+namespace Crypto {
 
-#include <openthread-types.h>
+void HmacSha256::Start(const uint8_t *aKey, uint16_t aKeyLength)
+{
+    const mbedtls_md_info_t *mdInfo = NULL;
+    mbedtls_md_init(&mContext);
+    mdInfo = mbedtls_md_info_from_type(MBEDTLS_MD_SHA256);
+    mbedtls_md_setup(&mContext, mdInfo, 1);
+    mbedtls_md_hmac_starts(&mContext, aKey, aKeyLength);
+}
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+void HmacSha256::Update(const uint8_t *aBuf, uint16_t aBufLength)
+{
+    mbedtls_md_hmac_update(&mContext, aBuf, aBufLength);
+}
 
-/**
- * @defgroup random Random
- * @ingroup platform
- *
- * @brief
- *   This module includes the platform abstraction to support critical sections.
- *
- * @{
- *
- */
+void HmacSha256::Finish(uint8_t aHash[kHashSize])
+{
+    mbedtls_md_hmac_finish(&mContext, aHash);
+    mbedtls_md_free(&mContext);
+}
 
-/**
- * Get a 32-bit random value.
- *
- * @returns A 32-bit random value.
- *
- */
-uint32_t otPlatRandomGet(void);
-
-/**
- * Get true random stream.
- *
- * @param[in]   aInputLength      The expected size of random values.
- * @param[out]  aOutput           A pointer to the buffer for the generated random stream. The pointer should never be NULL.
- * @param[out]  aOutputLength     A pointer to the generated size of random stream.
- *                                It is supposed to be the same as aInputLength, but maybe less than aInputLength.
- *                                The pointer should never be NULL.
- *
- * @retval kThreadError_None         Generate random successfully.
- * @retval kThreadError_Fail         Generate random fail.
- * @retval kThreadError_InvalidArgs  Invalid args.
- */
-ThreadError otPlatRandomSecureGet(uint16_t aInputLength, uint8_t *aOutput, uint16_t *aOutputLength);
-
-/**
- * @}
- *
- */
-
-#ifdef __cplusplus
-}  // end of extern "C"
-#endif
-
-#endif  // RANDOM_H_
+}  // namespace Crypto
+}  // namespace Thread

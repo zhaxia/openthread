@@ -28,62 +28,24 @@
 
 /**
  * @file
- * @brief
- *   This file includes the platform abstraction for true random number generation.
+ *   This file implements AES-ECB.
  */
 
-#ifndef RANDOM_H_
-#define RANDOM_H_
+#include <crypto/aes_ecb.hpp>
 
-#include <stdint.h>
+namespace Thread {
+namespace Crypto {
 
-#include <openthread-types.h>
+void AesEcb::SetKey(const uint8_t *aKey, uint16_t aKeyLength)
+{
+    mbedtls_aes_init(&mContext);
+    mbedtls_aes_setkey_enc(&mContext, aKey, aKeyLength);
+}
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+void AesEcb::Encrypt(const uint8_t aInput[kBlockSize], uint8_t aOutput[kBlockSize])
+{
+    mbedtls_aes_crypt_ecb(&mContext, MBEDTLS_AES_ENCRYPT, aInput, aOutput);
+}
 
-/**
- * @defgroup random Random
- * @ingroup platform
- *
- * @brief
- *   This module includes the platform abstraction to support critical sections.
- *
- * @{
- *
- */
-
-/**
- * Get a 32-bit random value.
- *
- * @returns A 32-bit random value.
- *
- */
-uint32_t otPlatRandomGet(void);
-
-/**
- * Get true random stream.
- *
- * @param[in]   aInputLength      The expected size of random values.
- * @param[out]  aOutput           A pointer to the buffer for the generated random stream. The pointer should never be NULL.
- * @param[out]  aOutputLength     A pointer to the generated size of random stream.
- *                                It is supposed to be the same as aInputLength, but maybe less than aInputLength.
- *                                The pointer should never be NULL.
- *
- * @retval kThreadError_None         Generate random successfully.
- * @retval kThreadError_Fail         Generate random fail.
- * @retval kThreadError_InvalidArgs  Invalid args.
- */
-ThreadError otPlatRandomSecureGet(uint16_t aInputLength, uint8_t *aOutput, uint16_t *aOutputLength);
-
-/**
- * @}
- *
- */
-
-#ifdef __cplusplus
-}  // end of extern "C"
-#endif
-
-#endif  // RANDOM_H_
+}  // namespace Crypto
+}  // namespace Thread

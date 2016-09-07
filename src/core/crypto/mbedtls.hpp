@@ -28,62 +28,54 @@
 
 /**
  * @file
- * @brief
- *   This file includes the platform abstraction for true random number generation.
+ *   This file includes definitions for using mbedTLS.
  */
 
-#ifndef RANDOM_H_
-#define RANDOM_H_
+#ifndef OT_MBEDTLS_HPP_
+#define OT_MBEDTLS_HPP_
 
 #include <stdint.h>
 
-#include <openthread-types.h>
+#include <mbedtls/memory_buffer_alloc.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace Thread {
+namespace Crypto {
 
 /**
- * @defgroup random Random
- * @ingroup platform
- *
- * @brief
- *   This module includes the platform abstraction to support critical sections.
+ * @addtogroup core-security
  *
  * @{
  *
  */
 
 /**
- * Get a 32-bit random value.
- *
- * @returns A 32-bit random value.
+ * This class implements mbedTLS memory.
  *
  */
-uint32_t otPlatRandomGet(void);
+class MbedTls
+{
+public:
+    enum
+    {
+        kMemorySize = 512,  ///< Size of memory buffer (bytes).
+    };
 
-/**
- * Get true random stream.
- *
- * @param[in]   aInputLength      The expected size of random values.
- * @param[out]  aOutput           A pointer to the buffer for the generated random stream. The pointer should never be NULL.
- * @param[out]  aOutputLength     A pointer to the generated size of random stream.
- *                                It is supposed to be the same as aInputLength, but maybe less than aInputLength.
- *                                The pointer should never be NULL.
- *
- * @retval kThreadError_None         Generate random successfully.
- * @retval kThreadError_Fail         Generate random fail.
- * @retval kThreadError_InvalidArgs  Invalid args.
- */
-ThreadError otPlatRandomSecureGet(uint16_t aInputLength, uint8_t *aOutput, uint16_t *aOutputLength);
+    /**
+     * This constructor initializes the object.
+     *
+     */
+    MbedTls(void);
+
+private:
+    unsigned char mMemory[kMemorySize];
+};
 
 /**
  * @}
  *
  */
 
-#ifdef __cplusplus
-}  // end of extern "C"
-#endif
+}  // namespace Crypto
+}  // namespace Thread
 
-#endif  // RANDOM_H_
+#endif  // OT_MBEDTLS_HPP_

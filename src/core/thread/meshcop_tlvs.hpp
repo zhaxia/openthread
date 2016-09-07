@@ -63,7 +63,7 @@ public:
         kChannel           = OT_MESHCOP_TLV_CHANNEL,           ///< Channel TLV
         kPanId             = OT_MESHCOP_TLV_PANID,             ///< PAN ID TLV
         kExtendedPanId     = OT_MESHCOP_TLV_EXTPANID,          ///< Extended PAN ID TLV
-        kNetworkName       = OT_MESHCOP_TLV_NETWORKNAME,       ///< Newtork Name TLV
+        kNetworkName       = OT_MESHCOP_TLV_NETWORKNAME,       ///< Network Name TLV
         kPSKc              = OT_MESHCOP_TLV_PSKC,              ///< PSKc TLV
         kNetworkMasterKey  = OT_MESHCOP_TLV_MASTERKEY,         ///< Network Master Key TLV
         kMeshLocalPrefix   = OT_MESHCOP_TLV_LOCALPREFIX,       ///< Mesh Local Prefix TLV
@@ -972,7 +972,7 @@ public:
      * This method initializes the TLV.
      *
      */
-    void Init(void) { SetType(kDiscoveryResponse); SetLength(sizeof(*this) - sizeof(Tlv)); mReserved = 0; }
+    void Init(void) { SetType(kDiscoveryResponse); SetLength(sizeof(*this) - sizeof(Tlv)); mFlags = 0; mReserved = 0; }
 
     /**
      * This method indicates whether or not the TLV appears to be well-formed.
