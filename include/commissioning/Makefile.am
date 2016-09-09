@@ -28,27 +28,14 @@
 
 include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
-EXTRA_DIST = README.md .gitignore
-
-bin_PROGRAMS                                                           = \
-    spi-hdlc-adapter                                                     \
+ot_commissioning_headers                = \
+    commissioner.h                        \
+    joiner.h                              \
     $(NULL)
 
-spi_hdlc_adapter_CPPFLAGS                                              = \
-    $(NULL)
+ot_commissioningdir = $(includedir)/commissioning
+dist_ot_commissioning_HEADERS = $(ot_commissioning_headers)
 
-spi_hdlc_adapter_LDADD                                                 = \
-    $(NULL)
-
-spi_hdlc_adapter_LDFLAGS                                               = \
-    $(NULL)
-
-spi_hdlc_adapter_SOURCES                                               = \
-    spi-hdlc-adapter.c                                                   \
-    $(NULL)
-
-if OPENTHREAD_BUILD_COVERAGE
-CLEANFILES                                                             = $(wildcard *.gcda *.gcno)
-endif # OPENTHREAD_BUILD_COVERAGE
+install-headers: install-includeHEADERS
 
 include $(abs_top_nlbuild_autotools_dir)/automake/post.am
