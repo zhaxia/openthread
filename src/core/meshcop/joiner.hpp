@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -103,6 +103,7 @@ private:
     void SendJoinerFinalize(void);
 
     uint8_t mJoinerRouterChannel;
+    uint16_t mJoinerRouterPanId;
     Mac::ExtAddress mJoinerRouter;
     Message *mTransmitMessage;
     Ip6::UdpSocket mSocket;

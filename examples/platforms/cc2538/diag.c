@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -30,6 +30,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/time.h>
+
+#include <openthread-config.h>
+#include <openthread.h>
 
 #include <platform/alarm.h>
 #include "platform-cc2538.h"

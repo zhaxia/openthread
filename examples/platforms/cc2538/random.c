@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -103,11 +103,11 @@ ThreadError otPlatRandomSecureGet(uint16_t aInputLength, uint8_t *aOutput, uint1
 
     VerifyOrExit(aOutput && aOutputLength, error = kThreadError_InvalidArgs);
 
-    if (otPlatRadioIsEnabled())
+    if (otPlatRadioIsEnabled(sInstance))
     {
         channel = 11 + (HWREG(RFCORE_XREG_FREQCTRL) - 11) / 5;
-        otPlatRadioSleep();
-        otPlatRadioDisable();
+        otPlatRadioSleep(sInstance);
+        otPlatRadioDisable(sInstance);
     }
 
     generateRandom(aInputLength, aOutput, aOutputLength);
@@ -115,8 +115,8 @@ ThreadError otPlatRandomSecureGet(uint16_t aInputLength, uint8_t *aOutput, uint1
     if (channel)
     {
         cc2538RadioInit();
-        otPlatRadioEnable();
-        otPlatRadioReceive(channel);
+        otPlatRadioEnable(sInstance);
+        otPlatRadioReceive(sInstance, channel);
     }
 
 exit:

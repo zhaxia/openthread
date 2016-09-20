@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,8 @@
 #include <sys/select.h>
 #include <sys/time.h>
 
+#include <openthread-types.h>
+
 /**
  * Unique node ID.
  *
@@ -68,8 +70,10 @@ void posixAlarmUpdateTimeout(struct timeval *tv);
 /**
  * This function performs alarm driver processing.
  *
+ * @param[in]  aInstance  The OpenThread instance structure.
+ *
  */
-void posixAlarmProcess(void);
+void posixAlarmProcess(otInstance *aInstance);
 
 /**
  * This function initializes the radio service used by OpenThread.
@@ -90,8 +94,10 @@ void posixRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd)
 /**
  * This function performs radio driver processing.
  *
+ * @param[in]  aInstance  The OpenThread instance structure.
+ *
  */
-void posixRadioProcess(void);
+void posixRadioProcess(otInstance *aInstance);
 
 /**
  * This function initializes the random number service used by OpenThread.

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -45,8 +45,11 @@
 namespace Thread {
 namespace NetworkData {
 
-NetworkData::NetworkData(ThreadNetif &aThreadNetif):
+NetworkData::NetworkData(ThreadNetif &aThreadNetif, bool aLocal):
     mMle(aThreadNetif.GetMle()),
+    mLocal(aLocal),
+    mLastAttemptWait(false),
+    mLastAttempt(0),
     mSocket(aThreadNetif.GetIp6().mUdp)
 {
     mLength = 0;
@@ -585,14 +588,17 @@ ThreadError NetworkData::Remove(uint8_t *aStart, uint8_t aLength)
     return kThreadError_None;
 }
 
-ThreadError NetworkData::SendServerDataNotification(bool aLocal, uint16_t aRloc16)
+ThreadError NetworkData::SendServerDataNotification(uint16_t aRloc16)
 {
     ThreadError error = kThreadError_None;
     Coap::Header header;
-    Message *message;
+    Message *message = NULL;
     Ip6::MessageInfo messageInfo;
 
-    mSocket.Open(&HandleUdpReceive, this);
+    VerifyOrExit(!mLastAttemptWait || static_cast<int32_t>(Timer::GetNow() - mLastAttempt) < kDataResubmitDelay,
+                 error = kThreadError_Already);
+
+    mSocket.Open(&NetworkData::HandleUdpReceive, this);
 
     for (size_t i = 0; i < sizeof(mCoapToken); i++)
     {
@@ -600,19 +606,17 @@ ThreadError NetworkData::SendServerDataNotification(bool aLocal, uint16_t aRloc1
     }
 
     header.Init();
-    header.SetVersion(1);
     header.SetType(Coap::Header::kTypeConfirmable);
     header.SetCode(Coap::Header::kCodePost);
     header.SetMessageId(++mCoapMessageId);
     header.SetToken(mCoapToken, sizeof(mCoapToken));
     header.AppendUriPathOptions(OPENTHREAD_URI_SERVER_DATA);
-    header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
 
     VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
 
-    if (aLocal)
+    if (mLocal)
     {
         ThreadTlv tlv;
         tlv.SetType(ThreadTlv::kThreadNetworkData);
@@ -634,6 +638,12 @@ ThreadError NetworkData::SendServerDataNotification(bool aLocal, uint16_t aRloc1
     messageInfo.mPeerPort = kCoapUdpPort;
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
 
+    if (mLocal)
+    {
+        mLastAttempt = Timer::GetNow();
+        mLastAttemptWait = true;
+    }
+
     otLogInfoNetData("Sent server data notification\n");
 
 exit:
@@ -644,6 +654,11 @@ exit:
     }
 
     return error;
+}
+
+void NetworkData::ClearResubmitDelayTimer(void)
+{
+    mLastAttemptWait = false;
 }
 
 void NetworkData::HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo)

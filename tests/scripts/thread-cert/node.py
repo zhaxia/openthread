@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-#  Copyright (c) 2016, Nest Labs, Inc.
+#  Copyright (c) 2016, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -98,11 +98,8 @@ class Node:
 
     def __del__(self):
         if self.pexpect.isalive():
-            if self.node_type == 'sim':
-                self.send_command('exit')
-                self.pexpect.expect(pexpect.EOF)
-            elif self.node_type == 'ncp-sim':
-                self.pexpect.sendcontrol('c');
+            self.send_command('exit')
+            self.pexpect.expect(pexpect.EOF)
             self.pexpect.terminate()
             self.pexpect.close(force=True)
 
@@ -324,6 +321,16 @@ class Node:
     def register_netdata(self):
         self.send_command('netdataregister')
         self.pexpect.expect('Done')
+
+    def energy_scan(self, mask, count, period, scan_duration, ipaddr):
+        cmd = 'commissioner energy ' + str(mask) + ' ' + str(count) + ' ' + str(period) + ' ' + str(scan_duration) + ' ' + ipaddr
+        self.send_command(cmd)
+        self.pexpect.expect('Energy:', timeout=8)
+
+    def panid_query(self, panid, mask, ipaddr):
+        cmd = 'commissioner panid ' + str(panid) + ' ' + str(mask) + ' ' + ipaddr
+        self.send_command(cmd)
+        self.pexpect.expect('Conflict:', timeout=8)
 
     def scan(self):
         self.send_command('scan')

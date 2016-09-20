@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2016, Nest Labs, Inc.
+#  Copyright (c) 2016, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ lib_LIBRARIES                             = libopenthread-cc2538.a
 
 libopenthread_cc2538_a_CPPFLAGS           = \
     -I$(top_srcdir)/include                 \
+    -I$(top_srcdir)/examples/platforms      \
     -I$(top_srcdir)/src/core                \
     $(NULL)
 

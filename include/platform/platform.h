@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,6 @@
 extern "C" {
 #endif
 
-
 /**
  * This function performs all platform-specific initialization.
  *
@@ -49,8 +48,10 @@ void PlatformInit(int argc, char *argv[]);
 /**
  * This function performs all platform-specific processing.
  *
+ * @param[in]  aInstance  The OpenThread instance structure.
+ *
  */
-void PlatformProcessDrivers(void);
+void PlatformProcessDrivers(otInstance *aInstance);
 
 #ifdef __cplusplus
 }  // end of extern "C"

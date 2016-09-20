@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,7 @@ namespace MeshCoP {
 
 Dtls::Dtls(ThreadNetif &aNetif):
     mStarted(false),
-    mTimer(aNetif.GetIp6().mTimerScheduler, &HandleTimer, this),
+    mTimer(aNetif.GetIp6().mTimerScheduler, &Dtls::HandleTimer, this),
     mTimerIntermediate(0),
     mTimerSet(false),
     mNetif(aNetif)
@@ -102,8 +102,8 @@ ThreadError Dtls::Start(bool aClient, ReceiveHandler aReceiveHandler, SendHandle
     rval = mbedtls_ssl_setup(&mSsl, &mConf);
     VerifyOrExit(rval == 0, ;);
 
-    mbedtls_ssl_set_bio(&mSsl, this, &HandleMbedtlsTransmit, HandleMbedtlsReceive, NULL);
-    mbedtls_ssl_set_timer_cb(&mSsl, this, &HandleMbedtlsSetTimer, HandleMbedtlsGetTimer);
+    mbedtls_ssl_set_bio(&mSsl, this, &Dtls::HandleMbedtlsTransmit, HandleMbedtlsReceive, NULL);
+    mbedtls_ssl_set_timer_cb(&mSsl, this, &Dtls::HandleMbedtlsSetTimer, HandleMbedtlsGetTimer);
 
     rval = mbedtls_ssl_set_hs_ecjpake_password(&mSsl, mPsk, mPskLength);
     VerifyOrExit(rval == 0, ;);
@@ -178,7 +178,7 @@ int Dtls::HandleMbedtlsTransmit(void *aContext, const unsigned char *aBuf, size_
 int Dtls::HandleMbedtlsTransmit(const unsigned char *aBuf, size_t aLength)
 {
     ThreadError error;
-    int rval;
+    int rval = 0;
 
     otLogInfoMeshCoP("Dtls::HandleMbedtlsTransmit\r\n");
 
@@ -221,8 +221,8 @@ int Dtls::HandleMbedtlsReceive(unsigned char *aBuf, size_t aLength)
     }
 
     rval = (int)mReceiveMessage->Read(mReceiveOffset, (uint16_t)aLength, aBuf);
-    mReceiveOffset += rval;
-    mReceiveLength -= rval;
+    mReceiveOffset += static_cast<uint16_t>(rval);
+    mReceiveLength -= static_cast<uint16_t>(rval);
 
 exit:
     return rval;
@@ -342,6 +342,11 @@ void Dtls::Process(void)
         }
         else
         {
+            if (rval == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY)
+            {
+                mbedtls_ssl_close_notify(&mSsl);
+            }
+
             mbedtls_ssl_session_reset(&mSsl);
             mbedtls_ssl_set_hs_ecjpake_password(&mSsl, mPsk, mPskLength);
             break;
@@ -351,7 +356,7 @@ void Dtls::Process(void)
 
 ThreadError Dtls::MapError(int rval)
 {
-    ThreadError error;
+    ThreadError error = kThreadError_None;
 
     switch (rval)
     {
@@ -364,15 +369,7 @@ ThreadError Dtls::MapError(int rval)
         break;
 
     default:
-        if (rval >= 0)
-        {
-            error = kThreadError_None;
-        }
-        else
-        {
-            assert(false);
-        }
-
+        assert(rval >= 0);
         break;
     }
 

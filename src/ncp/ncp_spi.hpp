@@ -1,5 +1,5 @@
 /*
- *    Copyright (c) 2016, Nest Labs, Inc.
+ *    Copyright (c) 2016, The OpenThread Authors.
  *    All rights reserved.
  *
  *    Redistribution and use in source and binary forms, with or without
@@ -43,7 +43,13 @@ class NcpSpi : public NcpBase
     typedef NcpBase super_t;
 
 public:
-    NcpSpi();
+    /**
+     * Constructor
+     *
+     * @param[in]  aInstance  The OpenThread instance structure.
+     *
+     */
+    NcpSpi(otInstance *aInstance);
 
     virtual ThreadError OutboundFrameBegin(void);
     virtual ThreadError OutboundFrameFeedData(const uint8_t *frame, uint16_t frameLength);

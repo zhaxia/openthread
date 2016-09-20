@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -211,6 +211,30 @@ public:
     ThreadError ActiveScan(uint32_t aScanChannels, uint16_t aScanDuration, ActiveScanHandler aHandler, void *aContext);
 
     /**
+     * This function pointer is called during an "Energy Scan" when the result for a channel is ready or the scan
+     * completes.
+     *
+     * @param[in]  aResult   A valid pointer to the energy scan result information or NULL when the energy scan completes.
+     * @param[in]  aContext  A pointer to arbitrary context information.
+     *
+     */
+    typedef void (*EnergyScanHandler)(void *aContext, otEnergyScanResult *aResult);
+
+    /**
+     * This function starts an IEEE 802.15.4 Energy Scan.
+     *
+     * @param[in]  aScanChannels     A bit vector indicating on which channels to perform energy scan.
+     * @param[in]  aScanDuration     The time in milliseconds to spend scanning each channel.
+     * @param[in]  aHandler          A pointer to a function called to pass on scan result or indicate scan completion.
+     * @param[in]  aContext          A pointer to arbitrary context information.
+     *
+     * @retval kThreadError_None  Accepted the Energy Scan request.
+     * @retval kThreadError_Busy  Could not start the energy scan.
+     *
+     */
+    ThreadError EnergyScan(uint32_t aScanChannels, uint16_t aScanDuration, EnergyScanHandler aHandler, void *aContext);
+
+    /**
      * This method indicates whether or not rx-on-when-idle is enabled.
      *
      * @retval TRUE   If rx-on-when-idle is enabled.
@@ -265,6 +289,17 @@ public:
      *
      */
     ThreadError SetExtAddress(const ExtAddress &aExtAddress);
+
+    /**
+     * This method gets the Hash Mac Address.
+     *
+     * Hash Mac Address is the first 64 bits of the result of computing SHA-256 over factory-assigned
+     * IEEE EUI-64, which is used as IEEE 802.15.4 Extended Address during commissioning process.
+     *
+     * @param[out]  aHashMacAddress    A pointer to where the Hash Mac Address is placed.
+     *
+     */
+    void GetHashMacAddress(ExtAddress *aHashMacAddress);
 
     /**
      * This method returns the IEEE 802.15.4 Short Address.
@@ -417,6 +452,12 @@ public:
     bool IsActiveScanInProgress(void);
 
     /**
+     * This method returns if an energy scan is in progress.
+     *
+     */
+    bool IsEnergyScanInProgress(void);
+
+    /**
      * This function registers a callback to provide received raw IEEE 802.15.4 frames.
      *
      * @param[in]  aPcapCallback     A pointer to a function that is called when receiving an IEEE 802.15.4 link frame or
@@ -462,6 +503,18 @@ public:
     LinkQualityInfo &GetNoiseFloor(void) { return mNoiseFloor; }
 
 private:
+    enum ScanType
+    {
+        kScanTypeNone = 0,
+        kScanTypeActive,
+        kScanTypeEnergy,
+    };
+
+    enum
+    {
+        kInvalidRssiValue = 127
+    };
+
     void GenerateNonce(const ExtAddress &aAddress, uint32_t aFrameCounter, uint8_t aSecurityLevel, uint8_t *aNonce);
     void NextOperation(void);
     void ProcessTransmitSecurity(Frame &aFrame);
@@ -471,19 +524,23 @@ private:
     void SendBeaconRequest(Frame &aFrame);
     void SendBeacon(Frame &aFrame);
     void StartBackoff(void);
+    void StartEnergyScan(void);
     ThreadError HandleMacCommand(Frame &aFrame);
 
-    static void HandleAckTimer(void *aContext);
-    void HandleAckTimer(void);
+    static void HandleMacTimer(void *aContext);
+    void HandleMacTimer(void);
     static void HandleBeginTransmit(void *aContext);
     void HandleBeginTransmit(void);
     static void HandleReceiveTimer(void *aContext);
     void HandleReceiveTimer(void);
+    static void HandleEnergyScanSampleRssi(void *aContext);
+    void HandleEnergyScanSampleRssi(void);
 
     void StartCsmaBackoff(void);
+    ThreadError Scan(ScanType aType, uint32_t aScanChannels, uint16_t aScanDuration, void *aContext);
 
     Tasklet mBeginTransmit;
-    Timer mAckTimer;
+    Timer mMacTimer;
     Timer mBackoffTimer;
     Timer mReceiveTimer;
 
@@ -507,6 +564,7 @@ private:
     {
         kStateIdle = 0,
         kStateActiveScan,
+        kStateEnergyScan,
         kStateTransmitBeacon,
         kStateTransmitData,
     };
@@ -519,12 +577,18 @@ private:
     uint8_t mTransmitAttempts;
     bool mTransmitBeacon;
 
-    bool mActiveScanRequest;
+    ScanType mPendingScanRequest;
     uint8_t mScanChannel;
     uint32_t mScanChannels;
     uint16_t mScanDuration;
-    ActiveScanHandler mActiveScanHandler;
-    void *mActiveScanContext;
+    void *mScanContext;
+    union
+    {
+        ActiveScanHandler mActiveScanHandler;
+        EnergyScanHandler mEnergyScanHandler;
+    };
+    int8_t mEnergyScanCurrentMaxRssi;
+    Tasklet mEnergyScanSampleRssiTask;
 
     LinkQualityInfo mNoiseFloor;
 

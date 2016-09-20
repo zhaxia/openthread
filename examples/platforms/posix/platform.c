@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -71,7 +71,7 @@ void PlatformInit(int argc, char *argv[])
     otPlatUartEnable();
 }
 
-void PlatformProcessDrivers(void)
+void PlatformProcessDrivers(otInstance *aInstance)
 {
     fd_set read_fds;
     fd_set write_fds;
@@ -88,7 +88,7 @@ void PlatformProcessDrivers(void)
     posixRadioUpdateFdSet(&read_fds, &write_fds, &max_fd);
     posixAlarmUpdateTimeout(&timeout);
 
-    if (!otAreTaskletsPending())
+    if (!otAreTaskletsPending(aInstance))
     {
         rval = select(max_fd + 1, &read_fds, &write_fds, &error_fds, &timeout);
 
@@ -100,7 +100,7 @@ void PlatformProcessDrivers(void)
     }
 
     posixUartProcess();
-    posixRadioProcess();
-    posixAlarmProcess();
+    posixRadioProcess(aInstance);
+    posixAlarmProcess(aInstance);
 }
 
