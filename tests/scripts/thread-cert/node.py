@@ -86,9 +86,10 @@ class Node:
         cmd += ' %d' % nodeid
         print ("%s" % cmd)
 
-        self.pexpect = pexpect.spawn(cmd, timeout=2)
+        self.pexpect = pexpect.spawn(cmd, timeout=4)
         time.sleep(0.1)
         self.pexpect.expect('spinel-cli >')
+        self.debug(int(os.getenv('DEBUG', '0')))
  
     def __init_soc(self, nodeid):
         """ Initialize a System-on-a-chip node connected via UART. """
@@ -352,13 +353,19 @@ class Node:
             cmd += ' ' + str(size)
 
         self.send_command(cmd)
-        responders = {}
-        while len(responders) < num_responses:
-            i = self.pexpect.expect(['from (\S+):'])
-            if i == 0:
-                responders[self.pexpect.match.groups()[0]] = 1
-        self.pexpect.expect('\n')
-        return responders
+        
+        result = True
+        try:
+            responders = {}
+            while len(responders) < num_responses:
+                i = self.pexpect.expect(['from (\S+):'])
+                if i == 0:
+                    responders[self.pexpect.match.groups()[0]] = 1
+            self.pexpect.expect('\n')
+        except pexpect.TIMEOUT:
+            result = False
+
+        return result
 
 if __name__ == '__main__':
     unittest.main()
