@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,12 @@
 #ifndef THREAD_NETIF_HPP_
 #define THREAD_NETIF_HPP_
 
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
 #include <openthread-config.h>
+#endif
+
 #include <openthread-types.h>
 
 #include <mac/mac.hpp>
@@ -43,12 +48,14 @@
 #include <net/ip6_filter.hpp>
 #include <net/netif.hpp>
 #include <thread/address_resolver.hpp>
+#include <thread/energy_scan_server.hpp>
 #include <thread/key_manager.hpp>
 #include <thread/meshcop_dataset_manager.hpp>
 #include <thread/mesh_forwarder.hpp>
 #include <thread/mle.hpp>
 #include <thread/mle_router.hpp>
 #include <thread/network_data_local.hpp>
+#include <thread/panid_query_server.hpp>
 
 #if OPENTHREAD_ENABLE_COMMISSIONER
 #include <meshcop/commissioner.hpp>
@@ -271,6 +278,8 @@ private:
 
     MeshCoP::JoinerRouter mJoinerRouter;
     MeshCoP::Leader mLeader;
+    PanIdQueryServer mPanIdQuery;
+    EnergyScanServer mEnergyScan;
 };
 
 /**

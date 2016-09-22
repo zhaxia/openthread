@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-#  Copyright (c) 2016, Nest Labs, Inc.
+#  Copyright (c) 2016, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -66,6 +66,10 @@ set -x
     COVERAGE=1 CFLAGS=-m32 CXXFLAGS=-m32 LDFLAGS=-m32 BuildJobs=10 make -f examples/Makefile-posix check || die
 }
 
+[ $BUILD_TARGET != posix-ncp-spi ] || {
+    BuildJobs=10 make -f examples/Makefile-posix check configure_OPTIONS="--enable-ncp=spi --with-examples=posix --with-platform-info=POSIX" || die
+}
+
 [ $BUILD_TARGET != posix-ncp ] || {
-    NODE_TYPE=ncp-sim BuildJobs=10 make -f examples/Makefile-posix check || die
+    COVERAGE=1 NODE_TYPE=ncp-sim BuildJobs=10 make -f examples/Makefile-posix check || die
 }

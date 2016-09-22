@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -83,6 +83,10 @@ public:
         kPendingTimestamp        = OT_MESHCOP_TLV_PENDINGTIMESTAMP,  ///< Pending Timestamp TLV
         kDelayTimer              = OT_MESHCOP_TLV_DELAYTIMER,        ///< Delay Timer TLV
         kChannelMask             = OT_MESHCOP_TLV_CHANNELMASK,       ///< Channel Mask TLV
+        kCount                   = OT_MESHCOP_TLV_COUNT,             ///< Count TLV
+        kPeriod                  = OT_MESHCOP_TLV_PERIOD,            ///< Period TLV
+        kScanDuration            = OT_MESHCOP_TLV_SCAN_DURATION,     ///< Scan Duration TLV
+        kEnergyList              = OT_MESHCOP_TLV_ENERGY_LIST,       ///< Energy List TLV
         kDiscoveryRequest        = OT_MESHCOP_TLV_DISCOVERYREQUEST,  ///< Discovery Request TLV
         kDiscoveryResponse       = OT_MESHCOP_TLV_DISCOVERYRESPONSE, ///< Discovery Response TLV
     };
@@ -133,6 +137,14 @@ public:
      *
      */
     uint8_t *GetValue() { return reinterpret_cast<uint8_t *>(this) + sizeof(Tlv); }
+
+    /**
+     * This method returns a pointer to the Value.
+     *
+     * @returns A pointer to the value.
+     *
+     */
+    const uint8_t *GetValue() const { return reinterpret_cast<const uint8_t *>(this) + sizeof(Tlv); }
 
     /**
      * This method returns a pointer to the next TLV.
@@ -644,6 +656,7 @@ private:
  * This class implements the Commissioner ID TLV generation and parsing.
  *
  */
+OT_TOOL_PACKED_BEGIN
 class CommissionerIdTlv: public Tlv
 {
 public:
@@ -1249,7 +1262,7 @@ public:
      */
     bool IsChannelSet(uint8_t aChannel) const {
         const uint8_t *mask = reinterpret_cast<const uint8_t *>(this) + sizeof(*this);
-        return (aChannel < (mMaskLength * 8)) ? mask[aChannel / 8] & (1 << (aChannel % 8)) : false;
+        return (aChannel < (mMaskLength * 8)) ? ((mask[aChannel / 8] & (1 << (aChannel % 8))) != 0) : false;
     }
 
 private:
@@ -1270,6 +1283,159 @@ public:
      *
      */
     void Init(void) { SetType(kChannelMask); SetLength(sizeof(*this) - sizeof(Tlv)); }
+
+    /**
+     * This method indicates whether or not the TLV appears to be well-formed.
+     *
+     * @retval TRUE   If the TLV appears to be well-formed.
+     * @retval FALSE  If the TLV does not appear to be well-formed.
+     *
+     */
+    bool IsValid(void) const { return true; }
+} OT_TOOL_PACKED_END;
+
+/**
+ * This class implements Count TLV generation and parsing.
+ *
+ */
+OT_TOOL_PACKED_BEGIN
+class CountTlv: public Tlv
+{
+public:
+    /**
+     * This method initializes the TLV.
+     *
+     */
+    void Init(void) { SetType(kCount); SetLength(sizeof(*this) - sizeof(Tlv)); }
+
+    /**
+     * This method indicates whether or not the TLV appears to be well-formed.
+     *
+     * @retval TRUE   If the TLV appears to be well-formed.
+     * @retval FALSE  If the TLV does not appear to be well-formed.
+     *
+     */
+    bool IsValid(void) const { return GetLength() == sizeof(*this) - sizeof(Tlv); }
+
+    /**
+     * This method returns the Count value.
+     *
+     * @returns The Count value.
+     *
+     */
+    uint8_t GetCount(void) const { return mCount; }
+
+    /**
+     * This method sets the Count value.
+     *
+     * @param[in]  aCount  The Count value.
+     *
+     */
+    void SetCount(uint8_t aCount) { mCount = aCount; }
+
+private:
+    uint8_t mCount;
+} OT_TOOL_PACKED_END;
+
+/**
+ * This class implements Period TLV generation and parsing.
+ *
+ */
+OT_TOOL_PACKED_BEGIN
+class PeriodTlv: public Tlv
+{
+public:
+    /**
+     * This method initializes the TLV.
+     *
+     */
+    void Init(void) { SetType(kPeriod); SetLength(sizeof(*this) - sizeof(Tlv)); }
+
+    /**
+     * This method indicates whether or not the TLV appears to be well-formed.
+     *
+     * @retval TRUE   If the TLV appears to be well-formed.
+     * @retval FALSE  If the TLV does not appear to be well-formed.
+     *
+     */
+    bool IsValid(void) const { return GetLength() == sizeof(*this) - sizeof(Tlv); }
+
+    /**
+     * This method returns the Period value.
+     *
+     * @returns The Period value.
+     *
+     */
+    uint16_t GetPeriod(void) const { return HostSwap16(mPeriod); }
+
+    /**
+     * This method sets the Period value.
+     *
+     * @param[in]  aPeriod  The Period value.
+     *
+     */
+    void SetPeriod(uint16_t aPeriod) { mPeriod = HostSwap16(aPeriod); }
+
+private:
+    uint16_t mPeriod;
+} OT_TOOL_PACKED_END;
+
+/**
+ * This class implements Scan Duration TLV generation and parsing.
+ *
+ */
+OT_TOOL_PACKED_BEGIN
+class ScanDurationTlv: public Tlv
+{
+public:
+    /**
+     * This method initializes the TLV.
+     *
+     */
+    void Init(void) { SetType(kScanDuration); SetLength(sizeof(*this) - sizeof(Tlv)); }
+
+    /**
+     * This method indicates whether or not the TLV appears to be well-formed.
+     *
+     * @retval TRUE   If the TLV appears to be well-formed.
+     * @retval FALSE  If the TLV does not appear to be well-formed.
+     *
+     */
+    bool IsValid(void) const { return GetLength() == sizeof(*this) - sizeof(Tlv); }
+
+    /**
+     * This method returns the Scan Duration value.
+     *
+     * @returns The Scan Duration value.
+     *
+     */
+    uint16_t GetScanDuration(void) const { return HostSwap16(mScanDuration); }
+
+    /**
+     * This method sets the Scan Duration value.
+     *
+     * @param[in]  aScanDuration  The Scan Duration value.
+     *
+     */
+    void SetScanDuration(uint16_t aScanDuration) { mScanDuration = HostSwap16(aScanDuration); }
+
+private:
+    uint16_t mScanDuration;
+} OT_TOOL_PACKED_END;
+
+/**
+ * This class implements Energy List TLV generation and parsing.
+ *
+ */
+OT_TOOL_PACKED_BEGIN
+class EnergyListTlv: public Tlv
+{
+public:
+    /**
+     * This method initializes the TLV.
+     *
+     */
+    void Init(void) { SetType(kEnergyList); SetLength(sizeof(*this) - sizeof(Tlv)); }
 
     /**
      * This method indicates whether or not the TLV appears to be well-formed.
@@ -1329,7 +1495,7 @@ public:
      * @retval FALSE  If the Joiner flag is not set.
      *
      */
-    bool IsJoiner(void) { return mFlags & kJoinerMask; }
+    bool IsJoiner(void) { return (mFlags & kJoinerMask) != 0; }
 
     /**
      * This method sets the Joiner flag.
@@ -1406,7 +1572,7 @@ public:
      * @retval FALSE  If the Native Commissioner flag is not set.
      *
      */
-    bool IsNativeCommissioner(void) { return mFlags & kNativeMask; }
+    bool IsNativeCommissioner(void) { return (mFlags & kNativeMask) != 0; }
 
     /**
      * This method sets the Native Commissioner flag.

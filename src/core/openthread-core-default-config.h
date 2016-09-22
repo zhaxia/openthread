@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -164,6 +164,16 @@
 #ifndef OPENTHREAD_CONFIG_JOINER_UDP_PORT
 #define OPENTHREAD_CONFIG_JOINER_UDP_PORT                   1000
 #endif  // OPENTHREAD_CONFIG_JOINER_UDP_PORT
+
+/**
+ * @def OPENTHREAD_CONFIG_MAX_ENERGY_RESULTS
+ *
+ * The maximum number of Energy List entries.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MAX_ENERGY_RESULTS
+#define OPENTHREAD_CONFIG_MAX_ENERGY_RESULTS                64
+#endif  // OPENTHREAD_CONFIG_MAX_ENERGY_RESULTS
 
 /**
  * @def OPENTHREAD_CONFIG_LOG_LEVEL

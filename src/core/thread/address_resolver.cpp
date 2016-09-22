@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -50,12 +50,12 @@ using Thread::Encoding::BigEndian::HostSwap16;
 namespace Thread {
 
 AddressResolver::AddressResolver(ThreadNetif &aThreadNetif) :
-    mAddressError(OPENTHREAD_URI_ADDRESS_ERROR, &HandleAddressError, this),
-    mAddressQuery(OPENTHREAD_URI_ADDRESS_QUERY, &HandleAddressQuery, this),
-    mAddressNotification(OPENTHREAD_URI_ADDRESS_NOTIFY, &HandleAddressNotification, this),
-    mIcmpHandler(&HandleDstUnreach, this),
+    mAddressError(OPENTHREAD_URI_ADDRESS_ERROR, &AddressResolver::HandleAddressError, this),
+    mAddressQuery(OPENTHREAD_URI_ADDRESS_QUERY, &AddressResolver::HandleAddressQuery, this),
+    mAddressNotification(OPENTHREAD_URI_ADDRESS_NOTIFY, &AddressResolver::HandleAddressNotification, this),
+    mIcmpHandler(&AddressResolver::HandleDstUnreach, this),
     mSocket(aThreadNetif.GetIp6().mUdp),
-    mTimer(aThreadNetif.GetIp6().mTimerScheduler, &HandleTimer, this),
+    mTimer(aThreadNetif.GetIp6().mTimerScheduler, &AddressResolver::HandleTimer, this),
     mMeshForwarder(aThreadNetif.GetMeshForwarder()),
     mCoapServer(aThreadNetif.GetCoapServer()),
     mMle(aThreadNetif.GetMle()),
@@ -179,13 +179,11 @@ ThreadError AddressResolver::SendAddressQuery(const Ip6::Address &aEid)
     VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
     header.Init();
-    header.SetVersion(1);
     header.SetType(Coap::Header::kTypeNonConfirmable);
     header.SetCode(Coap::Header::kCodePost);
     header.SetMessageId(++mCoapMessageId);
     header.SetToken(NULL, 0);
     header.AppendUriPathOptions(OPENTHREAD_URI_ADDRESS_QUERY);
-    header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
 
@@ -320,7 +318,6 @@ void AddressResolver::SendAddressNotificationResponse(const Coap::Header &aReque
     VerifyOrExit((message = mCoapServer.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
     responseHeader.Init();
-    responseHeader.SetVersion(1);
     responseHeader.SetType(Coap::Header::kTypeAcknowledgment);
     responseHeader.SetCode(Coap::Header::kCodeChanged);
     responseHeader.SetMessageId(aRequestHeader.GetMessageId());
@@ -358,13 +355,11 @@ ThreadError AddressResolver::SendAddressError(const ThreadTargetTlv &aTarget, co
     VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
     header.Init();
-    header.SetVersion(1);
     header.SetType(Coap::Header::kTypeConfirmable);
     header.SetCode(Coap::Header::kCodePost);
     header.SetMessageId(++mCoapMessageId);
     header.SetToken(NULL, 0);
     header.AppendUriPathOptions(OPENTHREAD_URI_ADDRESS_ERROR);
-    header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
     SuccessOrExit(error = message->Append(&aTarget, sizeof(aTarget)));
@@ -410,7 +405,6 @@ void AddressResolver::SendAddressErrorResponse(const Coap::Header &aRequestHeade
     VerifyOrExit((message = mCoapServer.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
     responseHeader.Init();
-    responseHeader.SetVersion(1);
     responseHeader.SetType(Coap::Header::kTypeAcknowledgment);
     responseHeader.SetCode(Coap::Header::kCodeChanged);
     responseHeader.SetMessageId(aRequestHeader.GetMessageId());
@@ -589,13 +583,11 @@ void AddressResolver::SendAddressQueryResponse(const ThreadTargetTlv &aTargetTlv
     VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
     header.Init();
-    header.SetVersion(1);
     header.SetType(Coap::Header::kTypeConfirmable);
     header.SetCode(Coap::Header::kCodePost);
     header.SetMessageId(++mCoapMessageId);
     header.SetToken(NULL, 0);
     header.AppendUriPathOptions(OPENTHREAD_URI_ADDRESS_NOTIFY);
-    header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
 

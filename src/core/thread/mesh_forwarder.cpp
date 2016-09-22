@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -51,11 +51,11 @@ using Thread::Encoding::BigEndian::HostSwap16;
 namespace Thread {
 
 MeshForwarder::MeshForwarder(ThreadNetif &aThreadNetif):
-    mMacReceiver(&HandleReceivedFrame, this),
-    mMacSender(&HandleFrameRequest, &HandleSentFrame, this),
-    mDiscoverTimer(aThreadNetif.GetIp6().mTimerScheduler, &HandleDiscoverTimer, this),
-    mPollTimer(aThreadNetif.GetIp6().mTimerScheduler, &HandlePollTimer, this),
-    mReassemblyTimer(aThreadNetif.GetIp6().mTimerScheduler, &HandleReassemblyTimer, this),
+    mMacReceiver(&MeshForwarder::HandleReceivedFrame, this),
+    mMacSender(&MeshForwarder::HandleFrameRequest, &MeshForwarder::HandleSentFrame, this),
+    mDiscoverTimer(aThreadNetif.GetIp6().mTimerScheduler, &MeshForwarder::HandleDiscoverTimer, this),
+    mPollTimer(aThreadNetif.GetIp6().mTimerScheduler, &MeshForwarder::HandlePollTimer, this),
+    mReassemblyTimer(aThreadNetif.GetIp6().mTimerScheduler, &MeshForwarder::HandleReassemblyTimer, this),
     mScheduleTransmissionTask(aThreadNetif.GetIp6().mTaskletScheduler, ScheduleTransmissionTask, this),
     mNetif(aThreadNetif),
     mAddressResolver(aThreadNetif.GetAddressResolver()),
@@ -515,7 +515,7 @@ ThreadError MeshForwarder::UpdateIp6Route(Message &aMessage)
             if (mMle.IsRoutingLocator(ip6Header.GetDestination()))
             {
                 rloc16 = HostSwap16(ip6Header.GetDestination().mFields.m16[7]);
-                VerifyOrExit(mMle.GetRouterId(rloc16) < Mle::kMaxRouterId, error = kThreadError_Drop);
+                VerifyOrExit(mMle.IsRouterIdValid(mMle.GetRouterId(rloc16)), error = kThreadError_Drop);
                 mMeshDest = rloc16;
             }
             else if ((neighbor = mMle.GetNeighbor(ip6Header.GetDestination())) != NULL)
@@ -850,7 +850,7 @@ ThreadError MeshForwarder::SendFragment(Message &aMessage, Mac::Frame &aFrame)
     if (aMessage.IsLinkSecurityEnabled())
     {
         fcf |= Mac::Frame::kFcfSecurityEnabled;
-        secCtl = aMessage.IsJoinerEntrust() ? Mac::Frame::kKeyIdMode0 : Mac::Frame::kKeyIdMode1;
+        secCtl = static_cast<uint8_t>(aMessage.IsJoinerEntrust() ? Mac::Frame::kKeyIdMode0 : Mac::Frame::kKeyIdMode1);
         secCtl |= Mac::Frame::kSecEncMic32;
     }
 
@@ -911,7 +911,7 @@ ThreadError MeshForwarder::SendFragment(Message &aMessage, Mac::Frame &aFrame)
     {
         hcLength = mLowpan.Compress(aMessage, meshSource, meshDest, payload);
         assert(hcLength > 0);
-        headerLength += hcLength;
+        headerLength += static_cast<uint8_t>(hcLength);
 
         payloadLength = aMessage.GetLength() - aMessage.GetOffset();
 
@@ -1309,7 +1309,7 @@ void MeshForwarder::HandleFragment(uint8_t *aFrame, uint8_t aFrameLength,
         VerifyOrExit(headerLength > 0, error = kThreadError_NoBufs);
 
         aFrame += headerLength;
-        aFrameLength -= headerLength;
+        aFrameLength -= static_cast<uint8_t>(headerLength);
 
         VerifyOrExit(message->SetLength(datagramLength) == kThreadError_None, error = kThreadError_NoBufs);
         datagramLength = HostSwap16(datagramLength - sizeof(Ip6::Header));
@@ -1422,7 +1422,7 @@ void MeshForwarder::HandleLowpanHC(uint8_t *aFrame, uint8_t aFrameLength,
     VerifyOrExit(headerLength > 0, error = kThreadError_Drop);
 
     aFrame += headerLength;
-    aFrameLength -= headerLength;
+    aFrameLength -= static_cast<uint8_t>(headerLength);
 
     SuccessOrExit(error = message->SetLength(message->GetLength() + aFrameLength));
 

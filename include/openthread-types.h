@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -37,11 +37,17 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+
 #include <platform/toolchain.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/**
+ * This type represents the OpenThread instance structure.
+ */
+typedef struct otInstance otInstance;
 
 /**
  * This enumeration represents error codes used throughout OpenThread.
@@ -210,6 +216,12 @@ enum
 };
 
 /**
+  * This type represents Channel Mask Page 0.
+  *
+  */
+typedef uint32_t otChannelMaskPage0;
+
+/**
  * This type represents the IEEE 802.15.4 PAN ID.
  *
  */
@@ -237,7 +249,8 @@ typedef struct otExtAddress
 /**
  * This structure represents an IPv6 address.
  */
-typedef OT_TOOL_PACKED_BEGIN struct otIp6Address
+OT_TOOL_PACKED_BEGIN
+struct otIp6Address
 {
     union
     {
@@ -245,7 +258,9 @@ typedef OT_TOOL_PACKED_BEGIN struct otIp6Address
         uint16_t m16[OT_IP6_ADDRESS_SIZE / sizeof(uint16_t)];  ///< 16-bit fields
         uint32_t m32[OT_IP6_ADDRESS_SIZE / sizeof(uint32_t)];  ///< 32-bit fields
     } mFields;                                                 ///< IPv6 accessor fields
-} OT_TOOL_PACKED_END otIp6Address;
+} OT_TOOL_PACKED_END;
+
+typedef struct otIp6Address otIp6Address;
 
 /**
  * @addtogroup commands  Commands
@@ -334,29 +349,31 @@ typedef struct otEnergyScanResult
  */
 typedef struct otOperationalDataset
 {
-    uint64_t          mActiveTimestamp;            ///< Active Timestamp
-    uint64_t          mPendingTimestamp;           ///< Pending Timestamp
-    otMasterKey       mMasterKey;                  ///< Network Master Key
-    otNetworkName     mNetworkName;                ///< Network Name
-    otExtendedPanId   mExtendedPanId;              ///< Extended PAN ID
-    otMeshLocalPrefix mMeshLocalPrefix;            ///< Mesh Local Prefix
-    uint32_t          mDelay;                      ///< Delay Timer
-    otPanId           mPanId;                      ///< PAN ID
-    uint16_t          mChannel;                    ///< Channel
-    otPSKc            mPSKc;                       ///< PSKc
-    otSecurityPolicy  mSecurityPolicy;             ///< Security Policy
+    uint64_t             mActiveTimestamp;            ///< Active Timestamp
+    uint64_t             mPendingTimestamp;           ///< Pending Timestamp
+    otMasterKey          mMasterKey;                  ///< Network Master Key
+    otNetworkName        mNetworkName;                ///< Network Name
+    otExtendedPanId      mExtendedPanId;              ///< Extended PAN ID
+    otMeshLocalPrefix    mMeshLocalPrefix;            ///< Mesh Local Prefix
+    uint32_t             mDelay;                      ///< Delay Timer
+    otPanId              mPanId;                      ///< PAN ID
+    uint16_t             mChannel;                    ///< Channel
+    otPSKc               mPSKc;                       ///< PSKc
+    otSecurityPolicy     mSecurityPolicy;             ///< Security Policy
+    otChannelMaskPage0   mChannelMaskPage0;           ///< Channel Mask Page 0
 
-    bool              mIsActiveTimestampSet : 1;   ///< TRUE if Active Timestamp is set, FALSE otherwise.
-    bool              mIsPendingTimestampSet : 1;  ///< TRUE if Pending Timestamp is set, FALSE otherwise.
-    bool              mIsMasterKeySet : 1;         ///< TRUE if Network Master Key is set, FALSE otherwise.
-    bool              mIsNetworkNameSet : 1;       ///< TRUE if Network Name is set, FALSE otherwise.
-    bool              mIsExtendedPanIdSet : 1;     ///< TRUE if Extended PAN ID is set, FALSE otherwise.
-    bool              mIsMeshLocalPrefixSet : 1;   ///< TRUE if Mesh Local Prefix is set, FALSE otherwise.
-    bool              mIsDelaySet : 1;             ///< TRUE if Delay Timer is set, FALSE otherwise.
-    bool              mIsPanIdSet : 1;             ///< TRUE if PAN ID is set, FALSE otherwise.
-    bool              mIsChannelSet : 1;           ///< TRUE if Channel is set, FALSE otherwise.
-    bool              mIsPSKcSet : 1;              ///< TRUE if PSKc is set, FALSE otherwise.
-    bool              mIsSecurityPolicySet : 1;    ///< TRUE if Security Policy is set, FALSE otherwise.
+    bool                 mIsActiveTimestampSet : 1;   ///< TRUE if Active Timestamp is set, FALSE otherwise.
+    bool                 mIsPendingTimestampSet : 1;  ///< TRUE if Pending Timestamp is set, FALSE otherwise.
+    bool                 mIsMasterKeySet : 1;         ///< TRUE if Network Master Key is set, FALSE otherwise.
+    bool                 mIsNetworkNameSet : 1;       ///< TRUE if Network Name is set, FALSE otherwise.
+    bool                 mIsExtendedPanIdSet : 1;     ///< TRUE if Extended PAN ID is set, FALSE otherwise.
+    bool                 mIsMeshLocalPrefixSet : 1;   ///< TRUE if Mesh Local Prefix is set, FALSE otherwise.
+    bool                 mIsDelaySet : 1;             ///< TRUE if Delay Timer is set, FALSE otherwise.
+    bool                 mIsPanIdSet : 1;             ///< TRUE if PAN ID is set, FALSE otherwise.
+    bool                 mIsChannelSet : 1;           ///< TRUE if Channel is set, FALSE otherwise.
+    bool                 mIsPSKcSet : 1;              ///< TRUE if PSKc is set, FALSE otherwise.
+    bool                 mIsSecurityPolicySet : 1;    ///< TRUE if Security Policy is set, FALSE otherwise.
+    bool                 mIsChannelMaskPage0Set : 1;  ///< TRUE if Channel Mask Page 0 is set, FALSE otherwise.
 } otOperationalDataset;
 
 /**
@@ -387,6 +404,10 @@ typedef enum otMeshcopTlvType
     OT_MESHCOP_TLV_PENDINGTIMESTAMP   = 51,   ///< meshcop Pending Timestamp TLV
     OT_MESHCOP_TLV_DELAYTIMER         = 52,   ///< meshcop Delay Timer TLV
     OT_MESHCOP_TLV_CHANNELMASK        = 53,   ///< meshcop Channel Mask TLV
+    OT_MESHCOP_TLV_COUNT              = 54,   ///< meshcop Count TLV
+    OT_MESHCOP_TLV_PERIOD             = 55,   ///< meshcop Period TLV
+    OT_MESHCOP_TLV_SCAN_DURATION      = 56,   ///< meshcop Scan Duration TLV
+    OT_MESHCOP_TLV_ENERGY_LIST        = 57,   ///< meshcop Energy List TLV
     OT_MESHCOP_TLV_DISCOVERYREQUEST   = 128,  ///< meshcop Discovery Request TLV
     OT_MESHCOP_TLV_DISCOVERYRESPONSE  = 129,  ///< meshcop Discovery Response TLV
 } otMeshcopTlvType;

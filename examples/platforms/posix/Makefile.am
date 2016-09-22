@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2016, Nest Labs, Inc.
+#  Copyright (c) 2016, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -32,6 +32,7 @@ lib_LIBRARIES                             = libopenthread-posix.a
 
 libopenthread_posix_a_CPPFLAGS            = \
     -I$(top_srcdir)/include                 \
+    -I$(top_srcdir)/examples/platforms      \
     -I$(top_srcdir)/src/core                \
     -D_GNU_SOURCE                           \
     $(NULL)
@@ -44,6 +45,7 @@ libopenthread_posix_a_SOURCES             = \
     radio.c                                 \
     random.c                                \
     uart.c                                  \
+    flash.c                                 \
     $(NULL)
 
 if OPENTHREAD_ENABLE_DIAG

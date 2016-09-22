@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -67,7 +67,7 @@ ThreadError TaskletScheduler::Post(Tasklet &aTasklet)
     {
         mHead = &aTasklet;
         mTail = &aTasklet;
-        otSignalTaskletPending();
+        otSignalTaskletPending(NULL);
     }
     else
     {

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,8 @@
 
 #include <stdint.h>
 
+#include <openthread-types.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -57,11 +59,12 @@ typedef int (*otCliConsoleOutputCallback)(const char *aBuf,
 /**
  * Initialize the CLI CONSOLE module.
  *
+ * @param[in]  aInstance   The OpenThread instance structure.
  * @param[in]  aCallback   A callback method called to process console output.
  * @param[in]  aContext    A user context pointer.
  *
  */
-void otCliConsoleInit(otCliConsoleOutputCallback aCallback, void *aContext);
+void otCliConsoleInit(otInstance *aInstance, otCliConsoleOutputCallback aCallback, void *aContext);
 
 /**
  * This method is called to feed in a console input line.

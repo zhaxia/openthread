@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -31,15 +31,21 @@
  *   This file implements the Joiner role.
  */
 
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
+
 #include <assert.h>
 #include <stdio.h>
-
-#include <openthread-config.h>
 
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <common/logging.hpp>
 #include <meshcop/joiner.hpp>
+#include <platform/radio.h>
+#include <platform/random.h>
 #include <thread/thread_netif.hpp>
 #include <thread/thread_uris.hpp>
 
@@ -51,8 +57,8 @@ namespace MeshCoP {
 Joiner::Joiner(ThreadNetif &aNetif):
     mTransmitMessage(NULL),
     mSocket(aNetif.GetIp6().mUdp),
-    mTransmitTask(aNetif.GetIp6().mTaskletScheduler, &HandleUdpTransmit, this),
-    mJoinerEntrust(OPENTHREAD_URI_JOINER_ENTRUST, &HandleJoinerEntrust, this),
+    mTransmitTask(aNetif.GetIp6().mTaskletScheduler, &Joiner::HandleUdpTransmit, this),
+    mJoinerEntrust(OPENTHREAD_URI_JOINER_ENTRUST, &Joiner::HandleJoinerEntrust, this),
     mNetif(aNetif)
 {
     mNetif.GetCoapServer().AddResource(mJoinerEntrust);
@@ -61,10 +67,16 @@ Joiner::Joiner(ThreadNetif &aNetif):
 ThreadError Joiner::Start(const char *aPSKd)
 {
     ThreadError error;
+    Mac::ExtAddress extAddress;
+
+    // use extended address based on factory-assigned IEEE EUI-64
+    mNetif.GetMac().GetHashMacAddress(&extAddress);
+    mNetif.GetMac().SetExtAddress(extAddress);
+    mNetif.GetMle().UpdateLinkLocalAddress();
 
     SuccessOrExit(error = mNetif.GetDtls().SetPsk(reinterpret_cast<const uint8_t *>(aPSKd),
                                                   static_cast<uint8_t>(strlen(aPSKd))));
-    SuccessOrExit(error = mNetif.GetMle().Discover(0, 0, OT_PANID_BROADCAST, HandleDiscoverResult, this));
+    SuccessOrExit(error = mNetif.GetMle().Discover(0, 0, mNetif.GetMac().GetPanId(), HandleDiscoverResult, this));
 
 exit:
     return error;
@@ -87,6 +99,7 @@ void Joiner::HandleDiscoverResult(otActiveScanResult *aResult)
 {
     if (aResult != NULL)
     {
+        mJoinerRouterPanId = aResult->mPanId;
         mJoinerRouterChannel = aResult->mChannel;
         memcpy(&mJoinerRouter, &aResult->mExtAddress, sizeof(mJoinerRouter));
     }
@@ -95,9 +108,10 @@ void Joiner::HandleDiscoverResult(otActiveScanResult *aResult)
         // open UDP port
         Ip6::SockAddr sockaddr;
         sockaddr.mPort = 1000;
-        mSocket.Open(&HandleUdpReceive, this);
+        mSocket.Open(&Joiner::HandleUdpReceive, this);
         mSocket.Bind(sockaddr);
 
+        mNetif.GetMac().SetPanId(mJoinerRouterPanId);
         mNetif.GetMac().SetChannel(mJoinerRouterChannel);
         mNetif.GetIp6Filter().AddUnsecurePort(sockaddr.mPort);
 
@@ -206,13 +220,11 @@ void Joiner::SendJoinerFinalize(void)
     uint8_t *cur = buf;
 
     header.Init();
-    header.SetVersion(1);
     header.SetType(Coap::Header::kTypeConfirmable);
     header.SetCode(Coap::Header::kCodePost);
     header.SetMessageId(0);
     header.SetToken(NULL, 0);
     header.AppendUriPathOptions(OPENTHREAD_URI_JOINER_FINALIZE);
-    header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
     memcpy(cur, header.GetBytes(), header.GetLength());
     cur += header.GetLength();
@@ -264,6 +276,7 @@ void Joiner::HandleJoinerEntrust(Coap::Header &aHeader, Message &aMessage, const
     ExtendedPanIdTlv extendedPanId;
     NetworkNameTlv networkName;
     ActiveTimestampTlv activeTimestamp;
+    Mac::ExtAddress extAddress;
 
     VerifyOrExit(aHeader.GetType() == Coap::Header::kTypeConfirmable &&
                  aHeader.GetCode() == Coap::Header::kCodePost, error = kThreadError_Drop);
@@ -291,6 +304,15 @@ void Joiner::HandleJoinerEntrust(Coap::Header &aHeader, Message &aMessage, const
     mNetif.GetMac().SetNetworkName(networkName.GetNetworkName());
 
     otLogInfoMeshCoP("join success!\r\n");
+
+    // configure a random Extended Address
+    for (size_t i = 0; i < sizeof(extAddress); i++)
+    {
+        extAddress.m8[i] = static_cast<uint8_t>(otPlatRandomGet());
+    }
+
+    mNetif.GetMac().SetExtAddress(extAddress);
+    mNetif.GetMle().UpdateLinkLocalAddress();
 
 exit:
     (void)aMessageInfo;

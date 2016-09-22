@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -100,7 +100,7 @@ uint16_t Ip6::ComputePseudoheaderChecksum(const Address &src, const Address &dst
     uint16_t checksum;
 
     checksum = Ip6::UpdateChecksum(0, length);
-    checksum = Ip6::UpdateChecksum(checksum, proto);
+    checksum = Ip6::UpdateChecksum(checksum, static_cast<uint16_t>(proto));
     checksum = UpdateChecksum(checksum, src);
     checksum = UpdateChecksum(checksum, dst);
 
@@ -323,7 +323,7 @@ ThreadError Ip6::HandleExtensionHeaders(Message &message, uint8_t &nextHeader, b
             ExitNow();
         }
 
-        nextHeader = extensionHeader.GetNextHeader();
+        nextHeader = static_cast<uint8_t>(extensionHeader.GetNextHeader());
     }
 
 exit:
@@ -347,18 +347,19 @@ exit:
     return error;
 }
 
-void Ip6::ProcessReceiveCallback(const Message &aMessage, const MessageInfo &messageInfo, uint8_t aIpProto)
+ThreadError Ip6::ProcessReceiveCallback(const Message &aMessage, const MessageInfo &messageInfo, uint8_t aIpProto)
 {
     ThreadError error = kThreadError_None;
     Message *messageCopy = NULL;
 
-    VerifyOrExit(mReceiveIp6DatagramCallback != NULL, ;);
+    VerifyOrExit(mReceiveIp6DatagramCallback != NULL, error = kThreadError_NoRoute);
 
     if (mIsReceiveIp6FilterEnabled)
     {
         // do not pass messages sent to/from an RLOC
         VerifyOrExit(!messageInfo.GetSockAddr().IsRoutingLocator() &&
-                     !messageInfo.GetPeerAddr().IsRoutingLocator(), ;);
+                     !messageInfo.GetPeerAddr().IsRoutingLocator(),
+                     error = kThreadError_NoRoute);
 
         switch (aIpProto)
         {
@@ -369,7 +370,7 @@ void Ip6::ProcessReceiveCallback(const Message &aMessage, const MessageInfo &mes
                 aMessage.Read(aMessage.GetOffset(), sizeof(icmp), &icmp);
 
                 // do not pass ICMP Echo Request messages
-                VerifyOrExit(icmp.GetType() != IcmpHeader::kTypeEchoRequest, ;);
+                VerifyOrExit(icmp.GetType() != IcmpHeader::kTypeEchoRequest, error = kThreadError_NoRoute);
             }
 
             break;
@@ -381,7 +382,7 @@ void Ip6::ProcessReceiveCallback(const Message &aMessage, const MessageInfo &mes
                 aMessage.Read(aMessage.GetOffset(), sizeof(udp), &udp);
 
                 // do not pass MLE messages
-                VerifyOrExit(udp.GetDestinationPort() != Mle::kUdpPort, ;);
+                VerifyOrExit(udp.GetDestinationPort() != Mle::kUdpPort, error = kThreadError_NoRoute);
             }
 
             break;
@@ -405,6 +406,8 @@ exit:
     {
         messageCopy->Free();
     }
+
+    return error;
 }
 
 ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interfaceId, const void *linkMessageInfo,
@@ -485,7 +488,7 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
     message.SetOffset(sizeof(header));
 
     // process IPv6 Extension Headers
-    nextHeader = header.GetNextHeader();
+    nextHeader = static_cast<uint8_t>(header.GetNextHeader());
     SuccessOrExit(error = HandleExtensionHeaders(message, nextHeader, receive));
 
     // process IPv6 Payload
@@ -515,7 +518,7 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
         {
             hopLimit = header.GetHopLimit();
             message.Write(Header::GetHopLimitOffset(), Header::GetHopLimitSize(), &hopLimit);
-            SuccessOrExit(error = ForwardMessage(message, messageInfo));
+            SuccessOrExit(error = ForwardMessage(message, messageInfo, nextHeader));
         }
     }
 
@@ -529,7 +532,7 @@ exit:
     return error;
 }
 
-ThreadError Ip6::ForwardMessage(Message &message, MessageInfo &messageInfo)
+ThreadError Ip6::ForwardMessage(Message &message, MessageInfo &messageInfo, uint8_t ipproto)
 {
     ThreadError error = kThreadError_None;
     int8_t interfaceId;
@@ -557,8 +560,25 @@ ThreadError Ip6::ForwardMessage(Message &message, MessageInfo &messageInfo)
     }
     else
     {
-        otDumpDebgIp6("no route", &messageInfo.GetSockAddr(), 16);
-        ExitNow(error = kThreadError_NoRoute);
+        // try passing to host
+        error = ProcessReceiveCallback(message, messageInfo, ipproto);
+
+        switch (error)
+        {
+        case kThreadError_None:
+            // the caller transfers custody in the success case, so free the message here
+            message.Free();
+            break;
+
+        case kThreadError_NoRoute:
+            otDumpDebgIp6("no route", &messageInfo.GetSockAddr(), 16);
+            break;
+
+        default:
+            break;
+        }
+
+        ExitNow();
     }
 
     // submit message to interface

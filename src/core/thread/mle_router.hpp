@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@
 #include <coap/coap_header.hpp>
 #include <coap/coap_server.hpp>
 #include <common/timer.hpp>
+#include <common/trickle_timer.hpp>
 #include <mac/mac_frame.hpp>
 #include <net/icmp6.hpp>
 #include <net/udp6.hpp>
@@ -233,6 +234,22 @@ public:
      *
      */
     void SetRouterUpgradeThreshold(uint8_t aThreshold);
+
+    /**
+     * This method returns the ROUTER_DOWNGRADE_THRESHOLD value.
+     *
+     * @returns The ROUTER_DOWNGRADE_THRESHOLD value.
+     *
+     */
+    uint8_t GetRouterDowngradeThreshold(void) const;
+
+    /**
+     * This method sets the ROUTER_DOWNGRADE_THRESHOLD value.
+     *
+     * @returns The ROUTER_DOWNGRADE_THRESHOLD value.
+     *
+     */
+    void SetRouterDowngradeThreshold(uint8_t aThreshold);
 
     /**
      * This method release a given Router ID.
@@ -453,6 +470,17 @@ public:
      */
     ThreadError SendLinkReject(const Ip6::Address &aDestination);
 
+    /**
+     * This method checks if a given Router ID has correct value.
+     *
+     * @param[in]  aRouterId  The Router ID value.
+     *
+     * @retval TRUE   If @p aRouterId is in correct range [0..62].
+     * @retval FALSE  If @p aRouterId is not a valid Router ID.
+     *
+     */
+    static bool IsRouterIdValid(uint8_t aRouterId) { return aRouterId <= kMaxRouterId; }
+
 private:
     enum
     {
@@ -484,7 +512,7 @@ private:
     ThreadError HandleNetworkDataUpdateRouter(void);
 
     ThreadError ProcessRouteTlv(const RouteTlv &aRoute);
-    ThreadError ResetAdvertiseInterval(void);
+    void ResetAdvertiseInterval(void);
     ThreadError SendAddressSolicit(ThreadStatusTlv::Status aStatus);
     ThreadError SendAddressRelease(void);
     void SendAddressSolicitResponse(const Coap::Header &aRequest, uint8_t aRouterId,
@@ -502,6 +530,7 @@ private:
 
     ThreadError SetStateRouter(uint16_t aRloc16);
     ThreadError SetStateLeader(uint16_t aRloc16);
+    void StopLeader(void);
     ThreadError UpdateChildAddresses(const AddressRegistrationTlv &aTlv, Child &aChild);
     void UpdateRoutes(const RouteTlv &aTlv, uint8_t aRouterId);
 
@@ -521,16 +550,21 @@ private:
     Child *FindChild(uint16_t aChildId);
     Child *FindChild(const Mac::ExtAddress &aMacAddr);
 
+    bool HasMinDowngradeNeighborRouters(void);
+    bool HasOneNeighborwithComparableConnectivity(const RouteTlv &aRoute, uint8_t aRouterId);
+    bool HasSmallNumberOfChildren(void);
+    uint8_t GetMinDowngradeNeighborRouters(void);
+
     uint8_t AllocateRouterId(void);
     uint8_t AllocateRouterId(uint8_t aRouterId);
     bool InRouterIdMask(uint8_t aRouterId);
 
-    static void HandleAdvertiseTimer(void *aContext);
-    void HandleAdvertiseTimer(void);
+    static bool HandleAdvertiseTimer(void *aContext);
+    bool HandleAdvertiseTimer(void);
     static void HandleStateUpdateTimer(void *aContext);
     void HandleStateUpdateTimer(void);
 
-    Timer mAdvertiseTimer;
+    TrickleTimer mAdvertiseTimer;
     Timer mStateUpdateTimer;
 
     Ip6::UdpSocket mSocket;
@@ -539,7 +573,7 @@ private:
 
     uint8_t mRouterIdSequence;
     uint32_t mRouterIdSequenceLastUpdated;
-    Router mRouters[kMaxRouterId];
+    Router mRouters[kMaxRouterId + 1];
     uint8_t mMaxChildrenAllowed;
     Child mChildren[kMaxChildren];
 
@@ -547,13 +581,14 @@ private:
     uint16_t mNextChildId;
     uint8_t mNetworkIdTimeout;
     uint8_t mRouterUpgradeThreshold;
+    uint8_t mRouterDowngradeThreshold;
     uint8_t mLeaderWeight;
     uint32_t mFixedLeaderPartitionId;  ///< only for certification testing
     bool mRouterRoleEnabled;
+    uint8_t mRouterSelectionJitterTimeout;
 
     uint8_t mRouterId;
     uint8_t mPreviousRouterId;
-    uint32_t mAdvertiseInterval;
 
     Coap::Server &mCoapServer;
     uint8_t mCoapToken[2];

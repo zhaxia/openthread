@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -52,9 +52,9 @@ namespace Thread {
 namespace NetworkData {
 
 Leader::Leader(ThreadNetif &aThreadNetif):
-    NetworkData(aThreadNetif),
-    mTimer(aThreadNetif.GetIp6().mTimerScheduler, &HandleTimer, this),
-    mServerData(OPENTHREAD_URI_SERVER_DATA, &HandleServerData, this),
+    NetworkData(aThreadNetif, false),
+    mTimer(aThreadNetif.GetIp6().mTimerScheduler, &Leader::HandleTimer, this),
+    mServerData(OPENTHREAD_URI_SERVER_DATA, &Leader::HandleServerData, this),
     mCoapServer(aThreadNetif.GetCoapServer()),
     mNetif(aThreadNetif)
 {
@@ -69,6 +69,7 @@ void Leader::Reset(void)
     mLength = 0;
     mContextUsed = 0;
     mContextIdReuseDelay = kContextIdReuseDelay;
+    mNetif.SetStateChangedFlags(OT_THREAD_NETDATA_UPDATED);
 }
 
 void Leader::Start(void)
@@ -78,6 +79,7 @@ void Leader::Start(void)
 
 void Leader::Stop(void)
 {
+    mCoapServer.RemoveResource(mServerData);
 }
 
 uint8_t Leader::GetVersion(void) const
@@ -568,7 +570,6 @@ void Leader::SendServerDataResponse(const Coap::Header &aRequestHeader, const Ip
     responseHeader.SetCode(Coap::Header::kCodeChanged);
     responseHeader.SetMessageId(aRequestHeader.GetMessageId());
     responseHeader.SetToken(aRequestHeader.GetToken(), aRequestHeader.GetTokenLength());
-    responseHeader.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     responseHeader.Finalize();
     SuccessOrExit(error = message->Append(responseHeader.GetBytes(), responseHeader.GetLength()));
     SuccessOrExit(error = message->Append(aTlvs, aTlvsLength));
@@ -959,7 +960,7 @@ ThreadError Leader::SendServerDataNotification(uint16_t aRloc16)
 
     VerifyOrExit(rlocIn, error = kThreadError_NotFound);
 
-    SuccessOrExit(error = NetworkData::SendServerDataNotification(false, aRloc16));
+    SuccessOrExit(error = NetworkData::SendServerDataNotification(aRloc16));
 
 exit:
     return error;

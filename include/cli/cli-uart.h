@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -35,6 +35,8 @@
 #ifndef CLI_UART_H_
 #define CLI_UART_H_
 
+#include <openthread-types.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -42,8 +44,10 @@ extern "C" {
 /**
  * Initialize the CLI UART module.
  *
+ * @param[in]  aInstance  The OpenThread instance structure.
+ *
  */
-void otCliUartInit(void);
+void otCliUartInit(otInstance *aInstance);
 
 #ifdef __cplusplus
 }  // extern "C"

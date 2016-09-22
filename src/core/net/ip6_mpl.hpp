@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -99,7 +99,7 @@ public:
      * @param[in]  aSeedLength  The MPL Seed Length.
      *
      */
-    void SetSeedLength(SeedLength aSeedLength) { mControl = (mControl & ~kSeedLengthMask) | aSeedLength; }
+    void SetSeedLength(SeedLength aSeedLength) { mControl = static_cast<uint8_t>((mControl & ~kSeedLengthMask) | aSeedLength); }
 
     /**
      * This method indicates whether or not the MPL M flag is set.
@@ -108,7 +108,7 @@ public:
      * @retval FALSE  If the MPL M flag is not set.
      *
      */
-    bool IsMaxFlagSet() { return mControl & kMaxFlag; }
+    bool IsMaxFlagSet() { return (mControl & kMaxFlag) != 0; }
 
     /**
      * This method clears the MPL M flag.

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -50,7 +50,7 @@ namespace MeshCoP {
 
 JoinerRouter::JoinerRouter(ThreadNetif &aNetif):
     mSocket(aNetif.GetIp6().mUdp),
-    mRelayTransmit(OPENTHREAD_URI_RELAY_TX, &HandleRelayTransmit, this),
+    mRelayTransmit(OPENTHREAD_URI_RELAY_TX, &JoinerRouter::HandleRelayTransmit, this),
     mNetif(aNetif)
 {
     mSocket.GetSockName().mPort = OPENTHREAD_CONFIG_JOINER_UDP_PORT;
@@ -82,7 +82,7 @@ void JoinerRouter::HandleNetifStateChanged(uint32_t aFlags)
             sockaddr.mPort = OPENTHREAD_CONFIG_JOINER_UDP_PORT;
         }
 
-        mSocket.Open(&HandleUdpReceive, this);
+        mSocket.Open(&JoinerRouter::HandleUdpReceive, this);
         mSocket.Bind(sockaddr);
         mNetif.GetIp6Filter().AddUnsecurePort(sockaddr.mPort);
         otLogInfoMeshCoP("Joiner Router: start\r\n");
@@ -176,13 +176,11 @@ void JoinerRouter::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &a
     VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
     header.Init();
-    header.SetVersion(1);
     header.SetType(Coap::Header::kTypeNonConfirmable);
     header.SetCode(Coap::Header::kCodePost);
     header.SetMessageId(0);
     header.SetToken(NULL, 0);
     header.AppendUriPathOptions(OPENTHREAD_URI_RELAY_RX);
-    header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
 
@@ -320,20 +318,17 @@ ThreadError JoinerRouter::SendJoinerEntrust(const Ip6::MessageInfo &aMessageInfo
     MeshLocalPrefixTlv meshLocalPrefix;
     ExtendedPanIdTlv extendedPanId;
     NetworkNameTlv networkName;
-    ActiveTimestampTlv activeTimestamp;
     Tlv *tlv;
 
     VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
     message->SetJoinerEntrust(true);
 
     header.Init();
-    header.SetVersion(1);
     header.SetType(Coap::Header::kTypeConfirmable);
     header.SetCode(Coap::Header::kCodePost);
     header.SetMessageId(0);
     header.SetToken(NULL, 0);
     header.AppendUriPathOptions(OPENTHREAD_URI_JOINER_ENTRUST);
-    header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
 
@@ -353,9 +348,16 @@ ThreadError JoinerRouter::SendJoinerEntrust(const Ip6::MessageInfo &aMessageInfo
     networkName.SetNetworkName(mNetif.GetMac().GetNetworkName());
     SuccessOrExit(error = message->Append(&networkName, sizeof(Tlv) + networkName.GetLength()));
 
-    activeTimestamp.Init();
-    *static_cast<Timestamp *>(&activeTimestamp) = mNetif.GetActiveDataset().GetNetwork().GetTimestamp();
-    SuccessOrExit(error = message->Append(&activeTimestamp, sizeof(activeTimestamp)));
+    if ((tlv = mNetif.GetActiveDataset().GetNetwork().Get(Tlv::kActiveTimestamp)) != NULL)
+    {
+        SuccessOrExit(error = message->Append(tlv, sizeof(Tlv) + tlv->GetLength()));
+    }
+    else
+    {
+        ActiveTimestampTlv activeTimestamp;
+        activeTimestamp.Init();
+        SuccessOrExit(error = message->Append(&activeTimestamp, sizeof(activeTimestamp)));
+    }
 
     if ((tlv = mNetif.GetActiveDataset().GetNetwork().Get(Tlv::kChannelMask)) != NULL)
     {

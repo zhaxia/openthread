@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,16 +26,19 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <openthread-types.h>
 #include <platform/misc.h>
 #include "platform-cc2538.h"
 
-void otPlatReset(void)
+void otPlatReset(otInstance *aInstance)
 {
+    (void)aInstance;
     HWREG(SYS_CTRL_PWRDBG) = SYS_CTRL_PWRDBG_FORCE_WARM_RESET;
 }
 
-otPlatResetReason otPlatGetResetReason(void)
+otPlatResetReason otPlatGetResetReason(otInstance *aInstance)
 {
+    (void)aInstance;
     // TODO: Write me!
     return kPlatResetReason_PowerOn;
 }

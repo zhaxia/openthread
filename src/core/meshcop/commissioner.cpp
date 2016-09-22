@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -31,9 +31,13 @@
  *   This file implements a Commissioner role.
  */
 
-#include <stdio.h>
-
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
 #include <openthread-config.h>
+#endif
+
+#include <stdio.h>
 
 #include <coap/coap_header.hpp>
 #include <common/logging.hpp>
@@ -49,11 +53,13 @@ namespace Thread {
 namespace MeshCoP {
 
 Commissioner::Commissioner(ThreadNetif &aThreadNetif):
+    mEnergyScan(aThreadNetif),
+    mPanIdQuery(aThreadNetif),
     mTimer(aThreadNetif.GetIp6().mTimerScheduler, HandleTimer, this),
-    mTransmitTask(aThreadNetif.GetIp6().mTaskletScheduler, &HandleUdpTransmit, this),
+    mTransmitTask(aThreadNetif.GetIp6().mTaskletScheduler, &Commissioner::HandleUdpTransmit, this),
     mSendKek(false),
     mSocket(aThreadNetif.GetIp6().mUdp),
-    mRelayReceive(OPENTHREAD_URI_RELAY_RX, &HandleRelayReceive, this),
+    mRelayReceive(OPENTHREAD_URI_RELAY_RX, &Commissioner::HandleRelayReceive, this),
     mNetif(aThreadNetif)
 {
     aThreadNetif.GetCoapServer().AddResource(mRelayReceive);
@@ -81,6 +87,11 @@ ThreadError Commissioner::Stop(void)
     SendKeepAlive();
     mTimer.Start(1000);
     return kThreadError_None;
+}
+
+uint16_t Commissioner::GetSessionId(void) const
+{
+    return mSessionId;
 }
 
 void Commissioner::HandleTimer(void *aContext)
@@ -121,13 +132,11 @@ ThreadError Commissioner::SendPetition(void)
     }
 
     header.Init();
-    header.SetVersion(1);
     header.SetType(Coap::Header::kTypeConfirmable);
     header.SetCode(Coap::Header::kCodePost);
     header.SetMessageId(++mCoapMessageId);
     header.SetToken(mCoapToken, sizeof(mCoapToken));
     header.AppendUriPathOptions(OPENTHREAD_URI_LEADER_PETITION);
-    header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
 
     VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
@@ -170,13 +179,11 @@ ThreadError Commissioner::SendKeepAlive(void)
     }
 
     header.Init();
-    header.SetVersion(1);
     header.SetType(Coap::Header::kTypeConfirmable);
     header.SetCode(Coap::Header::kCodePost);
     header.SetMessageId(++mCoapMessageId);
     header.SetToken(mCoapToken, sizeof(mCoapToken));
     header.AppendUriPathOptions(OPENTHREAD_URI_LEADER_KEEP_ALIVE);
-    header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     header.Finalize();
 
     VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
@@ -318,13 +325,11 @@ ThreadError Commissioner::HandleDtlsSend(const unsigned char *aBuf, uint16_t aLe
         VerifyOrExit((mTransmitMessage = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
         header.Init();
-        header.SetVersion(1);
         header.SetType(Coap::Header::kTypeNonConfirmable);
         header.SetCode(Coap::Header::kCodePost);
         header.SetMessageId(0);
         header.SetToken(NULL, 0);
         header.AppendUriPathOptions(OPENTHREAD_URI_RELAY_TX);
-        header.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
         header.Finalize();
         SuccessOrExit(error = mTransmitMessage->Append(header.GetBytes(), header.GetLength()));
 
@@ -465,12 +470,10 @@ void Commissioner::SendJoinFinalizeResponse(const Coap::Header &aRequestHeader)
     uint8_t *cur = buf;
 
     responseHeader.Init();
-    responseHeader.SetVersion(1);
     responseHeader.SetType(Coap::Header::kTypeAcknowledgment);
     responseHeader.SetCode(Coap::Header::kCodeChanged);
     responseHeader.SetMessageId(aRequestHeader.GetMessageId());
     responseHeader.SetToken(aRequestHeader.GetToken(), aRequestHeader.GetTokenLength());
-    responseHeader.AppendContentFormatOption(Coap::Header::kApplicationOctetStream);
     responseHeader.Finalize();
     memcpy(cur, responseHeader.GetBytes(), responseHeader.GetLength());
     cur += responseHeader.GetLength();

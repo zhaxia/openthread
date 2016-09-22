@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, Nest Labs, Inc.
+ *  Copyright (c) 2016, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -42,7 +42,7 @@ namespace Thread {
 namespace NetworkData {
 
 Local::Local(ThreadNetif &aThreadNetif):
-    NetworkData(aThreadNetif),
+    NetworkData(aThreadNetif, true),
     mOldRloc(Mac::kShortAddrInvalid),
     mLeader(aThreadNetif.GetNetworkDataLeader())
 {
@@ -75,6 +75,8 @@ ThreadError Local::AddOnMeshPrefix(const uint8_t *aPrefix, uint8_t aPrefixLength
         brTlv->SetStable();
     }
 
+    ClearResubmitDelayTimer();
+
     otDumpDebgNetData("add prefix done", mTlvs, mLength);
     return kThreadError_None;
 }
@@ -87,6 +89,7 @@ ThreadError Local::RemoveOnMeshPrefix(const uint8_t *aPrefix, uint8_t aPrefixLen
     VerifyOrExit((tlv = FindPrefix(aPrefix, aPrefixLength)) != NULL, error = kThreadError_Error);
     VerifyOrExit(FindBorderRouter(*tlv) != NULL, error = kThreadError_Error);
     Remove(reinterpret_cast<uint8_t *>(tlv), sizeof(NetworkDataTlv) + tlv->GetLength());
+    ClearResubmitDelayTimer();
 
 exit:
     otDumpDebgNetData("remove done", mTlvs, mLength);
@@ -118,6 +121,8 @@ ThreadError Local::AddHasRoutePrefix(const uint8_t *aPrefix, uint8_t aPrefixLeng
         hasRouteTlv->SetStable();
     }
 
+    ClearResubmitDelayTimer();
+
     otDumpDebgNetData("add route done", mTlvs, mLength);
     return kThreadError_None;
 }
@@ -130,6 +135,7 @@ ThreadError Local::RemoveHasRoutePrefix(const uint8_t *aPrefix, uint8_t aPrefixL
     VerifyOrExit((tlv = FindPrefix(aPrefix, aPrefixLength)) != NULL, error = kThreadError_Error);
     VerifyOrExit(FindHasRoute(*tlv) != NULL, error = kThreadError_Error);
     Remove(reinterpret_cast<uint8_t *>(tlv), sizeof(NetworkDataTlv) + tlv->GetLength());
+    ClearResubmitDelayTimer();
 
 exit:
     otDumpDebgNetData("remove done", mTlvs, mLength);
@@ -153,6 +159,8 @@ ThreadError Local::UpdateRloc(void)
             break;
         }
     }
+
+    ClearResubmitDelayTimer();
 
     return kThreadError_None;
 }
@@ -213,22 +221,24 @@ ThreadError Local::SendServerDataNotification(void)
     ThreadError error = kThreadError_None;
     uint16_t rloc = mMle.GetRloc16();
 
-    VerifyOrExit((mMle.GetDeviceMode() & Mle::ModeTlv::kModeFFD) == 0 ||
-                 (mMle.IsRouterRoleEnabled() == false) ||
-                 (mMle.GetDeviceState() >= Mle::kDeviceStateRouter) ||
-                 (mMle.GetActiveRouterCount() >= mMle.GetRouterUpgradeThreshold()),
-                 error = kThreadError_InvalidState);
+    if ((mMle.GetDeviceMode() & Mle::ModeTlv::kModeFFD) != 0 &&
+        (mMle.IsRouterRoleEnabled()) &&
+        (mMle.GetDeviceState() < Mle::kDeviceStateRouter) &&
+        (mMle.GetActiveRouterCount() < mMle.GetRouterUpgradeThreshold()))
+    {
+        ExitNow(error = kThreadError_InvalidState);
+    }
 
     UpdateRloc();
 
-    VerifyOrExit(!IsOnMeshPrefixConsistent() || !IsExternalRouteConsistent(), error = kThreadError_None);
+    VerifyOrExit(!IsOnMeshPrefixConsistent() || !IsExternalRouteConsistent(), ClearResubmitDelayTimer());
 
     if (mOldRloc == rloc)
     {
         mOldRloc = Mac::kShortAddrInvalid;
     }
 
-    SuccessOrExit(error = NetworkData::SendServerDataNotification(true, mOldRloc));
+    SuccessOrExit(error = NetworkData::SendServerDataNotification(mOldRloc));
     mOldRloc = rloc;
 
 exit:
