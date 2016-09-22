@@ -27,7 +27,6 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-import pexpect
 import time
 import unittest
 
@@ -39,7 +38,7 @@ ROUTER2 = 3
 ROUTER3 = 4
 SED2 = 5
 
-class Cert_5_3_9_AddressQuery(unittest.TestCase):
+class Cert_5_3_10_AddressQuery(unittest.TestCase):
     def setUp(self):
         self.nodes = {}
         for i in range(1,6):
@@ -108,17 +107,17 @@ class Cert_5_3_9_AddressQuery(unittest.TestCase):
         addrs = self.nodes[ROUTER3].get_addrs()
         for addr in addrs:
             if addr[0:4] != 'fe80':
-                self.nodes[SED2].ping(addr)
+                self.assertTrue(self.nodes[SED2].ping(addr))
 
         addrs = self.nodes[SED2].get_addrs()
         for addr in addrs:
             if addr[0:4] != 'fe80':
-                self.nodes[BR].ping(addr)
+                self.assertTrue(self.nodes[BR].ping(addr))
 
         addrs = self.nodes[ROUTER3].get_addrs()
         for addr in addrs:
             if addr[0:4] != 'fe80':
-                self.nodes[SED2].ping(addr)
+                self.assertTrue(self.nodes[SED2].ping(addr))
 
         self.nodes[ROUTER3].stop()
         time.sleep(300)
@@ -126,11 +125,7 @@ class Cert_5_3_9_AddressQuery(unittest.TestCase):
         addrs = self.nodes[ROUTER3].get_addrs()
         for addr in addrs:
             if addr[0:4] != 'fe80':
-                try:
-                    self.nodes[SED2].ping(addr)
-                    self.fail()
-                except pexpect.TIMEOUT:
-                    pass
+                self.assertFalse(self.nodes[SED2].ping(addr))
 
         self.nodes[SED2].stop()
         time.sleep(10)
@@ -138,11 +133,7 @@ class Cert_5_3_9_AddressQuery(unittest.TestCase):
         addrs = self.nodes[SED2].get_addrs()
         for addr in addrs:
             if addr[0:4] != 'fe80':
-                try:
-                    self.nodes[BR].ping(addr)
-                    self.fail()
-                except pexpect.TIMEOUT:
-                    pass
+                self.assertFalse(self.nodes[BR].ping(addr))
 
 if __name__ == '__main__':
     unittest.main()
