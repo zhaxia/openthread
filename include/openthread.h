@@ -686,7 +686,8 @@ ThreadError otSetNetworkName(otInstance *aInstance, const char *aNetworkName);
  *
  * @param[in]     aInstance  A pointer to an OpenThread instance.
  * @param[in]     aLocal     TRUE to retrieve from the local Network Data, FALSE for partition's Network Data
- * @param[inout]  aIterator  A pointer to the Network Data iterator context.
+ * @param[inout]  aIterator  A pointer to the Network Data iterator context. To get the first on-mesh entry
+                             it should be set to OT_NETWORK_DATA_ITERATOR_INIT.
  * @param[out]    aConfig    A pointer to where the On Mesh Prefix information will be placed.
  *
  * @retval kThreadError_None      Successfully found the next On Mesh prefix.
@@ -1543,7 +1544,7 @@ void otPlatformReset(otInstance *aInstance);
  *
  * @sa otSetRouterDowngradeThreshold
  */
-uint8_t otGetRouterDowngradeThreshold(void);
+uint8_t otGetRouterDowngradeThreshold(otInstance *aInstance);
 
 /**
  * Set the ROUTER_DOWNGRADE_THRESHOLD parameter used in the Leader role.
@@ -1552,7 +1553,7 @@ uint8_t otGetRouterDowngradeThreshold(void);
  *
  * @sa otGetRouterDowngradeThreshold
  */
-void otSetRouterDowngradeThreshold(uint8_t aThreshold);
+void otSetRouterDowngradeThreshold(otInstance *aInstance, uint8_t aThreshold);
 
 /**
  * Get the ROUTER_SELECTION_JITTER parameter used in the REED/Router role.
@@ -1561,7 +1562,7 @@ void otSetRouterDowngradeThreshold(uint8_t aThreshold);
  *
  * @sa otSetRouterSelectionJitter
  */
-uint8_t otGetRouterSelectionJitter(void);
+uint8_t otGetRouterSelectionJitter(otInstance *aInstance);
 
 /**
  * Set the ROUTER_SELECTION_JITTER parameter used in the REED/Router role.
@@ -1570,7 +1571,7 @@ uint8_t otGetRouterSelectionJitter(void);
  *
  * @sa otGetRouterSelectionJitter
  */
-void otSetRouterSelectionJitter(uint8_t aRouterJitter);
+void otSetRouterSelectionJitter(otInstance *aInstance, uint8_t aRouterJitter);
 
 /**
  * @}
@@ -1611,6 +1612,21 @@ ThreadError otGetChildInfoById(otInstance *aInstance, uint16_t aChildId, otChild
  *
  */
 ThreadError otGetChildInfoByIndex(otInstance *aInstance, uint8_t aChildIndex, otChildInfo *aChildInfo);
+
+/**
+ * This function gets the next neighbor information. It is used to go through the entries of
+ * the neighbor table.
+ *
+ * @param[in]     aInstance  A pointer to an OpenThread instance.
+ * @param[inout]  aIterator  A pointer to the iterator context. To get the first neighbor entry
+                             it should be set to OT_NEIGHBOR_INFO_ITERATOR_INIT.
+ * @param[out]    aInfo      A pointer to where the neighbor information will be placed.
+ *
+ * @retval kThreadError_None      Successfully found the next neighbor entry in table.
+ * @retval kThreadError_NotFound  No subsequent neighbor entry exists in the table.
+ *
+ */
+ThreadError otGetNextNeighborInfo(otInstance *aInstance, otNeighborInfoIterator *aIterator, otNeighborInfo *aInfo);
 
 /**
  * Get the device role.
