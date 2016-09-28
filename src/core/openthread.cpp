@@ -684,22 +684,22 @@ void otPlatformReset(otInstance *aInstance)
     otPlatReset(aInstance);
 }
 
-uint8_t otGetRouterDowngradeThreshold(void)
+uint8_t otGetRouterDowngradeThreshold(otInstance *)
 {
     return sThreadNetif->GetMle().GetRouterDowngradeThreshold();
 }
 
-void otSetRouterDowngradeThreshold(uint8_t aThreshold)
+void otSetRouterDowngradeThreshold(otInstance *, uint8_t aThreshold)
 {
     sThreadNetif->GetMle().SetRouterDowngradeThreshold(aThreshold);
 }
 
-uint8_t otGetRouterSelectionJitter(void)
+uint8_t otGetRouterSelectionJitter(otInstance *)
 {
     return sThreadNetif->GetMle().GetRouterSelectionJitter();
 }
 
-void otSetRouterSelectionJitter(uint8_t aRouterJitter)
+void otSetRouterSelectionJitter(otInstance *, uint8_t aRouterJitter)
 {
     sThreadNetif->GetMle().SetRouterSelectionJitter(aRouterJitter);
 }
@@ -725,6 +725,16 @@ ThreadError otGetChildInfoByIndex(otInstance *, uint8_t aChildIndex, otChildInfo
     error = sThreadNetif->GetMle().GetChildInfoByIndex(aChildIndex, *aChildInfo);
 
 exit:
+    return error;
+}
+
+ThreadError otGetNextNeighborInfo(otInstance *, otNeighborInfoIterator *aIterator, otNeighborInfo *aInfo)
+{
+    ThreadError error = kThreadError_NotImplemented;
+
+    (void)aIterator;
+    (void)aInfo;
+
     return error;
 }
 
@@ -1310,7 +1320,7 @@ ThreadError otGetActiveDataset(otInstance *, otOperationalDataset *aDataset)
 
     VerifyOrExit(aDataset != NULL, error = kThreadError_InvalidArgs);
 
-    sThreadNetif->GetActiveDataset().Get(*aDataset);
+    sThreadNetif->GetActiveDataset().GetLocal().Get(*aDataset);
 
 exit:
     return error;
@@ -1334,7 +1344,7 @@ ThreadError otGetPendingDataset(otInstance *, otOperationalDataset *aDataset)
 
     VerifyOrExit(aDataset != NULL, error = kThreadError_InvalidArgs);
 
-    sThreadNetif->GetPendingDataset().Get(*aDataset);
+    sThreadNetif->GetPendingDataset().GetLocal().Get(*aDataset);
 
 exit:
     return error;
