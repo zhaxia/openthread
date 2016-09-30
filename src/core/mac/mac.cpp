@@ -313,6 +313,7 @@ void Mac::GetHashMacAddress(ExtAddress *aHashMacAddress)
     sha256.Finish(buf);
 
     memcpy(aHashMacAddress->m8, buf, OT_EXT_ADDRESS_SIZE);
+    aHashMacAddress->SetLocal(true);
 }
 
 ShortAddress Mac::GetShortAddress(void) const
@@ -657,6 +658,7 @@ void Mac::HandleBeginTransmit(void)
 
     if (mPcapCallback)
     {
+        sendFrame.mDidTX = true;
         mPcapCallback(&sendFrame, mPcapCallbackContext);
     }
 
@@ -1040,6 +1042,7 @@ void Mac::ReceiveDoneTask(Frame *aFrame, ThreadError aError)
 
     if (mPcapCallback)
     {
+        aFrame->mDidTX = false;
         mPcapCallback(aFrame, mPcapCallbackContext);
     }
 
