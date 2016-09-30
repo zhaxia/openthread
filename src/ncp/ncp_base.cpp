@@ -233,6 +233,7 @@ const NcpBase::SetPropertyHandlerEntry NcpBase::mSetPropertyHandlerTable[] =
     { SPINEL_PROP_THREAD_CONTEXT_REUSE_DELAY, &NcpBase::SetPropertyHandler_THREAD_CONTEXT_REUSE_DELAY },
     { SPINEL_PROP_NET_REQUIRE_JOIN_EXISTING, &NcpBase::SetPropertyHandler_NET_REQUIRE_JOIN_EXISTING },
     { SPINEL_PROP_THREAD_ROUTER_SELECTION_JITTER, &NcpBase::SetPropertyHandler_THREAD_ROUTER_SELECTION_JITTER },
+    { SPINEL_PROP_THREAD_PREFERRED_ROUTER_ID, &NcpBase::SetPropertyHandler_THREAD_PREFERRED_ROUTER_ID },
 
 #if OPENTHREAD_ENABLE_DIAG
     { SPINEL_PROP_NEST_STREAM_MFG, &NcpBase::SetPropertyHandler_NEST_STREAM_MFG },
@@ -523,6 +524,7 @@ void NcpBase::HandleRawFrame(const RadioPacket *aFrame, void *aContext)
 void NcpBase::HandleRawFrame(const RadioPacket *aFrame)
 {
     ThreadError errorCode = kThreadError_None;
+    uint16_t flags = 0;
 
     if (!mIsRawStreamEnabled)
     {
@@ -531,20 +533,32 @@ void NcpBase::HandleRawFrame(const RadioPacket *aFrame)
 
     SuccessOrExit(errorCode = OutboundFrameBegin());
 
-    // Append frame header and frame length
+    if (aFrame->mFcs != 0x0000)
+    {
+        flags |= SPINEL_MD_FLAG_HAS_FCS;
+    }
 
+    if (aFrame->mDidTX)
+    {
+        flags |= SPINEL_MD_FLAG_TX;
+    }
+
+    // Append frame header and frame length
     SuccessOrExit(
         errorCode = OutboundFrameFeedPacked(
             "CiiS",
             SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0,
             SPINEL_CMD_PROP_VALUE_IS,
             SPINEL_PROP_STREAM_RAW,
-            aFrame->mLength + 2 // +2 for FCS
+            aFrame->mLength + (
+                ((flags & SPINEL_MD_FLAG_HAS_FCS) == SPINEL_MD_FLAG_HAS_FCS)
+                ? 2 // +2 if we are appending the FCS
+                : 0 // +0 if we aren't appending the FCS
+            )
         )
     );
 
     // Append the frame contents
-
     SuccessOrExit(
         errorCode = OutboundFrameFeedData(
             aFrame->mPsdu,
@@ -552,21 +566,27 @@ void NcpBase::HandleRawFrame(const RadioPacket *aFrame)
         )
     );
 
-    // Append the FCS
-    SuccessOrExit(
-        errorCode = OutboundFrameFeedPacked(
-            "CC",
-            (aFrame->mFcs >> 0) & 0xFF,
-            (aFrame->mFcs >> 8) & 0xFF
-        )
-    );
+    if ((flags & SPINEL_MD_FLAG_HAS_FCS) == SPINEL_MD_FLAG_HAS_FCS)
+    {
+        // Append the FCS
+        SuccessOrExit(
+            errorCode = OutboundFrameFeedPacked(
+                "CC",
+                (aFrame->mFcs >> 0) & 0xFF,
+                (aFrame->mFcs >> 8) & 0xFF
+            )
+        );
+    }
 
     // Append metadata (rssi, etc)
-
     SuccessOrExit(
         errorCode = OutboundFrameFeedPacked(
-            "c",
-            aFrame->mPower
+            "ccS",
+            aFrame->mPower,   // TX Power
+            -128,             // Noise Floor (Currently unused)
+            flags             // Flags
+
+            // Skip PHY and Vendor data for now
         )
     );
 
@@ -3964,6 +3984,47 @@ ThreadError NcpBase::SetPropertyHandler_THREAD_ROUTER_SELECTION_JITTER(uint8_t h
         otSetRouterSelectionJitter(mInstance, i);
 
         errorCode = HandleCommandPropertyGet(header, key);
+    }
+    else
+    {
+        errorCode = SendLastStatus(header, SPINEL_STATUS_PARSE_ERROR);
+    }
+
+    return errorCode;
+}
+
+ThreadError NcpBase::SetPropertyHandler_THREAD_PREFERRED_ROUTER_ID(uint8_t header, spinel_prop_key_t key,
+                                                                   const uint8_t *value_ptr, uint16_t value_len)
+{
+    uint8_t router_id = 0;
+    spinel_ssize_t parsedLength;
+    ThreadError errorCode = kThreadError_None;
+
+    parsedLength = spinel_datatype_unpack(
+                       value_ptr,
+                       value_len,
+                       SPINEL_DATATYPE_UINT8_S,
+                       &router_id
+                   );
+
+    if (parsedLength > 0)
+    {
+        errorCode = otSetPreferredRouterId(mInstance, router_id);
+
+        if (errorCode == kThreadError_None)
+        {
+            errorCode = SendPropertyUpdate(
+               header,
+               SPINEL_CMD_PROP_VALUE_IS,
+               key,
+               SPINEL_DATATYPE_UINT8_S,
+               router_id
+           );
+        }
+        else
+        {
+            errorCode = SendLastStatus(header, ThreadErrorToSpinelStatus(errorCode));
+        }
     }
     else
     {
