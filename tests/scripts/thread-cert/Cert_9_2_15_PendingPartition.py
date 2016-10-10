@@ -32,44 +32,48 @@ import unittest
 
 import node
 
+CHANNEL_INIT = 19
 PANID_INIT = 0xface
+
+PANID_FINAL = 0xabcd
 
 COMMISSIONER = 1
 LEADER = 2
-ROUTER = 3
+ROUTER1 = 3
+ROUTER2 = 4
 
-LEADER_ACTIVE_TIMESTAMP = 10
-ROUTER_ACTIVE_TIMESTAMP = 20
-ROUTER_PENDING_TIMESTAMP = 30
-ROUTER_PENDING_ACTIVE_TIMESTAMP = 21
-
-COMMISSIONER_PENDING_CHANNEL = 2
-COMMISSIONER_PENDING_PANID = 0xafce
-
-class Cert_9_2_7_DelayTimer(unittest.TestCase):
+class Cert_9_2_15_PendingPartition(unittest.TestCase):
     def setUp(self):
         self.nodes = {}
-        for i in range(1,4):
+        for i in range(1,5):
             self.nodes[i] = node.Node(i)
 
-        self.nodes[COMMISSIONER].set_active_dataset(LEADER_ACTIVE_TIMESTAMP, panid=PANID_INIT)
+        self.nodes[COMMISSIONER].set_active_dataset(15, channel=CHANNEL_INIT, panid=PANID_INIT)
         self.nodes[COMMISSIONER].set_mode('rsdn')
         self.nodes[COMMISSIONER].add_whitelist(self.nodes[LEADER].get_addr64())
         self.nodes[COMMISSIONER].enable_whitelist()
         self.nodes[COMMISSIONER].set_router_selection_jitter(1)
 
-        self.nodes[LEADER].set_active_dataset(LEADER_ACTIVE_TIMESTAMP, panid=PANID_INIT)
+        self.nodes[LEADER].set_active_dataset(15, channel=CHANNEL_INIT, panid=PANID_INIT)
         self.nodes[LEADER].set_mode('rsdn')
         self.nodes[LEADER].set_partition_id(0xffffffff)
         self.nodes[LEADER].add_whitelist(self.nodes[COMMISSIONER].get_addr64())
+        self.nodes[LEADER].add_whitelist(self.nodes[ROUTER1].get_addr64())
         self.nodes[LEADER].enable_whitelist()
         self.nodes[LEADER].set_router_selection_jitter(1)
 
-        self.nodes[ROUTER].set_active_dataset(ROUTER_ACTIVE_TIMESTAMP, panid=PANID_INIT)
-        self.nodes[ROUTER].set_pending_dataset(ROUTER_PENDING_TIMESTAMP, ROUTER_PENDING_ACTIVE_TIMESTAMP)
-        self.nodes[ROUTER].set_mode('rsdn')
-        self.nodes[ROUTER].enable_whitelist()
-        self.nodes[ROUTER].set_router_selection_jitter(1)
+        self.nodes[ROUTER1].set_active_dataset(15, channel=CHANNEL_INIT, panid=PANID_INIT)
+        self.nodes[ROUTER1].set_mode('rsdn')
+        self.nodes[ROUTER1].add_whitelist(self.nodes[LEADER].get_addr64())
+        self.nodes[ROUTER1].add_whitelist(self.nodes[ROUTER2].get_addr64())
+        self.nodes[ROUTER1].enable_whitelist()
+        self.nodes[ROUTER1].set_router_selection_jitter(1)
+
+        self.nodes[ROUTER2].set_active_dataset(15, channel=CHANNEL_INIT, panid=PANID_INIT)
+        self.nodes[ROUTER2].set_mode('rsdn')
+        self.nodes[ROUTER2].add_whitelist(self.nodes[ROUTER1].get_addr64())
+        self.nodes[ROUTER2].enable_whitelist()
+        self.nodes[ROUTER2].set_router_selection_jitter(1)
 
     def tearDown(self):
         for node in list(self.nodes.values()):
@@ -85,39 +89,40 @@ class Cert_9_2_7_DelayTimer(unittest.TestCase):
         time.sleep(5)
         self.assertEqual(self.nodes[COMMISSIONER].get_state(), 'router')
 
-        self.nodes[ROUTER].start()
+        self.nodes[ROUTER1].start()
         time.sleep(5)
-        self.assertEqual(self.nodes[ROUTER].get_state(), 'leader')
+        self.assertEqual(self.nodes[ROUTER1].get_state(), 'router')
 
-        self.nodes[LEADER].add_whitelist(self.nodes[ROUTER].get_addr64())
-        self.nodes[ROUTER].add_whitelist(self.nodes[LEADER].get_addr64())
+        self.nodes[COMMISSIONER].send_mgmt_pending_set(pending_timestamp=10,
+                                                       active_timestamp=70,
+                                                       delay_timer=600000,
+                                                       mesh_local='fd00:0db9::')
+        time.sleep(5)
 
-        time.sleep(30)
-        self.assertEqual(self.nodes[COMMISSIONER].get_state(), 'router')
-        self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
-        self.assertEqual(self.nodes[ROUTER].get_state(), 'router')
+        self.nodes[ROUTER2].start()
+        time.sleep(5)
+        self.assertEqual(self.nodes[ROUTER2].get_state(), 'router')
 
-        ipaddrs = self.nodes[ROUTER].get_addrs()
-        for ipaddr in ipaddrs:
-            if ipaddr[0:4] != 'fe80':
-                break
-        self.assertTrue(self.nodes[LEADER].ping(ipaddr))
+        self.nodes[ROUTER2].stop()
 
-        self.nodes[COMMISSIONER].send_mgmt_pending_set(pending_timestamp=40,
+        self.nodes[COMMISSIONER].send_mgmt_pending_set(pending_timestamp=20,
                                                        active_timestamp=80,
-                                                       delay_timer=10000,
-                                                       channel=COMMISSIONER_PENDING_CHANNEL,
-                                                       panid=COMMISSIONER_PENDING_PANID)
-        time.sleep(20)
-        self.assertEqual(self.nodes[LEADER].get_panid(), COMMISSIONER_PENDING_PANID)
-        self.assertEqual(self.nodes[COMMISSIONER].get_panid(), COMMISSIONER_PENDING_PANID)
-        self.assertEqual(self.nodes[ROUTER].get_panid(), COMMISSIONER_PENDING_PANID)
+                                                       delay_timer=200000,
+                                                       mesh_local='fd00:0db7::',
+                                                       panid=PANID_FINAL)
+        time.sleep(100)
 
-        self.assertEqual(self.nodes[LEADER].get_channel(), COMMISSIONER_PENDING_CHANNEL)
-        self.assertEqual(self.nodes[COMMISSIONER].get_channel(), COMMISSIONER_PENDING_CHANNEL)
-        self.assertEqual(self.nodes[ROUTER].get_channel(), COMMISSIONER_PENDING_CHANNEL)
+        self.nodes[ROUTER2].start()
+        time.sleep(5)
+        self.assertEqual(self.nodes[ROUTER2].get_state(), 'router')
+        time.sleep(100)
 
-        ipaddrs = self.nodes[ROUTER].get_addrs()
+        self.assertEqual(self.nodes[COMMISSIONER].get_panid(), PANID_FINAL)
+        self.assertEqual(self.nodes[LEADER].get_panid(), PANID_FINAL)
+        self.assertEqual(self.nodes[ROUTER1].get_panid(), PANID_FINAL)
+        self.assertEqual(self.nodes[ROUTER2].get_panid(), PANID_FINAL)
+
+        ipaddrs = self.nodes[ROUTER2].get_addrs()
         for ipaddr in ipaddrs:
             if ipaddr[0:4] != 'fe80':
                 break
