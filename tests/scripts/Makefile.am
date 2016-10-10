@@ -105,9 +105,14 @@ EXTRA_DIST                                                         = \
     thread-cert/Cert_8_1_01_Commissioning.py                         \
     thread-cert/Cert_8_1_02_Commissioning.py                         \
     thread-cert/Cert_9_2_07_DelayTimer.py                            \
+    thread-cert/Cert_9_2_09_PendingPartition.py                      \
+    thread-cert/Cert_9_2_10_PendingPartition.py                      \
+    thread-cert/Cert_9_2_11_MasterKey.py                             \
     thread-cert/Cert_9_2_12_Announce.py                              \
     thread-cert/Cert_9_2_13_EnergyScan.py                            \
     thread-cert/Cert_9_2_14_PanIdQuery.py                            \
+    thread-cert/Cert_9_2_15_PendingPartition.py                      \
+    thread-cert/Cert_9_2_16_ActivePendingPartition.py                \
     thread-cert/node.py                                              \
     $(NULL)
 
@@ -225,9 +230,14 @@ check_SCRIPTS                                                     += \
     thread-cert/Cert_8_1_01_Commissioning.py                         \
     thread-cert/Cert_8_1_02_Commissioning.py                         \
     thread-cert/Cert_9_2_07_DelayTimer.py                            \
+    thread-cert/Cert_9_2_09_PendingPartition.py                      \
+    thread-cert/Cert_9_2_10_PendingPartition.py                      \
+    thread-cert/Cert_9_2_11_MasterKey.py                             \
     thread-cert/Cert_9_2_12_Announce.py                              \
     thread-cert/Cert_9_2_13_EnergyScan.py                            \
     thread-cert/Cert_9_2_14_PanIdQuery.py                            \
+    thread-cert/Cert_9_2_15_PendingPartition.py                      \
+    thread-cert/Cert_9_2_16_ActivePendingPartition.py                \
     $(NULL)
 
 endif # OPENTHREAD_TESTS_SUBSET5
@@ -247,9 +257,14 @@ XFAIL_NCP_TESTS                                                    = \
     thread-cert/Cert_8_1_01_Commissioning.py                         \
     thread-cert/Cert_8_1_02_Commissioning.py                         \
     thread-cert/Cert_9_2_07_DelayTimer.py                            \
+    thread-cert/Cert_9_2_09_PendingPartition.py                      \
+    thread-cert/Cert_9_2_10_PendingPartition.py                      \
+    thread-cert/Cert_9_2_11_MasterKey.py                             \
     thread-cert/Cert_9_2_12_Announce.py                              \
     thread-cert/Cert_9_2_13_EnergyScan.py                            \
     thread-cert/Cert_9_2_14_PanIdQuery.py                            \
+    thread-cert/Cert_9_2_15_PendingPartition.py                      \
+    thread-cert/Cert_9_2_16_ActivePendingPartition.py                \
     $(NULL)
 
 XFAIL_TESTS = $(if $(filter $(NODE_TYPE),ncp-sim),$(XFAIL_NCP_TESTS))

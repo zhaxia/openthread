@@ -80,6 +80,12 @@ public:
     ThreadError Stop(void);
 
     /**
+     * This method clears all Joiner entries.
+     *
+     */
+    void ClearJoiners(void);
+
+    /**
      * This method adds a Joiner entry.
      *
      * @param[in]  aExtAddress      A pointer to the Joiner's extended address or NULL for any Joiner.
@@ -152,12 +158,24 @@ public:
     PanIdQueryClient mPanIdQuery;
 
 private:
+    enum
+    {
+        kPetitionAttemptDelay = 5,   ///< COMM_PET_ATTEMPT_DELAY (seconds)
+        kPetitionRetryCount   = 2,   ///< COMM_PET_RETRY_COUNT
+        kPetitionRetryDelay   = 1,   ///< COMM_PET_RETRY_DELAY (seconds)
+        kKeepAliveTimeout     = 50,  ///< TIMEOUT_COMM_PET (seconds)
+    };
+
     static void HandleTimer(void *aContext);
     void HandleTimer(void);
 
     static void HandleRelayReceive(void *aContext, Coap::Header &aHeader,
                                    Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     void HandleRelayReceive(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+
+    static void HandleDatasetChanged(void *aContext, Coap::Header &aHeader,
+                                     Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    void HandleDatasetChanged(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
     static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
     void HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
@@ -174,6 +192,8 @@ private:
     void ReceiveJoinerFinalize(uint8_t *buf, uint16_t length);
     void SendJoinFinalizeResponse(const Coap::Header &aRequestHeader, StateTlv::State aState);
 
+    void SendDatasetChangedResponse(const Coap::Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError SendCommissionerSet(void);
     ThreadError SendPetition(void);
     ThreadError SendKeepAlive(void);
 
@@ -202,6 +222,7 @@ private:
     Message *mTransmitMessage;
     Timer mTimer;
     Tasklet mTransmitTask;
+    uint8_t mTransmitAttempts;
     bool mSendKek;
 
     Ip6::UdpSocket mSocket;
@@ -209,8 +230,9 @@ private:
     uint16_t mCoapMessageId;
 
     Coap::Resource mRelayReceive;
+    Coap::Resource mDatasetChanged;
+    Coap::Server &mCoapServer;
     ThreadNetif &mNetif;
-
     bool mIsSendMgmtCommRequest;
 };
 
