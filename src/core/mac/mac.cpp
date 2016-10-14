@@ -349,12 +349,9 @@ const ExtAddress *Mac::GetExtAddress(void) const
     return &mExtAddress;
 }
 
-ThreadError Mac::SetExtAddress(const ExtAddress &aExtAddress)
+void Mac::SetExtAddress(const ExtAddress &aExtAddress)
 {
-    ThreadError error = kThreadError_None;
     uint8_t buf[sizeof(aExtAddress)];
-
-    VerifyOrExit(!aExtAddress.IsGroup(), error = kThreadError_InvalidArgs);
 
     for (size_t i = 0; i < sizeof(buf); i++)
     {
@@ -363,9 +360,6 @@ ThreadError Mac::SetExtAddress(const ExtAddress &aExtAddress)
 
     otPlatRadioSetExtendedAddress(mNetif.GetInstance(), buf);
     mExtAddress = aExtAddress;
-
-exit:
-    return error;
 }
 
 void Mac::GetHashMacAddress(ExtAddress *aHashMacAddress)
@@ -466,7 +460,7 @@ ThreadError Mac::SendFrameRequest(Sender &aSender)
 {
     ThreadError error = kThreadError_None;
 
-    VerifyOrExit(mSendTail != &aSender && aSender.mNext == NULL, error = kThreadError_Busy);
+    VerifyOrExit(mSendTail != &aSender && aSender.mNext == NULL, error = kThreadError_Already);
 
     if (mSendHead == NULL)
     {

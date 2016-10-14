@@ -63,7 +63,7 @@ ThreadError Netif::RegisterCallback(NetifCallback &aCallback)
     {
         if (cur == &aCallback)
         {
-            ExitNow(error = kThreadError_Busy);
+            ExitNow(error = kThreadError_Already);
         }
     }
 
@@ -71,6 +71,35 @@ ThreadError Netif::RegisterCallback(NetifCallback &aCallback)
     mCallbacks = &aCallback;
 
 exit:
+    return error;
+}
+
+ThreadError Netif::RemoveCallback(NetifCallback &aCallback)
+{
+    ThreadError error = kThreadError_Already;
+    NetifCallback *prev = NULL;
+
+    for (NetifCallback *cur = mCallbacks; cur; cur = cur->mNext)
+    {
+        if (cur == &aCallback)
+        {
+            if (prev)
+            {
+                prev->mNext = cur->mNext;
+            }
+            else
+            {
+                mCallbacks = mCallbacks->mNext;
+            }
+
+            cur->mNext = NULL;
+            error = kThreadError_None;
+            break;
+        }
+
+        prev = cur;
+    }
+
     return error;
 }
 
@@ -132,7 +161,7 @@ ThreadError Netif::SubscribeMulticast(NetifMulticastAddress &aAddress)
     {
         if (cur == &aAddress)
         {
-            ExitNow(error = kThreadError_Busy);
+            ExitNow(error = kThreadError_Already);
         }
     }
 
@@ -183,7 +212,7 @@ ThreadError Netif::AddUnicastAddress(NetifUnicastAddress &aAddress)
     {
         if (cur == &aAddress)
         {
-            ExitNow(error = kThreadError_Busy);
+            ExitNow(error = kThreadError_Already);
         }
     }
 

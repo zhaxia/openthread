@@ -63,6 +63,8 @@ static otDEFINE_ALIGNED_VAR(sInstanceRaw, sizeof(otInstance), uint64_t);
 otInstance *sInstance = NULL;
 #endif
 
+void OT_CDECL operator delete(void *, size_t) throw() { }
+
 otInstance::otInstance(void) :
     mReceiveIp6DatagramCallback(NULL),
     mReceiveIp6DatagramCallbackContext(NULL),
@@ -70,8 +72,6 @@ otInstance::otInstance(void) :
     mActiveScanCallbackContext(NULL),
     mDiscoverCallback(NULL),
     mDiscoverCallbackContext(NULL),
-    mMbedTls(),
-    mIp6(),
     mThreadNetif(mIp6)
 {
 }
@@ -141,8 +141,8 @@ ThreadError otSetExtendedAddress(otInstance *aInstance, const otExtAddress *aExt
 
     VerifyOrExit(aExtAddress != NULL, error = kThreadError_InvalidArgs);
 
-    SuccessOrExit(error = aInstance->mThreadNetif.GetMac().SetExtAddress(*static_cast<const Mac::ExtAddress *>
-                                                                         (aExtAddress)));
+    aInstance->mThreadNetif.GetMac().SetExtAddress(*static_cast<const Mac::ExtAddress *>(aExtAddress));
+
     SuccessOrExit(error = aInstance->mThreadNetif.GetMle().UpdateLinkLocalAddress());
 
 exit:
@@ -862,7 +862,7 @@ ThreadError otSetLinkPromiscuous(otInstance *aInstance, bool aPromiscuous)
     ThreadError error = kThreadError_None;
 
     // cannot enable IEEE 802.15.4 promiscuous mode if the Thread interface is enabled
-    VerifyOrExit(aInstance->mThreadNetif.IsUp() == false, error = kThreadError_Busy);
+    VerifyOrExit(aInstance->mThreadNetif.IsUp() == false, error = kThreadError_InvalidState);
 
     aInstance->mThreadNetif.GetMac().SetPromiscuous(aPromiscuous);
 
@@ -925,10 +925,34 @@ ThreadError otCreateSemanticallyOpaqueIid(otInstance *aInstance, otNetifAddress 
     return static_cast<Utils::SemanticallyOpaqueIidGenerator *>(aContext)->CreateIid(aInstance, aAddress);
 }
 
-void otSetStateChangedCallback(otInstance *aInstance, otStateChangedCallback aCallback, void *aCallbackContext)
+ThreadError otSetStateChangedCallback(otInstance *aInstance, otStateChangedCallback aCallback, void *aCallbackContext)
 {
-    aInstance->mNetifCallback.Set(aCallback, aCallbackContext);
-    aInstance->mThreadNetif.RegisterCallback(aInstance->mNetifCallback);
+    ThreadError error = kThreadError_NoBufs;
+
+    for (size_t i = 0; i < OPENTHREAD_CONFIG_MAX_STATECHANGE_HANDLERS; i++)
+    {
+        if (aInstance->mNetifCallback[i].IsFree())
+        {
+            aInstance->mNetifCallback[i].Set(aCallback, aCallbackContext);
+            error = aInstance->mThreadNetif.RegisterCallback(aInstance->mNetifCallback[i]);
+            break;
+        }
+    }
+
+    return error;
+}
+
+void otRemoveStateChangeCallback(otInstance *aInstance, otStateChangedCallback aCallback, void *aCallbackContext)
+{
+    for (size_t i = 0; i < OPENTHREAD_CONFIG_MAX_STATECHANGE_HANDLERS; i++)
+    {
+        if (aInstance->mNetifCallback[i].IsServing(aCallback, aCallbackContext))
+        {
+            aInstance->mThreadNetif.RemoveCallback(aInstance->mNetifCallback[i]);
+            aInstance->mNetifCallback[i].Free();
+            break;
+        }
+    }
 }
 
 const char *otGetVersionString(void)
@@ -964,7 +988,7 @@ ThreadError otSetPreferredRouterId(otInstance *aInstance, uint8_t aRouterId)
 
 #ifdef OPENTHREAD_MULTIPLE_INSTANCE
 
-otInstance *otInstanceInit(void *aInstanceBuffer, uint64_t *aInstanceBufferSize)
+otInstance *otInstanceInit(void *aInstanceBuffer, size_t *aInstanceBufferSize)
 {
     otInstance *aInstance = NULL;
 
@@ -1003,17 +1027,20 @@ exit:
 
 #endif
 
-ThreadError otSendDiagnosticGet(otInstance *aInstance, otIp6Address *aDestination, uint8_t aTlvTypes[], uint8_t aCount)
+ThreadError otSendDiagnosticGet(otInstance *aInstance, const otIp6Address *aDestination, const uint8_t aTlvTypes[],
+                                uint8_t aCount)
 {
-    return aInstance->mThreadNetif.GetNetworkDiagnostic().SendDiagnosticGet(*static_cast<Ip6::Address *>(aDestination),
+    return aInstance->mThreadNetif.GetNetworkDiagnostic().SendDiagnosticGet(*static_cast<const Ip6::Address *>
+                                                                            (aDestination),
                                                                             aTlvTypes,
                                                                             aCount);
 }
 
-ThreadError otSendDiagnosticReset(otInstance *aInstance, otIp6Address *aDestination, uint8_t aTlvTypes[],
+ThreadError otSendDiagnosticReset(otInstance *aInstance, const otIp6Address *aDestination, const uint8_t aTlvTypes[],
                                   uint8_t aCount)
 {
-    return aInstance->mThreadNetif.GetNetworkDiagnostic().SendDiagnosticReset(*static_cast<Ip6::Address *>(aDestination),
+    return aInstance->mThreadNetif.GetNetworkDiagnostic().SendDiagnosticReset(*static_cast<const Ip6::Address *>
+                                                                              (aDestination),
                                                                               aTlvTypes,
                                                                               aCount);
 }
@@ -1024,7 +1051,8 @@ void otInstanceFinalize(otInstance *aInstance)
     (void)otThreadStop(aInstance);
     (void)otInterfaceDown(aInstance);
 
-    // Nothing to actually free, since the caller supplied the buffer
+    // Free the otInstance structure
+    delete aInstance;
 
 #ifndef OPENTHREAD_MULTIPLE_INSTANCE
     sInstance = NULL;
@@ -1197,9 +1225,16 @@ ThreadError otSendIp6Datagram(otInstance *aInstance, otMessage aMessage)
                                           NULL, true);
 }
 
-otMessage otNewUdpMessage(otInstance *aInstance)
+otMessage otNewUdpMessage(otInstance *aInstance, bool aLinkSecurityEnabled)
 {
-    return aInstance->mIp6.mUdp.NewMessage(0);
+    Message *message = aInstance->mIp6.mUdp.NewMessage(0);
+
+    if (message)
+    {
+        message->SetLinkSecurityEnabled(aLinkSecurityEnabled);
+    }
+
+    return message;
 }
 
 otMessage otNewIp6Message(otInstance *aInstance, bool aLinkSecurityEnabled)
@@ -1263,7 +1298,7 @@ int otWriteMessage(otMessage aMessage, uint16_t aOffset, const void *aBuf, uint1
 
 ThreadError otOpenUdpSocket(otInstance *aInstance, otUdpSocket *aSocket, otUdpReceive aCallback, void *aCallbackContext)
 {
-    ThreadError error = kThreadError_Busy;
+    ThreadError error = kThreadError_InvalidArgs;
     Ip6::UdpSocket *socket = static_cast<Ip6::UdpSocket *>(aSocket);
 
     if (socket->mTransport == NULL)
@@ -1340,7 +1375,7 @@ exit:
     return error;
 }
 
-ThreadError otSetActiveDataset(otInstance *aInstance, otOperationalDataset *aDataset)
+ThreadError otSetActiveDataset(otInstance *aInstance, const otOperationalDataset *aDataset)
 {
     ThreadError error;
 
@@ -1364,7 +1399,7 @@ exit:
     return error;
 }
 
-ThreadError otSetPendingDataset(otInstance *aInstance, otOperationalDataset *aDataset)
+ThreadError otSetPendingDataset(otInstance *aInstance, const otOperationalDataset *aDataset)
 {
     ThreadError error;
 
