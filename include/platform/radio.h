@@ -104,7 +104,6 @@ typedef struct RadioPacket
     uint8_t  mLqi;             ///< Link Quality Indicator for received frames.
     bool     mSecurityValid: 1; ///< Security Enabled flag is set and frame passes security checks.
     bool     mDidTX: 1;        ///< Set to true if this packet sent from the radio. Ignored by radio driver.
-    uint16_t mFcs;             ///< Final checksum (optional)
 } RadioPacket;
 
 /**
@@ -203,8 +202,8 @@ void otPlatRadioSetShortAddress(otInstance *aInstance, uint16_t aShortAddress);
  *
  * @param[in] aInstance  The OpenThread instance structure.
  *
- * @retval ::kThreadError_None  Successfully transitioned to Sleep.
- * @retval ::kThreadError_Busy  The radio was already enabled.
+ * @retval ::kThreadError_None     Successfully enabled.
+ * @retval ::kThreadError_Failure  The radio could not be enabled.
  */
 ThreadError otPlatRadioEnable(otInstance *aInstance);
 
@@ -233,8 +232,9 @@ bool otPlatRadioIsEnabled(otInstance *aInstance);
  *
  * @param[in] aInstance  The OpenThread instance structure.
  *
- * @retval ::kThreadError_None  Successfully transitioned to Sleep.
- * @retval ::kThreadError_Busy  The radio was not in the Receive state.
+ * @retval ::kThreadError_None         Successfully transitioned to Sleep.
+ * @retval ::kThreadError_Busy         The radio was transmitting
+ * @retval ::kThreadError_InvalidState The radio was disabled
  */
 ThreadError otPlatRadioSleep(otInstance *aInstance);
 
@@ -245,8 +245,8 @@ ThreadError otPlatRadioSleep(otInstance *aInstance);
  * @param[in]  aInstance  The OpenThread instance structure.
  * @param[in]  aChannel   The channel to use for receiving.
  *
- * @retval ::kThreadError_None  Successfully transitioned to Receive.
- * @retval ::kThreadError_Busy  The radio was not in the Sleep state.
+ * @retval ::kThreadError_None         Successfully transitioned to Receive.
+ * @retval ::kThreadError_InvalidState The radio was disabled or transmitting.
  */
 ThreadError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel);
 
@@ -355,7 +355,7 @@ RadioPacket *otPlatRadioGetTransmitBuffer(otInstance *aInstance);
  * @param[in] aInstance  The OpenThread instance structure.
  *
  * @retval ::kThreadError_None         Successfully transitioned to Transmit.
- * @retval ::kThreadError_Busy         The radio was not in the Receive state.
+ * @retval ::kThreadError_InvalidState The radio was not in the Receive state.
  */
 ThreadError otPlatRadioTransmit(otInstance *aInstance);
 

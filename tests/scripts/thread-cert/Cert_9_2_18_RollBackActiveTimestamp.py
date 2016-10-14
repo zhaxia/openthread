@@ -32,8 +32,8 @@ import unittest
 
 import node
 
-KEY1 = '000102030405060708090a0b0c0d0e0f'
-KEY2 = '0f0e0d0c0b0a09080706050403020100'
+KEY1 = '00112233445566778899aabbccddeeff'
+KEY2 = 'ffeeddccbbaa99887766554433221100'
 
 CHANNEL_INIT = 19
 PANID_INIT = 0xface
@@ -41,42 +41,51 @@ PANID_INIT = 0xface
 COMMISSIONER = 1
 LEADER = 2
 ROUTER1 = 3
-ED1 = 4
-SED1 = 5
+ROUTER2 = 4
+ED1 = 5
+SED1 = 6
 
-class Cert_9_2_11_MasterKey(unittest.TestCase):
+class Cert_9_2_18_RollBackActiveTimestamp(unittest.TestCase):
     def setUp(self):
         self.nodes = {}
-        for i in range(1,6):
+        for i in range(1,7):
             self.nodes[i] = node.Node(i)
 
-        self.nodes[COMMISSIONER].set_active_dataset(10, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
+        self.nodes[COMMISSIONER].set_active_dataset(1, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
         self.nodes[COMMISSIONER].set_mode('rsdn')
         self.nodes[COMMISSIONER].add_whitelist(self.nodes[LEADER].get_addr64())
         self.nodes[COMMISSIONER].enable_whitelist()
         self.nodes[COMMISSIONER].set_router_selection_jitter(1)
 
-        self.nodes[LEADER].set_active_dataset(10, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
+        self.nodes[LEADER].set_active_dataset(1, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
         self.nodes[LEADER].set_mode('rsdn')
+        self.nodes[LEADER].set_partition_id(0xffffffff)
         self.nodes[LEADER].add_whitelist(self.nodes[COMMISSIONER].get_addr64())
         self.nodes[LEADER].add_whitelist(self.nodes[ROUTER1].get_addr64())
         self.nodes[LEADER].enable_whitelist()
         self.nodes[LEADER].set_router_selection_jitter(1)
 
-        self.nodes[ROUTER1].set_active_dataset(10, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
+        self.nodes[ROUTER1].set_active_dataset(1, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
         self.nodes[ROUTER1].set_mode('rsdn')
         self.nodes[ROUTER1].add_whitelist(self.nodes[LEADER].get_addr64())
+        self.nodes[ROUTER1].add_whitelist(self.nodes[ROUTER2].get_addr64())
         self.nodes[ROUTER1].add_whitelist(self.nodes[ED1].get_addr64())
         self.nodes[ROUTER1].add_whitelist(self.nodes[SED1].get_addr64())
         self.nodes[ROUTER1].enable_whitelist()
         self.nodes[ROUTER1].set_router_selection_jitter(1)
 
-        self.nodes[ED1].set_active_dataset(10, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
+        self.nodes[ROUTER2].set_active_dataset(1, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
+        self.nodes[ROUTER2].set_mode('rsdn')
+        self.nodes[ROUTER2].add_whitelist(self.nodes[ROUTER1].get_addr64())
+        self.nodes[ROUTER2].enable_whitelist()
+        self.nodes[ROUTER2].set_router_selection_jitter(1)
+
+        self.nodes[ED1].set_active_dataset(1, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
         self.nodes[ED1].set_mode('rsn')
         self.nodes[ED1].add_whitelist(self.nodes[ROUTER1].get_addr64())
         self.nodes[ED1].enable_whitelist()
 
-        self.nodes[SED1].set_active_dataset(10, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
+        self.nodes[SED1].set_active_dataset(1, channel=CHANNEL_INIT, panid=PANID_INIT, master_key=KEY1)
         self.nodes[SED1].set_mode('s')
         self.nodes[SED1].add_whitelist(self.nodes[ROUTER1].get_addr64())
         self.nodes[SED1].enable_whitelist()
@@ -108,51 +117,33 @@ class Cert_9_2_11_MasterKey(unittest.TestCase):
         time.sleep(5)
         self.assertEqual(self.nodes[SED1].get_state(), 'child')
 
-        self.nodes[COMMISSIONER].send_mgmt_pending_set(pending_timestamp=10,
-                                                       active_timestamp=70,
-                                                       delay_timer=10000,
-                                                       master_key=KEY2)
-        time.sleep(15)
+        self.nodes[COMMISSIONER].send_mgmt_active_set(active_timestamp=20000,
+                                                      network_name='GRL')
+        time.sleep(5)
 
-        print(self.nodes[COMMISSIONER].get_masterkey())
-        print(self.nodes[LEADER].get_masterkey())
-        print(self.nodes[ROUTER1].get_masterkey())
-        print(self.nodes[ED1].get_masterkey())
-        print(self.nodes[SED1].get_masterkey())
+        self.nodes[COMMISSIONER].send_mgmt_pending_set(pending_timestamp=20,
+                                                       active_timestamp=20,
+                                                       delay_timer=20000,
+                                                       network_name='Shouldnotbe')
+        time.sleep(5)
+
+        self.nodes[COMMISSIONER].send_mgmt_pending_set(pending_timestamp=20,
+                                                       active_timestamp=20,
+                                                       delay_timer=20000,
+                                                       network_name='MyHouse',
+                                                       master_key=KEY2)
+        time.sleep(25)
 
         self.assertEqual(self.nodes[COMMISSIONER].get_masterkey(), KEY2)
         self.assertEqual(self.nodes[LEADER].get_masterkey(), KEY2)
         self.assertEqual(self.nodes[ROUTER1].get_masterkey(), KEY2)
         self.assertEqual(self.nodes[ED1].get_masterkey(), KEY2)
         self.assertEqual(self.nodes[SED1].get_masterkey(), KEY2)
+        self.assertEqual(self.nodes[ROUTER2].get_masterkey(), KEY1)
 
-        ipaddrs = self.nodes[ED1].get_addrs()
-        for ipaddr in ipaddrs:
-            if ipaddr[0:4] != 'fe80':
-                self.assertTrue(self.nodes[LEADER].ping(ipaddr))
-
-        self.nodes[COMMISSIONER].send_mgmt_pending_set(pending_timestamp=20,
-                                                       active_timestamp=30,
-                                                       delay_timer=10000,
-                                                       master_key=KEY1)
-        time.sleep(15)
-
-        print(self.nodes[COMMISSIONER].get_masterkey())
-        print(self.nodes[LEADER].get_masterkey())
-        print(self.nodes[ROUTER1].get_masterkey())
-        print(self.nodes[ED1].get_masterkey())
-        print(self.nodes[SED1].get_masterkey())
-
-        self.assertEqual(self.nodes[COMMISSIONER].get_masterkey(), KEY1)
-        self.assertEqual(self.nodes[LEADER].get_masterkey(), KEY1)
-        self.assertEqual(self.nodes[ROUTER1].get_masterkey(), KEY1)
-        self.assertEqual(self.nodes[ED1].get_masterkey(), KEY1)
-        self.assertEqual(self.nodes[SED1].get_masterkey(), KEY1)
-
-        ipaddrs = self.nodes[ED1].get_addrs()
-        for ipaddr in ipaddrs:
-            if ipaddr[0:4] != 'fe80':
-                self.assertTrue(self.nodes[LEADER].ping(ipaddr))
+        self.nodes[ROUTER2].start()
+        time.sleep(5)
+        self.assertEqual(self.nodes[ROUTER2].get_state(), 'leader')
 
 if __name__ == '__main__':
     unittest.main()

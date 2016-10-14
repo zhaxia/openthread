@@ -248,7 +248,7 @@ public:
      * @param  aNetif  A reference to the network interface.
      *
      * @retval kThreadError_None  Successfully enabled the network interface.
-     * @retval KThreadError_Busy  The network interface was already enabled.
+     * @retval KThreadError_Already  The network interface was already enabled.
      *
      */
     ThreadError AddNetif(Netif &aNetif);
@@ -259,7 +259,7 @@ public:
      * @param  aNetif  A reference to the network interface.
      *
      * @retval kThreadError_None  Successfully disabled the network interface.
-     * @retval KThreadError_Busy  The network interface was already disabled.
+     * @retval KThreadError_NotFound  The network interface was already disabled.
      *
      */
     ThreadError RemoveNetif(Netif &aNetif);
@@ -345,10 +345,11 @@ private:
     void HandleSendQueue(void);
 
     ThreadError ProcessReceiveCallback(const Message &aMessage, const MessageInfo &aMessageInfo, uint8_t aIpProto);
-    ThreadError HandleExtensionHeaders(Message &message, Header &header, uint8_t &nextHeader, bool receive);
+    ThreadError HandleExtensionHeaders(Message &message, Header &header, uint8_t &nextHeader, bool &forward,
+                                       bool receive);
     ThreadError HandleFragment(Message &message);
     ThreadError AddMplOption(Message &message, Header &header, IpProto nextHeader, uint16_t payloadLength);
-    ThreadError HandleOptions(Message &message, Header &header);
+    ThreadError HandleOptions(Message &message, Header &header, bool &forward);
     ThreadError HandlePayload(Message &message, MessageInfo &messageInfo, uint8_t ipproto);
     ThreadError ForwardMessage(Message &message, MessageInfo &messageInfo, uint8_t ipproto);
 

@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 #  Copyright (c) 2016, The OpenThread Authors.
 #  All rights reserved.
@@ -26,27 +27,47 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
+import time
+import unittest
 
-ot_platform_headers                      =\
-    alarm.h                               \
-    diag.h                                \
-    memory.h                              \
-    misc.h                                \
-    logging.h                             \
-    platform.h                            \
-    radio.h                               \
-    random.h                              \
-    uart.h                                \
-    spi-slave.h                           \
-    flash.h                               \
-    settings.h                            \
-    toolchain.h                           \
-    $(NULL)
+import node
 
-ot_platformdir = $(includedir)/platform
-dist_ot_platform_HEADERS = $(ot_platform_headers)
+LEADER = 1
+ROUTER1 = 2
 
-install-headers: install-includeHEADERS
+class Cert_5_2_06_RouterDowngrade(unittest.TestCase):
+    def setUp(self):
+        self.nodes = {}
+        for i in range(1, 26):
+            self.nodes[i] = node.Node(i)
+            self.nodes[i].set_panid(0xface)
+            self.nodes[i].set_mode('rsdn')
+            self.nodes[i].set_router_selection_jitter(1)
+            if i != ROUTER1:
+                self.nodes[i].set_router_upgrade_threshold(32)
+                self.nodes[i].set_router_downgrade_threshold(32)
 
-include $(abs_top_nlbuild_autotools_dir)/automake/post.am
+    def tearDown(self):
+        for node in list(self.nodes.values()):
+            node.stop()
+        del self.nodes
+
+    def test(self):
+        self.nodes[LEADER].start()
+        self.nodes[LEADER].set_state('leader')
+        self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
+
+        for i in range(2, 25):
+            self.nodes[i].start()
+            time.sleep(5)
+            self.assertEqual(self.nodes[i].get_state(), 'router')
+
+        self.nodes[25].start()
+        time.sleep(5)
+        self.assertEqual(self.nodes[25].get_state(), 'router')
+
+        time.sleep(10)
+        self.assertEqual(self.nodes[ROUTER1].get_state(), 'child')
+
+if __name__ == '__main__':
+    unittest.main()

@@ -49,6 +49,7 @@ EXTRA_DIST                                                         = \
     thread-cert/Cert_5_2_03_LeaderReject2Hops.py                     \
     thread-cert/Cert_5_2_04_REEDUpgrade.py                           \
     thread-cert/Cert_5_2_05_AddressQuery.py                          \
+    thread-cert/Cert_5_2_06_RouterDowngrade.py                       \
     thread-cert/Cert_5_2_07_REEDSynchronization.py                   \
     thread-cert/Cert_5_3_01_LinkLocal.py                             \
     thread-cert/Cert_5_3_02_RealmLocal.py                            \
@@ -113,6 +114,8 @@ EXTRA_DIST                                                         = \
     thread-cert/Cert_9_2_14_PanIdQuery.py                            \
     thread-cert/Cert_9_2_15_PendingPartition.py                      \
     thread-cert/Cert_9_2_16_ActivePendingPartition.py                \
+    thread-cert/Cert_9_2_17_Orphan.py                                \
+    thread-cert/Cert_9_2_18_RollBackActiveTimestamp.py               \
     thread-cert/node.py                                              \
     $(NULL)
 
@@ -153,6 +156,7 @@ check_SCRIPTS                                                     += \
     thread-cert/Cert_5_2_03_LeaderReject2Hops.py                     \
     thread-cert/Cert_5_2_04_REEDUpgrade.py                           \
     thread-cert/Cert_5_2_05_AddressQuery.py                          \
+    thread-cert/Cert_5_2_06_RouterDowngrade.py                       \
     thread-cert/Cert_5_2_07_REEDSynchronization.py                   \
     thread-cert/Cert_5_3_01_LinkLocal.py                             \
     thread-cert/Cert_5_3_02_RealmLocal.py                            \
@@ -238,6 +242,8 @@ check_SCRIPTS                                                     += \
     thread-cert/Cert_9_2_14_PanIdQuery.py                            \
     thread-cert/Cert_9_2_15_PendingPartition.py                      \
     thread-cert/Cert_9_2_16_ActivePendingPartition.py                \
+    thread-cert/Cert_9_2_17_Orphan.py                                \
+    thread-cert/Cert_9_2_18_RollBackActiveTimestamp.py               \
     $(NULL)
 
 endif # OPENTHREAD_TESTS_SUBSET5
@@ -265,6 +271,8 @@ XFAIL_NCP_TESTS                                                    = \
     thread-cert/Cert_9_2_14_PanIdQuery.py                            \
     thread-cert/Cert_9_2_15_PendingPartition.py                      \
     thread-cert/Cert_9_2_16_ActivePendingPartition.py                \
+    thread-cert/Cert_9_2_17_Orphan.py                                \
+    thread-cert/Cert_9_2_18_RollBackActiveTimestamp.py               \
     $(NULL)
 
 XFAIL_TESTS = $(if $(filter $(NODE_TYPE),ncp-sim),$(XFAIL_NCP_TESTS))

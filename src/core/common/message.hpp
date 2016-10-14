@@ -385,6 +385,14 @@ public:
     int CopyTo(uint16_t aSourceOffset, uint16_t aDestinationOffset, uint16_t aLength, Message &aMessage) const;
 
     /**
+     * This method creates a copy of the current Message. It allocates the new one
+     * from the same Message Poll as the original Message.
+     *
+     * @returns A pointer to the message or NULL if insufficient message buffers are available.
+     */
+    Message *Clone(void) const;
+
+    /**
      * This method returns the datagram tag used for 6LoWPAN fragmentation.
      *
      * @returns The 6LoWPAN datagram tag.
@@ -559,7 +567,7 @@ public:
     uint16_t UpdateChecksum(uint16_t aChecksum, uint16_t aOffset, uint16_t aLength) const;
 
 private:
-    MessagePool *GetMessagePool(void) { return mInfo.mMessagePool; }
+    MessagePool *GetMessagePool(void) const { return mInfo.mMessagePool; }
 
     void SetMessagePool(MessagePool *aMessagePool) { mInfo.mMessagePool = aMessagePool; }
 
@@ -645,8 +653,8 @@ public:
      *
      * @param[in]  aMessage  The message to add.
      *
-     * @retval kThreadError_None  Successfully added the message to the list.
-     * @retval kThreadError_Busy  The message is already enqueued in a list.
+     * @retval kThreadError_None     Successfully added the message to the list.
+     * @retval kThreadError_Already  The message is already enqueued in a list.
      *
      */
     ThreadError Enqueue(Message &aMessage);
@@ -656,8 +664,8 @@ public:
      *
      * @param[in]  aMessage  The message to remove.
      *
-     * @retval kThreadError_None  Successfully removed the message from the list.
-     * @retval kThreadError_Busy  The message is not enqueued in a list.
+     * @retval kThreadError_None      Successfully removed the message from the list.
+     * @retval kThreadError_NotFound  The message is not enqueued in a list.
      *
      */
     ThreadError Dequeue(Message &aMessage);
@@ -669,8 +677,8 @@ private:
      * @param[in]  aListId   The list to add @p aMessage to.
      * @param[in]  aMessage  The message to add to @p aListId.
      *
-     * @retval kThreadError_None  Successfully added the message to the list.
-     * @retval kThreadError_Busy  The message is already enqueued in a list.
+     * @retval kThreadError_None     Successfully added the message to the list.
+     * @retval kThreadError_Already  The message is already enqueued in a list.
      *
      */
     static ThreadError AddToList(uint8_t aListId, Message &aMessage);
@@ -681,8 +689,8 @@ private:
      * @param[in]  aListId   The list to add @p aMessage to.
      * @param[in]  aMessage  The message to add to @p aListId.
      *
-     * @retval kThreadError_None  Successfully added the message to the list.
-     * @retval kThreadError_Busy  The message is not enqueued in the list.
+     * @retval kThreadError_None      Successfully added the message to the list.
+     * @retval kThreadError_NotFound  The message is not enqueued in the list.
      *
      */
     static ThreadError RemoveFromList(uint8_t aListId, Message &aMessage);
