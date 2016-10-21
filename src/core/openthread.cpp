@@ -57,6 +57,8 @@
 #include <thread/thread_uris.hpp>
 #include <utils/global_address.hpp>
 #include <openthread-instance.h>
+#include <coap/coap_header.hpp>
+#include <coap/coap_client.hpp>
 
 #ifndef OPENTHREAD_MULTIPLE_INSTANCE
 static otDEFINE_ALIGNED_VAR(sInstanceRaw, sizeof(otInstance), uint64_t);
@@ -88,7 +90,9 @@ static void HandleMleDiscover(otActiveScanResult *aResult, void *aContext);
 
 void otProcessQueuedTasklets(otInstance *aInstance)
 {
+    otLogFuncEntry();
     aInstance->mIp6.mTaskletScheduler.ProcessQueuedTasklets();
+    otLogFuncExit();
 }
 
 bool otAreTaskletsPending(otInstance *aInstance)
@@ -1002,6 +1006,7 @@ otInstance *otInstanceInit(void *aInstanceBuffer, size_t *aInstanceBufferSize)
 {
     otInstance *aInstance = NULL;
 
+    otLogFuncEntry();
     otLogInfoApi("otInstanceInit\n");
 
     VerifyOrExit(aInstanceBufferSize != NULL, ;);
@@ -1016,6 +1021,7 @@ otInstance *otInstanceInit(void *aInstanceBuffer, size_t *aInstanceBufferSize)
 
 exit:
 
+    otLogFuncExit();
     return aInstance;
 }
 
@@ -1023,6 +1029,8 @@ exit:
 
 otInstance *otInstanceInit()
 {
+    otLogFuncEntry();
+
     otLogInfoApi("otInstanceInit\n");
 
     VerifyOrExit(sInstance == NULL, ;);
@@ -1032,6 +1040,7 @@ otInstance *otInstanceInit()
 
 exit:
 
+    otLogFuncExit();
     return sInstance;
 }
 
@@ -1057,6 +1066,8 @@ ThreadError otSendDiagnosticReset(otInstance *aInstance, const otIp6Address *aDe
 
 void otInstanceFinalize(otInstance *aInstance)
 {
+    otLogFuncEntry();
+
     // Ensure we are disabled
     (void)otThreadStop(aInstance);
     (void)otInterfaceDown(aInstance);
@@ -1067,14 +1078,18 @@ void otInstanceFinalize(otInstance *aInstance)
 #ifndef OPENTHREAD_MULTIPLE_INSTANCE
     sInstance = NULL;
 #endif
+    otLogFuncExit();
 }
 
 ThreadError otInterfaceUp(otInstance *aInstance)
 {
     ThreadError error = kThreadError_None;
 
+    otLogFuncEntry();
+
     error = aInstance->mThreadNetif.Up();
 
+    otLogFuncExitErr(error);
     return error;
 }
 
@@ -1082,8 +1097,11 @@ ThreadError otInterfaceDown(otInstance *aInstance)
 {
     ThreadError error = kThreadError_None;
 
+    otLogFuncEntry();
+
     error = aInstance->mThreadNetif.Down();
 
+    otLogFuncExitErr(error);
     return error;
 }
 
@@ -1096,11 +1114,14 @@ ThreadError otThreadStart(otInstance *aInstance)
 {
     ThreadError error = kThreadError_None;
 
+    otLogFuncEntry();
+
     VerifyOrExit(aInstance->mThreadNetif.GetMac().GetPanId() != Mac::kPanIdBroadcast, error = kThreadError_InvalidState);
 
     error = aInstance->mThreadNetif.GetMle().Start();
 
 exit:
+    otLogFuncExitErr(error);
     return error;
 }
 
@@ -1108,8 +1129,11 @@ ThreadError otThreadStop(otInstance *aInstance)
 {
     ThreadError error = kThreadError_None;
 
+    otLogFuncEntry();
+
     error = aInstance->mThreadNetif.GetMle().Stop();
 
+    otLogFuncExitErr(error);
     return error;
 }
 
@@ -1231,8 +1255,16 @@ void otSetReceiveIp6DatagramFilterEnabled(otInstance *aInstance, bool aEnabled)
 
 ThreadError otSendIp6Datagram(otInstance *aInstance, otMessage aMessage)
 {
-    return aInstance->mIp6.HandleDatagram(*static_cast<Message *>(aMessage), NULL, aInstance->mThreadNetif.GetInterfaceId(),
-                                          NULL, true);
+    ThreadError error;
+
+    otLogFuncEntry();
+
+    error = aInstance->mIp6.HandleDatagram(*static_cast<Message *>(aMessage), NULL,
+                                           aInstance->mThreadNetif.GetInterfaceId(), NULL, true);
+
+    otLogFuncExitErr(error);
+
+    return error;
 }
 
 otMessage otNewUdpMessage(otInstance *aInstance, bool aLinkSecurityEnabled)
@@ -1517,6 +1549,53 @@ ThreadError otJoinerStop(otInstance *aInstance)
     return aInstance->mThreadNetif.GetJoiner().Stop();
 }
 #endif  // OPENTHREAD_ENABLE_JOINER
+
+void otCoapHeaderInit(otCoapHeader *aHeader, otCoapType aType, otCoapCode aCode)
+{
+    Coap::Header *header = static_cast<Coap::Header *>(aHeader);
+    header->Init();
+    header->SetType(static_cast<Coap::Header::Type>(aType));
+    header->SetCode(static_cast<Coap::Header::Code>(aCode));
+}
+
+void otCoapHeaderSetToken(otCoapHeader *aHeader, const uint8_t *aToken, uint8_t aTokenLength)
+{
+    static_cast<Coap::Header *>(aHeader)->SetToken(aToken, aTokenLength);
+}
+
+ThreadError otCoapHeaderAppendOption(otCoapHeader *aHeader, const otCoapOption *aOption)
+{
+    return static_cast<Coap::Header *>(aHeader)->AppendOption(*static_cast<const Coap::Header::Option *>(aOption));
+}
+
+void otCoapHeaderSetPayloadMarker(otCoapHeader *aHeader)
+{
+    static_cast<Coap::Header *>(aHeader)->Finalize();
+}
+
+const otCoapOption *otCoapGetCurrentOption(const otCoapHeader *aHeader)
+{
+    return static_cast<const otCoapOption *>(static_cast<const Coap::Header *>(aHeader)->GetCurrentOption());
+}
+
+const otCoapOption *otCoapGetNextOption(otCoapHeader *aHeader)
+{
+    return static_cast<const otCoapOption *>(static_cast<Coap::Header *>(aHeader)->GetNextOption());
+}
+
+otMessage otNewCoapMessage(otInstance *aInstance, const otCoapHeader *aHeader)
+{
+    return aInstance->mThreadNetif.GetCoapClient().NewMessage(*(static_cast<const Coap::Header *>(aHeader)));
+}
+
+ThreadError otSendCoapMessage(otInstance *aInstance, otMessage aMessage, const otMessageInfo *aMessageInfo,
+                              otCoapResponseHandler aHandler, void *aContext)
+{
+    return aInstance->mThreadNetif.GetCoapClient().SendMessage(
+               *static_cast<Message *>(aMessage),
+               *static_cast<const Ip6::MessageInfo *>(aMessageInfo),
+               aHandler, aContext);
+}
 
 #ifdef __cplusplus
 }  // extern "C"

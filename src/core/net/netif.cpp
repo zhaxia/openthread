@@ -40,14 +40,14 @@
 namespace Thread {
 namespace Ip6 {
 
-Netif::Netif(Ip6 &aIp6):
+Netif::Netif(Ip6 &aIp6, int8_t aInterfaceId):
     mIp6(aIp6),
     mStateChangedTask(aIp6.mTaskletScheduler, &Netif::HandleStateChangedTask, this)
 {
     mCallbacks = NULL;
     mUnicastAddresses = NULL;
     mMulticastAddresses = NULL;
-    mInterfaceId = -1;
+    mInterfaceId = aInterfaceId;
     mAllRoutersSubscribed = false;
     mNext = NULL;
     mMaskExtUnicastAddresses = 0;
@@ -219,10 +219,7 @@ ThreadError Netif::AddUnicastAddress(NetifUnicastAddress &aAddress)
     aAddress.mNext = mUnicastAddresses;
     mUnicastAddresses = &aAddress;
 
-    if (!aAddress.GetAddress().IsRoutingLocator())
-    {
-        SetStateChangedFlags(OT_IP6_ADDRESS_ADDED);
-    }
+    SetStateChangedFlags(OT_IP6_ADDRESS_ADDED);
 
 exit:
     return error;
@@ -253,7 +250,7 @@ ThreadError Netif::RemoveUnicastAddress(const NetifUnicastAddress &aAddress)
 
 exit:
 
-    if (!aAddress.GetAddress().IsRoutingLocator())
+    if (error != kThreadError_NotFound)
     {
         SetStateChangedFlags(OT_IP6_ADDRESS_REMOVED);
     }
