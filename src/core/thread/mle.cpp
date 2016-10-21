@@ -109,6 +109,12 @@ Mle::Mle(ThreadNetif &aThreadNetif) :
     mLinkLocal16.mPreferredLifetime = 0xffffffff;
     mLinkLocal16.mValidLifetime = 0xffffffff;
 
+    // Leader Aloc
+    memset(&mLeaderAloc, 0, sizeof(mLeaderAloc));
+    mLeaderAloc.mPrefixLength = 128;
+    mLeaderAloc.mPreferredLifetime = 0xffffffff;
+    mLeaderAloc.mValidLifetime = 0xffffffff;
+
     // initialize Mesh Local Prefix
     mMeshLocal64.GetAddress().mFields.m8[0] = 0xfd;
     memcpy(mMeshLocal64.GetAddress().mFields.m8 + 1, mMac.GetExtendedPanId(), 5);
@@ -195,11 +201,14 @@ ThreadError Mle::Start(void)
 {
     ThreadError error = kThreadError_None;
 
+    otLogFuncEntry();
+
     // cannot bring up the interface if IEEE 802.15.4 promiscuous mode is enabled
     VerifyOrExit(otPlatRadioGetPromiscuous(mNetif.GetInstance()) == false, error = kThreadError_InvalidState);
     VerifyOrExit(mNetif.IsUp(), error = kThreadError_InvalidState);
 
     mDeviceState = kDeviceStateDetached;
+    mNetif.SetStateChangedFlags(OT_NET_ROLE);
     SetStateDetached();
 
     mKeyManager.Start();
@@ -220,11 +229,13 @@ ThreadError Mle::Start(void)
     }
 
 exit:
+    otLogFuncExitErr(error);
     return error;
 }
 
 ThreadError Mle::Stop(void)
 {
+    otLogFuncEntry();
     mKeyManager.Stop();
     SetStateDetached();
     mNetif.RemoveUnicastAddress(mLinkLocal16);
@@ -236,6 +247,7 @@ ThreadError Mle::Stop(void)
     }
 
     mDeviceState = kDeviceStateDisabled;
+    otLogFuncExit();
     return kThreadError_None;
 }
 
@@ -309,6 +321,8 @@ ThreadError Mle::BecomeDetached(void)
 {
     ThreadError error = kThreadError_None;
 
+    otLogFuncEntry();
+
     VerifyOrExit(mDeviceState != kDeviceStateDisabled, error = kThreadError_InvalidState);
 
     SetStateDetached();
@@ -316,12 +330,15 @@ ThreadError Mle::BecomeDetached(void)
     BecomeChild(kMleAttachAnyPartition);
 
 exit:
+    otLogFuncExitErr(error);
     return error;
 }
 
 ThreadError Mle::BecomeChild(otMleAttachFilter aFilter)
 {
     ThreadError error = kThreadError_None;
+
+    otLogFuncEntry();
 
     VerifyOrExit(mDeviceState != kDeviceStateDisabled, error = kThreadError_InvalidState);
     VerifyOrExit(mParentRequestState == kParentIdle, error = kThreadError_Busy);
@@ -338,6 +355,7 @@ ThreadError Mle::BecomeChild(otMleAttachFilter aFilter)
     mParentRequestTimer.Start(kParentRequestRouterTimeout);
 
 exit:
+    otLogFuncExitErr(error);
     return error;
 }
 
@@ -406,7 +424,7 @@ ThreadError Mle::SetStateChild(uint16_t aRloc16)
     mNetif.GetNetworkDataLocal().ClearResubmitDelayTimer();
     mNetif.GetIp6().SetForwardingEnabled(false);
 
-    if (mPreviousPanId != Mac::kPanIdBroadcast)
+    if (mPreviousPanId != Mac::kPanIdBroadcast && (mDeviceMode & ModeTlv::kModeFFD))
     {
         mPreviousPanId = Mac::kPanIdBroadcast;
         mNetif.GetAnnounceBeginServer().SendAnnounce(1 << mPreviousChannel);
@@ -1495,8 +1513,6 @@ exit:
     return;
 }
 
-
-
 ThreadError Mle::SendMessage(Message &aMessage, const Ip6::Address &aDestination)
 {
     ThreadError error = kThreadError_None;
@@ -1870,6 +1886,12 @@ ThreadError Mle::HandleAdvertisement(const Message &aMessage, const Ip6::Message
     }
 
 exit:
+
+    if (error != kThreadError_None)
+    {
+        otLogWarnMleErr(error, "Failed to process Advertisement");
+    }
+
     return error;
 }
 
@@ -1997,9 +2019,21 @@ ThreadError Mle::HandleDataResponse(const Message &aMessage, const Ip6::MessageI
         mNetif.GetPendingDataset().Clear();
     }
 
+    if (mPreviousPanId != Mac::kPanIdBroadcast && ((mDeviceMode & ModeTlv::kModeFFD) == 0))
+    {
+        mPreviousPanId = Mac::kPanIdBroadcast;
+        mNetif.GetAnnounceBeginServer().SendAnnounce(1 << mPreviousChannel);
+    }
+
     mRetrieveNewNetworkData = false;
 
 exit:
+
+    if (error != kThreadError_None)
+    {
+        otLogWarnMleErr(error, "Failed to process Data Response");
+    }
+
     (void)aMessageInfo;
 
     if (dataRequest)
@@ -2183,6 +2217,12 @@ ThreadError Mle::HandleParentResponse(const Message &aMessage, const Ip6::Messag
     mParentIsSingleton = connectivity.GetActiveRouters() <= 1;
 
 exit:
+
+    if (error != kThreadError_None)
+    {
+        otLogWarnMleErr(error, "Failed to process Parent Response");
+    }
+
     return error;
 }
 
@@ -2292,6 +2332,12 @@ ThreadError Mle::HandleChildIdResponse(const Message &aMessage, const Ip6::Messa
     }
 
 exit:
+
+    if (error != kThreadError_None)
+    {
+        otLogWarnMleErr(error, "Failed to process Child ID Response");
+    }
+
     (void)aMessageInfo;
     return error;
 }
@@ -2402,6 +2448,12 @@ ThreadError Mle::HandleChildUpdateResponse(const Message &aMessage, const Ip6::M
     }
 
 exit:
+
+    if (error != kThreadError_None)
+    {
+        otLogWarnMleErr(error, "Failed to process Child Update Response");
+    }
+
     return error;
 }
 
@@ -2428,6 +2480,11 @@ ThreadError Mle::HandleAnnounce(const Message &aMessage, const Ip6::MessageInfo 
 
     if (localTimestamp == NULL || localTimestamp->Compare(timestamp) > 0)
     {
+        if ((mDeviceMode & ModeTlv::kModeFFD) == 0)
+        {
+            mRetrieveNewNetworkData = true;
+        }
+
         Stop();
         mPreviousChannel = mMac.GetChannel();
         mPreviousPanId = mMac.GetPanId();
@@ -2509,6 +2566,12 @@ ThreadError Mle::HandleDiscoveryRequest(const Message &aMessage, const Ip6::Mess
     error = SendDiscoveryResponse(aMessageInfo.GetPeerAddr(), aMessage.GetPanId());
 
 exit:
+
+    if (error != kThreadError_None)
+    {
+        otLogWarnMleErr(error, "Failed to process Discovery Request");
+    }
+
     return error;
 }
 
@@ -2690,6 +2753,12 @@ ThreadError Mle::HandleDiscoveryResponse(const Message &aMessage, const Ip6::Mes
     mDiscoverHandler(&result, mDiscoverContext);
 
 exit:
+
+    if (error != kThreadError_None)
+    {
+        otLogWarnMleErr(error, "Failed to process Discovery Response");
+    }
+
     return error;
 }
 
