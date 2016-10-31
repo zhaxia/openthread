@@ -374,19 +374,23 @@ public:
     /**
      * This method starts the MLE protocol operation.
      *
+     * @param[in]  aEnableReattach  True to enable reattach process using stored dataset, False not.
+     *
      * @retval kThreadError_None     Successfully started the protocol operation.
      * @retval kThreadError_Already  The protocol operation was already started.
      *
      */
-    ThreadError Start(void);
+    ThreadError Start(bool aEnableReattach);
 
     /**
      * This method stops the MLE protocol operation.
      *
+     * @param[in]  aClearNetworkDatasets  True to clear network datasets, False not.
+     *
      * @retval kThreadError_None  Successfully stopped the protocol operation.
      *
      */
-    ThreadError Stop(void);
+    ThreadError Stop(bool aClearNetworkDatasets);
 
     /**
      * This function pointer is called on receiving an MLE Discovery Response message.
@@ -430,13 +434,14 @@ public:
     /**
      * This method generates an MLE Announce message.
      *
-     * @param[in]  aChannel   The channel to use when transmitting.
+     * @param[in]  aChannel        The channel to use when transmitting.
+     * @param[in]  aOrphanAnnounce To indiciate if MLE Announce is sent from an orphan end device.
      *
      * @retval kThreadError_None    Successfully generated an MLE Announce message.
      * @retval kThreadError_NoBufs  Insufficient buffers to generate the MLE Announce message.
      *
      */
-    ThreadError SendAnnounce(uint8_t aChannel);
+    ThreadError SendAnnounce(uint8_t aChannel, bool aOrphanAnnounce);
 
     /**
      * This method causes the Thread interface to detach from the Thread network.
@@ -586,20 +591,20 @@ public:
     uint16_t GetRloc16(void) const;
 
     /**
-     * This method returns a pointer to the RLOC assigned to the Thread interface.
+     * This method returns a reference to the RLOC assigned to the Thread interface.
      *
-     * @returns A pointer to the RLOC assigned to the Thread interface.
+     * @returns A reference to the RLOC assigned to the Thread interface.
      *
      */
-    const Ip6::Address *GetMeshLocal16(void) const;
+    const Ip6::Address &GetMeshLocal16(void) const;
 
     /**
-     * This method returns a pointer to the ML-EID assigned to the Thread interface.
+     * This method returns a reference to the ML-EID assigned to the Thread interface.
      *
-     * @returns A pointer to the ML-EID assigned to the Thread interface.
+     * @returns A reference to the ML-EID assigned to the Thread interface.
      *
      */
-    const Ip6::Address *GetMeshLocal64(void) const;
+    const Ip6::Address &GetMeshLocal64(void) const;
 
     /**
      * This method returns the Router ID of the Leader.
@@ -1158,6 +1163,19 @@ protected:
         kChildIdRequest,       ///< Sending a Child ID Request message.
     };
     ParentRequestState mParentRequestState;  ///< The parent request state.
+
+    /**
+     * States when reattaching network using stored dataset
+     *
+     */
+    enum ReattachState
+    {
+        kReattachStop       = 0,   ///< Reattach process is disabled or finished
+        kReattachStart      = 1,   ///< Start reattach process
+        kReattachActive     = 2,   ///< Reattach using stored Active Dataset
+        kReattachPending    = 3,   ///< Reattach using stored Pending Dataset
+    };
+    ReattachState mReattachState;
 
     Timer mParentRequestTimer;  ///< The timer for driving the Parent Request process.
 

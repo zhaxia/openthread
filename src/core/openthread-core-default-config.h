@@ -136,24 +136,24 @@
 #endif  // OPENTHREAD_CONFIG_6LOWPAN_REASSEMBLY_TIMEOUT
 
 /**
- * @def OPENTHREAD_CONFIG_MPL_CACHE_ENTRIES
+ * @def OPENTHREAD_CONFIG_MPL_SEED_SET_ENTRIES
  *
- * The number of MPL cache entries for duplicate detection.
+ * The number of MPL Seed Set entries for duplicate detection.
  *
  */
-#ifndef OPENTHREAD_CONFIG_MPL_CACHE_ENTRIES
-#define OPENTHREAD_CONFIG_MPL_CACHE_ENTRIES                     32
-#endif  // OPENTHREAD_CONFIG_MPL_CACHE_ENTRIES
+#ifndef OPENTHREAD_CONFIG_MPL_SEED_SET_ENTRIES
+#define OPENTHREAD_CONFIG_MPL_SEED_SET_ENTRIES                 32
+#endif  // OPENTHREAD_CONFIG_MPL_SEED_SET_ENTRIES
 
 /**
- * @def OPENTHREAD_CONFIG_MPL_CACHE_ENTRY_LIFETIME
+ * @def OPENTHREAD_CONFIG_MPL_SEED_SET_ENTRY_LIFETIME
  *
- * The MPL cache entry lifetime in seconds.
+ * The MPL Seed Set entry lifetime in seconds.
  *
  */
-#ifndef OPENTHREAD_CONFIG_MPL_CACHE_ENTRY_LIFETIME
-#define OPENTHREAD_CONFIG_MPL_CACHE_ENTRY_LIFETIME              5
-#endif  // OPENTHREAD_CONFIG_MPL_CACHE_ENTRY_LIFETIME
+#ifndef OPENTHREAD_CONFIG_MPL_SEED_SET_ENTRY_LIFETIME
+#define OPENTHREAD_CONFIG_MPL_SEED_SET_ENTRY_LIFETIME          5
+#endif  // OPENTHREAD_CONFIG_MPL_SEED_SET_ENTRY_LIFETIME
 
 /**
  * @def OPENTHREAD_CONFIG_JOINER_UDP_PORT
@@ -248,6 +248,19 @@
 #endif  // OPENTHREAD_CONFIG_JOIN_BEACON_VERSION
 
 /**
+ * @def OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT
+ *
+ * The message pool is managed by platform defined logic when this flag is set.
+ * This feature would typically be used when operating in a multi-threaded system
+ * and multiple threads need to access the message pool.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT
+#define OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT           0
+#endif  // OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT
+
+
+/**
  * @def OPENTHREAD_CONFIG_LOG_LEVEL
  *
  * The log level.
@@ -329,35 +342,4 @@
  */
 #define OPENTHREAD_CONFIG_LOG_NETDIAG
 
-/**
- * @def OPENTHREAD_CONFIG_SETTINGS_BASE_ADDRESS
- *
- * The base address of settings.
- *
- */
-#ifndef OPENTHREAD_CONFIG_SETTINGS_BASE_ADDRESS
-#define OPENTHREAD_CONFIG_SETTINGS_BASE_ADDRESS                 0x39000
-#endif  // OPENTHREAD_CONFIG_SETTINGS_BASE_ADDRESS
-
-/**
- * @def OPENTHREAD_CONFIG_SETTINGS_PAGE_SIZE
- *
- * The page size of settings.
- *
- */
-#ifndef OPENTHREAD_CONFIG_SETTINGS_PAGE_SIZE
-#define OPENTHREAD_CONFIG_SETTINGS_PAGE_SIZE                    0x800
-#endif  // OPENTHREAD_CONFIG_SETTINGS_PAGE_SIZE
-
-/**
- * @def OPENTHREAD_CONFIG_SETTINGS_PAGE_NUM
- *
- * The page number of settings.
- *
- */
-#ifndef OPENTHREAD_CONFIG_SETTINGS_PAGE_NUM
-#define OPENTHREAD_CONFIG_SETTINGS_PAGE_NUM                     2
-#endif  // OPENTHREAD_CONFIG_SETTINGS_PAGE_NUM
-
 #endif  // OPENTHREAD_CORE_DEFAULT_CONFIG_H_
-

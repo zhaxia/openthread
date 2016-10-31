@@ -50,6 +50,7 @@
 #include <crypto/mbedtls.hpp>
 #include <net/icmp6.hpp>
 #include <net/ip6.hpp>
+#include <platform/settings.h>
 #include <platform/radio.h>
 #include <platform/random.h>
 #include <platform/misc.h>
@@ -66,6 +67,7 @@ otInstance *sInstance = NULL;
 #endif
 
 void OT_CDECL operator delete(void *, size_t) throw() { }
+void OT_CDECL operator delete(void *) throw() { }
 
 otInstance::otInstance(void) :
     mReceiveIp6DatagramCallback(NULL),
@@ -272,7 +274,7 @@ void otSetMaxTransmitPower(otInstance *aInstance, int8_t aPower)
 
 const otIp6Address *otGetMeshLocalEid(otInstance *aInstance)
 {
-    return aInstance->mThreadNetif.GetMle().GetMeshLocal64();
+    return &aInstance->mThreadNetif.GetMle().GetMeshLocal64();
 }
 
 const uint8_t *otGetMeshLocalPrefix(otInstance *aInstance)
@@ -690,6 +692,12 @@ void otPlatformReset(otInstance *aInstance)
     otPlatReset(aInstance);
 }
 
+void otFactoryReset(otInstance *aInstance)
+{
+    otPlatSettingsWipe(aInstance);
+    otPlatReset(aInstance);
+}
+
 uint8_t otGetRouterDowngradeThreshold(otInstance *aInstance)
 {
     return aInstance->mThreadNetif.GetMle().GetRouterDowngradeThreshold();
@@ -1007,7 +1015,7 @@ otInstance *otInstanceInit(void *aInstanceBuffer, size_t *aInstanceBufferSize)
     otInstance *aInstance = NULL;
 
     otLogFuncEntry();
-    otLogInfoApi("otInstanceInit\n");
+    otLogInfoApi("otInstanceInit");
 
     VerifyOrExit(aInstanceBufferSize != NULL, ;);
 
@@ -1018,6 +1026,13 @@ otInstance *otInstanceInit(void *aInstanceBuffer, size_t *aInstanceBufferSize)
 
     // Construct the context
     aInstance = new(aInstanceBuffer)otInstance();
+
+    // restore datasets
+    otPlatSettingsInit(aInstance);
+
+    aInstance->mThreadNetif.GetActiveDataset().Restore();
+
+    aInstance->mThreadNetif.GetPendingDataset().Restore();
 
 exit:
 
@@ -1031,12 +1046,19 @@ otInstance *otInstanceInit()
 {
     otLogFuncEntry();
 
-    otLogInfoApi("otInstanceInit\n");
+    otLogInfoApi("otInstanceInit");
 
     VerifyOrExit(sInstance == NULL, ;);
 
     // Construct the context
     sInstance = new(&sInstanceRaw)otInstance();
+
+    // restore datasets
+    otPlatSettingsInit(sInstance);
+
+    sInstance->mThreadNetif.GetActiveDataset().Restore();
+
+    sInstance->mThreadNetif.GetPendingDataset().Restore();
 
 exit:
 
@@ -1118,7 +1140,7 @@ ThreadError otThreadStart(otInstance *aInstance)
 
     VerifyOrExit(aInstance->mThreadNetif.GetMac().GetPanId() != Mac::kPanIdBroadcast, error = kThreadError_InvalidState);
 
-    error = aInstance->mThreadNetif.GetMle().Start();
+    error = aInstance->mThreadNetif.GetMle().Start(true);
 
 exit:
     otLogFuncExitErr(error);
@@ -1131,7 +1153,7 @@ ThreadError otThreadStop(otInstance *aInstance)
 
     otLogFuncEntry();
 
-    error = aInstance->mThreadNetif.GetMle().Stop();
+    error = aInstance->mThreadNetif.GetMle().Stop(true);
 
     otLogFuncExitErr(error);
     return error;
@@ -1553,9 +1575,7 @@ ThreadError otJoinerStop(otInstance *aInstance)
 void otCoapHeaderInit(otCoapHeader *aHeader, otCoapType aType, otCoapCode aCode)
 {
     Coap::Header *header = static_cast<Coap::Header *>(aHeader);
-    header->Init();
-    header->SetType(static_cast<Coap::Header::Type>(aType));
-    header->SetCode(static_cast<Coap::Header::Code>(aCode));
+    header->Init(aType, aCode);
 }
 
 void otCoapHeaderSetToken(otCoapHeader *aHeader, const uint8_t *aToken, uint8_t aTokenLength)
@@ -1570,7 +1590,7 @@ ThreadError otCoapHeaderAppendOption(otCoapHeader *aHeader, const otCoapOption *
 
 void otCoapHeaderSetPayloadMarker(otCoapHeader *aHeader)
 {
-    static_cast<Coap::Header *>(aHeader)->Finalize();
+    static_cast<Coap::Header *>(aHeader)->SetPayloadMarker();
 }
 
 const otCoapOption *otCoapGetCurrentOption(const otCoapHeader *aHeader)

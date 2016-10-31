@@ -251,8 +251,8 @@ ThreadError MeshForwarder::AddSrcMatchEntry(Child &aChild)
     ThreadError error = kThreadError_NoBufs;
     Mac::Address macAddr;
 
-    otLogDebgMac("Queuing for child (0x%x)\n", aChild.mValid.mRloc16);
-    otLogDebgMac("SrcMatch %d (0:Dis, 1:En))\n", mSrcMatchEnabled);
+    otLogDebgMac("Queuing for child (0x%x)", aChild.mValid.mRloc16);
+    otLogDebgMac("SrcMatch %d (0:Dis, 1:En))", mSrcMatchEnabled);
 
     // first queued message, to be added into source match table
     if (aChild.mQueuedIndirectMessageCnt == 1)
@@ -294,7 +294,7 @@ exit:
 void MeshForwarder::ClearSrcMatchEntry(Child &aChild)
 {
     Mac::Address macAddr;
-    otLogDebgMac("SrcMatch %d (0:Dis, 1:En))\n", mSrcMatchEnabled);
+    otLogDebgMac("SrcMatch %d (0:Dis, 1:En))", mSrcMatchEnabled);
 
     if (aChild.mAddSrcMatchEntryShort)
     {
@@ -781,7 +781,7 @@ void MeshForwarder::HandlePollTimer()
     if ((message = mNetif.GetIp6().mMessagePool.New(Message::kTypeMacDataPoll, 0)) != NULL)
     {
         SendMessage(*message);
-        otLogInfoMac("Sent poll\n");
+        otLogInfoMac("Sent poll");
     }
 
     mPollTimer.Start(mPollPeriod);
@@ -1239,7 +1239,7 @@ void MeshForwarder::HandleSentFrame(Mac::Frame &aFrame, ThreadError aError)
             if ((child->mMode & Mle::ModeTlv::kModeRxOnWhenIdle) == 0)
             {
                 child->mQueuedIndirectMessageCnt--;
-                otLogDebgMac("Sent to child (0x%x), still queued message (%d)\n",
+                otLogDebgMac("Sent to child (0x%x), still queued message (%d)",
                              child->mValid.mRloc16, child->mQueuedIndirectMessageCnt);
 
                 if (child->mQueuedIndirectMessageCnt == 0)
@@ -1567,8 +1567,7 @@ void MeshForwarder::HandleFragment(uint8_t *aFrame, uint8_t aFrameLength,
         aFrameLength -= static_cast<uint8_t>(headerLength);
 
         SuccessOrExit(error = message->SetLength(datagramLength));
-        datagramLength = HostSwap16(datagramLength - sizeof(Ip6::Header));
-        message->Write(Ip6::Header::GetPayloadLengthOffset(), sizeof(datagramLength), &datagramLength);
+
         message->SetDatagramTag(datagramTag);
         message->SetTimeout(kReassemblyTimeout);
 
@@ -1670,7 +1669,6 @@ void MeshForwarder::HandleLowpanHC(uint8_t *aFrame, uint8_t aFrameLength,
     ThreadError error = kThreadError_None;
     Message *message;
     int headerLength;
-    uint16_t ip6PayloadLength;
 
     VerifyOrExit((message = mNetif.GetIp6().mMessagePool.New(Message::kTypeIp6, 0)) != NULL,
                  error = kThreadError_NoBufs);
@@ -1684,10 +1682,6 @@ void MeshForwarder::HandleLowpanHC(uint8_t *aFrame, uint8_t aFrameLength,
     aFrameLength -= static_cast<uint8_t>(headerLength);
 
     SuccessOrExit(error = message->SetLength(message->GetLength() + aFrameLength));
-
-    ip6PayloadLength = HostSwap16(message->GetLength() - sizeof(Ip6::Header));
-    message->Write(Ip6::Header::GetPayloadLengthOffset(), sizeof(ip6PayloadLength), &ip6PayloadLength);
-
     message->Write(message->GetOffset(), aFrameLength, aFrame);
 
     // Security Check

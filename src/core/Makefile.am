@@ -45,11 +45,11 @@ libopenthread_a_SOURCES             = \
     common/message.cpp                \
     common/tasklet.cpp                \
     common/timer.cpp                  \
-    common/settings.cpp               \
     common/trickle_timer.cpp          \
     crypto/aes_ccm.cpp                \
     crypto/aes_ecb.cpp                \
     crypto/hmac_sha256.cpp            \
+    crypto/openthread-crypto.cpp      \
     crypto/mbedtls.cpp                \
     crypto/sha256.cpp                 \
     mac/mac.cpp                       \
@@ -124,6 +124,7 @@ noinst_HEADERS                      = \
     common/encoding.hpp               \
     common/logging.hpp                \
     common/message.hpp                \
+    common/settings.hpp               \
     common/new.hpp                    \
     common/tasklet.hpp                \
     common/timer.hpp                  \

@@ -36,7 +36,7 @@
 #include <string.h>
 
 #include <openthread-config.h>
-#include <platform/flash.h>
+#include <utils/flash.h>
 
 #include <common/code_utils.hpp>
 
@@ -50,12 +50,15 @@ enum
     FLASH_PAGE_NUM = 128,
 };
 
-ThreadError otPlatFlashInit(void)
+ThreadError utilsFlashInit(void)
 {
     ThreadError error = kThreadError_None;
-    char fileName[16];
+    char fileName[20];
     struct stat st;
     bool create = false;
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
 
     memset(&st, 0, sizeof(st));
 
@@ -64,7 +67,7 @@ ThreadError otPlatFlashInit(void)
         mkdir("tmp", 0777);
     }
 
-    snprintf(fileName, sizeof(fileName), "tmp/%d.flash", NODE_ID);
+    snprintf(fileName, sizeof(fileName), "tmp/%d_%d.flash", NODE_ID, (uint32_t)tv.tv_usec);
 
     if (access(fileName, 0))
     {
@@ -80,7 +83,7 @@ ThreadError otPlatFlashInit(void)
     {
         for (uint16_t index = 0; index < FLASH_PAGE_NUM; index++)
         {
-            SuccessOrExit(error = otPlatFlashErasePage(index * FLASH_PAGE_SIZE));
+            SuccessOrExit(error = utilsFlashErasePage(index * FLASH_PAGE_SIZE));
         }
     }
 
@@ -88,12 +91,12 @@ exit:
     return error;
 }
 
-uint32_t otPlatFlashGetSize(void)
+uint32_t utilsFlashGetSize(void)
 {
     return FLASH_SIZE;
 }
 
-ThreadError otPlatFlashErasePage(uint32_t aAddress)
+ThreadError utilsFlashErasePage(uint32_t aAddress)
 {
     ThreadError error = kThreadError_None;
     uint8_t buf = 0xff;
@@ -114,13 +117,13 @@ exit:
     return error;
 }
 
-ThreadError otPlatFlashStatusWait(uint32_t aTimeout)
+ThreadError utilsFlashStatusWait(uint32_t aTimeout)
 {
     (void)aTimeout;
     return kThreadError_None;
 }
 
-uint32_t otPlatFlashWrite(uint32_t aAddress, uint8_t *aData, uint32_t aSize)
+uint32_t utilsFlashWrite(uint32_t aAddress, uint8_t *aData, uint32_t aSize)
 {
     uint32_t ret = 0;
     uint32_t index = 0;
@@ -130,7 +133,7 @@ uint32_t otPlatFlashWrite(uint32_t aAddress, uint8_t *aData, uint32_t aSize)
 
     for (index = 0; index < aSize; index++)
     {
-        VerifyOrExit((ret = otPlatFlashRead(aAddress + index, &byte, 1)) == 1, ;);
+        VerifyOrExit((ret = utilsFlashRead(aAddress + index, &byte, 1)) == 1, ;);
         // Use bitwise AND to emulate the behavior of flash memory
         byte &= aData[index];
         VerifyOrExit((ret = (uint32_t)pwrite(sFlashFd, &byte, 1, aAddress + index)) == 1, ;);
@@ -140,7 +143,7 @@ exit:
     return index;
 }
 
-uint32_t otPlatFlashRead(uint32_t aAddress, uint8_t *aData, uint32_t aSize)
+uint32_t utilsFlashRead(uint32_t aAddress, uint8_t *aData, uint32_t aSize)
 {
     uint32_t ret = 0;
 

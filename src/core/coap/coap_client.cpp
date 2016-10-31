@@ -144,9 +144,7 @@ Message *Client::CopyAndEnqueueMessage(const Message &aMessage, uint16_t aCopyLe
     uint32_t alarmFireTime;
 
     // Create a message copy of requested size.
-    VerifyOrExit((messageCopy = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
-    SuccessOrExit(error = messageCopy->SetLength(aCopyLength));
-    aMessage.CopyTo(0, 0, aCopyLength, *messageCopy);
+    VerifyOrExit((messageCopy = aMessage.Clone(aCopyLength)) != NULL, error = kThreadError_NoBufs);
 
     // Append the copy with retransmission data.
     SuccessOrExit(error = aRequestMetadata.AppendTo(*messageCopy));
@@ -204,9 +202,8 @@ ThreadError Client::SendCopy(const Message &aMessage, const Ip6::MessageInfo &aM
     Message *messageCopy = NULL;
 
     // Create a message copy for lower layers.
-    VerifyOrExit((messageCopy = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
-    SuccessOrExit(error = messageCopy->SetLength(aMessage.GetLength() - sizeof(RequestMetadata)));
-    aMessage.CopyTo(0, 0, aMessage.GetLength() - sizeof(RequestMetadata), *messageCopy);
+    VerifyOrExit((messageCopy = aMessage.Clone(aMessage.GetLength() - sizeof(RequestMetadata))) != NULL,
+                 error = kThreadError_NoBufs);
 
     // Send the copy.
     SuccessOrExit(error = mSocket.SendTo(*messageCopy, aMessageInfo));
@@ -228,15 +225,13 @@ void Client::SendEmptyMessage(const Ip6::Address &aAddress, uint16_t aPort, uint
     Message *message;
     ThreadError error = kThreadError_None;
 
-    header.Init();
-    header.SetType(aType);
+    header.Init(aType, kCoapCodeEmpty);
     header.SetMessageId(aMessageId);
 
     VerifyOrExit((message = NewMessage(header)) != NULL, ;);
 
-    memset(&messageInfo, 0, sizeof(messageInfo));
-    messageInfo.GetPeerAddr() = aAddress;
-    messageInfo.mPeerPort = aPort;
+    messageInfo.SetPeerAddr(aAddress);
+    messageInfo.SetPeerPort(aPort);
 
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
 
@@ -293,9 +288,8 @@ void Client::HandleRetransmissionTimer(void)
             // Retransmit
             if (!requestMetadata.mAcknowledged)
             {
-                memset(&messageInfo, 0, sizeof(messageInfo));
-                messageInfo.GetPeerAddr() = requestMetadata.mDestinationAddress;
-                messageInfo.mPeerPort = requestMetadata.mDestinationPort;
+                messageInfo.SetPeerAddr(requestMetadata.mDestinationAddress);
+                messageInfo.SetPeerPort(requestMetadata.mDestinationPort);
 
                 SendCopy(*message, messageInfo);
             }
@@ -325,14 +319,14 @@ Message *Client::FindRelatedRequest(const Header &aResponseHeader, const Ip6::Me
         aRequestMetadata.ReadFrom(*message);
 
         if ((aRequestMetadata.mDestinationAddress == aMessageInfo.GetPeerAddr()) &&
-            (aRequestMetadata.mDestinationPort == aMessageInfo.mPeerPort))
+            (aRequestMetadata.mDestinationPort == aMessageInfo.GetPeerPort()))
         {
             assert(aRequestHeader.FromMessage(*message) == kThreadError_None);
 
             switch (aResponseHeader.GetType())
             {
-            case Header::kTypeReset:
-            case Header::kTypeAcknowledgment:
+            case kCoapTypeReset:
+            case kCoapTypeAcknowledgment:
                 if (aResponseHeader.GetMessageId() == aRequestHeader.GetMessageId())
                 {
                     ExitNow();
@@ -340,8 +334,8 @@ Message *Client::FindRelatedRequest(const Header &aResponseHeader, const Ip6::Me
 
                 break;
 
-            case Header::kTypeConfirmable:
-            case Header::kTypeNonConfirmable:
+            case kCoapTypeConfirmable:
+            case kCoapTypeNonConfirmable:
                 if (aResponseHeader.IsTokenEqual(aRequestHeader))
                 {
                     ExitNow();
@@ -396,7 +390,7 @@ void Client::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessag
 
     switch (responseHeader.GetType())
     {
-    case Header::kTypeReset:
+    case kCoapTypeReset:
         if (responseHeader.IsEmpty())
         {
             FinalizeCoapTransaction(*message, requestMetadata, NULL, NULL, kThreadError_Abort);
@@ -405,7 +399,7 @@ void Client::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessag
         // Silently ignore non-empty reset messages (RFC 7252, p. 4.2).
         break;
 
-    case Header::kTypeAcknowledgment:
+    case kCoapTypeAcknowledgment:
         if (responseHeader.IsEmpty())
         {
             // Empty acknowledgment.
@@ -431,12 +425,12 @@ void Client::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessag
         // or with no token match (RFC 7252, p. 5.3.2)
         break;
 
-    case Header::kTypeConfirmable:
-    case Header::kTypeNonConfirmable:
+    case kCoapTypeConfirmable:
+    case kCoapTypeNonConfirmable:
         if (responseHeader.IsConfirmable())
         {
             // Send empty ACK if it is a CON message.
-            SendEmptyAck(aMessageInfo.GetPeerAddr(), aMessageInfo.mPeerPort, responseHeader.GetMessageId());
+            SendEmptyAck(aMessageInfo.GetPeerAddr(), aMessageInfo.GetPeerPort(), responseHeader.GetMessageId());
         }
 
         FinalizeCoapTransaction(*message, requestMetadata, &responseHeader, &aMessage, kThreadError_None);
@@ -451,7 +445,7 @@ exit:
         if (responseHeader.IsConfirmable() || responseHeader.IsNonConfirmable())
         {
             // Successfully parsed a header but no matching request was found - reject the message by sending reset.
-            SendReset(aMessageInfo.GetPeerAddr(), aMessageInfo.mPeerPort, responseHeader.GetMessageId());
+            SendReset(aMessageInfo.GetPeerAddr(), aMessageInfo.GetPeerPort(), responseHeader.GetMessageId());
         }
     }
 }
@@ -459,7 +453,7 @@ exit:
 RequestMetadata::RequestMetadata(bool aConfirmable, const Ip6::MessageInfo &aMessageInfo,
                                  otCoapResponseHandler aHandler, void *aContext)
 {
-    mDestinationPort = aMessageInfo.mPeerPort;
+    mDestinationPort = aMessageInfo.GetPeerPort();
     mDestinationAddress = aMessageInfo.GetPeerAddr();
     mResponseHandler = aHandler;
     mResponseContext = aContext;
