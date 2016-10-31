@@ -59,6 +59,7 @@ namespace MeshCoP {
 JoinerRouter::JoinerRouter(ThreadNetif &aNetif):
     mSocket(aNetif.GetIp6().mUdp),
     mRelayTransmit(OPENTHREAD_URI_RELAY_TX, &JoinerRouter::HandleRelayTransmit, this),
+    mCoapClient(aNetif.GetCoapClient()),
     mNetif(aNetif),
     mIsJoinerPortConfigured(false)
 {
@@ -91,7 +92,7 @@ void JoinerRouter::HandleNetifStateChanged(uint32_t aFlags)
         mSocket.Open(&JoinerRouter::HandleUdpReceive, this);
         mSocket.Bind(sockaddr);
         mNetif.GetIp6Filter().AddUnsecurePort(sockaddr.mPort);
-        otLogInfoMeshCoP("Joiner Router: start\n");
+        otLogInfoMeshCoP("Joiner Router: start");
     }
     else
     {
@@ -188,23 +189,21 @@ void JoinerRouter::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &a
 
     otLogFuncEntryMsg("from peer: %llX",
                       HostSwap64(*reinterpret_cast<const uint64_t *>(aMessageInfo.GetPeerAddr().mFields.m8 + 8)));
-    otLogInfoMeshCoP("JoinerRouter::HandleUdpReceive\n");
+    otLogInfoMeshCoP("JoinerRouter::HandleUdpReceive");
 
     SuccessOrExit(error = GetBorderAgentRloc(borderAgentRloc));
 
     VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
 
-    header.Init();
-    header.SetType(Coap::Header::kTypeNonConfirmable);
-    header.SetCode(Coap::Header::kCodePost);
+    header.Init(kCoapTypeNonConfirmable, kCoapRequestPost);
     header.SetMessageId(0);
     header.SetToken(NULL, 0);
     header.AppendUriPathOptions(OPENTHREAD_URI_RELAY_RX);
-    header.Finalize();
+    header.SetPayloadMarker();
     SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
 
     udpPort.Init();
-    udpPort.SetUdpPort(aMessageInfo.mPeerPort);
+    udpPort.SetUdpPort(aMessageInfo.GetPeerPort());
     SuccessOrExit(error = message->Append(&udpPort, sizeof(udpPort)));
 
     iid.Init();
@@ -235,16 +234,13 @@ void JoinerRouter::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &a
         SuccessOrExit(error = message->Append(tmp, length));
     }
 
-    memset(&messageInfo, 0, sizeof(messageInfo));
-    memcpy(messageInfo.GetPeerAddr().mFields.m8, mNetif.GetMle().GetMeshLocalPrefix(), 8);
-    messageInfo.GetPeerAddr().mFields.m16[5] = HostSwap16(0x00ff);
-    messageInfo.GetPeerAddr().mFields.m16[6] = HostSwap16(0xfe00);
+    messageInfo.SetPeerAddr(mNetif.GetMle().GetMeshLocal16());
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(borderAgentRloc);
-    messageInfo.mPeerPort = kCoapUdpPort;
+    messageInfo.SetPeerPort(kCoapUdpPort);
 
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
 
-    otLogInfoMeshCoP("Sent relay rx\n");
+    otLogInfoMeshCoP("Sent relay rx");
 
 exit:
 
@@ -274,10 +270,10 @@ void JoinerRouter::HandleRelayTransmit(Coap::Header &aHeader, Message &aMessage,
     Ip6::MessageInfo messageInfo;
 
     otLogFuncEntry();
-    VerifyOrExit(aHeader.GetType() == Coap::Header::kTypeNonConfirmable &&
-                 aHeader.GetCode() == Coap::Header::kCodePost, error = kThreadError_Drop);
+    VerifyOrExit(aHeader.GetType() == kCoapTypeNonConfirmable &&
+                 aHeader.GetCode() == kCoapRequestPost, error = kThreadError_Drop);
 
-    otLogInfoMeshCoP("Received relay transmit\n");
+    otLogInfoMeshCoP("Received relay transmit");
 
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kJoinerUdpPort, sizeof(joinerPort), joinerPort));
     VerifyOrExit(joinerPort.IsValid(), error = kThreadError_Parse);
@@ -309,17 +305,16 @@ void JoinerRouter::HandleRelayTransmit(Coap::Header &aHeader, Message &aMessage,
 
     aMessage.CopyTo(offset, 0, length, *message);
 
-    memset(&messageInfo, 0, sizeof(messageInfo));
     messageInfo.mPeerAddr.mFields.m16[0] = HostSwap16(0xfe80);
     memcpy(messageInfo.mPeerAddr.mFields.m8 + 8, joinerIid.GetIid(), 8);
-    messageInfo.mPeerPort = joinerPort.GetUdpPort();
-    messageInfo.mInterfaceId = mNetif.GetInterfaceId();
+    messageInfo.SetPeerPort(joinerPort.GetUdpPort());
+    messageInfo.SetInterfaceId(mNetif.GetInterfaceId());
 
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
 
     if (Tlv::GetTlv(aMessage, Tlv::kJoinerRouterKek, sizeof(kek), kek) == kThreadError_None)
     {
-        otLogInfoMeshCoP("Received kek\n");
+        otLogInfoMeshCoP("Received kek");
         mNetif.GetKeyManager().SetKek(kek.GetKek());
         SendJoinerEntrust(messageInfo);
     }
@@ -349,17 +344,13 @@ ThreadError JoinerRouter::SendJoinerEntrust(const Ip6::MessageInfo &aMessageInfo
     Tlv *tlv;
 
     otLogFuncEntry();
-    VerifyOrExit((message = mSocket.NewMessage(0)) != NULL, error = kThreadError_NoBufs);
-    message->SetSubType(Message::kSubTypeJoinerEntrust);
 
-    header.Init();
-    header.SetType(Coap::Header::kTypeConfirmable);
-    header.SetCode(Coap::Header::kCodePost);
-    header.SetMessageId(0);
-    header.SetToken(NULL, 0);
+    header.Init(kCoapTypeConfirmable, kCoapRequestPost);
     header.AppendUriPathOptions(OPENTHREAD_URI_JOINER_ENTRUST);
-    header.Finalize();
-    SuccessOrExit(error = message->Append(header.GetBytes(), header.GetLength()));
+    header.SetPayloadMarker();
+
+    VerifyOrExit((message = mCoapClient.NewMessage(header)) != NULL, error = kThreadError_NoBufs);
+    message->SetSubType(Message::kSubTypeJoinerEntrust);
 
     masterKey.Init();
     masterKey.SetNetworkMasterKey(mNetif.GetKeyManager().GetMasterKey(NULL));
@@ -422,11 +413,11 @@ ThreadError JoinerRouter::SendJoinerEntrust(const Ip6::MessageInfo &aMessageInfo
     }
 
     messageInfo = aMessageInfo;
-    messageInfo.mPeerPort = kCoapUdpPort;
-    SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
+    messageInfo.SetPeerPort(kCoapUdpPort);
+    SuccessOrExit(error = mCoapClient.SendMessage(*message, messageInfo));
 
-    otLogInfoMeshCoP("Sent joiner entrust length = %d\n", message->GetLength());
-    otLogCertMeshCoP("[THCI] direction=send | msg_type=JOIN_ENT.ntf\n");
+    otLogInfoMeshCoP("Sent joiner entrust length = %d", message->GetLength());
+    otLogCertMeshCoP("[THCI] direction=send | msg_type=JOIN_ENT.ntf");
 
 exit:
 

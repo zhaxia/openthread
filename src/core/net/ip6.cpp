@@ -37,7 +37,6 @@
 #include <common/debug.hpp>
 #include <common/logging.hpp>
 #include <common/message.hpp>
-#include <common/new.hpp>
 #include <net/icmp6.hpp>
 #include <net/ip6.hpp>
 #include <net/ip6_address.hpp>
@@ -125,14 +124,14 @@ void Ip6::SetReceiveIp6FilterEnabled(bool aEnabled)
     mIsReceiveIp6FilterEnabled = aEnabled;
 }
 
-ThreadError Ip6::AddMplOption(Message &message, Header &header, IpProto nextHeader, uint16_t payloadLength)
+ThreadError Ip6::AddMplOption(Message &message, Header &header)
 {
     ThreadError error = kThreadError_None;
     HopByHopHeader hbhHeader;
     OptionMpl mplOption;
     OptionPadN padOption;
 
-    hbhHeader.SetNextHeader(nextHeader);
+    hbhHeader.SetNextHeader(header.GetNextHeader());
     hbhHeader.SetLength(0);
     mMpl.InitOption(mplOption, header.GetSource());
 
@@ -145,10 +144,217 @@ ThreadError Ip6::AddMplOption(Message &message, Header &header, IpProto nextHead
 
     SuccessOrExit(error = message.Prepend(&mplOption, mplOption.GetTotalLength()));
     SuccessOrExit(error = message.Prepend(&hbhHeader, sizeof(hbhHeader)));
-    header.SetPayloadLength(sizeof(hbhHeader) + sizeof(mplOption) + payloadLength);
+    header.SetPayloadLength(header.GetPayloadLength() + sizeof(hbhHeader) + sizeof(mplOption));
     header.SetNextHeader(kProtoHopOpts);
 exit:
     return error;
+}
+
+ThreadError Ip6::AddTunneledMplOption(Message &aMessage, Header &aHeader, MessageInfo &aMessageInfo)
+{
+    ThreadError error = kThreadError_None;
+    Header tunnelHeader;
+    const NetifUnicastAddress *source;
+    MessageInfo messageInfo(aMessageInfo);
+
+    // Use IP-in-IP encapsulation (RFC2473) and ALL_MPL_FORWARDERS address.
+    memset(&messageInfo.GetPeerAddr(), 0, sizeof(Address));
+    messageInfo.GetPeerAddr().mFields.m16[0] = HostSwap16(0xff03);
+    messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(0x00fc);
+
+    tunnelHeader.Init();
+    tunnelHeader.SetHopLimit(static_cast<uint8_t>(kDefaultHopLimit));
+    tunnelHeader.SetPayloadLength(aHeader.GetPayloadLength() + sizeof(tunnelHeader));
+    tunnelHeader.SetDestination(messageInfo.GetPeerAddr());
+    tunnelHeader.SetNextHeader(kProtoIp6);
+
+    VerifyOrExit((source = SelectSourceAddress(messageInfo)) != NULL,
+                 error = kThreadError_Error);
+
+    tunnelHeader.SetSource(source->GetAddress());
+
+    SuccessOrExit(error = AddMplOption(aMessage, tunnelHeader));
+    SuccessOrExit(error = aMessage.Prepend(&tunnelHeader, sizeof(tunnelHeader)));
+
+exit:
+    return error;
+}
+
+ThreadError Ip6::InsertMplOption(Message &aMessage, Header &aIp6Header, MessageInfo &aMessageInfo)
+{
+    ThreadError error = kThreadError_None;
+
+    VerifyOrExit(aIp6Header.GetDestination().IsMulticast() &&
+                 aIp6Header.GetDestination().GetScope() >= Address::kRealmLocalScope, ;);
+
+    if (aIp6Header.GetDestination().IsRealmLocalMulticast())
+    {
+        aMessage.RemoveHeader(sizeof(aIp6Header));
+
+        if (aIp6Header.GetNextHeader() == kProtoHopOpts)
+        {
+            HopByHopHeader hbh;
+            uint8_t hbhLength = 0;
+            OptionMpl mplOption;
+
+            // read existing hop-by-hop option header
+            aMessage.Read(0, sizeof(hbh), &hbh);
+            hbhLength = (hbh.GetLength() + 1) * 8;
+
+            // increase existing hop-by-hop option header length by 8 bytes
+            hbh.SetLength(hbh.GetLength() + 1);
+            aMessage.Write(0, sizeof(hbh), &hbh);
+
+            // make space for MPL Option + padding by shifting hop-by-hop option header
+            aMessage.Prepend(NULL, 8);
+            aMessage.CopyTo(8, 0, hbhLength, aMessage);
+
+            // insert MPL Option
+            mMpl.InitOption(mplOption, aIp6Header.GetSource());
+            aMessage.Write(hbhLength, mplOption.GetTotalLength(), &mplOption);
+
+            // insert Pad Option (if needed)
+            if (mplOption.GetTotalLength() % 8)
+            {
+                OptionPadN padOption;
+                padOption.Init(8 - (mplOption.GetTotalLength() % 8));
+                aMessage.Write(hbhLength + mplOption.GetTotalLength(), padOption.GetTotalLength(), &padOption);
+            }
+
+            // increase IPv6 Payload Length
+            aIp6Header.SetPayloadLength(aIp6Header.GetPayloadLength() + 8);
+        }
+        else
+        {
+            SuccessOrExit(error = AddMplOption(aMessage, aIp6Header));
+        }
+
+        SuccessOrExit(error = aMessage.Prepend(&aIp6Header, sizeof(aIp6Header)));
+    }
+    else
+    {
+        SuccessOrExit(error = AddTunneledMplOption(aMessage, aIp6Header, aMessageInfo));
+    }
+
+exit:
+    return error;
+}
+
+ThreadError Ip6::RemoveMplOption(Message &aMessage)
+{
+    ThreadError error = kThreadError_None;
+    Header ip6Header;
+    HopByHopHeader hbh;
+    uint16_t offset;
+    uint16_t endOffset;
+    uint16_t mplOffset = 0;
+    uint8_t mplLength = 0;
+    bool remove = false;
+
+    offset = 0;
+    aMessage.Read(offset, sizeof(ip6Header), &ip6Header);
+    offset += sizeof(ip6Header);
+    VerifyOrExit(ip6Header.GetNextHeader() == kProtoHopOpts,);
+
+    aMessage.Read(offset, sizeof(hbh), &hbh);
+    endOffset = offset + (hbh.GetLength() + 1) * 8;
+    VerifyOrExit(aMessage.GetLength() >= endOffset,);
+
+    offset += sizeof(hbh);
+
+    while (offset < endOffset)
+    {
+        OptionHeader option;
+
+        aMessage.Read(offset, sizeof(option), &option);
+
+        switch (option.GetType())
+        {
+        case OptionMpl::kType:
+            mplOffset = offset;
+            mplLength = option.GetLength();
+
+            if (mplOffset == sizeof(ip6Header) + sizeof(hbh) && hbh.GetLength() == 0)
+            {
+                // first and only IPv6 Option, remove IPv6 HBH Option header
+                remove = true;
+            }
+            else if (mplOffset + 8 == endOffset)
+            {
+                // last IPv6 Option, remove last 8 bytes
+                remove = true;
+            }
+
+            offset += sizeof(option) + option.GetLength();
+            break;
+
+        case OptionPad1::kType:
+            offset += sizeof(OptionPad1);
+            break;
+
+        case OptionPadN::kType:
+            offset += sizeof(option) + option.GetLength();
+            break;
+
+        default:
+            // encountered another option, now just replace MPL Option with PadN
+            remove = false;
+            offset += sizeof(option) + option.GetLength();
+            break;
+        }
+    }
+
+    // verify that IPv6 Options header is properly formed
+    VerifyOrExit(offset == endOffset,);
+
+    if (remove)
+    {
+        // last IPv6 Option, shrink HBH Option header
+        uint8_t buf[8];
+
+        offset = endOffset - sizeof(buf);
+
+        while (offset >= sizeof(buf))
+        {
+            aMessage.Read(offset - sizeof(buf), sizeof(buf), buf);
+            aMessage.Write(offset, sizeof(buf), buf);
+            offset -= sizeof(buf);
+        }
+
+        aMessage.RemoveHeader(sizeof(buf));
+
+        if (mplOffset == sizeof(ip6Header) + sizeof(hbh))
+        {
+            // remove entire HBH header
+            ip6Header.SetNextHeader(hbh.GetNextHeader());
+        }
+        else
+        {
+            // update HBH header length
+            hbh.SetLength(hbh.GetLength() - 1);
+            aMessage.Write(sizeof(ip6Header), sizeof(hbh), &hbh);
+        }
+
+        ip6Header.SetPayloadLength(ip6Header.GetPayloadLength() - sizeof(buf));
+        aMessage.Write(0, sizeof(ip6Header), &ip6Header);
+    }
+    else if (mplOffset != 0)
+    {
+        // replace MPL Option with PadN Option
+        OptionPadN padOption;
+
+        padOption.Init(sizeof(OptionHeader) + mplLength);
+        aMessage.Write(mplOffset, padOption.GetTotalLength(), &padOption);
+    }
+
+exit:
+    return error;
+}
+
+void Ip6::EnqueueDatagram(Message &aMessage)
+{
+    mSendQueue.Enqueue(aMessage);
+    mSendQueueTask.Post();
 }
 
 ThreadError Ip6::SendDatagram(Message &message, MessageInfo &messageInfo, IpProto ipproto)
@@ -166,7 +372,8 @@ ThreadError Ip6::SendDatagram(Message &message, MessageInfo &messageInfo, IpProt
 
     if (messageInfo.GetSockAddr().IsUnspecified())
     {
-        VerifyOrExit((source = SelectSourceAddress(messageInfo)) != NULL, error = kThreadError_Error);
+        VerifyOrExit((source = SelectSourceAddress(messageInfo)) != NULL,
+                     error = kThreadError_Error);
         header.SetSource(source->GetAddress());
     }
     else
@@ -178,15 +385,21 @@ ThreadError Ip6::SendDatagram(Message &message, MessageInfo &messageInfo, IpProt
 
     if (header.GetDestination().IsLinkLocal() || header.GetDestination().IsLinkLocalMulticast())
     {
-        VerifyOrExit(messageInfo.mInterfaceId != 0, error = kThreadError_Drop);
+        VerifyOrExit(messageInfo.GetInterfaceId() != 0, error = kThreadError_Drop);
     }
 
     if (messageInfo.GetPeerAddr().IsRealmLocalMulticast())
     {
-        SuccessOrExit(error = AddMplOption(message, header, ipproto, payloadLength));
+        SuccessOrExit(error = AddMplOption(message, header));
     }
 
     SuccessOrExit(error = message.Prepend(&header, sizeof(header)));
+
+    if (messageInfo.GetPeerAddr().IsMulticast() &&
+        messageInfo.GetPeerAddr().GetScope() > Address::kRealmLocalScope)
+    {
+        SuccessOrExit(error = AddTunneledMplOption(message, header, messageInfo));
+    }
 
     // compute checksum
     checksum = ComputePseudoheaderChecksum(header.GetSource(), header.GetDestination(),
@@ -210,9 +423,8 @@ exit:
 
     if (error == kThreadError_None)
     {
-        message.SetInterfaceId(messageInfo.mInterfaceId);
-        mSendQueue.Enqueue(message);
-        mSendQueueTask.Post();
+        message.SetInterfaceId(messageInfo.GetInterfaceId());
+        EnqueueDatagram(message);
     }
 
     return error;
@@ -308,7 +520,7 @@ exit:
     return error;
 }
 
-ThreadError Ip6::HandleExtensionHeaders(Message &message, Header &header, uint8_t &nextHeader, bool &forward,
+ThreadError Ip6::HandleExtensionHeaders(Message &message, Header &header, uint8_t &nextHeader, bool forward,
                                         bool receive)
 {
     ThreadError error = kThreadError_None;
@@ -335,6 +547,8 @@ ThreadError Ip6::HandleExtensionHeaders(Message &message, Header &header, uint8_
             break;
 
         case kProtoIp6:
+            ExitNow();
+
         case kProtoRouting:
         case kProtoNone:
             ExitNow(error = kThreadError_Drop);
@@ -414,6 +628,7 @@ ThreadError Ip6::ProcessReceiveCallback(const Message &aMessage, const MessageIn
 
     // make a copy of the datagram to pass to host
     VerifyOrExit((messageCopy = aMessage.Clone()) != NULL, error = kThreadError_NoBufs);
+    RemoveMplOption(*messageCopy);
     mReceiveIp6DatagramCallback(messageCopy, mReceiveIp6DatagramCallbackContext);
 
 exit:
@@ -429,6 +644,7 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
     uint16_t payloadLength;
     bool receive = false;
     bool forward = false;
+    bool tunnel = false;
     uint8_t nextHeader;
     uint8_t hopLimit;
 
@@ -452,12 +668,11 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
     VerifyOrExit(sizeof(header) + payloadLength == message.GetLength() &&
                  sizeof(header) + payloadLength <= Ip6::kMaxDatagramLength, error = kThreadError_Drop);
 
-    memset(&messageInfo, 0, sizeof(messageInfo));
-    messageInfo.GetPeerAddr() = header.GetSource();
-    messageInfo.GetSockAddr() = header.GetDestination();
-    messageInfo.mInterfaceId = interfaceId;
-    messageInfo.mHopLimit = header.GetHopLimit();
-    messageInfo.mLinkInfo = linkMessageInfo;
+    messageInfo.SetPeerAddr(header.GetSource());
+    messageInfo.SetSockAddr(header.GetDestination());
+    messageInfo.SetInterfaceId(interfaceId);
+    messageInfo.SetHopLimit(header.GetHopLimit());
+    messageInfo.SetLinkInfo(linkMessageInfo);
 
     // determine destination of packet
     if (header.GetDestination().IsMulticast())
@@ -470,6 +685,11 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
         if (netif == NULL)
         {
             forward = true;
+
+            if (fromLocalHost)
+            {
+                SuccessOrExit(error = InsertMplOption(message, header, messageInfo));
+            }
         }
     }
     else
@@ -488,6 +708,7 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
         }
     }
 
+    message.SetInterfaceId(interfaceId);
     message.SetOffset(sizeof(header));
 
     // process IPv6 Extension Headers
@@ -502,6 +723,15 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
     // process IPv6 Payload
     if (receive)
     {
+        if (nextHeader == kProtoIp6)
+        {
+            // Remove encapsulating header.
+            message.RemoveHeader(message.GetOffset());
+
+            HandleDatagram(message, netif, interfaceId, linkMessageInfo, fromLocalHost);
+            ExitNow(tunnel = true);
+        }
+
         if (fromLocalHost == false)
         {
             ProcessReceiveCallback(message, messageInfo, nextHeader);
@@ -532,7 +762,7 @@ ThreadError Ip6::HandleDatagram(Message &message, Netif *netif, int8_t interface
 
 exit:
 
-    if (error != kThreadError_None || !forward)
+    if (!tunnel && (error != kThreadError_None || !forward))
     {
         message.Free();
     }
