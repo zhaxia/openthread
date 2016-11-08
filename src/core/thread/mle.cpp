@@ -86,7 +86,6 @@ Mle::Mle(ThreadNetif &aThreadNetif) :
     memset(&mParent, 0, sizeof(mParent));
     memset(&mChildIdRequest, 0, sizeof(mChildIdRequest));
     memset(&mLinkLocal64, 0, sizeof(mLinkLocal64));
-    memset(&mLinkLocal16, 0, sizeof(mLinkLocal16));
     memset(&mMeshLocal64, 0, sizeof(mMeshLocal64));
     memset(&mMeshLocal16, 0, sizeof(mMeshLocal16));
     memset(&mLinkLocalAllThreadNodes, 0, sizeof(mLinkLocalAllThreadNodes));
@@ -100,15 +99,6 @@ Mle::Mle(ThreadNetif &aThreadNetif) :
     mLinkLocal64.mPreferredLifetime = 0xffffffff;
     mLinkLocal64.mValidLifetime = 0xffffffff;
     mNetif.AddUnicastAddress(mLinkLocal64);
-
-    // link-local 16
-    memset(&mLinkLocal16, 0, sizeof(mLinkLocal16));
-    mLinkLocal16.GetAddress().mFields.m16[0] = HostSwap16(0xfe80);
-    mLinkLocal16.GetAddress().mFields.m16[5] = HostSwap16(0x00ff);
-    mLinkLocal16.GetAddress().mFields.m16[6] = HostSwap16(0xfe00);
-    mLinkLocal16.mPrefixLength = 64;
-    mLinkLocal16.mPreferredLifetime = 0xffffffff;
-    mLinkLocal16.mValidLifetime = 0xffffffff;
 
     // Leader Aloc
     memset(&mLeaderAloc, 0, sizeof(mLeaderAloc));
@@ -244,7 +234,6 @@ ThreadError Mle::Stop(bool aClearNetworkDatasets)
     otLogFuncEntry();
     mKeyManager.Stop();
     SetStateDetached();
-    mNetif.RemoveUnicastAddress(mLinkLocal16);
     mNetif.RemoveUnicastAddress(mMeshLocal16);
 
     if (mDeviceState == kDeviceStateLeader)
@@ -596,19 +585,10 @@ uint16_t Mle::GetRloc16(void) const
 
 ThreadError Mle::SetRloc16(uint16_t aRloc16)
 {
-    mNetif.RemoveUnicastAddress(mLinkLocal16);
     mNetif.RemoveUnicastAddress(mMeshLocal16);
 
     if (aRloc16 != Mac::kShortAddrInvalid)
     {
-        // link-local 16
-        // add link-local 16 only for sleepy end device
-        if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) == 0)
-        {
-            mLinkLocal16.GetAddress().mFields.m16[7] = HostSwap16(aRloc16);
-            mNetif.AddUnicastAddress(mLinkLocal16);
-        }
-
         // mesh-local 16
         mMeshLocal16.GetAddress().mFields.m16[7] = HostSwap16(aRloc16);
         mNetif.AddUnicastAddress(mMeshLocal16);
@@ -1032,38 +1012,37 @@ exit:
     return error;
 }
 
-ThreadError Mle::AppendActiveTimestamp(Message &aMessage)
+ThreadError Mle::AppendActiveTimestamp(Message &aMessage, bool aCouldUseLocal)
 {
     ThreadError error;
     ActiveTimestampTlv timestampTlv;
-    const MeshCoP::Timestamp *timestamp(mNetif.GetActiveDataset().GetNetwork().GetTimestamp());
+    const MeshCoP::Timestamp *timestamp;
 
-    VerifyOrExit(timestamp || mDeviceState == kDeviceStateLeader, error = kThreadError_None);
+    if ((timestamp = mNetif.GetActiveDataset().GetNetwork().GetTimestamp()) == NULL && aCouldUseLocal)
+    {
+        timestamp = mNetif.GetActiveDataset().GetLocal().GetTimestamp();
+    }
+
+    VerifyOrExit(timestamp, error = kThreadError_None);
 
     timestampTlv.Init();
-
-    // only for Leader: set active timestamp to 0 if it is not initialized
-    if (timestamp == NULL)
-    {
-        timestampTlv.SetSeconds(0);
-        timestampTlv.SetTicks(0);
-    }
-    else
-    {
-        *static_cast<MeshCoP::Timestamp *>(&timestampTlv) = *timestamp;
-    }
-
+    *static_cast<MeshCoP::Timestamp *>(&timestampTlv) = *timestamp;
     error = aMessage.Append(&timestampTlv, sizeof(timestampTlv));
 
 exit:
     return error;
 }
 
-ThreadError Mle::AppendPendingTimestamp(Message &aMessage)
+ThreadError Mle::AppendPendingTimestamp(Message &aMessage, bool aCouldUseLocal)
 {
     ThreadError error;
     PendingTimestampTlv timestampTlv;
-    const MeshCoP::Timestamp *timestamp(mNetif.GetPendingDataset().GetNetwork().GetTimestamp());
+    const MeshCoP::Timestamp *timestamp;
+
+    if ((timestamp = mNetif.GetPendingDataset().GetNetwork().GetTimestamp()) == NULL && aCouldUseLocal)
+    {
+        timestamp = mNetif.GetPendingDataset().GetLocal().GetTimestamp();
+    }
 
     VerifyOrExit(timestamp && timestamp->GetSeconds() != 0, error = kThreadError_None);
 
@@ -1348,8 +1327,11 @@ ThreadError Mle::SendChildIdRequest(void)
     }
 
     SuccessOrExit(error = AppendTlvRequest(*message, tlvs, sizeof(tlvs)));
-    SuccessOrExit(error = AppendActiveTimestamp(*message));
-    SuccessOrExit(error = AppendPendingTimestamp(*message));
+    SuccessOrExit(error = AppendActiveTimestamp(*message, true));
+    // SuccessOrExit(error = AppendPendingTimestamp(*message, false));
+    // we should not include the Local Pending Timestamp TLV in Child ID Request, this is a workaround for
+    // Certification test 9.2.15 and 9.2.16 (https://github.com/openthread/openthread/issues/918)
+    SuccessOrExit(error = AppendPendingTimestamp(*message, true));
 
     memset(&destination, 0, sizeof(destination));
     destination.mFields.m16[0] = HostSwap16(0xfe80);
@@ -1382,8 +1364,8 @@ ThreadError Mle::SendDataRequest(const Ip6::Address &aDestination, const uint8_t
     message->SetLinkSecurityEnabled(false);
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandDataRequest));
     SuccessOrExit(error = AppendTlvRequest(*message, aTlvs, aTlvsLength));
-    SuccessOrExit(error = AppendActiveTimestamp(*message));
-    SuccessOrExit(error = AppendPendingTimestamp(*message));
+    SuccessOrExit(error = AppendActiveTimestamp(*message, false));
+    SuccessOrExit(error = AppendPendingTimestamp(*message, false));
 
     SuccessOrExit(error = SendMessage(*message, aDestination));
 
@@ -1512,7 +1494,7 @@ ThreadError Mle::SendAnnounce(uint8_t aChannel, bool aOrphanAnnounce)
     }
     else
     {
-        SuccessOrExit(error = AppendActiveTimestamp(*message));
+        SuccessOrExit(error = AppendActiveTimestamp(*message, false));
     }
 
     panid.Init();
@@ -1823,10 +1805,6 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 
     case Header::kCommandLinkAcceptAndRequest:
         mMleRouter.HandleLinkAcceptAndRequest(aMessage, aMessageInfo, keySequence);
-        break;
-
-    case Header::kCommandLinkReject:
-        mMleRouter.HandleLinkReject(aMessage, aMessageInfo);
         break;
 
     case Header::kCommandAdvertisement:
@@ -2332,6 +2310,11 @@ ThreadError Mle::HandleChildIdResponse(const Message &aMessage, const Ip6::Messa
             aMessage.Read(offset, sizeof(tlv), &tlv);
             mNetif.GetActiveDataset().Set(activeTimestamp, aMessage, offset + sizeof(tlv), tlv.GetLength());
         }
+        else if (mNetif.GetActiveDataset().GetNetwork().GetTimestamp() == NULL &&
+                 mNetif.GetActiveDataset().GetLocal().GetTimestamp() != NULL)
+        {
+            mNetif.GetActiveDataset().Set(mNetif.GetActiveDataset().GetLocal());
+        }
     }
 
     // Pending Timestamp
@@ -2345,6 +2328,16 @@ ThreadError Mle::HandleChildIdResponse(const Message &aMessage, const Ip6::Messa
             aMessage.Read(offset, sizeof(tlv), &tlv);
             mNetif.GetPendingDataset().Set(pendingTimestamp, aMessage, offset + sizeof(tlv), tlv.GetLength());
         }
+        // this is a workaround for Certification test 9.2.15 and 9.2.16 (https://github.com/openthread/openthread/issues/918)
+        else if (mNetif.GetPendingDataset().GetNetwork().GetTimestamp() == NULL &&
+                 mNetif.GetPendingDataset().GetLocal().GetTimestamp() != NULL)
+        {
+            mNetif.GetPendingDataset().Set(mNetif.GetPendingDataset().GetLocal());
+        }
+    }
+    else
+    {
+        mNetif.GetPendingDataset().Clear(true);
     }
 
     // Parent Attach Success

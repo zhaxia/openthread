@@ -56,7 +56,7 @@
 #include <platform/misc.h>
 #include <thread/thread_netif.hpp>
 #include <thread/thread_uris.hpp>
-#include <utils/global_address.hpp>
+#include <utils/slaac_address.hpp>
 #include <openthread-instance.h>
 #include <coap/coap_header.hpp>
 #include <coap/coap_client.hpp>
@@ -894,6 +894,34 @@ const otMacCounters *otGetMacCounters(otInstance *aInstance)
     return &aInstance->mThreadNetif.GetMac().GetCounters();
 }
 
+void otGetMessageBufferInfo(otInstance *aInstance, otBufferInfo *aBufferInfo)
+{
+    aBufferInfo->mTotalBuffers = OPENTHREAD_CONFIG_NUM_MESSAGE_BUFFERS;
+
+    aBufferInfo->mFreeBuffers = aInstance->mThreadNetif.GetIp6().mMessagePool.GetFreeBufferCount();
+
+    aInstance->mThreadNetif.GetMeshForwarder().GetSendQueue().GetInfo(aBufferInfo->m6loSendMessages,
+                                                                      aBufferInfo->m6loSendBuffers);
+
+    aInstance->mThreadNetif.GetMeshForwarder().GetReassemblyQueue().GetInfo(aBufferInfo->m6loReassemblyMessages,
+                                                                            aBufferInfo->m6loReassemblyBuffers);
+
+    aInstance->mThreadNetif.GetMeshForwarder().GetResolvingQueue().GetInfo(aBufferInfo->mArpMessages,
+                                                                           aBufferInfo->mArpBuffers);
+
+    aInstance->mThreadNetif.GetIp6().GetSendQueue().GetInfo(aBufferInfo->mIp6Messages,
+                                                            aBufferInfo->mIp6Buffers);
+
+    aInstance->mThreadNetif.GetIp6().mMpl.GetBufferedMessageSet().GetInfo(aBufferInfo->mMplMessages,
+                                                                          aBufferInfo->mMplBuffers);
+
+    aInstance->mThreadNetif.GetMle().GetMessageQueue().GetInfo(aBufferInfo->mMleMessages,
+                                                               aBufferInfo->mMleBuffers);
+
+    aInstance->mThreadNetif.GetCoapClient().GetRequestMessages().GetInfo(aBufferInfo->mCoapClientMessages,
+                                                                         aBufferInfo->mCoapClientBuffers);
+}
+
 bool otIsIp6AddressEqual(const otIp6Address *a, const otIp6Address *b)
 {
     return *static_cast<const Ip6::Address *>(a) == *static_cast<const Ip6::Address *>(b);
@@ -917,6 +945,43 @@ ThreadError otAddUnicastAddress(otInstance *aInstance, const otNetifAddress *add
 ThreadError otRemoveUnicastAddress(otInstance *aInstance, const otIp6Address *address)
 {
     return aInstance->mThreadNetif.RemoveExternalUnicastAddress(*static_cast<const Ip6::Address *>(address));
+}
+
+#if OPENTHREAD_ENABLE_DHCP6_CLIENT
+void otDhcp6ClientUpdate(otInstance *aInstance, otNetifAddress *aAddresses, uint32_t aNumAddresses, void *aContext)
+{
+    aInstance->mThreadNetif.GetDhcp6Client().UpdateAddresses(aInstance, aAddresses, aNumAddresses, aContext);
+}
+#endif  // OPENTHREAD_ENABLE_DHCP6_CLIENT
+
+const otNetifMulticastAddress *otGetMulticastAddresses(otInstance *aInstance)
+{
+    return aInstance->mThreadNetif.GetMulticastAddresses();
+}
+
+ThreadError otSubscribeMulticastAddress(otInstance *aInstance, const otIp6Address *aAddress)
+{
+    return aInstance->mThreadNetif.SubscribeExternalMulticast(*static_cast<const Ip6::Address *>(aAddress));
+}
+
+ThreadError otUnsubscribeMulticastAddress(otInstance *aInstance, const otIp6Address *aAddress)
+{
+    return aInstance->mThreadNetif.UnsubscribeExternalMulticast(*static_cast<const Ip6::Address *>(aAddress));
+}
+
+bool otIsMulticastPromiscuousModeEnabled(otInstance *aInstance)
+{
+    return aInstance->mThreadNetif.IsMulticastPromiscuousModeEnabled();
+}
+
+void otEnableMulticastPromiscuousMode(otInstance *aInstance)
+{
+    aInstance->mThreadNetif.EnableMulticastPromiscuousMode();
+}
+
+void otDisableMulticastPromiscuousMode(otInstance *aInstance)
+{
+    aInstance->mThreadNetif.DisableMulticastPromiscuousMode();
 }
 
 void otSlaacUpdate(otInstance *aInstance, otNetifAddress *aAddresses, uint32_t aNumAddresses,
@@ -1090,9 +1155,6 @@ void otInstanceFinalize(otInstance *aInstance)
     // Ensure we are disabled
     (void)otThreadStop(aInstance);
     (void)otInterfaceDown(aInstance);
-
-    // Free the otInstance structure
-    delete aInstance;
 
 #ifndef OPENTHREAD_MULTIPLE_INSTANCE
     sInstance = NULL;
@@ -1472,9 +1534,10 @@ exit:
     return error;
 }
 
-ThreadError otSendActiveGet(otInstance *aInstance, const uint8_t *aTlvTypes, uint8_t aLength)
+ThreadError otSendActiveGet(otInstance *aInstance, const uint8_t *aTlvTypes, uint8_t aLength,
+                            const otIp6Address *aAddress)
 {
-    return aInstance->mThreadNetif.GetActiveDataset().SendGetRequest(aTlvTypes, aLength);
+    return aInstance->mThreadNetif.GetActiveDataset().SendGetRequest(aTlvTypes, aLength, aAddress);
 }
 
 ThreadError otSendActiveSet(otInstance *aInstance, const otOperationalDataset *aDataset, const uint8_t *aTlvs,
@@ -1483,9 +1546,10 @@ ThreadError otSendActiveSet(otInstance *aInstance, const otOperationalDataset *a
     return aInstance->mThreadNetif.GetActiveDataset().SendSetRequest(*aDataset, aTlvs, aLength);
 }
 
-ThreadError otSendPendingGet(otInstance *aInstance, const uint8_t *aTlvTypes, uint8_t aLength)
+ThreadError otSendPendingGet(otInstance *aInstance, const uint8_t *aTlvTypes, uint8_t aLength,
+                             const otIp6Address *aAddress)
 {
-    return aInstance->mThreadNetif.GetPendingDataset().SendGetRequest(aTlvTypes, aLength);
+    return aInstance->mThreadNetif.GetPendingDataset().SendGetRequest(aTlvTypes, aLength, aAddress);
 }
 
 ThreadError otSendPendingSet(otInstance *aInstance, const otOperationalDataset *aDataset, const uint8_t *aTlvs,
