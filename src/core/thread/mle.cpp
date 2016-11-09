@@ -236,11 +236,6 @@ ThreadError Mle::Stop(bool aClearNetworkDatasets)
     SetStateDetached();
     mNetif.RemoveUnicastAddress(mMeshLocal16);
 
-    if (mDeviceState == kDeviceStateLeader)
-    {
-        mNetif.RemoveUnicastAddress(mLeaderAloc);
-    }
-
     if (aClearNetworkDatasets)
     {
         mNetif.GetActiveDataset().Clear(true);
@@ -325,6 +320,12 @@ ThreadError Mle::BecomeDetached(void)
     otLogFuncEntry();
 
     VerifyOrExit(mDeviceState != kDeviceStateDisabled, error = kThreadError_InvalidState);
+
+    if (mReattachState == kReattachStop)
+    {
+        mNetif.GetPendingDataset().UpdateDelayTimer();
+        mNetif.GetPendingDataset().Set(mNetif.GetPendingDataset().GetLocal());
+    }
 
     SetStateDetached();
     SetRloc16(Mac::kShortAddrInvalid);
@@ -2659,6 +2660,16 @@ ThreadError Mle::SendDiscoveryResponse(const Ip6::Address &aDestination, uint16_
     // Discovery Response TLV
     discoveryResponse.Init();
     discoveryResponse.SetVersion(kVersion);
+
+    if (mNetif.GetKeyManager().GetSecurityPolicyFlags() & OT_SECURITY_POLICY_NATIVE_COMMISSIONING)
+    {
+        discoveryResponse.SetNativeCommissioner(true);
+    }
+    else
+    {
+        discoveryResponse.SetNativeCommissioner(false);
+    }
+
     SuccessOrExit(error = message->Append(&discoveryResponse, sizeof(discoveryResponse)));
 
     // Extended PAN ID TLV
