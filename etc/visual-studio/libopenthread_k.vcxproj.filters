@@ -213,7 +213,7 @@
     <ClCompile Include="..\..\src\core\crypto\sha256.cpp">
       <Filter>Source Files\crypto</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\core\utils\global_address.cpp">
+    <ClCompile Include="..\..\src\core\utils\slaac_address.cpp">
       <Filter>Source Files\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\thread\announce_begin_server.cpp">
@@ -413,7 +413,7 @@
     <ClInclude Include="..\..\src\core\crypto\sha256.hpp">
       <Filter>Header Files\crypto</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\core\utils\global_address.hpp">
+    <ClInclude Include="..\..\src\core\utils\slaac_address.hpp">
       <Filter>Header Files\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\meshcop\announce_begin_server.hpp">
@@ -443,5 +443,11 @@
     <ClInclude Include="..\..\src\core\openthread-instance.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\net\dhcp6.cpp" />
+    <ClInclude Include="..\..\src\core\net\dhcp6_client.cpp" />
+    <ClInclude Include="..\..\src\core\net\dhcp6_server.cpp" />
+    <ClInclude Include="..\..\src\core\net\dhcp6.hpp" />
+    <ClInclude Include="..\..\src\core\net\dhcp6_client.hpp" />
+    <ClInclude Include="..\..\src\core\net\dhcp6_server.hpp" />
   </ItemGroup>
 </Project>

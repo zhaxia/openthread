@@ -36,7 +36,8 @@
 
 #include <stddef.h>
 
-#include <openthread-types.h>
+#include <openthread-ip6.h>
+#include <openthread-udp.h>
 #include <common/encoding.hpp>
 #include <common/message.hpp>
 #include <net/icmp6.hpp>
@@ -328,6 +329,14 @@ public:
      *
      */
     otInstance *GetInstance();
+
+    /**
+     * This method returns a reference to the send queue.
+     *
+     * @returns A reference to the send queue.
+     *
+     */
+    const MessageQueue &GetSendQueue(void) const { return mSendQueue; }
 
     Routes mRoutes;
     Icmp mIcmp;

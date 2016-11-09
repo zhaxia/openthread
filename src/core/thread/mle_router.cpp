@@ -975,43 +975,6 @@ exit:
     return error;
 }
 
-ThreadError MleRouter::SendLinkReject(const Ip6::Address &aDestination)
-{
-    ThreadError error = kThreadError_None;
-    Message *message;
-
-    VerifyOrExit((message = NewMessage()) != NULL, ;);
-    message->SetLinkSecurityEnabled(false);
-    SuccessOrExit(error = AppendHeader(*message, Header::kCommandLinkReject));
-    SuccessOrExit(error = AppendStatus(*message, StatusTlv::kError));
-
-    SuccessOrExit(error = SendMessage(*message, aDestination));
-
-    otLogInfoMle("Sent link reject");
-
-exit:
-
-    if (error != kThreadError_None && message != NULL)
-    {
-        message->Free();
-    }
-
-    return error;
-}
-
-ThreadError MleRouter::HandleLinkReject(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
-{
-    Mac::ExtAddress macAddr;
-
-    (void)aMessage;
-
-    otLogInfoMle("Received link reject");
-
-    macAddr.Set(aMessageInfo.GetPeerAddr());
-
-    return kThreadError_None;
-}
-
 Child *MleRouter::NewChild(void)
 {
     for (int i = 0; i < mMaxChildrenAllowed; i++)
@@ -1738,12 +1701,28 @@ void MleRouter::HandleStateUpdateTimer(void)
     // update children state
     for (int i = 0; i < mMaxChildrenAllowed; i++)
     {
-        if (mChildren[i].mState == Neighbor::kStateInvalid)
+        uint32_t timeout = 0;
+
+        switch (mChildren[i].mState)
         {
+        case Neighbor::kStateInvalid:
+        case Neighbor::kStateChildIdRequest:
             continue;
+
+        case Neighbor::kStateParentRequest:
+            timeout = kMaxChildIdRequestTimeout;
+            break;
+
+        case Neighbor::kStateValid:
+            timeout = Timer::SecToMsec(mChildren[i].mTimeout);
+            break;
+
+        case Neighbor::kStateLinkRequest:
+            assert(false);
+            break;
         }
 
-        if ((Timer::GetNow() - mChildren[i].mLastHeard) >= Timer::SecToMsec(mChildren[i].mTimeout))
+        if ((Timer::GetNow() - mChildren[i].mLastHeard) >= timeout)
         {
             RemoveNeighbor(mChildren[i]);
         }
@@ -2064,7 +2043,11 @@ ThreadError MleRouter::HandleChildIdRequest(const Message &aMessage, const Ip6::
         }
     }
 
-    child->mState = Neighbor::kStateChildIdRequest;
+    if (child->mState != Neighbor::kStateValid)
+    {
+        child->mState = Neighbor::kStateChildIdRequest;
+    }
+
     child->mLastHeard = Timer::GetNow();
     child->mValid.mLinkFrameCounter = linkFrameCounter.GetFrameCounter();
     child->mValid.mMleFrameCounter = mleFrameCounter.GetFrameCounter();
@@ -2093,7 +2076,6 @@ ThreadError MleRouter::HandleChildIdRequest(const Message &aMessage, const Ip6::
         mNetif.GetActiveDataset().GetNetwork().GetTimestamp()->Compare(activeTimestamp) != 0)
     {
         child->mRequestTlvs[numTlvs++] = Tlv::kActiveDataset;
-        child->mRequestTlvs[numTlvs++] = Tlv::kActiveTimestamp;
     }
 
     if (pendingTimestamp.GetLength() == 0 ||
@@ -2101,7 +2083,6 @@ ThreadError MleRouter::HandleChildIdRequest(const Message &aMessage, const Ip6::
         mNetif.GetPendingDataset().GetNetwork().GetTimestamp()->Compare(pendingTimestamp) != 0)
     {
         child->mRequestTlvs[numTlvs++] = Tlv::kPendingDataset;
-        child->mRequestTlvs[numTlvs++] = Tlv::kPendingTimestamp;
     }
 
     switch (GetDeviceState())
@@ -2112,6 +2093,7 @@ ThreadError MleRouter::HandleChildIdRequest(const Message &aMessage, const Ip6::
         break;
 
     case kDeviceStateChild:
+        child->mState = Neighbor::kStateChildIdRequest;
         BecomeRouter(ThreadStatusTlv::kHaveChildIdRequest);
         break;
 
@@ -2309,21 +2291,26 @@ ThreadError MleRouter::SendChildIdResponse(Child *aChild)
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandChildIdResponse));
     SuccessOrExit(error = AppendSourceAddress(*message));
     SuccessOrExit(error = AppendLeaderData(*message));
+    SuccessOrExit(error = AppendActiveTimestamp(*message, false));
+    SuccessOrExit(error = AppendPendingTimestamp(*message, false));
 
-    // pick next Child ID that is not being used
-    do
+    if (aChild->mState != Neighbor::kStateValid)
     {
-        mNextChildId++;
-
-        if (mNextChildId > kMaxChildId)
+        // pick next Child ID that is not being used
+        do
         {
-            mNextChildId = kMinChildId;
-        }
-    }
-    while (FindChild(mNextChildId) != NULL);
+            mNextChildId++;
 
-    // allocate Child ID
-    aChild->mValid.mRloc16 = mMac.GetShortAddress() | mNextChildId;
+            if (mNextChildId > kMaxChildId)
+            {
+                mNextChildId = kMinChildId;
+            }
+        }
+        while (FindChild(mNextChildId) != NULL);
+
+        // allocate Child ID
+        aChild->mValid.mRloc16 = mMac.GetShortAddress() | mNextChildId;
+    }
 
     SuccessOrExit(error = AppendAddress16(*message, aChild->mValid.mRloc16));
 
@@ -2347,12 +2334,7 @@ ThreadError MleRouter::SendChildIdResponse(Child *aChild)
             SuccessOrExit(error = AppendPendingDataset(*message));
             break;
 
-        case Tlv::kActiveTimestamp:
-            SuccessOrExit(error = AppendActiveTimestamp(*message));
-            break;
-
-        case Tlv::kPendingTimestamp:
-            SuccessOrExit(error = AppendPendingTimestamp(*message));
+        default:
             break;
         }
     }
@@ -2457,8 +2439,8 @@ ThreadError MleRouter::SendDataResponse(const Ip6::Address &aDestination, const 
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandDataResponse));
     SuccessOrExit(error = AppendSourceAddress(*message));
     SuccessOrExit(error = AppendLeaderData(*message));
-    SuccessOrExit(error = AppendActiveTimestamp(*message));
-    SuccessOrExit(error = AppendPendingTimestamp(*message));
+    SuccessOrExit(error = AppendActiveTimestamp(*message, false));
+    SuccessOrExit(error = AppendPendingTimestamp(*message, false));
 
     for (int i = 0; i < aTlvsLength; i++)
     {
@@ -2599,6 +2581,7 @@ ThreadError MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
     case kDeviceStateLeader:
         if (aNeighbor.mState == Neighbor::kStateValid && !IsActiveRouter(aNeighbor.mValid.mRloc16))
         {
+            mMesh.UpdateIndirectMessages();
             mNetif.SetStateChangedFlags(OT_THREAD_CHILD_REMOVED);
             mNetworkData.SendServerDataNotification(aNeighbor.mValid.mRloc16);
         }

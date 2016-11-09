@@ -63,6 +63,7 @@ Commissioner::Commissioner(ThreadNetif &aThreadNetif):
     mAnnounceBegin(aThreadNetif),
     mEnergyScan(aThreadNetif),
     mPanIdQuery(aThreadNetif),
+    mState(kStateDisabled),
     mTimer(aThreadNetif.GetIp6().mTimerScheduler, HandleTimer, this),
     mTransmitTask(aThreadNetif.GetIp6().mTaskletScheduler, &Commissioner::HandleUdpTransmit, this),
     mSendKek(false),
@@ -105,6 +106,8 @@ ThreadError Commissioner::Stop(void)
     mTransmitAttempts = 0;
 
     mTimer.Stop();
+
+    mNetif.GetDtls().Stop();
 
     SendKeepAlive();
 
@@ -867,7 +870,7 @@ void Commissioner::ReceiveJoinerFinalize(uint8_t *buf, uint16_t length)
 {
     Message *message = NULL;
     Coap::Header header;
-    char uriPath[16];
+    char uriPath[Coap::Resource::kMaxReceivedUriPath] = "";
     char *curUriPath = uriPath;
     const Coap::Header::Option *coapOption;
 
@@ -889,10 +892,15 @@ void Commissioner::ReceiveJoinerFinalize(uint8_t *buf, uint16_t length)
         switch (coapOption->mNumber)
         {
         case kCoapOptionUriPath:
-            VerifyOrExit(coapOption->mLength < sizeof(uriPath) - static_cast<uint16_t>(curUriPath - uriPath), ;);
+            if (curUriPath != uriPath)
+            {
+                *curUriPath++ = '/';
+            }
+
+            VerifyOrExit(coapOption->mLength < sizeof(uriPath) - static_cast<size_t>(curUriPath + 1 - uriPath), ;);
+
             memcpy(curUriPath, coapOption->mValue, coapOption->mLength);
-            curUriPath[coapOption->mLength] = '/';
-            curUriPath += coapOption->mLength + 1;
+            curUriPath += coapOption->mLength;
             break;
 
         case kCoapOptionContentFormat:
@@ -905,10 +913,7 @@ void Commissioner::ReceiveJoinerFinalize(uint8_t *buf, uint16_t length)
         coapOption = header.GetNextOption();
     }
 
-    if (curUriPath > uriPath)
-    {
-        curUriPath[-1] = '\0';
-    }
+    curUriPath[0] = '\0';
 
     VerifyOrExit(strcmp(uriPath, OPENTHREAD_URI_JOINER_FINALIZE) == 0,);
 

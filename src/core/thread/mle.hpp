@@ -111,8 +111,9 @@ enum AlocAllocation
 {
     kAloc16Mask                         = 0xfc,
     kAloc16Leader                       = 0xfc00,
-    kAloc16DHCPv6AgentStart             = 0xfc01,
-    kAloc16DHCPv6AgentEnd               = 0xfc0f,
+    kAloc16DhcpAgentStart               = 0xfc01,
+    kAloc16DhcpAgentEnd                 = 0xfc0f,
+    kAloc16DhcpAgentMask                = 0x03ff,
     kAloc16ServiceStart                 = 0xfc10,
     kAloc16ServiceEnd                   = 0xfc2f,
     kAloc16CommissionerStart            = 0xfc30,
@@ -958,23 +959,25 @@ protected:
      * This method appends a Active Timestamp TLV to a message.
      *
      * @param[in]  aMessage  A reference to the message.
+     * @param[in]  aCouldUseLocal  Ture to use local Active Timestamp when network Active Timestamp is not available, False not.
      *
      * @retval kThreadError_None    Successfully appended the Active Timestamp TLV.
      * @retval kThreadError_NoBufs  Insufficient buffers available to append the Active Timestamp TLV.
      *
      */
-    ThreadError AppendActiveTimestamp(Message &aMessage);
+    ThreadError AppendActiveTimestamp(Message &aMessage, bool aCouldUseLocal);
 
     /**
      * This method appends a Pending Timestamp TLV to a message.
      *
      * @param[in]  aMessage  A reference to the message.
+     * @param[in]  aCouldUseLocal  Ture to use local Pending Timestamp when network Pending Timestamp is not available, False not.
      *
      * @retval kThreadError_None    Successfully appended the Pending Timestamp TLV.
      * @retval kThreadError_NoBufs  Insufficient buffers available to append the Pending Timestamp TLV.
      *
      */
-    ThreadError AppendPendingTimestamp(Message &aMessage);
+    ThreadError AppendPendingTimestamp(Message &aMessage, bool aCouldUseLocal);
 
     /**
      * This method appends a Thread Discovery TLV to a message.
@@ -1252,7 +1255,6 @@ private:
 
     Ip6::NetifUnicastAddress mLeaderAloc;
 
-    Ip6::NetifUnicastAddress mLinkLocal16;
     Ip6::NetifUnicastAddress mLinkLocal64;
     Ip6::NetifUnicastAddress mMeshLocal64;
     Ip6::NetifUnicastAddress mMeshLocal16;

@@ -42,6 +42,7 @@
 #include <openthread-types.h>
 #include <common/message.hpp>
 #include <common/tasklet.hpp>
+#include <ncp/ncp.h>
 
 #include "spinel.h"
 
@@ -330,6 +331,7 @@ private:
     ThreadError GetPropertyHandler_THREAD_ROUTER_ROLE_ENABLED(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_MAC_CNTR(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_NCP_CNTR(uint8_t header, spinel_prop_key_t key);
+    ThreadError GetPropertyHandler_MSG_BUFFER_COUNTERS(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_MAC_WHITELIST_ENABLED(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_THREAD_MODE(uint8_t header, spinel_prop_key_t key);
@@ -343,6 +345,10 @@ private:
     ThreadError GetPropertyHandler_THREAD_NETWORK_ID_TIMEOUT(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_THREAD_ON_MESH_NETS(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_NET_REQUIRE_JOIN_EXISTING(uint8_t header, spinel_prop_key_t key);
+
+#if OPENTHREAD_ENABLE_LEGACY
+    ThreadError GetPropertyHandler_NEST_LEGACY_ULA_PREFIX(uint8_t header, spinel_prop_key_t key);
+#endif
 
     ThreadError SetPropertyHandler_POWER_STATE(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
                                                uint16_t value_len);
@@ -421,6 +427,11 @@ private:
                                                    uint16_t value_len);
 #endif
 
+#if OPENTHREAD_ENABLE_LEGACY
+    ThreadError SetPropertyHandler_NEST_LEGACY_ULA_PREFIX(uint8_t header, spinel_prop_key_t key,
+                                                   const uint8_t *value_ptr, uint16_t value_len);
+#endif
+
     ThreadError InsertPropertyHandler_IPV6_ADDRESS_TABLE(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
                                                          uint16_t value_len);
     ThreadError InsertPropertyHandler_THREAD_LOCAL_ROUTES(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
@@ -444,6 +455,13 @@ private:
     ThreadError RemovePropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr, uint16_t value_len);
     ThreadError RemovePropertyHandler_THREAD_ACTIVE_ROUTER_IDS(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
                                               uint16_t value_len);
+
+#if OPENTHREAD_ENABLE_LEGACY
+public:
+    void HandleLegacyNodeDidJoin(const otExtAddress *aExtAddr);
+    void HandleDidReceiveNewLegacyUlaPrefix(const uint8_t *aUlaPrefix);
+    void RegisterLegacyHandlers(const otNcpLegacyHandlers *aHandlers);
+#endif
 
 private:
 
@@ -478,6 +496,13 @@ private:
     uint32_t mOutboundInsecureIpFrameCounter;  // Number of insecure outbound data/IP frames.
     uint32_t mDroppedOutboundIpFrameCounter;   // Number of dropped outbound data/IP frames.
     uint32_t mDroppedInboundIpFrameCounter;    // Number of dropped inbound data/IP frames.
+
+#if OPENTHREAD_ENABLE_LEGACY
+    const otNcpLegacyHandlers *mLegacyHandlers;
+    uint8_t mLegacyUlaPrefix[OT_NCP_LEGACY_ULA_PREFIX_LENGTH];
+    bool mLegacyNodeDidJoin;
+#endif
+
 };
 
 }  // namespace Thread
