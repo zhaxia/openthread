@@ -551,6 +551,26 @@ public:
     Router *GetRouters(uint8_t *aNumRouters);
 
     /**
+     * This method returns a pointer to a Router entry.
+     *
+     * @param[in]  aRouterId  The Router ID.
+     *
+     * @returns A pointer to a Router entry or NULL if @p aRouterId is out-of-range.
+     *
+     */
+    Router *GetRouter(uint8_t aRouterId);
+
+    /**
+     * This method returns a pointer to a Router entry.
+     *
+     * @param[in]  aRouterId  The Router ID.
+     *
+     * @returns A pointer to a Router entry or NULL if @p aRouterId is out-of-range.
+     *
+     */
+    const Router *GetRouter(uint8_t aRouterId) const;
+
+    /**
      * This method retains diagnostic information for a given router.
      *
      * @param[in]   aRouterId    The router ID or RLOC16 for a given router.
@@ -678,11 +698,11 @@ private:
     static void HandleAddressSolicitResponse(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
                                              ThreadError result);
     void HandleAddressSolicitResponse(Coap::Header *aHeader, Message *aMessage, ThreadError result);
-    static void HandleAddressRelease(void *aContext, Coap::Header &aHeader, Message &aMessage,
-                                     const Ip6::MessageInfo &aMessageInfo);
+    static void HandleAddressRelease(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+                                     const otMessageInfo *aMessageInfo);
     void HandleAddressRelease(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
-    static void HandleAddressSolicit(void *aContext, Coap::Header &aHeader, Message &aMessage,
-                                     const Ip6::MessageInfo &aMessageInfo);
+    static void HandleAddressSolicit(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+                                     const otMessageInfo *aMessageInfo);
     void HandleAddressSolicit(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
     static uint8_t LqiToCost(uint8_t aLqi);
