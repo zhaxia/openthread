@@ -76,6 +76,7 @@ public:
     void SetNetworkIdTimeout(uint8_t) { }
 
     uint8_t GetRouteCost(uint16_t) const { return 0; }
+    uint8_t GetLinkCost(uint16_t) { return 0; }
 
     uint8_t GetRouterIdSequence(void) const { return 0; }
 
@@ -151,6 +152,7 @@ private:
     ThreadError HandleChildUpdateRequest(const Message &, const Ip6::MessageInfo &) { return kThreadError_Drop; }
     ThreadError HandleDataRequest(const Message &, const Ip6::MessageInfo &) { return kThreadError_Drop; }
     ThreadError HandleNetworkDataUpdateRouter(void) { return kThreadError_None; }
+    ThreadError HandleDiscoveryRequest(const Message &, const Ip6::MessageInfo &) { return kThreadError_Drop; }
 
     ThreadError ProcessRouteTlv(const RouteTlv &aRoute) { (void)aRoute; return kThreadError_None; }
 
