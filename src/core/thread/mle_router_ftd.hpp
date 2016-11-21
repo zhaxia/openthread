@@ -335,6 +335,16 @@ public:
     uint8_t GetRouteCost(uint16_t aRloc16) const;
 
     /**
+     * This method returns the link cost to the given Router.
+     *
+     * @param[in]  aRouterId  The Router ID.
+     *
+     * @returns The link cost to the Router.
+     *
+     */
+    uint8_t GetLinkCost(uint8_t aRouterId);
+
+    /**
      * This method returns the current Router ID Sequence value.
      *
      * @returns The current Router ID Sequence value.
@@ -654,7 +664,6 @@ private:
     ThreadError AppendRoute(Message &aMessage);
     ThreadError AppendActiveDataset(Message &aMessage);
     ThreadError AppendPendingDataset(Message &aMessage);
-    uint8_t GetLinkCost(uint8_t aRouterId);
     void GetChildInfo(Child &aChild, otChildInfo &aChildInfo);
     ThreadError HandleDetachStart(void);
     ThreadError HandleChildStart(otMleAttachFilter aFilter);
@@ -671,6 +680,7 @@ private:
     ThreadError HandleChildUpdateRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     ThreadError HandleDataRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     ThreadError HandleNetworkDataUpdateRouter(void);
+    ThreadError HandleDiscoveryRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
     ThreadError ProcessRouteTlv(const RouteTlv &aRoute);
     void ResetAdvertiseInterval(void);
@@ -688,6 +698,7 @@ private:
     ThreadError SendChildUpdateResponse(Child *aChild, const Ip6::MessageInfo &aMessageInfo,
                                         const uint8_t *aTlvs, uint8_t aTlvsLength,  const ChallengeTlv *challenge);
     ThreadError SendDataResponse(const Ip6::Address &aDestination, const uint8_t *aTlvs, uint8_t aTlvsLength);
+    ThreadError SendDiscoveryResponse(const Ip6::Address &aDestination, uint16_t aPanId);
 
     ThreadError SetStateRouter(uint16_t aRloc16);
     ThreadError SetStateLeader(uint16_t aRloc16);
