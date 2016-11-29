@@ -992,16 +992,12 @@ class ARM(IThci):
                 print 'join as leader'
                 mode = 'rsdn'
                 if self.AutoDUTEnable is False:
-                    # set ROUTER_UPGRADE_THRESHOLD
-                    self.__setRouterUpgradeThreshold(32)
                     # set ROUTER_DOWNGRADE_THRESHOLD
                     self.__setRouterDowngradeThreshold(33)
             elif eRoleId == Thread_Device_Role.Router:
                 print 'join as router'
                 mode = 'rsdn'
                 if self.AutoDUTEnable is False:
-                    # set ROUTER_UPGRADE_THRESHOLD
-                    self.__setRouterUpgradeThreshold(33)
                     # set ROUTER_DOWNGRADE_THRESHOLD
                     self.__setRouterDowngradeThreshold(33)
             elif eRoleId == Thread_Device_Role.SED:
@@ -1961,7 +1957,7 @@ class ARM(IThci):
             else:
                 return False
         except Exception, e:
-            modulehelper.writeintodebuglogger("allowcommission() error: " + str(e))
+            Modulehelper.writeintodebuglogger("allowcommission() error: " + str(e))
 
     def joinCommissioned(self, strPSKd='threadjpaketest', waitTime=20):
         """start joiner
@@ -2061,7 +2057,7 @@ class ARM(IThci):
             print cmd
             return self.__sendCommand(cmd) == 'Done'
         except Exception, e:
-            modulehelper.writeintodebuglogger("MGMT_ED_SCAN() error: " + str(e))
+            Modulehelper.writeintodebuglogger("MGMT_ED_SCAN() error: " + str(e))
 
     def MGMT_PANID_QUERY(self, sAddr, xCommissionerSessionId, listChannelMask, xPanId):
         """send MGMT_PANID_QUERY message to a given destination
@@ -2086,7 +2082,7 @@ class ARM(IThci):
             print cmd
             return self.__sendCommand(cmd) == 'Done'
         except Exception, e:
-            modulehelper.writeintodebuglogger("MGMT_PANID_QUERY() error: " + str(e))
+            Modulehelper.writeintodebuglogger("MGMT_PANID_QUERY() error: " + str(e))
 
     def MGMT_ANNOUNCE_BEGIN(self, sAddr, xCommissionerSessionId, listChannelMask, xCount, xPeriod):
         """send MGMT_ANNOUNCE_BEGIN message to a given destination
@@ -2103,7 +2099,7 @@ class ARM(IThci):
             print cmd
             return self.__sendCommand(cmd) == 'Done'
         except Exception, e:
-            modulehelper.writeintodebuglogger("MGMT_ANNOUNCE_BEGIN() error: " + str(e))
+            Modulehelper.writeintodebuglogger("MGMT_ANNOUNCE_BEGIN() error: " + str(e))
 
     def MGMT_ACTIVE_GET(self, Addr='', TLVs=[]):
         """send MGMT_ACTIVE_GET command
@@ -2486,7 +2482,20 @@ class ARM(IThci):
         return True
 
     def updateRouterStatus(self):
+        """force update to router as if there is child id request"""
         print '%s call updateRouterStatus' % self.port
+        cmd = 'state'
+        while True:
+            state = self.__sendCommand(cmd)[0]
+            if state == 'detached':
+                continue
+            elif state == 'child':
+                break
+            else:
+                return False
+
+        cmd = 'state router'
+        return self.__sendCommand(cmd)[0] == 'Done'
 
     def setRouterThresholdValues(self, upgradeThreshold, downgradeThreshold):
         print '%s call setRouterThresholdValues' % self.port
