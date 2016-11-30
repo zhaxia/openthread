@@ -299,7 +299,15 @@ public:
     ThreadError SetPreferredRouterId(uint8_t aRouterId);
 
     /**
-     * This method sets the Router Id from the stored network information.
+     * This method sets the Partition Id which the device joins successfully.
+     *
+     * @param[in]  aPartitionId   The Partition Id.
+     *
+     */
+    void SetPreviousPartitionId(uint32_t aPartitionId);
+
+    /**
+     * This method sets the Router Id.
      *
      * @param[in]  aRouterId   The Router Id.
      *
@@ -507,7 +515,7 @@ public:
     ThreadError RemoveStoredChild(uint16_t aChildRloc16);
 
     /**
-     * This method store a child infomation into non-volatile memory.
+     * This method store a child information into non-volatile memory.
      *
      * @param[in]  aChildRloc16   The child RLOC16 to store.
      *
@@ -764,6 +772,8 @@ private:
     Child *FindChild(uint16_t aChildId);
     Child *FindChild(const Mac::ExtAddress &aMacAddr);
 
+    bool HasChildren(void);
+    void RemoveChildren(void);
     bool HasMinDowngradeNeighborRouters(void);
     bool HasOneNeighborwithComparableConnectivity(const RouteTlv &aRoute, uint8_t aRouterId);
     bool HasSmallNumberOfChildren(void);
@@ -812,6 +822,7 @@ private:
 
     uint8_t mRouterId;
     uint8_t mPreviousRouterId;
+    uint32_t mPreviousPartitionId;
 
     Coap::Server &mCoapServer;
     Coap::Client &mCoapClient;
