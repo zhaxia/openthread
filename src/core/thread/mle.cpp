@@ -2494,6 +2494,12 @@ ThreadError Mle::HandleChildIdResponse(const Message &aMessage, const Ip6::Messa
         }
     }
 
+    // clear local Pending Dataset if device succeed to reattach using stored Pending Dataset
+    if (mReattachState == kReattachPending)
+    {
+        mNetif.GetPendingDataset().GetLocal().Clear(true);
+    }
+
     // Pending Timestamp
     if (Tlv::GetTlv(aMessage, Tlv::kPendingTimestamp, sizeof(pendingTimestamp), pendingTimestamp) == kThreadError_None)
     {
@@ -2514,7 +2520,7 @@ ThreadError Mle::HandleChildIdResponse(const Message &aMessage, const Ip6::Messa
     }
     else
     {
-        mNetif.GetPendingDataset().Clear(true);
+        mNetif.GetPendingDataset().Clear(false);
     }
 
     // Parent Attach Success
