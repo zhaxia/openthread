@@ -1658,7 +1658,15 @@ ThreadError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::M
         break;
     }
 
-    VerifyOrExit((child = FindChild(macAddr)) != NULL || (child = NewChild()) != NULL, ;);
+    if ((child = FindChild(macAddr)) != NULL)
+    {
+        RemoveNeighbor(*child);
+    }
+    else
+    {
+        VerifyOrExit((child = NewChild()) != NULL, ;);
+    }
+
     memset(child, 0, sizeof(*child));
 
     // Challenge
@@ -1723,6 +1731,8 @@ void MleRouter::HandleStateUpdateTimer(void)
             BecomeRouter(ThreadStatusTlv::kTooFewRouters);
             ExitNow();
         }
+
+    // fall through
 
     case kDeviceStateRouter:
         // verify path to leader
@@ -2991,6 +3001,7 @@ ThreadError MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
     case kDeviceStateLeader:
         if (aNeighbor.mState == Neighbor::kStateValid && !IsActiveRouter(aNeighbor.mValid.mRloc16))
         {
+            aNeighbor.mState = Neighbor::kStateInvalid;
             mMesh.UpdateIndirectMessages();
             mNetif.SetStateChangedFlags(OT_THREAD_CHILD_REMOVED);
             mNetworkData.SendServerDataNotification(aNeighbor.mValid.mRloc16);
@@ -3678,6 +3689,7 @@ void MleRouter::HandleAddressSolicitResponse(Coap::Header *aHeader, Message *aMe
     ThreadRloc16Tlv rlocTlv;
     ThreadRouterMaskTlv routerMaskTlv;
     uint8_t routerId;
+    Router *router;
     bool old;
 
     VerifyOrExit(result == kThreadError_None && aHeader != NULL && aMessage != NULL, ;);
@@ -3706,7 +3718,9 @@ void MleRouter::HandleAddressSolicitResponse(Coap::Header *aHeader, Message *aMe
 
     SuccessOrExit(ThreadTlv::GetTlv(*aMessage, ThreadTlv::kRloc16, sizeof(rlocTlv), rlocTlv));
     VerifyOrExit(rlocTlv.IsValid(), ;);
-    VerifyOrExit(IsRouterIdValid(routerId = GetRouterId(rlocTlv.GetRloc16())), ;);
+    routerId = GetRouterId(rlocTlv.GetRloc16());
+    router = GetRouter(routerId);
+    VerifyOrExit(router != NULL,);
 
     SuccessOrExit(ThreadTlv::GetTlv(*aMessage, ThreadTlv::kRouterMask, sizeof(routerMaskTlv), routerMaskTlv));
     VerifyOrExit(routerMaskTlv.IsValid(), ;);
@@ -3726,7 +3740,7 @@ void MleRouter::HandleAddressSolicitResponse(Coap::Header *aHeader, Message *aMe
 
     SuccessOrExit(SetStateRouter(GetRloc16(mRouterId)));
 
-    mRouters[mRouterId].mCost = 0;
+    router->mCost = 0;
 
     // copy router id information
     mRouterIdSequence = routerMaskTlv.GetIdSequence();
