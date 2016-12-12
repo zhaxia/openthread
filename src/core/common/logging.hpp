@@ -278,7 +278,7 @@ extern "C" {
 #ifdef OPENTHREAD_CONFIG_LOG_MLE
 #define otLogCritMle(aFormat, ...) otLogCrit(kLogRegionMle, aFormat, ## __VA_ARGS__)
 #define otLogWarnMle(aFormat, ...) otLogWarn(kLogRegionMle, aFormat, ## __VA_ARGS__)
-#define otLogWarnMleErr(aError, aFormat, ...) otLogWarn(kLogRegionMle, aFormat ", 0x%x\n", ## __VA_ARGS__)
+#define otLogWarnMleErr(aError, aFormat, ...) otLogWarn(kLogRegionMle, aFormat ", 0x%x", ## __VA_ARGS__)
 #define otLogInfoMle(aFormat, ...) otLogInfo(kLogRegionMle, aFormat, ## __VA_ARGS__)
 #define otLogDebgMle(aFormat, ...) otLogDebg(kLogRegionMle, aFormat, ## __VA_ARGS__)
 #else
@@ -537,7 +537,7 @@ extern "C" {
 #define otLogWarnMac(aFormat, ...) otLogWarn(kLogRegionMac, aFormat, ## __VA_ARGS__)
 #define otLogInfoMac(aFormat, ...) otLogInfo(kLogRegionMac, aFormat, ## __VA_ARGS__)
 #define otLogDebgMac(aFormat, ...) otLogDebg(kLogRegionMac, aFormat, ## __VA_ARGS__)
-#define otLogDebgMacErr(aError, aFormat, ...) otLogWarn(kLogRegionMac, aFormat ", 0x%x\n", ## __VA_ARGS__)
+#define otLogDebgMacErr(aError, aFormat, ...) otLogWarn(kLogRegionMac, aFormat ", 0x%x", ## __VA_ARGS__)
 #else
 #define otLogCritMac(aFormat, ...)
 #define otLogWarnMac(aFormat, ...)
@@ -661,6 +661,57 @@ extern "C" {
 #define otLogCertMeshCoP(aFormat, ...) _otLogFormatter(kLogLevelNone, kLogRegionMeshCoP, aFormat, ## __VA_ARGS__)
 #else
 #define otLogCertMeshCoP(aFormat, ...)
+#endif
+
+/**
+* @def otLogCritPlat
+*
+* This method generates a log with level critical for the Platform region.
+*
+* @param[in]  aFormat  A pointer to the format string.
+* @param[in]  ...      Arguments for the format specification.
+*
+*/
+
+/**
+* @def otLogWarnPlat
+*
+* This method generates a log with level warning for the Platform region.
+*
+* @param[in]  aFormat  A pointer to the format string.
+* @param[in]  ...      Arguments for the format specification.
+*
+*/
+
+/**
+* @def otLogInfoPlat
+*
+* This method generates a log with level info for the Platform region.
+*
+* @param[in]  aFormat  A pointer to the format string.
+* @param[in]  ...      Arguments for the format specification.
+*
+*/
+
+/**
+* @def otLogDebgPlat
+*
+* This method generates a log with level debug for the Platform region.
+*
+* @param[in]  aFormat  A pointer to the format string.
+* @param[in]  ...      Arguments for the format specification.
+*
+*/
+#ifdef OPENTHREAD_CONFIG_LOG_PLATFORM
+#define otLogCritPlat(aFormat, ...) otLogCrit(kLogRegionPlatform, aFormat, ## __VA_ARGS__)
+#define otLogWarnPlat(aFormat, ...) otLogWarn(kLogRegionPlatform, aFormat, ## __VA_ARGS__)
+#define otLogInfoPlat(aFormat, ...) otLogInfo(kLogRegionPlatform, aFormat, ## __VA_ARGS__)
+#define otLogDebgPlat(aFormat, ...) otLogDebg(kLogRegionPlatform, aFormat, ## __VA_ARGS__)
+#else
+#define otLogCritPlat(aFormat, ...)
+#define otLogWarnPlat(aFormat, ...)
+#define otLogInfoPlat(aFormat, ...)
+#define otLogDebgPlat(aFormat, ...)
 #endif
 
 #endif // WINDOWS_LOGGING
@@ -1146,6 +1197,18 @@ extern "C" {
  */
 void otDump(otLogLevel aLevel, otLogRegion aRegion, const char *aId, const void *aBuf, const size_t aLength);
 
+#ifdef OPENTHREAD_CONFIG_LOG_PREPEND_LEVEL
+/**
+* This method converts the log level value into a string
+*
+* @param[in]  aLevel  The log level.
+*
+* @returns A const char pointer to the C string corresponding to the log level.
+*
+*/
+const char *otLogLevelToString(otLogLevel aLevel);
+#endif
+
 #ifdef OPENTHREAD_CONFIG_LOG_PREPEND_REGION
 /**
  * This method converts the log region value into a string
@@ -1156,10 +1219,48 @@ void otDump(otLogLevel aLevel, otLogRegion aRegion, const char *aId, const void 
  *
  */
 const char *otLogRegionToString(otLogRegion aRegion);
+#endif
+
+#ifdef OPENTHREAD_CONFIG_LOG_PREPEND_LEVEL
+
+#ifdef OPENTHREAD_CONFIG_LOG_PREPEND_REGION
 
 /**
  * Local/private macro to format the log message
  */
+#define _otLogFormatter(aLogLevel, aRegion, aFormat, ...)                   \
+    otPlatLog(                                                              \
+        aLogLevel,                                                          \
+        aRegion,                                                            \
+        "[%s]%s: " aFormat OPENTHREAD_CONFIG_LOG_SUFFIX,                    \
+        otLogLevelToString(aLogLevel),                                      \
+        otLogRegionToString(aRegion),                                       \
+        ## __VA_ARGS__                                                      \
+    )
+
+#else  // OPENTHREAD_CONFIG_LOG_PREPEND_REGION
+
+/**
+* Local/private macro to format the log message
+*/
+#define _otLogFormatter(aLogLevel, aRegion, aFormat, ...)                   \
+    otPlatLog(                                                              \
+        aLogLevel,                                                          \
+        aRegion,                                                            \
+        "[%s]: " aFormat OPENTHREAD_CONFIG_LOG_SUFFIX,                      \
+        otLogLevelToString(aLogLevel),                                      \
+        ## __VA_ARGS__                                                      \
+    )
+
+#endif
+
+#else  // OPENTHREAD_CONFIG_LOG_PREPEND_LEVEL
+
+#ifdef OPENTHREAD_CONFIG_LOG_PREPEND_REGION
+
+/**
+* Local/private macro to format the log message
+*/
 #define _otLogFormatter(aLogLevel, aRegion, aFormat, ...)                   \
     otPlatLog(                                                              \
         aLogLevel,                                                          \
@@ -1172,8 +1273,8 @@ const char *otLogRegionToString(otLogRegion aRegion);
 #else  // OPENTHREAD_CONFIG_LOG_PREPEND_REGION
 
 /**
- * Local/private macro to format the log message
- */
+* Local/private macro to format the log message
+*/
 #define _otLogFormatter(aLogLevel, aRegion, aFormat, ...)                   \
     otPlatLog(                                                              \
         aLogLevel,                                                          \
@@ -1181,6 +1282,8 @@ const char *otLogRegionToString(otLogRegion aRegion);
         aFormat OPENTHREAD_CONFIG_LOG_SUFFIX,                               \
         ## __VA_ARGS__                                                      \
     )
+
+#endif
 
 #endif // OPENTHREAD_CONFIG_LOG_PREPEND_REGION
 
