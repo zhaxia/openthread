@@ -434,6 +434,19 @@ OTAPI ThreadError OTCALL otDiscover(otInstance *aInstance, uint32_t aScanChannel
 OTAPI bool OTCALL otIsDiscoverInProgress(otInstance *aInstance);
 
 /**
+ * This function enqueues an IEEE 802.15.4 Data Request message for transmission.
+ *
+ * @param[in] aInstance  A pointer to an OpenThread instance.
+ *
+ * @retval kThreadError_None          Successfully enqueued an IEEE 802.15.4 Data Request message.
+ * @retval kThreadError_Already       An IEEE 802.15.4 Data Request message is already enqueued.
+ * @retval kThreadError_InvalidState  Device is not in rx-off-when-idle mode.
+ * @retval kThreadError_NoBufs        Insufficient message buffers available.
+ *
+ */
+OTAPI ThreadError OTCALL otSendMacDataRequest(otInstance *aInstance);
+
+/**
  * @}
  *
  */
@@ -1893,6 +1906,29 @@ OTAPI ThreadError OTCALL otGetParentInfo(otInstance *aInstance, otRouterInfo *aP
  * @returns The Stable Network Data Version.
  */
 OTAPI uint8_t OTCALL otGetStableNetworkDataVersion(otInstance *aInstance);
+
+/**
+ * This function pointer is called when an DIAG_GET.rsp is received.
+ *
+ * @param[in]  aMessage      A pointer to the message buffer containing the received DIAG_GET.rsp payload.
+ * @param[in]  aMessageInfo  A pointer to the message info for @p aMessage.
+ * @param[in]  aContext      A pointer to application-specific context.
+ *
+ */
+typedef void (*otReceiveDiagnosticGetCallback)(otMessage aMessage, const otMessageInfo *aMessageInfo,
+                                               void *aContext);
+
+/**
+ * This function registers a callback to provide received raw DIAG_GET.rsp payload.
+ *
+ * @param[in]  aInstance         A pointer to an OpenThread instance.
+ * @param[in]  aCallback         A pointer to a function that is called when an DIAG_GET.rsp is received or
+ *                               NULL to disable the callback.
+ * @param[in]  aCallbackContext  A pointer to application-specific context.
+ *
+ */
+void otSetReceiveDiagnosticGetCallback(otInstance *aInstance, otReceiveDiagnosticGetCallback aCallback,
+                                       void *aCallbackContext);
 
 /**
  * Send a Network Diagnostic Get request
