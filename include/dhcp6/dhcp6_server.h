@@ -29,46 +29,30 @@
 /**
  * @file
  * @brief
- *   This file includes the platform abstraction for the Thread DHCPv6 client.
+ *   This file includes the platform abstraction for the Thread DHCPv6 server.
  */
 
-#ifndef OPENTHREAD_DHCP6_CLIENT_H_
-#define OPENTHREAD_DHCP6_CLIENT_H_
-
-#include <openthread-types.h>
+#ifndef OPENTHREAD_DHCP6_SERVER_H_
+#define OPENTHREAD_DHCP6_SERVER_H_
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @addtogroup core-dhcp6-client
+ * @addtogroup core-dhcp6-server
  *
  * @{
  *
  */
 
 /**
- * This structure represents a DHCPv6 address.
- *
- */
-typedef struct otDhcpAddress
-{
-    otNetifAddress mAddress;            ///< The network interface address.
-    uint32_t       mPreferredLifetime;  ///< The preferred lifetime.
-    uint32_t       mValidLifetime;      ///< The valid lifetime.
-} otDhcpAddress;
-
-/**
- * Update all automatically created IPv6 addresses for prefixes from current Network Data with DHCP procedure.
+ * Update updates DHCP Agents and DHCP Alocs.
  *
  * @param[in]     aInstance      A pointer to an OpenThread instance.
- * @param[inout]  aAddresses     A pointer to an array of automatically created IPv6 addresses.
- * @param[in]     aNumAddresses  The number of slots in aAddresses array.
- * @param[in]     aContext       A pointer to data passed to aIidCreate function.
  *
  */
-void otDhcp6ClientUpdate(otInstance *aInstance, otDhcpAddress *aAddresses, uint32_t aNumAddresses, void *aContext);
+void otDhcp6ServerUpdate(otInstance *aInstance);
 
 /**
  * @}
@@ -79,4 +63,4 @@ void otDhcp6ClientUpdate(otInstance *aInstance, otDhcpAddress *aAddresses, uint3
 }  // end of extern "C"
 #endif
 
-#endif  // OPENTHREAD_DHCP6_CLIENT_H_
+#endif  // OPENTHREAD_DHCP6_SERVER_H_
