@@ -26,44 +26,24 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @file
- *   This file includes definitions for managing MeshCoP Datasets.
- *
- */
+#include <stdio.h>
 
-#ifndef MESHCOP_DATASET_MANAGER_MTD_HPP_
-#define MESHCOP_DATASET_MANAGER_MTD_HPP_
+#include "test_util.h"
 
-#include <openthread-types.h>
-
-namespace Thread {
-
-class ThreadNetif;
-
-namespace MeshCoP {
-
-class ActiveDataset: public ActiveDatasetBase
+#ifdef ENABLE_TEST_MAIN
+int main(int argc, char *argv[])
 {
-public:
-    ActiveDataset(ThreadNetif &aThreadNetif) : ActiveDatasetBase(aThreadNetif) { }
+    (void)argv;
+    int stack_array[100];
+    int array_index = argc + 100;
 
-    void StartLeader(void) { }
+    for (int i = 0; i < 100; i++)
+    {
+	stack_array[i] = i;
+    }
 
-    void StopLeader(void) { }
-};
+    printf("stack_array[%d] = %d\n", array_index, stack_array[array_index]);
 
-class PendingDataset: public PendingDatasetBase
-{
-public:
-    PendingDataset(ThreadNetif &aThreadNetif) : PendingDatasetBase(aThreadNetif) { }
-
-    void StartLeader(void) { }
-
-    void StopLeader(void) { }
-};
-
-}  // namespace MeshCoP
-}  // namespace Thread
-
-#endif  // MESHCOP_DATASET_MANAGER_HPP_
+    return 0;
+}
+#endif
