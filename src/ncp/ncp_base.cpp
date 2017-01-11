@@ -1439,7 +1439,7 @@ ThreadError NcpBase::CommandHandler_NET_CLEAR(uint8_t header, unsigned int comma
     (void)arg_ptr;
     (void)arg_len;
 
-    return SendLastStatus(header, ThreadErrorToSpinelStatus(otNetworkSettingsErase(mInstance)));
+    return SendLastStatus(header, ThreadErrorToSpinelStatus(otPersistentInfoErase(mInstance)));
 }
 
 ThreadError NcpBase::CommandHandler_NET_RECALL(uint8_t header, unsigned int command, const uint8_t *arg_ptr,
@@ -3108,6 +3108,10 @@ ThreadError NcpBase::SetPropertyHandler_MAC_PROMISCUOUS_MODE(uint8_t header, spi
         case SPINEL_MAC_PROMISCUOUS_MODE_FULL:
             otPlatRadioSetPromiscuous(mInstance, true);
             errorCode = kThreadError_None;
+            break;
+
+        default:
+            errorCode = kThreadError_InvalidArgs;
             break;
         }
 
