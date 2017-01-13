@@ -657,7 +657,8 @@ void OTCALL otNodeStateChangedCallback(uint32_t aFlags, void *aContext)
         printf("%d: new role: %s\r\n", aNode->mId, otDeviceRoleToString(Role));
     }
 
-    if ((aFlags & OT_IP6_ADDRESS_ADDED) != 0 || (aFlags & OT_IP6_ADDRESS_REMOVED) != 0)
+    if ((aFlags & OT_IP6_ADDRESS_ADDED) != 0 || (aFlags & OT_IP6_ADDRESS_REMOVED) != 0 ||
+        (aFlags & OT_IP6_RLOC_ADDED) != 0 || (aFlags & OT_IP6_RLOC_REMOVED) != 0)
     {
         HandleAddressChanges(aNode);
     }
@@ -950,7 +951,7 @@ OTNODEAPI int32_t OTCALL otNodeJoinerStart(otNode* aNode, const char *aPSKd, con
     printf("%d: joiner start %s %s\r\n", aNode->mId, aPSKd, aProvisioningUrl);
 
     // TODO: handle the joiner completion callback
-    auto error = otJoinerStart(aNode->mInstance, aPSKd, aProvisioningUrl, NULL, NULL);
+    auto error = otJoinerStart(aNode->mInstance, aPSKd, aProvisioningUrl, NULL, NULL, NULL, NULL, NULL, NULL);
     
     otLogFuncExit();
     return error;
