@@ -2561,6 +2561,7 @@ ThreadError Mle::HandleChildIdResponse(const Message &aMessage, const Ip6::Messa
     // Parent Attach Success
     mParentRequestTimer.Stop();
     mReattachState = kReattachStop;
+    SetStateDetached();
 
     SetLeaderData(leaderData.GetPartitionId(), leaderData.GetWeighting(), leaderData.GetLeaderRouterId());
 
