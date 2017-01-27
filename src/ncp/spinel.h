@@ -337,6 +337,7 @@ enum
 
     SPINEL_CAP_OPENTHREAD__BEGIN     = 512,
     SPINEL_CAP_MAC_WHITELIST         = (SPINEL_CAP_OPENTHREAD__BEGIN + 0),
+    SPINEL_CAP_MAC_RAW               = (SPINEL_CAP_OPENTHREAD__BEGIN + 1),
     SPINEL_CAP_OPENTHREAD__END       = 640,
 
     SPINEL_CAP_NEST__BEGIN           = 15296,
@@ -1019,7 +1020,10 @@ typedef enum
     /** Format: `L` (Read-only) */
     SPINEL_PROP_CNTR_RX_SPINEL_ERR     = SPINEL_PROP_CNTR__BEGIN + 302,
 
-
+    /// Number of out of order received spinel frames (tid increase by more than 1).
+    /** Format: `L` (Read-only) */
+    SPINEL_PROP_CNTR_RX_SPINEL_OUT_OF_ORDER_TID
+                                       = SPINEL_PROP_CNTR__BEGIN + 303,
 
     /// The message buffer counter info
     /** Format: `T(SSSSSSSSSSSSSSSS)` (Read-only)

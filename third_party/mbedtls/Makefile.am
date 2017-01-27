@@ -71,6 +71,26 @@ libmbedcrypto_a_SOURCES                      += \
     repo/library/ssl_ticket.c                   \
     repo/library/ssl_tls.c                      \
     $(NULL)
+
+EXTRA_DIST                                                         += \
+    patch/0001-Fix-commissioning-problem-with-retransmissions.patch   \
+    $(NULL)
+    
+repo/library/libmbedcrypto_a-ssl_tls.$(OBJEXT): $(MBEDTLS_SRCDIR)/library/ssl_tls.c.patched
+
+$(MBEDTLS_SRCDIR)/library/ssl_tls.c.patched: $(abs_top_srcdir)/third_party/mbedtls/patch/0001-Fix-commissioning-problem-with-retransmissions.patch
+	chmod u+w $(abs_top_srcdir)/third_party/mbedtls/repo/library/
+	chmod u+w $(abs_top_srcdir)/third_party/mbedtls/repo/library/ssl_tls.c
+	if [ -e $@ ]; then patch -R $(abs_top_srcdir)/third_party/mbedtls/repo/library/ssl_tls.c $@; fi
+	patch $(abs_top_srcdir)/third_party/mbedtls/repo/library/ssl_tls.c $<
+	cp $(abs_top_srcdir)/third_party/mbedtls/patch/0001-Fix-commissioning-problem-with-retransmissions.patch $@
+
+all-local: libmbedcrypto.a
+	if [ -e $(MBEDTLS_SRCDIR)/library/ssl_tls.c.patched ]; then patch -R $(abs_top_srcdir)/third_party/mbedtls/repo/library/ssl_tls.c $(abs_top_srcdir)/third_party/mbedtls/patch/0001-Fix-commissioning-problem-with-retransmissions.patch; rm -f $(MBEDTLS_SRCDIR)/library/ssl_tls.c.patched; fi
+
+clean-local:
+	if [ -e $(MBEDTLS_SRCDIR)/library/ssl_tls.c.patched ]; then patch -R $(abs_top_srcdir)/third_party/mbedtls/repo/library/ssl_tls.c $(abs_top_srcdir)/third_party/mbedtls/patch/0001-Fix-commissioning-problem-with-retransmissions.patch; rm -f $(MBEDTLS_SRCDIR)/library/ssl_tls.c.patched; fi
+
 endif  # OPENTHREAD_ENABLE_DTLS
 
 if OPENTHREAD_BUILD_COVERAGE
