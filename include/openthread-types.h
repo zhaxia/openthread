@@ -245,7 +245,10 @@ typedef struct otMeshLocalPrefix
     uint8_t m8[OT_MESH_LOCAL_PREFIX_SIZE];
 } otMeshLocalPrefix;
 
-#define OT_PSKC_MAX_SIZE           16  ///< Maximum size of the PSKc (bytes)
+#define OT_PSKC_MAX_SIZE                             16  ///< Maximum size of the PSKc (bytes)
+
+#define OT_COMMISSIONING_PASSPHRASE_MIN_SIZE         6   ///< Minimum size of the Commissioning Passphrase
+#define OT_COMMISSIONING_PASSPHRASE_MAX_SIZE         255 ///< Maximum size of the Commissioning Passphrase
 
 /**
   * This structure represents PSKc.

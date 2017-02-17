@@ -120,6 +120,16 @@ ThreadError otSetChannel(otInstance *aInstance, uint8_t aChannel)
     return aInstance->mThreadNetif.GetMac().SetChannel(aChannel);
 }
 
+ThreadError otSetDelayTimerMinimal(otInstance *aInstance, uint32_t aDelayTimerMinimal)
+{
+    return aInstance->mThreadNetif.GetLeader().SetDelayTimerMinimal(aDelayTimerMinimal);
+}
+
+uint32_t otGetDelayTimerMinimal(otInstance *aInstance)
+{
+    return aInstance->mThreadNetif.GetLeader().GetDelayTimerMinimal();
+}
+
 uint8_t otGetMaxAllowedChildren(otInstance *aInstance)
 {
     uint8_t aNumChildren;
@@ -1145,16 +1155,39 @@ void otRemoveStateChangeCallback(otInstance *aInstance, otStateChangedCallback a
 
 const char *otGetVersionString(void)
 {
-    static const char sVersion[] =
+    /**
+     * PLATFORM_VERSION_ATTR_PREFIX and PLATFORM_VERSION_ATTR_SUFFIX are
+     * intended to be used to specify compiler directives to indicate
+     * what linker section the platform version string should be stored.
+     *
+     * This is useful for specifying an exact locaiton of where the version
+     * string will be located so that it can be easily retrieved from the
+     * raw firmware image.
+     *
+     * If PLATFORM_VERSION_ATTR_PREFIX is unspecified, the keyword `static`
+     * is used instead.
+     *
+     * If both are unspecified, the location of the string in the firmware
+     * image will be undefined and may change.
+     */
+
+#ifdef PLATFORM_VERSION_ATTR_PREFIX
+    PLATFORM_VERSION_ATTR_PREFIX
+#else
+    static
+#endif
+    const char sVersion[] =
         PACKAGE_NAME "/" PACKAGE_VERSION
 #ifdef  PLATFORM_INFO
         "; " PLATFORM_INFO
 #endif
 #if defined(__DATE__)
-        "; " __DATE__ " " __TIME__;
-#else
-        ;
+        "; " __DATE__ " " __TIME__
 #endif
+#ifdef PLATFORM_VERSION_ATTR_SUFFIX
+        PLATFORM_VERSION_ATTR_SUFFIX
+#endif
+        ; // Trailing semicolon to end statement.
 
     return sVersion;
 }
@@ -1814,6 +1847,12 @@ ThreadError otSendMgmtCommissionerSet(otInstance *aInstance, const otCommissioni
 uint16_t otCommissionerGetSessionId(otInstance *aInstance)
 {
     return aInstance->mThreadNetif.GetCommissioner().GetSessionId();
+}
+
+ThreadError otCommissionerGeneratePSKc(otInstance *aInstance, const char *aPassPhrase, const char *aNetworkName,
+                                       const uint8_t *aExtPanId, uint8_t *aPSKc)
+{
+    return aInstance->mThreadNetif.GetCommissioner().GeneratePSKc(aPassPhrase, aNetworkName, aExtPanId, aPSKc);
 }
 #endif  // OPENTHREAD_ENABLE_COMMISSIONER
 
