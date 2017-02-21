@@ -29,8 +29,6 @@
 include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 
 bin_PROGRAMS                                                           = \
-    ot-cli-ftd                                                           \
-    ot-cli-mtd                                                           \
     $(NULL)
 
 CPPFLAGS_COMMON                                                        = \
@@ -40,7 +38,6 @@ CPPFLAGS_COMMON                                                        = \
     $(NULL)
 
 LDADD_COMMON                                                           = \
-    $(top_builddir)/src/cli/libopenthread-cli.a                          \
     $(NULL)
 
 LDFLAGS_COMMON                                                         = \
@@ -115,11 +112,17 @@ LDFLAGS_COMMON                                                        += \
     $(NULL)
 endif
 
+if OPENTHREAD_ENABLE_CLI_FTD
+bin_PROGRAMS                                                          += \
+    ot-cli-ftd                                                           \
+    $(NULL)
+
 ot_cli_ftd_CPPFLAGS                                                    = \
     $(CPPFLAGS_COMMON)                                                   \
     $(NULL)
 
 ot_cli_ftd_LDADD                                                       = \
+    $(top_builddir)/src/cli/libopenthread-cli.a                          \
     $(top_builddir)/src/core/libopenthread-ftd.a                         \
     $(LDADD_COMMON)                                                      \
     $(NULL)
@@ -131,12 +134,19 @@ ot_cli_ftd_LDFLAGS                                                     = \
 ot_cli_ftd_SOURCES                                                     = \
     $(SOURCES_COMMON)                                                    \
     $(NULL)
+endif # OPENTHREAD_ENABLE_CLI_FTD
+
+if OPENTHREAD_ENABLE_CLI_MTD
+bin_PROGRAMS                                                          += \
+    ot-cli-mtd                                                           \
+    $(NULL)
 
 ot_cli_mtd_CPPFLAGS                                                    = \
     $(CPPFLAGS_COMMON)                                                   \
     $(NULL)
 
 ot_cli_mtd_LDADD                                                       = \
+    $(top_builddir)/src/cli/libopenthread-cli.a                          \
     $(top_builddir)/src/core/libopenthread-mtd.a                         \
     $(LDADD_COMMON)                                                      \
     $(NULL)
@@ -148,6 +158,7 @@ ot_cli_mtd_LDFLAGS                                                     = \
 ot_cli_mtd_SOURCES                                                     = \
     $(SOURCES_COMMON)                                                    \
     $(NULL)
+endif # OPENTHREAD_ENABLE_CLI_MTD
 
 if OPENTHREAD_BUILD_COVERAGE
 CLEANFILES                                                             = $(wildcard *.gcda *.gcno)
