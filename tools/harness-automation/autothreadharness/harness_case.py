@@ -27,6 +27,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import ConfigParser
 import json
 import logging
 import os
@@ -41,10 +42,11 @@ from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import UnexpectedAlertPresentException
 
 from autothreadharness import settings
-from autothreadharness.pdu_controller_factory import PduControllerFactory
+from autothreadharness.exceptions import FailError, FatalError, GoldenDeviceNotEnoughError
 from autothreadharness.harness_controller import HarnessController
 from autothreadharness.helpers import HistoryHelper
 from autothreadharness.open_thread_controller import OpenThreadController
+from autothreadharness.pdu_controller_factory import PduControllerFactory
 
 logger = logging.getLogger(__name__)
 
@@ -144,9 +146,6 @@ class HarnessCase(unittest.TestCase):
     """int: SED polling interval in seconds
     """
 
-    manual_reset = False
-    """bool: whether reset manually"""
-
     auto_dut = settings.AUTO_DUT
     """bool: whether use harness auto dut feature"""
 
@@ -171,10 +170,7 @@ class HarnessCase(unittest.TestCase):
         Note:
             If PDU_CONTROLLER_TYPE is not valid, usb devices is not rebooted.
         """
-        if self.manual_reset:
-            raw_input('Reset golden devices and press enter to continue..')
-            return
-        elif not settings.PDU_CONTROLLER_TYPE:
+        if not settings.PDU_CONTROLLER_TYPE:
             if settings.AUTO_DUT:
                 return
 
@@ -211,7 +207,7 @@ class HarnessCase(unittest.TestCase):
                 pdu.close()
                 break
 
-        time.sleep(20)
+        time.sleep(len(settings.GOLDEN_DEVICES))
 
     def _init_harness(self):
         """Restart harness backend service.
@@ -223,7 +219,12 @@ class HarnessCase(unittest.TestCase):
         time.sleep(1)
         self._hc.start()
         time.sleep(2)
-        os.system('taskkill /t /f /im chrome.exe')
+
+        harness_config = ConfigParser.ConfigParser()
+        harness_config.read('%s\\Config\\Configuration.ini' % settings.HARNESS_HOME)
+        if harness_config.has_option('THREAD_HARNESS_CONFIG', 'BrowserAutoNavigate') and \
+                harness_config.getboolean('THREAD_HARNESS_CONFIG', 'BrowserAutoNavigate'):
+            os.system('taskkill /t /f /im chrome.exe')
 
     def _destroy_harness(self):
         """Stop harness backend service
@@ -245,9 +246,6 @@ class HarnessCase(unittest.TestCase):
         dut_port = settings.DUT_DEVICE[0]
         dut = OpenThreadController(dut_port)
         self.dut = dut
-
-        if not settings.PDU_CONTROLLER_TYPE or self.manual_reset:
-            self.dut.reset()
 
     def _destroy_dut(self):
         self.dut = None
@@ -339,7 +337,7 @@ class HarnessCase(unittest.TestCase):
             logger.exception('Failed to get dialog.')
         else:
             if dialog and dialog.get_attribute('aria-hidden') == 'false':
-                times = 100 # FIXME better to be a more meaningful value
+                times = 60
                 while times:
                     status = dialog.find_element_by_class_name('status-notify').text
                     if 'Searching' in status:
@@ -470,7 +468,7 @@ class HarnessCase(unittest.TestCase):
             golden_devices_required += 1
 
         if len(devices) < golden_devices_required:
-            raise Exception('Golden devices is not enough')
+            raise GoldenDeviceNotEnoughError()
 
         # add golden devices
         while golden_devices_required:
@@ -512,10 +510,14 @@ class HarnessCase(unittest.TestCase):
                         form_port = form_inputs[0]
                         port = form_port.get_attribute('value').encode('utf8')
                         if settings.DUT_DEVICE and port == settings.DUT_DEVICE[0]:
-                            raise SystemExit('DUT device failed')
+                            if settings.PDU_CONTROLLER_TYPE is None:
+                                # connection error cannot recover without power cycling
+                                raise FatalError('Failed to connect to DUT')
+                            else:
+                                raise FailError('Failed to connect to DUT')
 
-                        if not settings.PDU_CONTROLLER_TYPE:
-                            # port cannot recover without power off
+                        if settings.PDU_CONTROLLER_TYPE is None:
+                            # port cannot recover without power cycling
                             self.history.mark_bad_golden_device(port)
 
                         # remove the bad one
@@ -529,7 +531,7 @@ class HarnessCase(unittest.TestCase):
 
                     if devices is None:
                         logger.warning('Golden devices not enough')
-                        raise SystemExit()
+                        raise GoldenDeviceNotEnoughError()
                     else:
                         logger.info('Try again with new golden devices')
                         continue
@@ -542,7 +544,7 @@ class HarnessCase(unittest.TestCase):
                     time.sleep(5)
 
                 button_next.click()
-            except SystemExit:
+            except FailError:
                 raise
             except:
                 logger.exception('Unexpected error')
@@ -663,7 +665,7 @@ class HarnessCase(unittest.TestCase):
                         error = True
 
                     if done is None:
-                        raise Exception('Unexpected dialog occurred')
+                        raise FailError('Unexpected dialog occurred')
 
                     dialog.find_element_by_id('ConfirmOk').click()
 
@@ -696,7 +698,7 @@ class HarnessCase(unittest.TestCase):
         wait_until(lambda: self._browser.find_element_by_id('runTest') and True, 30)
 
         if error:
-            raise Exception('Fail for previous exceptions')
+            raise FailError('Fail for previous exceptions')
 
     def _handle_dialog(self, dialog, title):
         """Handle a dialog.
@@ -746,7 +748,7 @@ class HarnessCase(unittest.TestCase):
                     break
 
             if not ll64:
-                raise Exception('No link local address found')
+                raise FailError('No link local address found')
 
             logger.info('Link local address is %s', ll64)
             inp = dialog.find_element_by_id('cnfrmInpText')
@@ -841,7 +843,11 @@ class HarnessCase(unittest.TestCase):
         except UnexpectedAlertPresentException:
             logger.exception('Failed to connect to harness server')
             raise SystemExit()
-        except SystemExit:
+        except FatalError:
+            logger.exception('Test stopped for fatal error')
+            raise SystemExit()
+        except FailError:
+            logger.exception('Test failed')
             raise
         except:
             logger.exception('Something wrong')
