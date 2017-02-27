@@ -2,7 +2,7 @@
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <Import Project="openthread.configuration.props" /> 
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{B4C744EC-B662-46C6-A076-FB58FA8FDF1B}</ProjectGuid>
+    <ProjectGuid>{CAC8A00E-C6C8-4CF0-BA5A-C9A9A601C6DB}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>Thread</RootNamespace>
     <ApplicationType>Windows Store</ApplicationType>
@@ -38,40 +38,28 @@
     <ClCompile>
       <PreprocessorDefinitions>
         %(PreprocessorDefinitions);
-        OPENTHREAD_CONFIG_FILE="openthread-windows-config.h";
-        OPENTHREAD_MULTIPLE_INSTANCE;
+        OTDLL;
       </PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
         %(AdditionalIncludeDirectories);
-        ..\..\examples\platforms;
         ..\..\include;
-        ..\..\src\core;
       </AdditionalIncludeDirectories>
-      <SDLCheck>true</SDLCheck>
       <WarningLevel>Level3</WarningLevel>
+      <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>
-        mincore.lib;
-      </AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\examples\apps\ncp\main.c" />
+    <ClCompile Include="..\..\examples\drivers\windows\otCli\main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="libopenthread.vcxproj">
-      <Project>{dd5018be-54c6-4fd4-9f8d-08d52fc0cd40}</Project>
+    <ProjectReference Include="libopenthread-cli-windows.vcxproj">
+      <Project>{28834498-3837-44a5-8f67-249abab7b97d}</Project>
     </ProjectReference>
-    <ProjectReference Include="libopenthread-ncp-spi.vcxproj">
-      <Project>{b92f449e-0fd9-44fc-acfa-6521a3240ca2}</Project>
-    </ProjectReference>
-    <ProjectReference Include="mbedtls.vcxproj">
-      <Project>{4111c8bb-d354-4348-ad3c-eb6832e84831}</Project>
-    </ProjectReference>
-    <ProjectReference Include="libopenthread-windows.vcxproj">
-      <Project>{30723c38-ba3b-44c9-8d64-c5861a26934f}</Project>
+    <ProjectReference Include="otApi.vcxproj">
+      <Project>{ed0ea262-c222-42c7-98d3-e70c72978ed2}</Project>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

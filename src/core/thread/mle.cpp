@@ -61,8 +61,7 @@ Mle::Mle(ThreadNetif &aThreadNetif) :
     mNetif(aThreadNetif),
     mRetrieveNewNetworkData(false),
     mDeviceState(kDeviceStateDisabled),
-    mDeviceMode(ModeTlv::kModeRxOnWhenIdle | ModeTlv::kModeSecureDataRequest | ModeTlv::kModeFFD |
-                ModeTlv::kModeFullNetworkData),
+    mDeviceMode(ModeTlv::kModeRxOnWhenIdle | ModeTlv::kModeSecureDataRequest),
     isAssignLinkQuality(false),
     mAssignLinkQuality(0),
     mAssignLinkMargin(0),
@@ -2343,7 +2342,18 @@ ThreadError Mle::HandleLeaderData(const Message &aMessage, const Ip6::MessageInf
     }
     else if (!mRetrieveNewNetworkData)
     {
-        int8_t diff = static_cast<int8_t>(leaderData.GetDataVersion() - mNetif.GetNetworkDataLeader().GetVersion());
+        int8_t diff;
+
+        if (mDeviceMode & ModeTlv::kModeFullNetworkData)
+        {
+            diff = static_cast<int8_t>(leaderData.GetDataVersion() - mNetif.GetNetworkDataLeader().GetVersion());
+        }
+        else
+        {
+            diff = static_cast<int8_t>(leaderData.GetStableDataVersion() -
+                                       mNetif.GetNetworkDataLeader().GetStableVersion());
+        }
+
         VerifyOrExit(diff > 0, ;);
     }
 
@@ -3041,7 +3051,7 @@ ThreadError Mle::HandleDiscoveryResponse(const Message &aMessage, const Ip6::Mes
     VerifyOrExit(offset < end, error = kThreadError_Parse);
 
     offset += sizeof(tlv);
-    end = offset + sizeof(tlv) + tlv.GetLength();
+    end = offset + tlv.GetLength();
 
     memset(&result, 0, sizeof(result));
     result.mPanId = threadMessageInfo->mPanId;
@@ -3211,8 +3221,8 @@ ThreadError Mle::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, Ip6
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(aMeshSource);
     messageInfo.SetInterfaceId(mNetif.GetInterfaceId());
 
-    mNetif.GetIp6().mIcmp.SendError(Ip6::IcmpHeader::kTypeDstUnreach,
-                                    Ip6::IcmpHeader::kCodeDstUnreachNoRoute,
+    mNetif.GetIp6().mIcmp.SendError(kIcmp6TypeDstUnreach,
+                                    kIcmp6CodeDstUnreachNoRoute,
                                     messageInfo, aIp6Header);
 
 exit:

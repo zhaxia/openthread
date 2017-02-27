@@ -67,7 +67,7 @@ namespace Mac {
  */
 enum
 {
-    kMinBE                = 1,                     ///< macMinBE (IEEE 802.15.4-2006)
+    kMinBE                = 3,                     ///< macMinBE (IEEE 802.15.4-2006)
     kMaxBE                = 5,                     ///< macMaxBE (IEEE 802.15.4-2006)
     kMaxCSMABackoffs      = 4,                     ///< macMaxCSMABackoffs (IEEE 802.15.4-2006)
     kMaxFrameRetries      = 3,                     ///< macMaxFrameRetries (IEEE 802.15.4-2006)
@@ -560,13 +560,22 @@ public:
     void ClearSrcMatchEntries(void);
 
     /**
-     * This method indicates whether or not transmit retries and CSMA backoff logic is supported by the radio layer.
+     * This method indicates whether or not CSMA backoff is supported by the radio layer.
      *
-     * @retval true   Retries and CSMA are supported by the radio.
-     * @retval false  Retries and CSMA are not supported by the radio.
+     * @retval true   CSMA backoff is supported by the radio.
+     * @retval false  CSMA backoff is not supported by the radio.
      *
      */
-    bool RadioSupportsRetriesAndCsmaBackoff(void);
+    bool RadioSupportsCsmaBackoff(void);
+
+    /**
+     * This method indicates whether or not transmit retries is supported by the radio layer.
+     *
+     * @retval true   Retries (and CSMA) are supported by the radio.
+     * @retval false  Retries (and CSMA) are not supported by the radio.
+     *
+     */
+    bool RadioSupportsRetries(void);
 
 private:
     enum ScanType
@@ -606,7 +615,9 @@ private:
     ThreadError Scan(ScanType aType, uint32_t aScanChannels, uint16_t aScanDuration, void *aContext);
 
     Timer mMacTimer;
+#if !OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_BACKOFF_TIMER
     Timer mBackoffTimer;
+#endif
     Timer mReceiveTimer;
 
     ThreadNetif &mNetif;

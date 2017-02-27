@@ -26,63 +26,60 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "test_util.h"
+#include <windows.h>
+#include <stdio.h>
+
 #include <openthread.h>
-#include <common/debug.hpp>
-#include <string.h>
+#include <cli/cli-uart.h>
+#include <platform/uart.h>
 
-#include <crypto/hmac_sha256.hpp>
-#include <crypto/mbedtls.hpp>
+bool skipNextLine = false;
 
-#ifndef OPENTHREAD_MULTIPLE_INSTANCE
-static Thread::Crypto::MbedTls mMbedTls;
-#endif
-
-void TestHmacSha256(void)
+int main(int argc, char *argv[])
 {
-    static const struct
-    {
-        const char *key;
-        const char *data;
-        uint8_t hash[Thread::Crypto::HmacSha256::kHashSize];
-    } tests[] =
-    {
-        {
-            "\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b\x0b",
-            "Hi There",
-            {
-                0xb0, 0x34, 0x4c, 0x61, 0xd8, 0xdb, 0x38, 0x53,
-                0x5c, 0xa8, 0xaf, 0xce, 0xaf, 0x0b, 0xf1, 0x2b,
-                0x88, 0x1d, 0xc2, 0x00, 0xc9, 0x83, 0x3d, 0xa7,
-                0x26, 0xe9, 0x37, 0x6c, 0x2e, 0x32, 0xcf, 0xf7,
-            },
-        },
-        {
-            NULL,
-            NULL,
-            {},
-        },
-    };
+    otCliUartInit(NULL);
 
-    Thread::Crypto::HmacSha256 hmac;
-    uint8_t hash[Thread::Crypto::HmacSha256::kHashSize];
+    char cmd[1024] = "\n";
+    otPlatUartReceived((uint8_t*)cmd, 1);
 
-    for (int i = 0; tests[i].key != NULL; i++)
+    for (;;)
     {
-        hmac.Start(reinterpret_cast<const uint8_t *>(tests[i].key), static_cast<uint16_t>(strlen(tests[i].key)));
-        hmac.Update(reinterpret_cast<const uint8_t *>(tests[i].data), static_cast<uint16_t>(strlen(tests[i].data)));
-        hmac.Finish(hash);
+        cmd[0] = 0;
+        if (NULL == fgets(cmd, sizeof(cmd), stdin))
+            continue;
 
-        VerifyOrQuit(memcmp(hash, tests[i].hash, sizeof(tests[i].hash)) == 0,
-                     "HMAC-SHA-256 failed\n");
+        size_t cmdLen = strlen(cmd);
+        if (cmdLen >= sizeof(cmd)) cmdLen = sizeof(cmd);
+
+        if (strncmp(cmd, "exit", 4) == 0) 
+            break;
+
+        skipNextLine = true;
+        otPlatUartReceived((uint8_t*)cmd, (uint16_t)cmdLen);
     }
+
+    return NO_ERROR;
 }
 
-#ifdef ENABLE_TEST_MAIN
-int main(void)
+EXTERN_C ThreadError otPlatUartEnable(void)
 {
-    TestHmacSha256();
-    printf("All tests passed\n");
-    return 0;
+    return kThreadError_None;
 }
-#endif
+
+EXTERN_C ThreadError otPlatUartSend(const uint8_t *aBuf, uint16_t aBufLength)
+{
+    ThreadError error = kThreadError_None;
+
+    if (!skipNextLine)
+    {
+        for (uint16_t i = 0; i < aBufLength; i++)
+            fputc(aBuf[i], stdout);
+    }
+
+    if (aBuf[aBufLength - 1] == '\n')
+        skipNextLine = false;
+
+    otPlatUartSendDone();
+
+    return error;
+}
