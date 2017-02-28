@@ -59,6 +59,8 @@ MleRouter::MleRouter(ThreadNetif &aThreadNetif):
     mAddressSolicit(OPENTHREAD_URI_ADDRESS_SOLICIT, &MleRouter::HandleAddressSolicit, this),
     mAddressRelease(OPENTHREAD_URI_ADDRESS_RELEASE, &MleRouter::HandleAddressRelease, this)
 {
+    mDeviceMode |= ModeTlv::kModeFFD | ModeTlv::kModeFullNetworkData;
+
     mChallengeTimeout = 0;
     mNextChildId = kMaxChildId;
     mRouterIdSequence = 0;
@@ -1830,29 +1832,7 @@ void MleRouter::HandleStateUpdateTimer(void)
         {
             if ((Timer::GetNow() - mRouters[i].mLastHeard) >= Timer::SecToMsec(kMaxNeighborAge))
             {
-                mRouters[i].mState = Neighbor::kStateInvalid;
-                mRouters[i].mLinkInfo.Clear();
-                mRouters[i].mLinkQualityOut = 0;
-                mRouters[i].mLastHeard = Timer::GetNow();
-
-                for (uint8_t j = 0; j <= kMaxRouterId; j++)
-                {
-                    if (mRouters[j].mNextHop == i)
-                    {
-                        mRouters[j].mNextHop = kInvalidRouterId;
-                        mRouters[j].mCost = 0;
-
-                        if (GetLinkCost(j) >= kMaxRouteCost)
-                        {
-                            ResetAdvertiseInterval();
-                        }
-                    }
-                }
-
-                if (mRouters[i].mNextHop == kInvalidRouterId)
-                {
-                    ResetAdvertiseInterval();
-                }
+                RemoveNeighbor(mRouters[i]);
             }
         }
 
@@ -2197,26 +2177,33 @@ ThreadError MleRouter::HandleChildUpdateRequest(const Message &aMessage, const I
 
     otLogInfoMle("Received Child Update Request from child");
 
-    // Find Child
-    macAddr.Set(aMessageInfo.GetPeerAddr());
-
-    child = FindChild(macAddr);
-
-    if ((child == NULL) || (child->mState != Neighbor::kStateValid))
-    {
-        tlvs[tlvslength++] = Tlv::kStatus;
-        SendChildUpdateResponse(NULL, aMessageInfo, tlvs, tlvslength, NULL);
-        ExitNow();
-    }
-
-    tlvs[tlvslength++] = Tlv::kSourceAddress;
-    tlvs[tlvslength++] = Tlv::kLeaderData;
-
     // Mode
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kMode, sizeof(mode), mode));
     VerifyOrExit(mode.IsValid(), error = kThreadError_Parse);
+
+    // Find Child
+    macAddr.Set(aMessageInfo.GetPeerAddr());
+    child = FindChild(macAddr);
+
+    tlvs[tlvslength++] = Tlv::kSourceAddress;
+
+    if ((child == NULL) || (child->mState != Neighbor::kStateValid))
+    {
+        // Send Child Update Response with status TLV(error) for invalid non-sleepy child
+        // No Child Update Response for invalid sleepy child
+        if (mode.GetMode() & ModeTlv::kModeRxOnWhenIdle)
+        {
+            tlvs[tlvslength++] = Tlv::kStatus;
+            SendChildUpdateResponse(NULL, aMessageInfo, tlvs, tlvslength, NULL);
+        }
+
+        ExitNow();
+    }
+
     child->mMode = mode.GetMode();
     tlvs[tlvslength++] = Tlv::kMode;
+
+    tlvs[tlvslength++] = Tlv::kLeaderData;
 
     // Challenge
     if (Tlv::GetTlv(aMessage, Tlv::kChallenge, sizeof(challenge), challenge) == kThreadError_None)
@@ -2993,10 +2980,37 @@ ThreadError MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
             mNetif.GetNetworkDataLeader().SendServerDataNotification(aNeighbor.mValid.mRloc16);
             RemoveStoredChild(aNeighbor.mValid.mRloc16);
         }
+        else if ((aNeighbor.mState == Neighbor::kStateValid) && IsActiveRouter(aNeighbor.mValid.mRloc16))
+        {
+            Router &routerToRemove = static_cast<Router &>(aNeighbor);
+
+            routerToRemove.mLinkQualityOut = 0;
+            routerToRemove.mLastHeard = Timer::GetNow();
+
+            for (uint8_t j = 0; j <= kMaxRouterId; j++)
+            {
+                if (mRouters[j].mNextHop == GetRouterId(routerToRemove.mValid.mRloc16))
+                {
+                    mRouters[j].mNextHop = kInvalidRouterId;
+                    mRouters[j].mCost = 0;
+
+                    if (GetLinkCost(j) >= kMaxRouteCost)
+                    {
+                        ResetAdvertiseInterval();
+                    }
+                }
+            }
+
+            if (routerToRemove.mNextHop == kInvalidRouterId)
+            {
+                ResetAdvertiseInterval();
+            }
+        }
 
         break;
     }
 
+    aNeighbor.mLinkInfo.Clear();
     aNeighbor.mState = Neighbor::kStateInvalid;
 
     return kThreadError_None;
@@ -3620,8 +3634,8 @@ ThreadError MleRouter::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDes
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(aMeshSource);
     messageInfo.SetInterfaceId(mNetif.GetInterfaceId());
 
-    mNetif.GetIp6().mIcmp.SendError(Ip6::IcmpHeader::kTypeDstUnreach,
-                                    Ip6::IcmpHeader::kCodeDstUnreachNoRoute,
+    mNetif.GetIp6().mIcmp.SendError(kIcmp6TypeDstUnreach,
+                                    kIcmp6CodeDstUnreachNoRoute,
                                     messageInfo, aIp6Header);
 
     return kThreadError_Drop;
