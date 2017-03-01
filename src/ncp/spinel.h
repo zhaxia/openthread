@@ -614,6 +614,23 @@ typedef enum
      *  Specified by Thread. Randomly-chosen, but non-volatile EUI-64.
      */
     SPINEL_PROP_MAC_EXTENDED_ADDR      = SPINEL_PROP_MAC_EXT__BEGIN + 2,
+
+    /// MAC Source Match Enabled Flag
+    /** Format: `b`
+     */
+    SPINEL_PROP_MAC_SRC_MATCH_ENABLED  = SPINEL_PROP_MAC_EXT__BEGIN + 3,
+
+    /// MAC Source Match Short Address List
+    /** Format: `A(S)`
+     */
+    SPINEL_PROP_MAC_SRC_MATCH_SHORT_ADDRESSES
+                                       = SPINEL_PROP_MAC_EXT__BEGIN + 4,
+
+    /// MAC Source Match Extended Address List
+    /** Format: `A(E)`
+     */
+    SPINEL_PROP_MAC_SRC_MATCH_EXTENDED_ADDRESSES
+                                       = SPINEL_PROP_MAC_EXT__BEGIN + 5,
     SPINEL_PROP_MAC_EXT__END           = 0x1400,
 
     SPINEL_PROP_NET__BEGIN           = 0x40,
@@ -1077,6 +1094,19 @@ typedef enum
 
     SPINEL_PROP_VENDOR__BEGIN       = 15360,
     SPINEL_PROP_VENDOR__END         = 16384,
+
+    SPINEL_PROP_DEBUG__BEGIN        = 16384,
+
+    /// Reading this property will cause an assert on the NCP.
+    /// This is intended for testing the assert functionality of
+    /// underlying platform/NCP. Assert should ideally cause the
+    /// NCP to reset, but if this is not supported a `false` boolean
+    /// is returned in response.
+    /** Format: 'b' (read-only) */
+    SPINEL_PROP_DEBUG_TEST_ASSERT
+                                    = SPINEL_PROP_DEBUG__BEGIN + 0,
+
+    SPINEL_PROP_DEBUG__END          = 17408,
 
     SPINEL_PROP_EXPERIMENTAL__BEGIN = 2000000,
     SPINEL_PROP_EXPERIMENTAL__END   = 2097152,
