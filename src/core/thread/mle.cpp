@@ -277,6 +277,28 @@ ThreadError Mle::Restore(void)
 
     mDeviceMode = networkInfo.mDeviceMode;
     SetRloc16(networkInfo.mRloc16);
+
+#if ENABLE_MARBLE_387_WORKAROUND
+    {  // Workaround for the reset recovery. After reset we ensure to increase the rloc16 value.
+
+        uint16_t newRloc16;
+        uint8_t  newRouterId;
+
+        newRouterId = GetRouterId(networkInfo.mRloc16);
+
+        newRouterId++;
+        if (newRouterId > 10)
+        {
+            newRouterId = 0;
+        }
+
+        newRloc16 = GetRloc16(newRouterId);
+
+        SetRloc16(newRloc16);
+
+    }
+#endif  // ENABLE_MARBLE_387_WORKAROUND:
+
     mNetif.GetKeyManager().SetCurrentKeySequence(networkInfo.mKeySequence);
     mNetif.GetKeyManager().SetMleFrameCounter(networkInfo.mMleFrameCounter);
     mNetif.GetKeyManager().SetMacFrameCounter(networkInfo.mMacFrameCounter);

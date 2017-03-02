@@ -609,4 +609,9 @@
 #define OPENTHREAD_CONFIG_ENABLE_AUTO_START_SUPPORT             1
 #endif
 
+// Define to 1 to enable MARBLE-387 workaround
+#ifndef ENABLE_MARBLE_387_WORKAROUND
+#define ENABLE_MARBLE_387_WORKAROUND                            1
+#endif // ENABLE_MARBLE_387_WORKAROUND
+
 #endif  // OPENTHREAD_CORE_DEFAULT_CONFIG_H_

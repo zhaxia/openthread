@@ -3387,6 +3387,9 @@ ThreadError MleRouter::RestoreChildren(void)
 {
     ThreadError error = kThreadError_None;
 
+    // We skip child restoration as reset-recovery workaround
+#if !ENABLE_MARBLE_387_WORKAROUND
+
     for (uint8_t i = 0; i < kMaxChildren; i++)
     {
         Child *child;
@@ -3412,6 +3415,8 @@ ThreadError MleRouter::RestoreChildren(void)
         child->mAddSrcMatchEntryShort = true;
         child->mLastHeard = Timer::GetNow();
     }
+
+#endif // ENABLE_MARBLE_387_WORKAROUND
 
 exit:
     return error;
