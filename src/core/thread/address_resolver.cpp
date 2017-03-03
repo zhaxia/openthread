@@ -33,13 +33,14 @@
 
 #define WPP_NAME "address_resolver.tmh"
 
+#include "openthread/platform/random.h"
+
 #include <coap/coap_header.hpp>
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/logging.hpp>
 #include <common/encoding.hpp>
 #include <mac/mac_frame.hpp>
-#include <platform/random.h>
 #include <thread/address_resolver.hpp>
 #include <thread/mesh_forwarder.hpp>
 #include <thread/mle_router.hpp>
@@ -263,7 +264,7 @@ exit:
     return error;
 }
 
-void AddressResolver::HandleAddressNotification(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void AddressResolver::HandleAddressNotification(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                                 const otMessageInfo *aMessageInfo)
 {
     static_cast<AddressResolver *>(aContext)->HandleAddressNotification(
@@ -399,7 +400,7 @@ exit:
     return error;
 }
 
-void AddressResolver::HandleAddressError(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void AddressResolver::HandleAddressError(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                          const otMessageInfo *aMessageInfo)
 {
     static_cast<AddressResolver *>(aContext)->HandleAddressError(
@@ -482,7 +483,7 @@ exit:
     {}
 }
 
-void AddressResolver::HandleAddressQuery(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void AddressResolver::HandleAddressQuery(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                          const otMessageInfo *aMessageInfo)
 {
     static_cast<AddressResolver *>(aContext)->HandleAddressQuery(
@@ -645,7 +646,7 @@ void AddressResolver::HandleTimer()
     }
 }
 
-void AddressResolver::HandleIcmpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo,
+void AddressResolver::HandleIcmpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo,
                                         const otIcmp6Header *aIcmpHeader)
 {
     static_cast<AddressResolver *>(aContext)->HandleIcmpReceive(*static_cast<Message *>(aMessage),

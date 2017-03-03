@@ -41,6 +41,9 @@
 
 #include <stdio.h>
 
+#include "openthread/platform/radio.h"
+#include "openthread/platform/random.h"
+
 #include <common/code_utils.hpp>
 #include <common/crc16.hpp>
 #include <common/debug.hpp>
@@ -48,8 +51,6 @@
 #include <common/logging.hpp>
 #include <mac/mac_frame.hpp>
 #include <meshcop/joiner.hpp>
-#include <platform/radio.h>
-#include <platform/random.h>
 #include <thread/thread_netif.hpp>
 #include <thread/thread_uris.hpp>
 
@@ -327,7 +328,7 @@ exit:
     otLogFuncExit();
 }
 
-void Joiner::HandleJoinerFinalizeResponse(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Joiner::HandleJoinerFinalizeResponse(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                           const otMessageInfo *aMessageInfo, ThreadError aResult)
 {
     static_cast<Joiner *>(aContext)->HandleJoinerFinalizeResponse(
@@ -362,7 +363,7 @@ exit:
     otLogFuncExit();
 }
 
-void Joiner::HandleJoinerEntrust(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Joiner::HandleJoinerEntrust(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                  const otMessageInfo *aMessageInfo)
 {
     static_cast<Joiner *>(aContext)->HandleJoinerEntrust(

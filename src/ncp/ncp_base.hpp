@@ -39,11 +39,12 @@
 #include <openthread-config.h>
 #endif
 
-#include <openthread-types.h>
-#include <openthread-message.h>
-#include <openthread-ip6.h>
+#include "openthread/types.h"
+#include "openthread/message.h"
+#include "openthread/ip6.h"
+#include "openthread/ncp.h"
+
 #include <common/tasklet.hpp>
-#include <ncp/ncp.h>
 #include <ncp/ncp_buffer.hpp>
 
 #include "spinel.h"
@@ -105,7 +106,7 @@ protected:
      * @retval kThreadError_NoBufs  Insufficient buffer space available to add message.
      *
      */
-    ThreadError OutboundFrameFeedMessage(otMessage aMessage);
+    ThreadError OutboundFrameFeedMessage(otMessage *aMessage);
 
     /**
      * This method finalizes and sends the current outbound frame
@@ -143,9 +144,9 @@ private:
     /**
      * Trampoline for HandleDatagramFromStack().
      */
-    static void HandleDatagramFromStack(otMessage aMessage, void *aContext);
+    static void HandleDatagramFromStack(otMessage *aMessage, void *aContext);
 
-    void HandleDatagramFromStack(otMessage aMessage);
+    void HandleDatagramFromStack(otMessage *aMessage);
 
     /**
      * Trampoline for HandleRawFrame().
@@ -245,7 +246,7 @@ private:
     ThreadError SendPropertyUpdate(uint8_t header, uint8_t command, spinel_prop_key_t key, const uint8_t *value_ptr,
                                    uint16_t value_len);
 
-    ThreadError SendPropertyUpdate(uint8_t header, uint8_t command, spinel_prop_key_t key, otMessage message);
+    ThreadError SendPropertyUpdate(uint8_t header, uint8_t command, spinel_prop_key_t key, otMessage *message);
 
     ThreadError SendPropertyUpdate(uint8_t header, uint8_t command, spinel_prop_key_t key, const char *format, ...);
 

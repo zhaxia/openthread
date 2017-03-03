@@ -36,7 +36,9 @@
 
 #include <stdio.h>
 
-#include <openthread-types.h>
+#include "openthread/platform/random.h"
+#include "openthread/platform/radio.h"
+
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <coap/coap_header.hpp>
@@ -47,8 +49,6 @@
 #include <meshcop/dataset.hpp>
 #include <meshcop/dataset_manager.hpp>
 #include <meshcop/tlvs.hpp>
-#include <platform/random.h>
-#include <platform/radio.h>
 #include <thread/thread_netif.hpp>
 #include <thread/thread_tlvs.hpp>
 #include <thread/thread_uris.hpp>
@@ -942,7 +942,7 @@ exit:
     return error;
 }
 
-void ActiveDatasetBase::HandleGet(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void ActiveDatasetBase::HandleGet(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                   const otMessageInfo *aMessageInfo)
 {
     static_cast<ActiveDatasetBase *>(aContext)->HandleGet(
@@ -1154,7 +1154,7 @@ void PendingDatasetBase::HandleNetworkUpdate(uint8_t &aFlags)
     DatasetManager::HandleNetworkUpdate(aFlags);
 }
 
-void PendingDatasetBase::HandleGet(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void PendingDatasetBase::HandleGet(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                    const otMessageInfo *aMessageInfo)
 {
     static_cast<PendingDatasetBase *>(aContext)->HandleGet(

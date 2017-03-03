@@ -42,6 +42,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "openthread/platform/random.h"
+
 #include <coap/coap_header.hpp>
 #include <common/crc16.hpp>
 #include <common/encoding.hpp>
@@ -50,7 +52,6 @@
 #include <meshcop/commissioner.hpp>
 #include <meshcop/joiner_router.hpp>
 #include <meshcop/tlvs.hpp>
-#include <platform/random.h>
 #include <thread/thread_netif.hpp>
 #include <thread/thread_tlvs.hpp>
 #include <thread/thread_uris.hpp>
@@ -358,7 +359,7 @@ exit:
     return error;
 }
 
-void Commissioner::HandleMgmtCommissionerGetResponse(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Commissioner::HandleMgmtCommissionerGetResponse(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                                      const otMessageInfo *aMessageInfo, ThreadError aResult)
 {
     static_cast<Commissioner *>(aContext)->HandleMgmtCommissisonerGetResponse(
@@ -460,7 +461,7 @@ exit:
     return error;
 }
 
-void Commissioner::HandleMgmtCommissionerSetResponse(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Commissioner::HandleMgmtCommissionerSetResponse(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                                      const otMessageInfo *aMessageInfo, ThreadError aResult)
 {
     static_cast<Commissioner *>(aContext)->HandleMgmtCommissisonerSetResponse(
@@ -525,7 +526,7 @@ exit:
     return error;
 }
 
-void Commissioner::HandleLeaderPetitionResponse(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Commissioner::HandleLeaderPetitionResponse(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                                 const otMessageInfo *aMessageInfo, ThreadError aResult)
 {
     static_cast<Commissioner *>(aContext)->HandleLeaderPetitionResponse(
@@ -625,7 +626,7 @@ exit:
     return error;
 }
 
-void Commissioner::HandleLeaderKeepAliveResponse(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Commissioner::HandleLeaderKeepAliveResponse(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                                  const otMessageInfo *aMessageInfo, ThreadError aResult)
 {
     static_cast<Commissioner *>(aContext)->HandleLeaderKeepAliveResponse(
@@ -659,7 +660,7 @@ exit:
     otLogFuncExit();
 }
 
-void Commissioner::HandleRelayReceive(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Commissioner::HandleRelayReceive(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                       const otMessageInfo *aMessageInfo)
 {
     static_cast<Commissioner *>(aContext)->HandleRelayReceive(
@@ -747,7 +748,7 @@ exit:
     otLogFuncExit();
 }
 
-void Commissioner::HandleDatasetChanged(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Commissioner::HandleDatasetChanged(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                         const otMessageInfo *aMessageInfo)
 {
     static_cast<Commissioner *>(aContext)->HandleDatasetChanged(
@@ -772,7 +773,7 @@ exit:
     otLogFuncExit();
 }
 
-void Commissioner::HandleJoinerFinalize(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Commissioner::HandleJoinerFinalize(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                         const otMessageInfo *aMessageInfo)
 {
     static_cast<Commissioner *>(aContext)->HandleJoinerFinalize(

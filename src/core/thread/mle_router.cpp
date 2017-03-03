@@ -32,6 +32,9 @@
 
 #define WPP_NAME "mle_router.tmh"
 
+#include "openthread/platform/random.h"
+#include "openthread/platform/settings.h"
+
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/logging.hpp>
@@ -39,8 +42,6 @@
 #include <common/settings.hpp>
 #include <mac/mac_frame.hpp>
 #include <net/icmp6.hpp>
-#include <platform/random.h>
-#include <platform/settings.h>
 #include <thread/mle_router.hpp>
 #include <thread/thread_netif.hpp>
 #include <thread/thread_tlvs.hpp>
@@ -3732,7 +3733,7 @@ exit:
     return error;
 }
 
-void MleRouter::HandleAddressSolicitResponse(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void MleRouter::HandleAddressSolicitResponse(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                              const otMessageInfo *aMessageInfo, ThreadError aResult)
 {
     static_cast<MleRouter *>(aContext)->HandleAddressSolicitResponse(static_cast<Coap::Header *>(aHeader),
@@ -3848,7 +3849,7 @@ exit:
     {}
 }
 
-void MleRouter::HandleAddressSolicit(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void MleRouter::HandleAddressSolicit(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                      const otMessageInfo *aMessageInfo)
 {
     static_cast<MleRouter *>(aContext)->HandleAddressSolicit(
@@ -4011,7 +4012,7 @@ exit:
     }
 }
 
-void MleRouter::HandleAddressRelease(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void MleRouter::HandleAddressRelease(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                                      const otMessageInfo *aMessageInfo)
 {
     static_cast<MleRouter *>(aContext)->HandleAddressRelease(

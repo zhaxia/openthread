@@ -33,6 +33,10 @@
 
 #define WPP_NAME "mle.tmh"
 
+#include "openthread/platform/radio.h"
+#include "openthread/platform/random.h"
+#include "openthread/platform/settings.h"
+
 #include <thread/mle.hpp>
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
@@ -44,9 +48,6 @@
 #include <meshcop/tlvs.hpp>
 #include <net/netif.hpp>
 #include <net/udp6.hpp>
-#include <platform/radio.h>
-#include <platform/random.h>
-#include <platform/settings.h>
 #include <thread/address_resolver.hpp>
 #include <thread/key_manager.hpp>
 #include <thread/mle_router.hpp>
@@ -508,7 +509,7 @@ ThreadError Mle::SetStateDetached(void)
     mDeviceState = kDeviceStateDetached;
     mParentRequestState = kParentIdle;
     mParentRequestTimer.Stop();
-    mNetif.GetMeshForwarder().SetRxOnWhenIdle(false);
+    mNetif.GetMeshForwarder().SetRxOff();
     mNetif.GetMle().HandleDetachStart();
     mNetif.GetIp6().SetForwardingEnabled(false);
     mNetif.GetIp6().mMpl.SetTimerExpirations(0);
@@ -1950,7 +1951,7 @@ exit:
     return error;
 }
 
-void Mle::HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo)
+void Mle::HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
 {
     static_cast<Mle *>(aContext)->HandleUdpReceive(*static_cast<Message *>(aMessage),
                                                    *static_cast<const Ip6::MessageInfo *>(aMessageInfo));

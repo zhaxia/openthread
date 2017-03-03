@@ -28,9 +28,7 @@
 
 #include "test_util.h"
 
-#include <openthread.h>
-#include <openthread-message.h>
-#include <openthread-ip6.h>
+#include "openthread/openthread.h"
 
 #include <common/debug.hpp>
 #include <common/message.hpp>
@@ -151,8 +149,8 @@ void TestMessageQueue(void)
 void VerifyMessageQueueContentUsingOtApi(otMessageQueue *aQueue, int aExpectedLength, ...)
 {
     va_list args;
-    otMessage message;
-    otMessage msgArg;
+    otMessage *message;
+    otMessage *msgArg;
 
     va_start(args, aExpectedLength);
 
@@ -170,7 +168,7 @@ void VerifyMessageQueueContentUsingOtApi(otMessageQueue *aQueue, int aExpectedLe
         {
             VerifyOrQuit(aExpectedLength != 0, "MessageQueue contains more entries than expected\n");
 
-            msgArg = va_arg(args, otMessage);
+            msgArg = va_arg(args, otMessage *);
             VerifyOrQuit(msgArg == message, "MessageQueue content does not match what is expected.\n");
 
             aExpectedLength--;
@@ -188,9 +186,9 @@ void TestMessageQueueOtApis(void)
     otInstance *instance;
     otMessageQueue queue, queue2;
 
-    otMessage msg[kNumTestMessages];
+    otMessage *msg[kNumTestMessages];
     ThreadError error;
-    otMessage message;
+    otMessage *message;
 
 #ifdef OPENTHREAD_MULTIPLE_INSTANCE
     size_t otInstanceBufferLength = 0;
@@ -213,8 +211,8 @@ void TestMessageQueueOtApis(void)
 
     for (int i = 0; i < kNumTestMessages; i++)
     {
-        msg[i] = otNewIp6Message(instance, true);
-        VerifyOrQuit(msg[i] != NULL, "otNewIp6Message() failed.\n");
+        msg[i] = otIp6NewMessage(instance, true);
+        VerifyOrQuit(msg[i] != NULL, "otIp6NewMessage() failed.\n");
     }
 
     otMessageQueueInit(&queue);

@@ -33,8 +33,8 @@
 
 #include <common/debug.hpp>
 #include <common/logging.hpp>
-#include <platform/random.h>
-#include <platform/usec-alarm.h>
+#include "openthread/platform/random.h"
+#include "openthread/platform/usec-alarm.h"
 #include "openthread-instance.h"
 
 #ifdef __cplusplus
@@ -113,7 +113,7 @@ ThreadError otLinkRawSetPromiscuous(otInstance *aInstance, bool aEnable)
 
     VerifyOrExit(aInstance->mLinkRaw.IsEnabled(), error = kThreadError_InvalidState);
 
-    otLogInfoPlat("LinkRaw Promiscuous=%d", aEnabled ? 1 : 0);
+    otLogInfoPlat("LinkRaw Promiscuous=%d", aEnable ? 1 : 0);
 
     otPlatRadioSetPromiscuous(aInstance, aEnable);
 
