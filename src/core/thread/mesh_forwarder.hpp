@@ -81,6 +81,14 @@ public:
     explicit MeshForwarder(ThreadNetif &aThreadNetif);
 
     /**
+     * This method returns the pointer to the parent otInstance structure.
+     *
+     * @returns The pointer to the parent otInstance structure.
+     *
+     */
+    otInstance *GetInstance();
+
+    /**
      * This method enables mesh forwarding and the IEEE 802.15.4 MAC layer.
      *
      * @retval kThreadError_None          Successfully enabled the mesh forwarder.
@@ -246,6 +254,18 @@ private:
     {
         kStateUpdatePeriod     = 1000,  ///< State update period in milliseconds.
         kDataRequestRetryDelay = 200,   ///< Retry delay in milliseconds (for sending data request if no buffer).
+        kQuickPollsAfterTimout = 5,     ///< Maximum number of quick data poll tx in case of back-to-back poll timeouts.
+    };
+
+    enum
+    {
+        /**
+         * Maximum number of tx attempts by `MeshForwarder` for an outbound indirect frame (for a sleepy child). The
+         * `MeshForwader` attempts occur following the reception of a new data request command (a new data poll) from
+         * the sleepy child.
+         *
+         */
+        kMaxPollTriggeredTxAttempts = OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_POLLS,
     };
 
     ThreadError CheckReachability(uint8_t *aFrame, uint8_t aFrameLength,
@@ -255,8 +275,8 @@ private:
     ThreadError GetMacDestinationAddress(const Ip6::Address &aIp6Addr, Mac::Address &aMacAddr);
     ThreadError GetMacSourceAddress(const Ip6::Address &aIp6Addr, Mac::Address &aMacAddr);
     Message *GetDirectTransmission(void);
-    Message *GetIndirectTransmission(const Child &aChild);
-    void PrepareIndirectTransmission(const Message &aMessage, const Child &aChild);
+    Message *GetIndirectTransmission(Child &aChild);
+    void PrepareIndirectTransmission(Message &aMessage, const Child &aChild);
     void HandleMesh(uint8_t *aFrame, uint8_t aPayloadLength, const Mac::Address &aMacSource,
                     const ThreadMessageInfo &aMessageInfo);
     void HandleFragment(uint8_t *aFrame, uint8_t aPayloadLength,
@@ -277,6 +297,9 @@ private:
 
     static void HandleReceivedFrame(void *aContext, Mac::Frame &aFrame);
     void HandleReceivedFrame(Mac::Frame &aFrame);
+
+    static void HandleDataPollTimeout(void *aContext);
+    void HandleDataPollTimeout(void);
 
     static ThreadError HandleFrameRequest(void *aContext, Mac::Frame &aFrame);
     ThreadError HandleFrameRequest(Mac::Frame &aFrame);
@@ -310,8 +333,14 @@ private:
     uint16_t mFragTag;
     uint16_t mMessageNextOffset;
     uint32_t mPollPeriod;
-    uint32_t mAssignPollPeriod;  ///< only for certification test
+    uint32_t mAssignPollPeriod;
+
+    uint32_t mSendMessageFrameCounter;
     Message *mSendMessage;
+    bool     mSendMessageIsARetransmission;
+    uint8_t  mSendMessageMaxMacTxAttempts;
+    uint8_t  mSendMessageKeyId;
+    uint8_t  mSendMessageDataSequenceNumber;
 
     Mac::Address mMacSource;
     Mac::Address mMacDest;
@@ -330,6 +359,8 @@ private:
     uint8_t mRestoreChannel;
     uint16_t mRestorePanId;
     bool mScanning;
+
+    uint8_t mBacktoBackPollTimeoutCounter;
 
     ThreadNetif &mNetif;
 

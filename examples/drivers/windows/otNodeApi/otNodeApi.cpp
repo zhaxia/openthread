@@ -1010,11 +1010,13 @@ OTNODEAPI int32_t OTCALL otNodeCommissionerJoinerAdd(otNode* aNode, const char *
     otLogFuncEntryMsg("[%d] %s %s", aNode->mId, aExtAddr, aPSKd);
     printf("%d: commissioner joiner add %s %s\r\n", aNode->mId, aExtAddr, aPSKd);
 
+    const uint32_t kDefaultJoinerTimeout = 120;
+
     ThreadError error;
     
     if (strcmp(aExtAddr, "*") == 0)
     {
-        error = otCommissionerAddJoiner(aNode->mInstance, nullptr, aPSKd);
+        error = otCommissionerAddJoiner(aNode->mInstance, nullptr, aPSKd, kDefaultJoinerTimeout);
     }
     else
     {
@@ -1022,7 +1024,7 @@ OTNODEAPI int32_t OTCALL otNodeCommissionerJoinerAdd(otNode* aNode, const char *
         if (Hex2Bin(aExtAddr, extAddr.m8, sizeof(extAddr)) != sizeof(extAddr))
             return kThreadError_Parse;
 
-        error = otCommissionerAddJoiner(aNode->mInstance, &extAddr, aPSKd);
+        error = otCommissionerAddJoiner(aNode->mInstance, &extAddr, aPSKd, kDefaultJoinerTimeout);
     }
     
     otLogFuncExit();
@@ -1726,7 +1728,7 @@ OTNODEAPI const char* OTCALL otNodeScan(otNode* aNode)
     return nullptr;
 }
 
-OTNODEAPI uint32_t OTCALL otNodePing(otNode* aNode, const char *aAddr, uint16_t aSize, uint32_t aMinReplies)
+OTNODEAPI uint32_t OTCALL otNodePing(otNode* aNode, const char *aAddr, uint16_t aSize, uint32_t aMinReplies, uint16_t aTimeout)
 {
     otLogFuncEntryMsg("[%d] %s (%d bytes)", aNode->mId, aAddr, aSize);
     printf("%d: ping %s (%d bytes)\r\n", aNode->mId, aAddr, aSize);
@@ -1844,7 +1846,8 @@ OTNODEAPI uint32_t OTCALL otNodePing(otNode* aNode, const char *aAddr, uint16_t 
         {
             //printf("waiting for completion event...\r\n");
             // Wait for the receive to complete
-            result = WSAWaitForMultipleEvents(1, &Overlapped.hEvent, TRUE, (DWORD)(5000 - (GetTickCount64() - StartTick)), TRUE);
+            ULONGLONG elapsed = (GetTickCount64() - StartTick);
+            result = WSAWaitForMultipleEvents(1, &Overlapped.hEvent, TRUE, (DWORD)(aTimeout - min(aTimeout, elapsed)), TRUE);
             if (result == WSA_WAIT_TIMEOUT)
             {
                 //printf("recv timeout\r\n");

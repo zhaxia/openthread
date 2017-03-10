@@ -65,6 +65,14 @@ public:
     JoinerRouter(ThreadNetif &aNetif);
 
     /**
+     * This method returns the pointer to the parent otInstance structure.
+     *
+     * @returns The pointer to the parent otInstance structure.
+     *
+     */
+    otInstance *GetInstance();
+
+    /**
      * This method returns the Joiner UDP Port.
      *
      * @returns The Joiner UDP Port number .
@@ -118,12 +126,13 @@ private:
     Coap::Resource mRelayTransmit;
     ThreadNetif &mNetif;
 
-    uint16_t mJoinerUdpPort;
-    bool mIsJoinerPortConfigured;
-
     Timer mTimer;
     MessageQueue mDelayedJoinEnts;
-    bool mExpectJoinEntRsp;
+
+    uint16_t mJoinerUdpPort;
+
+    bool mIsJoinerPortConfigured : 1;
+    bool mExpectJoinEntRsp : 1;
 };
 
 /**

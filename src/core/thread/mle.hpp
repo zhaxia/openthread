@@ -461,6 +461,14 @@ public:
     explicit Mle(ThreadNetif &aThreadNetif);
 
     /**
+     * This method returns the pointer to the parent otInstance structure.
+     *
+     * @returns The pointer to the parent otInstance structure.
+     *
+     */
+    otInstance *GetInstance();
+
+    /**
      * This method enables MLE.
      *
      * @retval kThreadError_None     Successfully enabled MLE.
@@ -1392,15 +1400,16 @@ private:
      */
     typedef struct NetworkInfo
     {
-        DeviceState          mDeviceState;                ///< Current Thread interface state.
+        DeviceState          mDeviceState;                                      ///< Current Thread interface state.
 
-        uint8_t              mDeviceMode;                 ///< Device mode setting.
-        uint16_t             mRloc16;                     ///< RLOC16
-        uint32_t             mKeySequence;                ///< Key Sequence
-        uint32_t             mMleFrameCounter;            ///< MLE Frame Counter
-        uint32_t             mMacFrameCounter;            ///< MAC Frame Counter
-        uint32_t             mPreviousPartitionId;        ///< PartitionId
-        Mac::ExtAddress      mExtAddress;                 ///< Extended Address
+        uint8_t              mDeviceMode;                                       ///< Device mode setting.
+        uint16_t             mRloc16;                                           ///< RLOC16
+        uint32_t             mKeySequence;                                      ///< Key Sequence
+        uint32_t             mMleFrameCounter;                                  ///< MLE Frame Counter
+        uint32_t             mMacFrameCounter;                                  ///< MAC Frame Counter
+        uint32_t             mPreviousPartitionId;                              ///< PartitionId
+        Mac::ExtAddress      mExtAddress;                                       ///< Extended Address
+        uint8_t              mMlIid[OT_IP6_ADDRESS_SIZE - OT_IP6_PREFIX_SIZE];  ///< IID from ML-EID
     } NetworkInfo;
 
     struct

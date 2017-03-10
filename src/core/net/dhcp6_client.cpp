@@ -70,6 +70,11 @@ Dhcp6Client::Dhcp6Client(ThreadNetif &aThreadNetif) :
     mIdentityAssociationAvail = &mIdentityAssociations[0];
 }
 
+otInstance *Dhcp6Client::GetInstance()
+{
+    return mNetif.GetInstance();
+}
+
 void Dhcp6Client::UpdateAddresses(otInstance *aInstance, otDhcpAddress *aAddresses, uint32_t aNumAddresses,
                                   void *aContext)
 {
@@ -214,7 +219,7 @@ void Dhcp6Client::AddIdentityAssociation(uint16_t aRloc16, otIp6Prefix &aIp6Pref
     }
 
 exit:
-    {}
+    return;
 }
 
 void Dhcp6Client::RemoveIdentityAssociation(uint16_t aRloc16, otIp6Prefix &aIp6Prefix)
@@ -255,7 +260,7 @@ void Dhcp6Client::RemoveIdentityAssociation(uint16_t aRloc16, otIp6Prefix &aIp6P
     }
 
 exit:
-    {}
+    return;
 }
 
 ThreadError Dhcp6Client::Start(void)
@@ -394,7 +399,7 @@ ThreadError Dhcp6Client::Solicit(uint16_t aRloc16)
     messageInfo.mInterfaceId = mNetif.GetInterfaceId();
 
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
-    otLogInfoIp6("solicit\n");
+    otLogInfoIp6(GetInstance(), "solicit");
 
 exit:
 
@@ -529,7 +534,7 @@ void Dhcp6Client::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aM
     }
 
 exit:
-    {}
+    return;
 }
 
 void Dhcp6Client::ProcessReply(Message &aMessage)
