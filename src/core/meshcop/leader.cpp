@@ -35,12 +35,13 @@
 
 #include <stdio.h>
 
+#include "openthread/platform/random.h"
+
 #include <coap/coap_header.hpp>
 #include <common/code_utils.hpp>
 #include <common/logging.hpp>
 #include <meshcop/leader.hpp>
 #include <meshcop/tlvs.hpp>
-#include <platform/random.h>
 #include <thread/thread_netif.hpp>
 #include <thread/thread_tlvs.hpp>
 #include <thread/thread_uris.hpp>
@@ -60,7 +61,7 @@ Leader::Leader(ThreadNetif &aThreadNetif):
     mNetif.GetCoapServer().AddResource(mKeepAlive);
 }
 
-void Leader::HandlePetition(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Leader::HandlePetition(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                             const otMessageInfo *aMessageInfo)
 {
     static_cast<Leader *>(aContext)->HandlePetition(
@@ -150,7 +151,7 @@ exit:
     return error;
 }
 
-void Leader::HandleKeepAlive(void *aContext, otCoapHeader *aHeader, otMessage aMessage,
+void Leader::HandleKeepAlive(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
                              const otMessageInfo *aMessageInfo)
 {
     static_cast<Leader *>(aContext)->HandleKeepAlive(

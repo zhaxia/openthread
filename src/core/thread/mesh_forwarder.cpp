@@ -33,6 +33,8 @@
 
 #define WPP_NAME "mesh_forwarder.tmh"
 
+#include "openthread/platform/random.h"
+
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/logging.hpp>
@@ -43,7 +45,6 @@
 #include <net/udp6.hpp>
 #include <net/netif.hpp>
 #include <net/udp6.hpp>
-#include <platform/random.h>
 #include <thread/mesh_forwarder.hpp>
 #include <thread/mle_router.hpp>
 #include <thread/mle.hpp>
@@ -841,6 +842,16 @@ exit:
     return error;
 }
 
+void MeshForwarder::SetRxOff()
+{
+    mNetif.GetMac().SetRxOnWhenIdle(false);
+
+    if (mPollTimer.IsRunning())
+    {
+        mPollTimer.Stop();
+    }
+}
+
 bool MeshForwarder::GetRxOnWhenIdle()
 {
     return mNetif.GetMac().GetRxOnWhenIdle();
@@ -852,11 +863,14 @@ void MeshForwarder::SetRxOnWhenIdle(bool aRxOnWhenIdle)
 
     if (aRxOnWhenIdle)
     {
-        mPollTimer.Stop();
+        if (mPollTimer.IsRunning())
+        {
+            mPollTimer.Stop();
+        }
     }
     else
     {
-        mPollTimer.Start(mPollPeriod);
+        ScheduleNextPoll(mPollPeriod);
     }
 }
 
@@ -888,13 +902,28 @@ void MeshForwarder::SetPollPeriod(uint32_t aPeriod)
             mPollPeriod = aPeriod;
         }
 
-        mPollTimer.Start(mPollPeriod);
+        if (mPollTimer.IsRunning() && ((mNetif.GetMle().GetDeviceMode() & Mle::ModeTlv::kModeFFD) == 0))
+        {
+            ScheduleNextPoll(mPollPeriod);
+        }
     }
 }
 
 uint32_t MeshForwarder::GetPollPeriod()
 {
     return mPollPeriod;
+}
+
+void MeshForwarder::ScheduleNextPoll(uint32_t aDelay)
+{
+    if (aDelay)
+    {
+        mPollTimer.Start(aDelay);
+    }
+    else
+    {
+        otLogWarnMac("Cannot start poll timer with uninitialized value of poll period.");
+    }
 }
 
 void MeshForwarder::HandlePollTimer(void *aContext)
@@ -922,7 +951,7 @@ void MeshForwarder::HandlePollTimer()
     case kThreadError_NoBufs:
         // Failed to send DataRequest due to a lack of buffers.
         // Try again following a brief pause to free buffers.
-        mPollTimer.Start(kDataRequestRetryDelay);
+        ScheduleNextPoll(kDataRequestRetryDelay);
         break;
 
     case kThreadError_Already:
@@ -935,7 +964,7 @@ void MeshForwarder::HandlePollTimer()
     // Intentional fall-thru
     default:
         // Restart for any other error which might originate from SendMessage().
-        mPollTimer.Start(mPollPeriod);
+        ScheduleNextPoll(mPollPeriod);
         break;
     }
 }
@@ -965,7 +994,7 @@ ThreadError MeshForwarder::SendMacDataRequest(void)
         otLogDebgMac("Sent poll");
 
         // restart the polling timer
-        mPollTimer.Start(mPollPeriod);
+        ScheduleNextPoll(mPollPeriod);
     }
     else
     {

@@ -34,7 +34,8 @@
 #ifndef MLE_HPP_
 #define MLE_HPP_
 
-#include <openthread.h>
+#include "openthread/openthread.h"
+
 #include <common/encoding.hpp>
 #include <common/timer.hpp>
 #include <mac/mac.hpp>
@@ -1360,7 +1361,7 @@ private:
     void HandleParentRequestTimer(void);
     static void HandleDelayedResponseTimer(void *aContext);
     void HandleDelayedResponseTimer(void);
-    static void HandleUdpReceive(void *aContext, otMessage aMessage, const otMessageInfo *aMessageInfo);
+    static void HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
     void HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     static void HandleSendChildUpdateRequest(void *aContext);
     void HandleSendChildUpdateRequest(void);

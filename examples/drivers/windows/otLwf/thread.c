@@ -284,9 +284,9 @@ ThreadError otPlatRandomSecureGet(uint16_t aInputLength, uint8_t *aOutput, uint1
     return kThreadError_None;
 }
 
-void otSignalTaskletPending(_In_ otInstance *otCtx)
+void otTaskletsSignalPending(_In_ otInstance *otCtx)
 {
-    LogVerbose(DRIVER_DEFAULT, "otSignalTaskletPending");
+    LogVerbose(DRIVER_DEFAULT, "otTaskletsSignalPending");
     PMS_FILTER pFilter = otCtxToFilter(otCtx);
     otLwfEventProcessingIndicateNewTasklet(pFilter);
 }
@@ -299,7 +299,7 @@ otLwfProcessRoleStateChange(
     )
 {
     otDeviceRole prevRole = pFilter->otCachedRole;
-    pFilter->otCachedRole = otGetDeviceRole(pFilter->otCtx);
+    pFilter->otCachedRole = otThreadGetDeviceRole(pFilter->otCtx);
     if (prevRole == pFilter->otCachedRole) return;
 
     LogInfo(DRIVER_DEFAULT, "Interface %!GUID! new role: %!otDeviceRole!", &pFilter->InterfaceGuid, pFilter->otCachedRole);
@@ -376,7 +376,7 @@ void otLwfStateChangedCallback(uint32_t aFlags, _In_ void *aContext)
     if ((aFlags & OT_THREAD_NETDATA_UPDATED) != 0)
     {
         LogVerbose(DRIVER_DEFAULT, "Filter %p received OT_THREAD_NETDATA_UPDATED", pFilter);
-        otSlaacUpdate(pFilter->otCtx, pFilter->otAutoAddresses, ARRAYSIZE(pFilter->otAutoAddresses), otCreateRandomIid, NULL);
+        otIp6SlaacUpdate(pFilter->otCtx, pFilter->otAutoAddresses, ARRAYSIZE(pFilter->otAutoAddresses), otIp6CreateRandomIid, NULL);
 
 #if OPENTHREAD_ENABLE_DHCP6_SERVER
         otDhcp6ServerUpdate(pFilter->otCtx);
