@@ -41,13 +41,17 @@
 
 namespace Thread {
 
-MessagePool::MessagePool(void) :
+MessagePool::MessagePool(otInstance *aInstance) :
+#if OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT
+    mInstance(aInstance),
+#endif
     mAllQueue()
 {
 #if OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT
     // Initialize Platform buffer pool management.
-    otPlatMessagePoolInit(kNumBuffers, sizeof(Buffer));
+    otPlatMessagePoolInit(mInstance, kNumBuffers, sizeof(Buffer));
 #else
+    (void)aInstance;
     memset(mBuffers, 0, sizeof(mBuffers));
 
     mFreeBuffers = mBuffers;
@@ -101,28 +105,26 @@ Buffer *MessagePool::NewBuffer(void)
     Buffer *buffer = NULL;
 
 #if OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT
-    buffer = static_cast<Buffer *>(otPlatMessagePoolNew());
 
-    if (buffer == NULL)
-    {
-        otLogInfoMac("No available message buffer\n");
-    }
+    buffer = static_cast<Buffer *>(otPlatMessagePoolNew(mInstance));
 
 #else
 
-    if (mFreeBuffers == NULL)
+    if (mFreeBuffers != NULL)
     {
-        otLogInfoMac("No available message buffer");
-        ExitNow();
+        buffer = mFreeBuffers;
+        mFreeBuffers = mFreeBuffers->GetNextBuffer();
+        buffer->SetNextBuffer(NULL);
+        mNumFreeBuffers--;
     }
 
-    buffer = mFreeBuffers;
-    mFreeBuffers = mFreeBuffers->GetNextBuffer();
-    buffer->SetNextBuffer(NULL);
-    mNumFreeBuffers--;
 #endif
 
-exit:
+    if (buffer == NULL)
+    {
+        otLogInfoMem("No available message buffer");
+    }
+
     return buffer;
 }
 
@@ -134,7 +136,7 @@ ThreadError MessagePool::FreeBuffers(Buffer *aBuffer)
     {
         tmpBuffer = aBuffer->GetNextBuffer();
 #if OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT
-        otPlatMessagePoolFree(aBuffer);
+        otPlatMessagePoolFree(mInstance, aBuffer);
 #else // OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT
         aBuffer->SetNextBuffer(mFreeBuffers);
         mFreeBuffers = aBuffer;
@@ -151,7 +153,7 @@ ThreadError MessagePool::ReclaimBuffers(int aNumBuffers)
     uint16_t numFreeBuffers;
 
 #if OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT
-    numFreeBuffers = otPlatMessagePoolNumFreeBuffers();
+    numFreeBuffers = otPlatMessagePoolNumFreeBuffers(mInstance);
 #else
     numFreeBuffers = mNumFreeBuffers;
 #endif
