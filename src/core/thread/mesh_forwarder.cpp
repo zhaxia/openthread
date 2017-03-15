@@ -424,6 +424,25 @@ void MeshForwarder::ClearSrcMatchEntry(Child &aChild)
     }
 }
 
+void MeshForwarder::SetSrcMatchAsShort(Child &aChild, bool aShortSource)
+{
+    VerifyOrExit(aChild.mAddSrcMatchEntryShort != aShortSource, ;);
+
+    if (aChild.mQueuedIndirectMessageCnt > 0)
+    {
+        ClearSrcMatchEntry(aChild);
+        aChild.mAddSrcMatchEntryShort = aShortSource;
+        AddSrcMatchEntry(aChild);
+    }
+    else
+    {
+        aChild.mAddSrcMatchEntryShort = aShortSource;
+    }
+
+exit:
+    return;
+}
+
 ThreadError MeshForwarder::SendMessage(Message &aMessage)
 {
     ThreadError error = kThreadError_None;
@@ -1588,6 +1607,7 @@ void MeshForwarder::HandleSentFrame(Mac::Frame &aFrame, ThreadError aError)
     Mac::Address macDest;
     Child *child;
     Neighbor *neighbor;
+    uint8_t childIndex;
 
     mSendBusy = false;
 
@@ -1696,10 +1716,12 @@ void MeshForwarder::HandleSentFrame(Mac::Frame &aFrame, ThreadError aError)
                 child->mIndirectSendInfo.mMessage = NULL;
             }
 
-            mSendMessage->ClearChildMask(mNetif.GetMle().GetChildIndex(*child));
+            childIndex = mNetif.GetMle().GetChildIndex(*child);
 
-            if ((child->mMode & Mle::ModeTlv::kModeRxOnWhenIdle) == 0)
+            if (mSendMessage->GetChildMask(childIndex))
             {
+                mSendMessage->ClearChildMask(childIndex);
+
                 child->mQueuedIndirectMessageCnt--;
                 otLogDebgMac(GetInstance(), "Sent to child (0x%x), still queued message (%d)",
                              child->mValid.mRloc16, child->mQueuedIndirectMessageCnt);
@@ -1832,7 +1854,7 @@ void MeshForwarder::HandleReceivedFrame(Mac::Frame &aFrame)
         if (((child->mMode & Mle::ModeTlv::kModeRxOnWhenIdle) == 0) &&
             macSource.mLength == sizeof(otShortAddress))
         {
-            child->mAddSrcMatchEntryShort = true;
+            SetSrcMatchAsShort(*child, true);
         }
     }
 

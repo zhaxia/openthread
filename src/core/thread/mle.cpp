@@ -236,9 +236,9 @@ ThreadError Mle::Start(bool aEnableReattach)
     }
     else
     {
-        SendChildUpdateRequest();
         mParentRequestState = kParentSynchronize;
-        mParentRequestTimer.Start(kParentRequestRouterTimeout);
+        mChildUpdateAttempts = 0;
+        SendChildUpdateRequest();
     }
 
 exit:
@@ -568,10 +568,10 @@ ThreadError Mle::SetStateChild(uint16_t aRloc16)
     SetRloc16(aRloc16);
     mDeviceState = kDeviceStateChild;
     mParentRequestState = kParentIdle;
+    mChildUpdateAttempts = 0;
 
     if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) != 0)
     {
-        mKeepAliveAttemptsSent = 0;
         mParentRequestTimer.Start(Timer::SecToMsec(mTimeout / kMaxChildKeepAliveAttempts));
     }
 
@@ -601,6 +601,8 @@ uint32_t Mle::GetTimeout(void) const
 
 ThreadError Mle::SetTimeout(uint32_t aTimeout)
 {
+    VerifyOrExit(mTimeout != aTimeout, ;);
+
     if (aTimeout < 4)
     {
         aTimeout = 4;
@@ -611,13 +613,9 @@ ThreadError Mle::SetTimeout(uint32_t aTimeout)
     if (mDeviceState == kDeviceStateChild)
     {
         SendChildUpdateRequest();
-
-        if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) != 0)
-        {
-            mParentRequestTimer.Start(Timer::SecToMsec(mTimeout / kMaxChildKeepAliveAttempts));
-        }
     }
 
+exit:
     return kThreadError_None;
 }
 
@@ -633,6 +631,7 @@ ThreadError Mle::SetDeviceMode(uint8_t aDeviceMode)
 
     VerifyOrExit((aDeviceMode & ModeTlv::kModeFFD) == 0 || (aDeviceMode & ModeTlv::kModeRxOnWhenIdle) != 0,
                  error = kThreadError_InvalidArgs);
+    VerifyOrExit(mDeviceMode != aDeviceMode, ;);
 
     mDeviceMode = aDeviceMode;
 
@@ -1287,20 +1286,7 @@ void Mle::HandleParentRequestTimer(void)
     case kParentIdle:
         if (mParent.mState == Neighbor::kStateValid)
         {
-            if (mDeviceMode & ModeTlv::kModeRxOnWhenIdle)
-            {
-                if (mKeepAliveAttemptsSent >= kMaxChildKeepAliveAttempts)
-                {
-                    // Reattach when no Child Update Response received for more than kMaxChildKeepAliveAttempts
-                    BecomeDetached();
-                }
-                else
-                {
-                    SendChildUpdateRequest();
-                    mKeepAliveAttemptsSent++;
-                    mParentRequestTimer.Start(Timer::SecToMsec(mTimeout / kMaxChildKeepAliveAttempts));
-                }
-            }
+            SendChildUpdateRequest();
         }
         else
         {
@@ -1673,7 +1659,17 @@ ThreadError Mle::SendChildUpdateRequest(void)
 {
     ThreadError error = kThreadError_None;
     Ip6::Address destination;
-    Message *message;
+    Message *message = NULL;
+
+    if (mChildUpdateAttempts >= kMaxChildKeepAliveAttempts)
+    {
+        mChildUpdateAttempts = 0;
+        BecomeDetached();
+        ExitNow();
+    }
+
+    mParentRequestTimer.Start(kUnicastRetransmissionDelay);
+    mChildUpdateAttempts++;
 
     VerifyOrExit((message = NewMleMessage()) != NULL, ;);
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandChildUpdateRequest));
@@ -2972,12 +2968,15 @@ ThreadError Mle::HandleChildUpdateResponse(const Message &aMessage, const Ip6::M
         {
             mNetif.GetMeshForwarder().SetPollPeriod(Timer::SecToMsec(mTimeout / kMaxChildKeepAliveAttempts));
             mNetif.GetMeshForwarder().SetRxOnWhenIdle(false);
+            mParentRequestTimer.Stop();
         }
         else
         {
-            mKeepAliveAttemptsSent = 0;
+            mParentRequestTimer.Start(Timer::SecToMsec(mTimeout / kMaxChildKeepAliveAttempts));
             mNetif.GetMeshForwarder().SetRxOnWhenIdle(true);
         }
+
+        mChildUpdateAttempts = 0;
 
         break;
 
