@@ -322,6 +322,26 @@
 #endif  // OPENTHREAD_CONFIG_COAP_MAX_RETRANSMIT
 
 /**
+ * @def OPENTHREAD_CONFIG_DNS_RESPONSE_TIMEOUT
+ *
+ * Maximum time that DNS Client waits for response in milliseconds.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_DNS_RESPONSE_TIMEOUT
+#define OPENTHREAD_CONFIG_DNS_RESPONSE_TIMEOUT                  3000
+#endif  // OPENTHREAD_CONFIG_DNS_RESPONSE_TIMEOUT
+
+/**
+ * @def OPENTHREAD_CONFIG_DNS_MAX_RETRANSMIT
+ *
+ * Maximum number of retransmissions for DNS client.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_DNS_MAX_RETRANSMIT
+#define OPENTHREAD_CONFIG_DNS_MAX_RETRANSMIT                    2
+#endif  // OPENTHREAD_CONFIG_DNS_MAX_RETRANSMIT
+
+/**
  * @def OPENTHREAD_CONFIG_JOIN_BEACON_VERSION
  *
  * The Beacon version to use when the beacon join flag is set.
@@ -376,12 +396,26 @@
 /**
  * @def OPENTHREAD_CONFIG_LOG_LEVEL
  *
- * The log level.
+ * The log level (used at compile time).
  *
  */
 #ifndef OPENTHREAD_CONFIG_LOG_LEVEL
 #define OPENTHREAD_CONFIG_LOG_LEVEL                             OPENTHREAD_LOG_LEVEL_CRIT
 #endif  // OPENTHREAD_CONFIG_LOG_LEVEL
+
+/**
+ * @def OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
+ *
+ * Define as 1 to enable dynamic log level control.
+ *
+ * Note that the OPENTHREAD_CONFIG_LOG_LEVEL determines the log level at
+ * compile time. The dynamic log level control (if enabled) only allows
+ * decreasing the log level from the compile time value.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
+#define OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL              0
+#endif // OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
 
 /**
  * @def OPENTHREAD_CONFIG_LOG_API

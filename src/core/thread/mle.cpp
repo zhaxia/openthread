@@ -81,6 +81,7 @@ Mle::Mle(ThreadNetif &aThreadNetif) :
     mParentLinkQuality3(0),
     mParentLinkQuality2(0),
     mParentLinkQuality1(0),
+    mChildUpdateAttempts(0),
     mParentIsSingleton(false),
     mSocket(aThreadNetif.GetIp6().mUdp),
     mTimeout(kMleEndDeviceTimeout),
@@ -202,7 +203,7 @@ exit:
     return error;
 }
 
-ThreadError Mle::Start(bool aEnableReattach)
+ThreadError Mle::Start(bool aEnableReattach, bool aAnnounceAttach)
 {
     ThreadError error = kThreadError_None;
 
@@ -223,7 +224,7 @@ ThreadError Mle::Start(bool aEnableReattach)
         mReattachState = kReattachStart;
     }
 
-    if (GetRloc16() == Mac::kShortAddrInvalid)
+    if (aAnnounceAttach || (GetRloc16() == Mac::kShortAddrInvalid))
     {
         BecomeChild(kMleAttachAnyPartition);
     }
@@ -498,6 +499,11 @@ ThreadError Mle::BecomeChild(otMleAttachFilter aFilter)
     if (aFilter != kMleAttachBetterPartition)
     {
         memset(&mParent, 0, sizeof(mParent));
+
+        if (mDeviceMode & ModeTlv::kModeFFD)
+        {
+            mNetif.GetMle().StopAdvertiseTimer();
+        }
     }
 
     if (aFilter == kMleAttachAnyPartition)
@@ -584,7 +590,9 @@ ThreadError Mle::SetStateChild(uint16_t aRloc16)
     mNetif.GetIp6().SetForwardingEnabled(false);
     mNetif.GetIp6().mMpl.SetTimerExpirations(kMplChildDataMessageTimerExpirations);
 
-    if (mPreviousPanId != Mac::kPanIdBroadcast && (mDeviceMode & ModeTlv::kModeFFD))
+    // Once the Thread device receives the new Active Commissioning Dataset, the device MUST
+    // transmit its own Announce messages on the channel it was on prior to the attachment.
+    if (mPreviousPanId != Mac::kPanIdBroadcast)
     {
         mPreviousPanId = Mac::kPanIdBroadcast;
         mNetif.GetAnnounceBeginServer().SendAnnounce(1 << mPreviousChannel);
@@ -2478,12 +2486,6 @@ ThreadError Mle::HandleLeaderData(const Message &aMessage, const Ip6::MessageInf
         mNetif.GetPendingDataset().Clear(false);
     }
 
-    if (mPreviousPanId != Mac::kPanIdBroadcast && ((mDeviceMode & ModeTlv::kModeFFD) == 0))
-    {
-        mPreviousPanId = Mac::kPanIdBroadcast;
-        mNetif.GetAnnounceBeginServer().SendAnnounce(1 << mPreviousChannel);
-    }
-
     mRetrieveNewNetworkData = false;
 
 exit:
@@ -3023,7 +3025,7 @@ ThreadError Mle::HandleAnnounce(const Message &aMessage, const Ip6::MessageInfo 
         mPreviousPanId = mNetif.GetMac().GetPanId();
         mNetif.GetMac().SetChannel(static_cast<uint8_t>(channel.GetChannel()));
         mNetif.GetMac().SetPanId(panid.GetPanId());
-        Start(false);
+        Start(false, true);
     }
     else
     {
