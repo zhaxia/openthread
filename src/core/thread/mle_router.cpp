@@ -936,6 +936,7 @@ ThreadError MleRouter::HandleLinkAccept(const Message &aMessage, const Ip6::Mess
         break;
 
     case Neighbor::kStateInvalid:
+    case Neighbor::kStateValid:
         VerifyOrExit((mChallengeTimeout > 0) && (memcmp(mChallenge, response.GetResponse(), sizeof(mChallenge)) == 0),
                      error = kThreadError_Error);
         break;
@@ -2269,7 +2270,6 @@ ThreadError MleRouter::HandleChildUpdateRequest(const Message &aMessage, const I
     }
 
     child->mLastHeard = Timer::GetNow();
-    mNetif.GetMeshForwarder().SetSrcMatchAsShort(*child, true);
 
     SendChildUpdateResponse(child, aMessageInfo, tlvs, tlvslength, &challenge);
 
@@ -2360,7 +2360,6 @@ ThreadError MleRouter::HandleChildUpdateResponse(const Message &aMessage, const 
     child->mLastHeard = Timer::GetNow();
     child->mKeySequence = aKeySequence;
     child->mLinkInfo.AddRss(mNetif.GetMac().GetNoiseFloor(), threadMessageInfo->mRss);
-    mNetif.GetMeshForwarder().SetSrcMatchAsShort(*child, true);
 
 exit:
     return error;
@@ -2686,6 +2685,11 @@ ThreadError MleRouter::SendChildIdResponse(Child *aChild)
     if ((aChild->mMode & ModeTlv::kModeFFD) == 0)
     {
         SuccessOrExit(error = AppendChildAddresses(*message, *aChild));
+    }
+
+    if ((aChild->mMode & ModeTlv::kModeRxOnWhenIdle) == 0)
+    {
+        mNetif.GetMeshForwarder().SetSrcMatchAsShort(*aChild, false);
     }
 
     SetChildStateToValid(aChild);
@@ -3830,6 +3834,18 @@ void MleRouter::HandleAddressSolicitResponse(Coap::Header *aHeader, Message *aMe
             mNetif.GetAddressResolver().Remove(i);
         }
     }
+
+    // Keep route path to the Leader reported by the parent before it is updated.
+    if (mRouters[GetLeaderId()].mCost == 0)
+    {
+        mRouters[GetLeaderId()].mCost = mParentLeaderCost;
+    }
+
+    mRouters[GetLeaderId()].mNextHop = GetRouterId(mParent.mValid.mRloc16);
+
+    // Keep link to the parent in order to response to Parent Requests before new link is established.
+    mRouters[GetRouterId(mParent.mValid.mRloc16)] = mParent;
+    mRouters[GetRouterId(mParent.mValid.mRloc16)].mAllocated = true;
 
     // send link request
     SendLinkRequest(NULL);
