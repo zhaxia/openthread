@@ -322,6 +322,18 @@
 #endif  // OPENTHREAD_CONFIG_COAP_MAX_RETRANSMIT
 
 /**
+ * @def OPENTHREAD_CONFIG_COAP_SERVER_MAX_CACHED_RESPONSES
+ *
+ * Maximum number of cached responses for CoAP Confirmable messages.
+ *
+ * Cached responses are used for message deduplication.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_COAP_SERVER_MAX_CACHED_RESPONSES
+#define OPENTHREAD_CONFIG_COAP_SERVER_MAX_CACHED_RESPONSES      10
+#endif  // OPENTHREAD_CONFIG_COAP_SERVER_MAX_CACHED_RESPONSES
+
+/**
  * @def OPENTHREAD_CONFIG_DNS_RESPONSE_TIMEOUT
  *
  * Maximum time that DNS Client waits for response in milliseconds.
@@ -676,6 +688,19 @@
 #ifndef OPENTHREAD_CONFIG_ENABLE_AUTO_START_SUPPORT
 #define OPENTHREAD_CONFIG_ENABLE_AUTO_START_SUPPORT             1
 #endif
+
+/**
+ * @def OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE
+ *
+ * The size of mbedTLS heap buffer when DTLS is enabled.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE
+#define OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE                     (2048 * sizeof(void *))
+#endif
+
+//---------------------------------------------------------------------------------------------
+// Nest-Only configuration options (do NOT copy/include in OpenThread on GitHub)
 
 // Define to 1 to enable MARBLE-387 workaround
 #ifndef ENABLE_MARBLE_387_WORKAROUND
