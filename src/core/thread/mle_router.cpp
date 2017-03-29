@@ -3427,6 +3427,11 @@ ThreadError MleRouter::RestoreChildren(void)
         mNetif.GetMeshForwarder().SetSrcMatchAsShort(*child, true);
     }
 
+#else  // ENABLE_MARBLE_387_WORKAROUND
+
+    // Erase all `ChildInfo` in settings (-1 as index means all the entries under this key)
+    error = otPlatSettingsDelete(mNetif.GetInstance(), kKeyChildInfo, -1);
+
 #endif // ENABLE_MARBLE_387_WORKAROUND
 
 exit:
