@@ -925,17 +925,13 @@ void NcpBase::LinkRawTransmitDone(RadioPacket *, bool aFramePending, ThreadError
             SPINEL_CMD_PROP_VALUE_IS,
             SPINEL_PROP_LAST_STATUS,
             SPINEL_DATATYPE_UINT_PACKED_S SPINEL_DATATYPE_BOOL_S,
-            aError,
+            ThreadErrorToSpinelStatus(aError),
             aFramePending
         );
 
         // Clear cached transmit TID
         mCurTransmitTID = 0;
     }
-
-    // Make sure we are back listening on the original receive channel,
-    // since the transmit could have been on a different channel.
-    otLinkRawReceive(mInstance, mCurReceiveChannel, &NcpBase::LinkRawReceiveDone);
 }
 
 void NcpBase::LinkRawEnergyScanDone(otInstance *, int8_t aEnergyScanMaxRssi)
