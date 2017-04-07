@@ -54,7 +54,7 @@ Client::Client(Ip6::Netif &aNetif, SenderFunction aSender, ReceiverFunction aRec
 ThreadError Client::Start(void)
 {
     Ip6::SockAddr addr;
-    addr.mPort = static_cast<Ip6::Udp *>(mSocket.mTransport)->GetEphemeralPort();
+    addr.mPort = 0;
 
     return CoapBase::Start(addr);
 }
@@ -239,7 +239,7 @@ void Client::SendEmptyMessage(const Ip6::Address &aAddress, uint16_t aPort, uint
     header.Init(aType, kCoapCodeEmpty);
     header.SetMessageId(aMessageId);
 
-    VerifyOrExit((message = NewMessage(header)) != NULL, ;);
+    VerifyOrExit((message = NewMessage(header)) != NULL);
 
     messageInfo.SetPeerAddr(aAddress);
     messageInfo.SetPeerPort(aPort);
