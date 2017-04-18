@@ -42,10 +42,6 @@
 
 using namespace Thread;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 uint8_t otThreadGetMaxAllowedChildren(otInstance *aInstance)
 {
     uint8_t aNumChildren;
@@ -75,9 +71,13 @@ const uint8_t *otThreadGetExtendedPanId(otInstance *aInstance)
     return aInstance->mThreadNetif.GetMac().GetExtendedPanId();
 }
 
-void otThreadSetExtendedPanId(otInstance *aInstance, const uint8_t *aExtendedPanId)
+ThreadError otThreadSetExtendedPanId(otInstance *aInstance, const uint8_t *aExtendedPanId)
 {
+    ThreadError error = kThreadError_None;
     uint8_t mlPrefix[8];
+
+    VerifyOrExit(aInstance->mThreadNetif.GetMle().GetDeviceState() == Mle::kDeviceStateDisabled,
+                 error = kThreadError_InvalidState);
 
     aInstance->mThreadNetif.GetMac().SetExtendedPanId(aExtendedPanId);
 
@@ -86,6 +86,12 @@ void otThreadSetExtendedPanId(otInstance *aInstance, const uint8_t *aExtendedPan
     mlPrefix[6] = 0x00;
     mlPrefix[7] = 0x00;
     aInstance->mThreadNetif.GetMle().SetMeshLocalPrefix(mlPrefix);
+
+    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
+    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+
+exit:
+    return error;
 }
 
 ThreadError otThreadGetLeaderRloc(otInstance *aInstance, otIp6Address *aAddress)
@@ -164,7 +170,17 @@ const uint8_t *otThreadGetMasterKey(otInstance *aInstance, uint8_t *aKeyLength)
 
 ThreadError otThreadSetMasterKey(otInstance *aInstance, const uint8_t *aKey, uint8_t aKeyLength)
 {
-    return aInstance->mThreadNetif.GetKeyManager().SetMasterKey(aKey, aKeyLength);
+    ThreadError error = kThreadError_None;
+
+    VerifyOrExit(aInstance->mThreadNetif.GetMle().GetDeviceState() == Mle::kDeviceStateDisabled,
+                 error = kThreadError_InvalidState);
+
+    error = aInstance->mThreadNetif.GetKeyManager().SetMasterKey(aKey, aKeyLength);
+    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
+    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+
+exit:
+    return error;
 }
 
 const otIp6Address *otThreadGetMeshLocalEid(otInstance *aInstance)
@@ -179,7 +195,17 @@ const uint8_t *otThreadGetMeshLocalPrefix(otInstance *aInstance)
 
 ThreadError otThreadSetMeshLocalPrefix(otInstance *aInstance, const uint8_t *aMeshLocalPrefix)
 {
-    return aInstance->mThreadNetif.GetMle().SetMeshLocalPrefix(aMeshLocalPrefix);
+    ThreadError error = kThreadError_None;
+
+    VerifyOrExit(aInstance->mThreadNetif.GetMle().GetDeviceState() == Mle::kDeviceStateDisabled,
+                 error = kThreadError_InvalidState);
+
+    error = aInstance->mThreadNetif.GetMle().SetMeshLocalPrefix(aMeshLocalPrefix);
+    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
+    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+
+exit:
+    return error;
 }
 
 const char *otThreadGetNetworkName(otInstance *aInstance)
@@ -189,7 +215,17 @@ const char *otThreadGetNetworkName(otInstance *aInstance)
 
 ThreadError otThreadSetNetworkName(otInstance *aInstance, const char *aNetworkName)
 {
-    return aInstance->mThreadNetif.GetMac().SetNetworkName(aNetworkName);
+    ThreadError error = kThreadError_None;
+
+    VerifyOrExit(aInstance->mThreadNetif.GetMle().GetDeviceState() == Mle::kDeviceStateDisabled,
+                 error = kThreadError_InvalidState);
+
+    error = aInstance->mThreadNetif.GetMac().SetNetworkName(aNetworkName);
+    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
+    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+
+exit:
+    return error;
 }
 
 bool otThreadIsRouterRoleEnabled(otInstance *aInstance)
@@ -662,7 +698,3 @@ bool otThreadIsDiscoverInProgress(otInstance *aInstance)
 {
     return aInstance->mThreadNetif.GetMle().IsDiscoverInProgress();
 }
-
-#ifdef __cplusplus
-}  // extern "C"
-#endif
