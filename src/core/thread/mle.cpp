@@ -573,6 +573,7 @@ ThreadError Mle::SetStateDetached(void)
     mParentRequestState = kParentIdle;
     mParentRequestTimer.Stop();
     mNetif.GetMeshForwarder().SetRxOff();
+    mNetif.GetMac().SetBeaconEnabled(false);
     mNetif.GetMle().HandleDetachStart();
     mNetif.GetIp6().SetForwardingEnabled(false);
     mNetif.GetIp6().mMpl.SetTimerExpirations(0);
@@ -597,6 +598,7 @@ ThreadError Mle::SetStateChild(uint16_t aRloc16)
     mDeviceState = kDeviceStateChild;
     mParentRequestState = kParentIdle;
     mChildUpdateAttempts = 0;
+    mNetif.GetMac().SetBeaconEnabled(false);
 
     if ((mDeviceMode & ModeTlv::kModeRxOnWhenIdle) != 0)
     {
@@ -1694,6 +1696,7 @@ ThreadError Mle::SendChildUpdateRequest(void)
     mChildUpdateAttempts++;
 
     VerifyOrExit((message = NewMleMessage()) != NULL);
+    message->SetSubType(Message::kSubTypeMleChildUpdateRequest);
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandChildUpdateRequest));
     SuccessOrExit(error = AppendMode(*message, mDeviceMode));
 

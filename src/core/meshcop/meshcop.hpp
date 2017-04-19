@@ -28,26 +28,36 @@
 
 /**
  * @file
- *   This file implements the OpenThread Tasklet API.
+ *   This file includes definitions for MeshCoP.
+ *
  */
 
-#define WPP_NAME "tasklet_api.tmh"
+#ifndef MESHCOP_HPP_
+#define MESHCOP_HPP_
 
-#include "openthread/tasklet.h"
+#include <common/message.hpp>
+#include <coap/coap_base.hpp>
 
-#include "openthread-instance.h"
-#include "common/logging.hpp"
+namespace Thread {
+namespace MeshCoP {
 
-using namespace Thread;
-
-void otTaskletsProcess(otInstance *aInstance)
+enum
 {
-    otLogFuncEntry();
-    aInstance->mIp6.mTaskletScheduler.ProcessQueuedTasklets();
-    otLogFuncExit();
+    kMeshCoPMessagePriority = Message::kPriorityHigh, // The priority for MeshCoP message
+};
+
+/**
+ * This function create Message for MeshCoP
+ *
+ */
+inline Message* NewMeshCoPMessage(Coap::CoapBase &aCoapBase, const Coap::Header &aHeader)
+{
+    return aCoapBase.NewMessage(aHeader, kMeshCoPMessagePriority);
 }
 
-bool otTaskletsArePending(otInstance *aInstance)
-{
-    return aInstance->mIp6.mTaskletScheduler.AreTaskletsPending();
-}
+
+}  // namespace MeshCoP
+
+}  // namespace Thread
+
+#endif  // MESHCOP_HPP_

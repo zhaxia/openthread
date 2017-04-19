@@ -37,10 +37,6 @@
 
 using namespace Thread;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 static void HandleActiveScanResult(void *aContext, Mac::Frame *aFrame);
 static void HandleEnergyScanResult(void *aContext, otEnergyScanResult *aResult);
 
@@ -51,7 +47,17 @@ uint8_t otLinkGetChannel(otInstance *aInstance)
 
 ThreadError otLinkSetChannel(otInstance *aInstance, uint8_t aChannel)
 {
-    return aInstance->mThreadNetif.GetMac().SetChannel(aChannel);
+    ThreadError error;
+
+    VerifyOrExit(aInstance->mThreadNetif.GetMle().GetDeviceState() == Mle::kDeviceStateDisabled,
+                 error = kThreadError_InvalidState);
+
+    error = aInstance->mThreadNetif.GetMac().SetChannel(aChannel);
+    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
+    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+
+exit:
+    return error;
 }
 
 const uint8_t *otLinkGetExtendedAddress(otInstance *aInstance)
@@ -64,6 +70,8 @@ ThreadError otLinkSetExtendedAddress(otInstance *aInstance, const otExtAddress *
     ThreadError error = kThreadError_None;
 
     VerifyOrExit(aExtAddress != NULL, error = kThreadError_InvalidArgs);
+    VerifyOrExit(aInstance->mThreadNetif.GetMle().GetDeviceState() == Mle::kDeviceStateDisabled,
+                 error = kThreadError_InvalidState);
 
     aInstance->mThreadNetif.GetMac().SetExtAddress(*static_cast<const Mac::ExtAddress *>(aExtAddress));
 
@@ -103,12 +111,12 @@ ThreadError otLinkSetPanId(otInstance *aInstance, otPanId aPanId)
 {
     ThreadError error = kThreadError_None;
 
-    // do not allow setting PAN ID to broadcast if Thread is running
-    VerifyOrExit(aPanId != Mac::kPanIdBroadcast ||
-                 aInstance->mThreadNetif.GetMle().GetDeviceState() != Mle::kDeviceStateDisabled,
+    VerifyOrExit(aInstance->mThreadNetif.GetMle().GetDeviceState() == Mle::kDeviceStateDisabled,
                  error = kThreadError_InvalidState);
 
     error = aInstance->mThreadNetif.GetMac().SetPanId(aPanId);
+    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
+    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
 
 exit:
     return error;
@@ -364,8 +372,3 @@ bool otLinkIsInTransmitState(otInstance *aInstance)
 {
     return aInstance->mThreadNetif.GetMac().IsInTransmitState();
 }
-
-
-#ifdef __cplusplus
-}  // extern "C"
-#endif
