@@ -30,9 +30,10 @@
  * @file
  *   This file implements a pseudo-random number generator.
  *
- * @warning
- *   This implementation is not a true random number generator and does @em satisfy the Thread requirements.
  */
+
+#include <assert.h>
+#include <stdio.h>
 
 #include "platform-posix.h"
 
@@ -41,12 +42,23 @@
 
 #include <utils/code_utils.h>
 
-static uint32_t s_state = 1;
+static uint32_t sState = 1;
 
 void platformRandomInit(void)
 {
+#if __SANITIZE_ADDRESS__ == 0
+
+    ThreadError error;
+
+    error = otPlatRandomGetTrue((uint8_t *)&sState, sizeof(sState));
+    assert(error == kThreadError_None);
+
+#else  // __SANITIZE_ADDRESS__
+
     // Multiplying NODE_ID assures that no two nodes gets the same seed within an hour.
-    s_state = (uint32_t)time(NULL) + (3600 * NODE_ID);
+    sState = (uint32_t)time(NULL) + (3600 * NODE_ID);
+
+#endif  // __SANITIZE_ADDRESS__
 }
 
 uint32_t otPlatRandomGet(void)
@@ -54,7 +66,7 @@ uint32_t otPlatRandomGet(void)
     uint32_t mlcg, p, q;
     uint64_t tmpstate;
 
-    tmpstate = (uint64_t)33614 * (uint64_t)s_state;
+    tmpstate = (uint64_t)33614 * (uint64_t)sState;
     q = tmpstate & 0xffffffff;
     q = q >> 1;
     p = tmpstate >> 32;
@@ -66,24 +78,55 @@ uint32_t otPlatRandomGet(void)
         mlcg++;
     }
 
-    s_state = mlcg;
+    sState = mlcg;
 
     return mlcg;
 }
 
-ThreadError otPlatRandomSecureGet(uint16_t aInputLength, uint8_t *aOutput, uint16_t *aOutputLength)
+ThreadError otPlatRandomGetTrue(uint8_t *aOutput, uint16_t aOutputLength)
 {
     ThreadError error = kThreadError_None;
 
+#if __SANITIZE_ADDRESS__ == 0
+
+    FILE *file = NULL;
+    size_t readLength;
+
     otEXPECT_ACTION(aOutput && aOutputLength, error = kThreadError_InvalidArgs);
 
-    for (uint16_t length = 0; length < aInputLength; length++)
+    file = fopen("/dev/urandom", "rb");
+    otEXPECT_ACTION(file != NULL, error = kThreadError_Failed);
+
+    readLength = fread(aOutput, 1, aOutputLength, file);
+    otEXPECT_ACTION(readLength == aOutputLength, error = kThreadError_Failed);
+
+exit:
+
+    if (file != NULL)
+    {
+        fclose(file);
+    }
+
+#else  // __SANITIZE_ADDRESS__
+
+    /*
+     * THE IMPLEMENTATION BELOW IS NOT COMPLIANT WITH THE THREAD SPECIFICATION.
+     *
+     * Address Sanitizer triggers test failures when reading random
+     * values from /dev/urandom.  The pseudo-random number generator
+     * implementation below is only used to enable continuous
+     * integration checks with Address Sanitizer enabled.
+     */
+    otEXPECT_ACTION(aOutput && aOutputLength, error = kThreadError_InvalidArgs);
+
+    for (uint16_t length = 0; length < aOutputLength; length++)
     {
         aOutput[length] = (uint8_t)otPlatRandomGet();
     }
 
-    *aOutputLength = aInputLength;
-
 exit:
+
+#endif  // __SANITIZE_ADDRESS__
+
     return error;
 }
