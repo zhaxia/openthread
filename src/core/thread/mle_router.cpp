@@ -3383,6 +3383,9 @@ ThreadError MleRouter::RestoreChildren(void)
     // Erase all `ChildInfo` in settings (-1 as index means all the entries under this key)
     error = otPlatSettingsDelete(mNetif.GetInstance(), kKeyChildInfo, -1);
 
+    // This is added to remove the build error/warning of unused `exit` label.
+    ExitNow();
+
 #endif // ENABLE_MARBLE_387_WORKAROUND
 
 exit:
