@@ -34,6 +34,12 @@
 
 #define WPP_NAME "dataset_manager.tmh"
 
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
+
 #include <stdio.h>
 
 #include "openthread/platform/random.h"
@@ -53,6 +59,8 @@
 #include <thread/thread_tlvs.hpp>
 #include <thread/thread_uris.hpp>
 #include <meshcop/leader.hpp>
+
+#if OPENTHREAD_FTD
 
 namespace Thread {
 namespace MeshCoP {
@@ -244,5 +252,46 @@ exit:
     return;
 }
 
+void PendingDataset::ApplyActiveDataset(const Timestamp &aTimestamp, Message &aMessage)
+{
+    uint16_t offset = aMessage.GetOffset();
+    DelayTimerTlv delayTimer;
+    uint8_t flags;
+
+    VerifyOrExit(mNetif.GetMle().IsAttached());
+
+    while (offset < aMessage.GetLength())
+    {
+        OT_TOOL_PACKED_BEGIN
+        struct
+        {
+            Tlv tlv;
+            uint8_t value[Dataset::kMaxValueSize];
+        } OT_TOOL_PACKED_END data;
+
+        aMessage.Read(offset, sizeof(Tlv), &data.tlv);
+        aMessage.Read(offset + sizeof(Tlv), data.tlv.GetLength(), data.value);
+        mNetwork.Set(data.tlv);
+        offset += sizeof(Tlv) + data.tlv.GetLength();
+    }
+
+    // add delay timer tlv
+    delayTimer.Init();
+    delayTimer.SetDelayTimer(mNetif.GetLeader().GetDelayTimerMinimal());
+    mNetwork.Set(delayTimer);
+
+    // add pending timestamp tlv
+    mNetwork.SetTimestamp(aTimestamp);
+    HandleNetworkUpdate(flags);
+
+    // reset delay timer
+    ResetDelayTimer(kFlagNetworkUpdated);
+
+exit:
+    return;
+}
+
 }  // namespace MeshCoP
 }  // namespace Thread
+
+#endif // OPENTHREAD_FTD

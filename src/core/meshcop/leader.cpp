@@ -33,6 +33,14 @@
 
 #define WPP_NAME "leader.tmh"
 
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
+
+#if OPENTHREAD_FTD
+
 #include <stdio.h>
 
 #include "openthread/platform/random.h"
@@ -294,7 +302,7 @@ exit:
     return;
 }
 
-void Leader::ResignCommissioner(void)
+void Leader::SetEmptyCommissionerData(void)
 {
     CommissionerSessionIdTlv mCommissionerSessionId;
 
@@ -303,9 +311,17 @@ void Leader::ResignCommissioner(void)
 
     mNetif.GetNetworkDataLeader().SetCommissioningData(reinterpret_cast<uint8_t *>(&mCommissionerSessionId),
                                                        sizeof(Tlv) + mCommissionerSessionId.GetLength());
+}
+
+void Leader::ResignCommissioner(void)
+{
+    SetEmptyCommissionerData();
 
     otLogInfoMeshCoP(GetInstance(), "commissioner inactive");
 }
 
 }  // namespace MeshCoP
 }  // namespace Thread
+
+#endif // OPENTHREAD_FTD
+

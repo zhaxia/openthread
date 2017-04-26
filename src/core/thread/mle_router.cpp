@@ -30,7 +30,15 @@
  *   This file implements MLE functionality required for the Thread Router and Leader roles.
  */
 
+#if OPENTHREAD_FTD
+
 #define WPP_NAME "mle_router.tmh"
+
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
 
 #include "openthread/platform/random.h"
 #include "openthread/platform/settings.h"
@@ -303,6 +311,7 @@ ThreadError MleRouter::BecomeLeader(void)
     mRouterIdSequence = static_cast<uint8_t>(otPlatRandomGet());
 
     mNetif.GetNetworkDataLeader().Reset();
+    mNetif.GetLeader().SetEmptyCommissionerData();
 
     SuccessOrExit(error = SetStateLeader(GetRloc16(mRouterId)));
 
@@ -3374,6 +3383,9 @@ ThreadError MleRouter::RestoreChildren(void)
     // Erase all `ChildInfo` in settings (-1 as index means all the entries under this key)
     error = otPlatSettingsDelete(mNetif.GetInstance(), kKeyChildInfo, -1);
 
+    // This is added to remove the build error/warning of unused `exit` label.
+    ExitNow();
+
 #endif // ENABLE_MARBLE_387_WORKAROUND
 
 exit:
@@ -4512,3 +4524,6 @@ uint8_t MleRouter::GetMinDowngradeNeighborRouters(void)
 
 }  // namespace Mle
 }  // namespace Thread
+
+#endif // OPENTHREAD_FTD
+

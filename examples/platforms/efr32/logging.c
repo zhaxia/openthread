@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,24 +28,40 @@
 
 /**
  * @file
- *  This file includes definitions for the Joiner Router role.
+ *   This file implements the OpenThread platform abstraction for logging.
+ *
  */
 
-#ifndef JOINER_ROUTER_HPP_
-#define JOINER_ROUTER_HPP_
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
 
-namespace Thread {
-namespace MeshCoP {
 
-class JoinerRouter
+#include <openthread/platform/logging.h>
+#if OPENTHREAD_ENABLE_CLI_LOGGING
+#include <ctype.h>
+#include <inttypes.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdint.h>
+#include <string.h>
+
+#include <utils/code_utils.h>
+#include <cli.h>
+#endif
+
+void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...)
 {
-public:
-    JoinerRouter(ThreadNetif &) { }
-    uint16_t GetJoinerUdpPort(void) { return 0; }
-    ThreadError SetJoinerUdpPort(uint16_t) { return kThreadError_NotImplemented; }
-};
-
-}  // namespace MeshCoP
-}  // namespace Thread
-
-#endif  // JOINER_ROUTER_HPP_
+#if OPENTHREAD_ENABLE_CLI_LOGGING
+    va_list args;
+    va_start(args, aFormat);
+    otCliLog(aLogLevel, aLogRegion, aFormat, args);
+    va_end(args);
+#else
+    (void)aLogLevel;
+    (void)aLogRegion;
+    (void)aFormat;
+#endif // OPENTHREAD_ENABLE_CLI_LOGGING
+}

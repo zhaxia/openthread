@@ -41,6 +41,7 @@
         MBEDTLS_CONFIG_FILE="mbedtls-config.h";
         OPENTHREAD_CONFIG_FILE="openthread-windows-config.h";
         OPENTHREAD_MULTIPLE_INSTANCE;
+        OPENTHREAD_FTD=1;
         OTBUILD;
       </PreprocessorDefinitions>
       <AdditionalIncludeDirectories>
@@ -61,6 +62,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\core\api\commissioner_api.cpp" />
     <ClCompile Include="..\..\src\core\api\dataset_api.cpp" />
+    <ClCompile Include="..\..\src\core\api\dataset_ftd_api.cpp" />
     <ClCompile Include="..\..\src\core\api\dhcp6_api.cpp" />
     <ClCompile Include="..\..\src\core\api\icmp6_api.cpp" />
     <ClCompile Include="..\..\src\core\api\ip6_api.cpp" />
@@ -72,6 +74,7 @@
     <ClCompile Include="..\..\src\core\api\netdata_api.cpp" />
     <ClCompile Include="..\..\src\core\api\tasklet_api.cpp" />
     <ClCompile Include="..\..\src\core\api\thread_api.cpp" />
+    <ClCompile Include="..\..\src\core\api\thread_ftd_api.cpp" />
     <ClCompile Include="..\..\src\core\coap\coap_base.cpp" />
     <ClCompile Include="..\..\src\core\coap\coap_client.cpp" />
     <ClCompile Include="..\..\src\core\coap\coap_header.cpp" />

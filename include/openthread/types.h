@@ -193,6 +193,12 @@ typedef enum ThreadError
      * Received a duplicated frame.
      */
     kThreadError_Duplicated = 31,
+
+    /**
+     * Message is being dropped from reassembly list due to timeout.
+     */
+    kThreadError_ReassemblyTimeout = 32,
+
     kThreadError_Error = 255,
 } ThreadError;
 

@@ -33,6 +33,9 @@
 
 #include <ctype.h>
 #include <cli/cli.hpp>
+
+#if OPENTHREAD_ENABLE_APPLICATION_COAP
+
 #include <cli/cli_coap.hpp>
 #include <coap/coap_header.hpp>
 
@@ -263,6 +266,7 @@ ThreadError Coap::ProcessClient(int argc, char *argv[])
     otMessage *message = NULL;
     otMessageInfo messageInfo;
     otCoapHeader header;
+    uint16_t payloadLength = 0;
 
     // Default parameters
     char coapUri[kMaxUriLength] = "test";
@@ -327,15 +331,24 @@ ThreadError Coap::ProcessClient(int argc, char *argv[])
     otCoapHeaderInit(&header, coapType, coapCode);
     otCoapHeaderGenerateToken(&header, Thread::Coap::Header::kDefaultTokenLength);
     SuccessOrExit(error = otCoapHeaderAppendUriPathOptions(&header, coapUri));
-    otCoapHeaderSetPayloadMarker(&header);
+
+    if (argc > 4)
+    {
+        payloadLength = static_cast<uint16_t>(strlen(argv[4]));
+
+        if (payloadLength > 0)
+        {
+            otCoapHeaderSetPayloadMarker(&header);
+        }
+    }
 
     message = otCoapNewMessage(sInstance, &header);
     VerifyOrExit(message != NULL, error = kThreadError_NoBufs);
 
     // Embed content into message if given
-    if (argc > 4)
+    if (payloadLength > 0)
     {
-        SuccessOrExit(error = otMessageAppend(message, &argv[4], sizeof(argv[4])));
+        SuccessOrExit(error = otMessageAppend(message, argv[4], payloadLength));
     }
 
     memset(&messageInfo, 0, sizeof(messageInfo));
@@ -390,3 +403,5 @@ void Coap::HandleClientResponse(otCoapHeader *aHeader, otMessage *aMessage, otMe
 
 }  // namespace Cli
 }  // namespace Thread
+
+#endif // OPENTHREAD_ENABLE_APPLICATION_COAP

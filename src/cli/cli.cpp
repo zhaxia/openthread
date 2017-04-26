@@ -49,6 +49,11 @@
 #include "openthread/commissioner.h"
 #include "openthread/joiner.h"
 
+#if OPENTHREAD_FTD
+#include "openthread/dataset_ftd.h"
+#include "openthread/thread_ftd.h"
+#endif
+
 #ifndef OTDLL
 #include <openthread-instance.h>
 #include "openthread/diag.h"
@@ -90,13 +95,15 @@ const struct Command Interpreter::sCommands[] =
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
     { "coap", &Interpreter::ProcessCoap },
 #endif
-#if OPENTHREAD_ENABLE_COMMISSIONER
+#if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
     { "commissioner", &Interpreter::ProcessCommissioner },
 #endif
     { "contextreusedelay", &Interpreter::ProcessContextIdReuseDelay },
     { "counter", &Interpreter::ProcessCounters },
     { "dataset", &Interpreter::ProcessDataset },
+#if OPENTHREAD_FTD
     { "delaytimermin", &Interpreter::ProcessDelayTimerMin},
+#endif
 #if OPENTHREAD_ENABLE_DIAG
     { "diag", &Interpreter::ProcessDiag },
 #endif
@@ -125,7 +132,9 @@ const struct Command Interpreter::sCommands[] =
 #if OPENTHREAD_ENABLE_JOINER
     { "joiner", &Interpreter::ProcessJoiner },
 #endif
+#if OPENTHREAD_FTD
     { "joinerport", &Interpreter::ProcessJoinerPort },
+#endif
     { "keysequence", &Interpreter::ProcessKeySequence },
     { "leaderdata", &Interpreter::ProcessLeaderData },
     { "leaderpartitionid", &Interpreter::ProcessLeaderPartitionId },
@@ -457,7 +466,7 @@ void Interpreter::ProcessChannel(int argc, char *argv[])
     else
     {
         SuccessOrExit(error = ParseLong(argv[0], value));
-        otLinkSetChannel(mInstance, static_cast<uint8_t>(value));
+        error = otLinkSetChannel(mInstance, static_cast<uint8_t>(value));
     }
 
 exit:
@@ -486,8 +495,16 @@ void Interpreter::ProcessChild(int argc, char *argv[])
 
         for (uint8_t i = 0; i < maxChildren ; i++)
         {
-            if (otThreadGetChildInfoByIndex(mInstance, i, &childInfo) != kThreadError_None)
+
+            switch (otThreadGetChildInfoByIndex(mInstance, i, &childInfo))
             {
+            case kThreadError_None:
+                break;
+
+            case kThreadError_NotFound:
+                continue;
+
+            default:
                 sServer->OutputFormat("\r\n");
                 ExitNow();
             }
@@ -521,6 +538,8 @@ void Interpreter::ProcessChild(int argc, char *argv[])
                 }
             }
         }
+
+        ExitNow();
     }
 
     SuccessOrExit(error = ParseLong(argv[0], value));
@@ -691,6 +710,7 @@ void Interpreter::ProcessDataset(int argc, char *argv[])
     AppendResult(error);
 }
 
+#if OPENTHREAD_FTD
 void Interpreter::ProcessDelayTimerMin(int argc, char *argv[])
 {
     ThreadError error = kThreadError_None;
@@ -713,6 +733,7 @@ void Interpreter::ProcessDelayTimerMin(int argc, char *argv[])
 exit:
     AppendResult(error);
 }
+#endif
 
 void Interpreter::ProcessDiscover(int argc, char *argv[])
 {
@@ -890,7 +911,7 @@ void Interpreter::ProcessExtAddress(int argc, char *argv[])
 
         VerifyOrExit(Hex2Bin(argv[0], extAddress.m8, sizeof(otExtAddress)) >= 0, error = kThreadError_Parse);
 
-        otLinkSetExtendedAddress(mInstance, &extAddress);
+        error = otLinkSetExtendedAddress(mInstance, &extAddress);
     }
 
 exit:
@@ -922,7 +943,7 @@ void Interpreter::ProcessExtPanId(int argc, char *argv[])
 
         VerifyOrExit(Hex2Bin(argv[0], extPanId, sizeof(extPanId)) >= 0, error = kThreadError_Parse);
 
-        otThreadSetExtendedPanId(mInstance, extPanId);
+        error = otThreadSetExtendedPanId(mInstance, extPanId);
     }
 
 exit:
@@ -1427,7 +1448,7 @@ void Interpreter::ProcessPanId(int argc, char *argv[])
     else
     {
         SuccessOrExit(error = ParseLong(argv[0], value));
-        otLinkSetPanId(mInstance, static_cast<otPanId>(value));
+        error = otLinkSetPanId(mInstance, static_cast<otPanId>(value));
     }
 
 exit:
@@ -2410,7 +2431,7 @@ void Interpreter::ProcessVersion(int argc, char *argv[])
     (void)argv;
 }
 
-#if OPENTHREAD_ENABLE_COMMISSIONER
+#if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 
 void Interpreter::ProcessCommissioner(int argc, char *argv[])
 {
@@ -2694,7 +2715,7 @@ void Interpreter::HandlePanIdConflict(uint16_t aPanId, uint32_t aChannelMask)
     sServer->OutputFormat("Conflict: %04x, %08x\r\n", aPanId, aChannelMask);
 }
 
-#endif  // OPENTHREAD_ENABLE_COMMISSIONER
+#endif //  OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 
 #if OPENTHREAD_ENABLE_JOINER
 
@@ -2743,6 +2764,7 @@ void Interpreter::HandleJoinerCallback(ThreadError aError)
     }
 }
 
+#if OPENTHREAD_FTD
 void Interpreter::ProcessJoinerPort(int argc, char *argv[])
 {
     ThreadError error = kThreadError_None;
@@ -2761,6 +2783,7 @@ void Interpreter::ProcessJoinerPort(int argc, char *argv[])
 exit:
     AppendResult(error);
 }
+#endif
 
 void Interpreter::ProcessWhitelist(int argc, char *argv[])
 {

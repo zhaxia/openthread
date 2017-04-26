@@ -67,6 +67,7 @@ MeshForwarder::MeshForwarder(ThreadNetif &aThreadNetif):
     mSendMessageMaxMacTxAttempts(Mac::kDirectFrameMacTxAttempts),
     mSendMessageKeyId(0),
     mSendMessageDataSequenceNumber(0),
+    mStartChildIndex(0),
     mMeshSource(Mac::kShortAddrInvalid),
     mMeshDest(Mac::kShortAddrInvalid),
     mAddMeshHeader(false),
@@ -240,6 +241,8 @@ void MeshForwarder::ScheduleTransmissionTask(void)
 {
     ThreadError error = kThreadError_None;
     uint8_t numChildren;
+    uint8_t childIndex;
+    uint8_t nextIndex;
     Child *children;
 
     VerifyOrExit(mSendBusy == false, error = kThreadError_Busy);
@@ -250,9 +253,21 @@ void MeshForwarder::ScheduleTransmissionTask(void)
 
     children = mNetif.GetMle().GetChildren(&numChildren);
 
-    for (int i = 0; i < numChildren; i++)
+    if (mStartChildIndex >= numChildren)
     {
-        Child &child = children[i];
+        mStartChildIndex = 0;
+    }
+
+    childIndex = mStartChildIndex;
+
+    for (uint8_t iterations = numChildren; iterations > 0; iterations--, childIndex = nextIndex)
+    {
+        Child &child = children[childIndex];
+
+        if ((nextIndex = childIndex + 1) == numChildren)
+        {
+            nextIndex = 0;
+        }
 
         if (!child.IsStateValidOrRestoring() || !child.IsDataRequestPending())
         {
@@ -292,6 +307,15 @@ void MeshForwarder::ScheduleTransmissionTask(void)
                 mMacDest.mExtAddress = child.GetExtAddress();
             }
         }
+
+        // To ensure fairness in handling of data requests from sleepy
+        // children, once a message is scheduled and prepared for indirect
+        // transmission to a child, the `mStartChildIndex` is updated to
+        // the next index after the current child. Subsequent call to
+        // `ScheduleTransmissionTask()` will begin the iteration through
+        // the children list from this index.
+
+        mStartChildIndex = nextIndex;
 
         mNetif.GetMac().SendFrameRequest(mMacSender);
         ExitNow();
@@ -472,6 +496,13 @@ Message *MeshForwarder::GetIndirectTransmission(Child &aChild)
     aChild.SetIndirectMessage(message);
     aChild.SetIndirectFragmentOffset(0);
     aChild.ResetIndirectTxAttempts();
+
+    if (message != NULL)
+    {
+        Mac::Address macAddr;
+
+        LogIp6Message(kMessagePrepareIndirect, *message, &aChild.GetMacAddress(macAddr), kThreadError_None);
+    }
 
     return message;
 }
@@ -1504,7 +1535,7 @@ void MeshForwarder::HandleSentFrame(Mac::Frame &aFrame, ThreadError aError)
 
     if (mMessageNextOffset >= mSendMessage->GetLength())
     {
-        LogIp6Message(kMessageTransmit, *mSendMessage, macDest, aError);
+        LogIp6Message(kMessageTransmit, *mSendMessage, &macDest, aError);
     }
 
     if (mSendMessage->GetDirectTransmission() == false && mSendMessage->IsChildPending() == false)
@@ -1867,6 +1898,9 @@ void MeshForwarder::ClearReassemblyList(void)
     {
         next = message->GetNext();
         mReassemblyList.Dequeue(*message);
+
+        LogIp6Message(kMessageDrop, *message, NULL, kThreadError_NoFrameReceived);
+
         message->Free();
     }
 }
@@ -1893,6 +1927,9 @@ void MeshForwarder::HandleReassemblyTimer()
         else
         {
             mReassemblyList.Dequeue(*message);
+
+            LogIp6Message(kMessageDrop, *message, NULL, kThreadError_ReassemblyTimeout);
+
             message->Free();
         }
     }
@@ -1948,7 +1985,7 @@ exit:
 ThreadError MeshForwarder::HandleDatagram(Message &aMessage, const ThreadMessageInfo &aMessageInfo,
                                           const Mac::Address &aMacSource)
 {
-    LogIp6Message(kMessageReceive, aMessage, aMacSource, kThreadError_None);
+    LogIp6Message(kMessageReceive, aMessage, &aMacSource, kThreadError_None);
 
     return mNetif.GetIp6().HandleDatagram(aMessage, &mNetif, mNetif.GetInterfaceId(), &aMessageInfo, false);
 }
@@ -1984,13 +2021,16 @@ void MeshForwarder::HandleDataPollTimeout(void *aContext)
 
 #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OPENTHREAD_LOG_LEVEL_INFO) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
 
-void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage, const Mac::Address &aMacAddress,
+void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage, const Mac::Address *aMacAddress,
                                   ThreadError aError)
 {
     uint16_t checksum = 0;
     Ip6::Header ip6Header;
     Ip6::IpProto protocol;
     char stringBuffer[Ip6::Address::kIp6AddressStringSize];
+    const char *actionText;
+    const char *priorityText;
+    bool shouldLogSrcDstAddresses = true;
 
     VerifyOrExit(aMessage.GetType() == Message::kTypeIp6);
 
@@ -2005,8 +2045,11 @@ void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage
     {
         Ip6::UdpHeader udpHeader;
 
-        VerifyOrExit(sizeof(udpHeader) == aMessage.Read(sizeof(ip6Header), sizeof(udpHeader), &udpHeader));
-        checksum = udpHeader.GetChecksum();
+        if (sizeof(udpHeader) == aMessage.Read(sizeof(ip6Header), sizeof(udpHeader), &udpHeader))
+        {
+            checksum = udpHeader.GetChecksum();
+        }
+
         break;
     }
 
@@ -2014,8 +2057,11 @@ void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage
     {
         Ip6::TcpHeader tcpHeader;
 
-        VerifyOrExit(sizeof(tcpHeader) == aMessage.Read(sizeof(ip6Header), sizeof(tcpHeader), &tcpHeader));
-        checksum = tcpHeader.GetChecksum();
+        if (sizeof(tcpHeader) == aMessage.Read(sizeof(ip6Header), sizeof(tcpHeader), &tcpHeader))
+        {
+            checksum = tcpHeader.GetChecksum();
+        }
+
         break;
     }
 
@@ -2023,30 +2069,81 @@ void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage
         break;
     }
 
+    switch (aAction)
+    {
+    case kMessageReceive:
+        actionText = "Received";
+        break;
+
+    case kMessageTransmit:
+        actionText = (aError == kThreadError_None) ? "Sent" : "Failed to send";
+        break;
+
+    case kMessagePrepareIndirect:
+        actionText = "Preping indir tx";
+        shouldLogSrcDstAddresses = false;
+        break;
+
+    case kMessageDrop:
+        actionText = "Dropping";
+        break;
+
+    default:
+        actionText = "";
+        break;
+    }
+
+    switch (aMessage.GetPriority())
+    {
+    case Message::kPriorityHigh:
+        priorityText = "high";
+        break;
+
+    case Message::kPriorityMedium:
+        priorityText = "medium";
+        break;
+
+    case Message::kPriorityLow:
+        priorityText = "low";
+        break;
+
+    case Message::kPriorityVeryLow:
+        priorityText = "verylow";
+        break;
+
+    default:
+        priorityText = "unknown";
+        break;
+    }
+
     otLogInfoMac(
         GetInstance(),
-        "%s IPv6 %s msg, len:%d, chksum:%04x, %s:%s, sec:%s%s%s",
-        (aAction == kMessageReceive) ? "Rx" : ((aError == kThreadError_None) ? "Tx" : "Failed to Tx"),
+        "%s IPv6 %s msg, len:%d, chksum:%04x%s%s, sec:%s%s%s, prio:%s",
+        actionText,
         Ip6::Ip6::IpProtoToString(protocol),
         aMessage.GetLength(),
         checksum,
-        (aAction == kMessageReceive) ? "from" : "to",
-        aMacAddress.ToString(stringBuffer, sizeof(stringBuffer)),
+        (aMacAddress == NULL) ? "" : ((aAction == kMessageReceive) ? ", from:" : ", to:"),
+        (aMacAddress == NULL) ? "" : aMacAddress->ToString(stringBuffer, sizeof(stringBuffer)),
         aMessage.IsLinkSecurityEnabled() ? "yes" : "no",
         (aError == kThreadError_None) ? "" : ", error:",
-        (aError == kThreadError_None) ? "" : otThreadErrorToString(aError)
+        (aError == kThreadError_None) ? "" : otThreadErrorToString(aError),
+        priorityText
     );
 
-    otLogInfoMac(GetInstance(), "src: %s", ip6Header.GetSource().ToString(stringBuffer, sizeof(stringBuffer)));
-    otLogInfoMac(GetInstance(), "dst: %s", ip6Header.GetDestination().ToString(stringBuffer, sizeof(stringBuffer)));
+    if (shouldLogSrcDstAddresses)
+    {
+        otLogInfoMac(GetInstance(), "src: %s", ip6Header.GetSource().ToString(stringBuffer, sizeof(stringBuffer)));
+        otLogInfoMac(GetInstance(), "dst: %s", ip6Header.GetDestination().ToString(stringBuffer, sizeof(stringBuffer)));
+    }
 
 exit:
     return;
 }
 
-#else // #if OPENTHREAD_CONFIG_LOG_LEVEL >= OPENTHREAD_LOG_LEVEL_INFO
+#else // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OPENTHREAD_LOG_LEVEL_INFO) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
 
-void MeshForwarder::LogIp6Message(MessageAction, const Message &, const Mac::Address &, ThreadError)
+void MeshForwarder::LogIp6Message(MessageAction, const Message &, const Mac::Address *, ThreadError)
 {
 }
 
