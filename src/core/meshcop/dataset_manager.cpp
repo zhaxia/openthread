@@ -34,6 +34,12 @@
 
 #define WPP_NAME "dataset_manager.tmh"
 
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
+
 #include <stdio.h>
 
 #include "openthread/platform/random.h"
@@ -56,7 +62,7 @@
 #include <meshcop/leader.hpp>
 #include <openthread/types.h>
 
-namespace Thread {
+namespace ot {
 namespace MeshCoP {
 
 DatasetManager::DatasetManager(ThreadNetif &aThreadNetif, const Tlv::Type aType, const char *aUriSet,
@@ -128,6 +134,17 @@ ThreadError DatasetManager::ApplyConfiguration(void)
             mNetif.GetKeyManager().SetMasterKey(key->GetNetworkMasterKey(), key->GetLength());
             break;
         }
+
+#if OPENTHREAD_FTD
+
+        case Tlv::kPSKc:
+        {
+            const PSKcTlv *pskc = static_cast<const PSKcTlv *>(cur);
+            mNetif.GetKeyManager().SetPSKc(pskc->GetPSKc());
+            break;
+        }
+
+#endif
 
         case Tlv::kMeshLocalPrefix:
         {
@@ -1147,4 +1164,4 @@ void PendingDatasetBase::HandleGet(Coap::Header &aHeader, Message &aMessage, con
 }
 
 }  // namespace MeshCoP
-}  // namespace Thread
+}  // namespace ot

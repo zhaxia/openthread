@@ -33,13 +33,19 @@
 
 #define WPP_NAME "message.tmh"
 
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
+
 #include <common/code_utils.hpp>
 #include <common/debug.hpp>
 #include <common/logging.hpp>
 #include <common/message.hpp>
 #include <net/ip6.hpp>
 
-namespace Thread {
+namespace ot {
 
 MessagePool::MessagePool(otInstance *aInstance) :
     mInstance(aInstance),
@@ -1049,4 +1055,4 @@ void PriorityQueue::GetInfo(uint16_t &aMessageCount, uint16_t &aBufferCount) con
     }
 }
 
-}  // namespace Thread
+}  // namespace ot

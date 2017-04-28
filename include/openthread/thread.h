@@ -115,6 +115,7 @@ OTAPI bool OTCALL otThreadIsSingleton(otInstance *aInstance);
  * @param[in]  aInstance         A pointer to an OpenThread instance.
  * @param[in]  aScanChannels     A bit vector indicating which channels to scan (e.g. OT_CHANNEL_11_MASK).
  * @param[in]  aPanId            The PAN ID filter (set to Broadcast PAN to disable filter).
+ * @param[in]  aJoiner           Value of the Joiner Flag in the Discovery Request TLV.
  * @param[in]  aCallback         A pointer to a function called on receiving an MLE Discovery Response or scan completes.
  * @param[in]  aCallbackContext  A pointer to application-specific context.
  *
@@ -122,7 +123,7 @@ OTAPI bool OTCALL otThreadIsSingleton(otInstance *aInstance);
  * @retval kThreadError_Busy  Already performing an Thread Discovery.
  *
  */
-OTAPI ThreadError OTCALL otThreadDiscover(otInstance *aInstance, uint32_t aScanChannels, uint16_t aPanid,
+OTAPI ThreadError OTCALL otThreadDiscover(otInstance *aInstance, uint32_t aScanChannels, uint16_t aPanid, bool aJoiner,
                                           otHandleActiveScanResult aCallback, void *aCallbackContext);
 
 /**
@@ -286,6 +287,34 @@ OTAPI const uint8_t *OTCALL otThreadGetMasterKey(otInstance *aInstance, uint8_t 
  * @sa otThreadGetMasterKey
  */
 OTAPI ThreadError OTCALL otThreadSetMasterKey(otInstance *aInstance, const uint8_t *aKey, uint8_t aKeyLength);
+
+/**
+ * Get the thrPSKc.
+ *
+ * @param[in]   aInstance   A pointer to an OpenThread instance.
+ *
+ * @returns A pointer to a buffer containing the thrPSKc.
+ *
+ * @sa otThreadSetPSKc
+ */
+OTAPI const uint8_t *OTCALL otThreadGetPSKc(otInstance *aInstance);
+
+/**
+ * Set the thrPSKc.
+ *
+ * This function will only succeed when Thread protocols are disabled.  A successful
+ * call to this function will also invalidate the Active and Pending Operational Datasets in
+ * non-volatile memory.
+ *
+ * @param[in]  aInstance   A pointer to an OpenThread instance.
+ * @param[in]  aPSKc       A pointer to a buffer containing the thrPSKc.
+ *
+ * @retval kThreadError_None            Successfully set the thrPSKc.
+ * @retval kThreadError_InvalidState    Thread protocols are enabled.
+ *
+ * @sa otThreadGetPSKc
+ */
+OTAPI ThreadError OTCALL otThreadSetPSKc(otInstance *aInstance, const uint8_t *aPSKc);
 
 /**
  * This function returns a pointer to the Mesh Local EID.

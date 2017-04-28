@@ -33,6 +33,12 @@
 
 #define WPP_NAME "mesh_forwarder.tmh"
 
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
+
 #include "openthread/platform/random.h"
 
 #include <common/code_utils.hpp>
@@ -50,9 +56,9 @@
 #include <thread/mle.hpp>
 #include <thread/thread_netif.hpp>
 
-using Thread::Encoding::BigEndian::HostSwap16;
+using ot::Encoding::BigEndian::HostSwap16;
 
-namespace Thread {
+namespace ot {
 
 MeshForwarder::MeshForwarder(ThreadNetif &aThreadNetif):
     mNetif(aThreadNetif),
@@ -2149,4 +2155,4 @@ void MeshForwarder::LogIp6Message(MessageAction, const Message &, const Mac::Add
 
 #endif //#if OPENTHREAD_CONFIG_LOG_LEVEL >= OPENTHREAD_LOG_LEVEL_INFO
 
-}  // namespace Thread
+}  // namespace ot

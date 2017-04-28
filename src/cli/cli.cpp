@@ -39,7 +39,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "utils/wrap_string.h"
 
 #ifdef OTDLL
 #include <assert.h>
@@ -75,10 +75,10 @@
 #include "cli_coap.hpp"
 #endif
 
-using Thread::Encoding::BigEndian::HostSwap16;
-using Thread::Encoding::BigEndian::HostSwap32;
+using ot::Encoding::BigEndian::HostSwap16;
+using ot::Encoding::BigEndian::HostSwap32;
 
-namespace Thread {
+namespace ot {
 
 namespace Cli {
 
@@ -156,6 +156,9 @@ const struct Command Interpreter::sCommands[] =
     { "promiscuous", &Interpreter::ProcessPromiscuous },
 #endif
     { "prefix", &Interpreter::ProcessPrefix },
+#if OPENTHREAD_FTD
+    { "pskc", &Interpreter::ProcessPSKc },
+#endif
     { "releaserouterid", &Interpreter::ProcessReleaseRouterId },
     { "reset", &Interpreter::ProcessReset },
     { "rloc16", &Interpreter::ProcessRloc16 },
@@ -747,7 +750,7 @@ void Interpreter::ProcessDiscover(int argc, char *argv[])
         scanChannels = 1 << value;
     }
 
-    SuccessOrExit(error = otThreadDiscover(mInstance, scanChannels, OT_PANID_BROADCAST,
+    SuccessOrExit(error = otThreadDiscover(mInstance, scanChannels, OT_PANID_BROADCAST, false,
                                            &Interpreter::s_HandleActiveScanResult, this));
     sServer->OutputFormat("| J | Network Name     | Extended PAN     | PAN  | MAC Address      | Ch | dBm | LQI |\r\n");
     sServer->OutputFormat("+---+------------------+------------------+------+------------------+----+-----+-----+\r\n");
@@ -1291,6 +1294,35 @@ void Interpreter::ProcessLinkQuality(int argc, char *argv[])
 exit:
     AppendResult(error);
 }
+
+#if OPENTHREAD_FTD
+void Interpreter::ProcessPSKc(int argc, char *argv[])
+{
+    ThreadError error = kThreadError_None;
+
+    if (argc == 0)
+    {
+        const uint8_t *currentPSKc = otThreadGetPSKc(mInstance);
+
+        for (int i = 0; i < OT_PSKC_MAX_SIZE; i++)
+        {
+            sServer->OutputFormat("%02x", currentPSKc[i]);
+        }
+
+        sServer->OutputFormat("\r\n");
+    }
+    else
+    {
+        uint8_t newPSKc[OT_PSKC_MAX_SIZE];
+
+        VerifyOrExit(Hex2Bin(argv[0], newPSKc, sizeof(newPSKc)) == OT_PSKC_MAX_SIZE, error = kThreadError_Parse);
+        SuccessOrExit(error = otThreadSetPSKc(mInstance, newPSKc));
+    }
+
+exit:
+    AppendResult(error);
+}
+#endif
 
 void Interpreter::ProcessMasterKey(int argc, char *argv[])
 {
@@ -3033,4 +3065,4 @@ void Interpreter::HandleDiagnosticGetResponse(Message &aMessage, const Ip6::Mess
 #endif
 
 }  // namespace Cli
-}  // namespace Thread
+}  // namespace ot

@@ -31,11 +31,17 @@
  *   This file implements the CoAP server message dispatch.
  */
 
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
+
 #include <coap/coap_server.hpp>
 #include <common/code_utils.hpp>
 #include <net/ip6.hpp>
 
-namespace Thread {
+namespace ot {
 namespace Coap {
 
 Server::Server(Ip6::Netif &aNetif, uint16_t aPort, SenderFunction aSender, ReceiverFunction aReceiver):
@@ -376,4 +382,4 @@ uint32_t EnqueuedResponseHeader::GetRemainingTime(void) const
 
 
 }  // namespace Coap
-}  // namespace Thread
+}  // namespace ot
