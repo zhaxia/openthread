@@ -39,7 +39,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include "utils/wrap_string.h"
 
 #include "openthread/openthread.h"
 
@@ -50,7 +50,7 @@
 #include "cli.hpp"
 #include "cli_dataset.hpp"
 
-namespace Thread {
+namespace ot {
 namespace Cli {
 
 const DatasetCommand Dataset::sCommands[] =
@@ -741,4 +741,4 @@ exit:
 #endif  // OPENTHREAD_FTD
 
 }  // namespace Cli
-}  // namespace Thread
+}  // namespace ot

@@ -32,6 +32,12 @@
  *   This file implements the Thread network interface.
  */
 
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
+
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <common/message.hpp>
@@ -44,9 +50,9 @@
 #include <thread/thread_uris.hpp>
 #include <openthread-instance.h>
 
-using Thread::Encoding::BigEndian::HostSwap16;
+using ot::Encoding::BigEndian::HostSwap16;
 
-namespace Thread {
+namespace ot {
 
 static const uint8_t kThreadMasterKey[] =
 {
@@ -93,6 +99,9 @@ ThreadNetif::ThreadNetif(Ip6::Ip6 &aIp6):
     mJamDetector(*this),
 #endif // OPENTHREAD_ENABLE_JAM_DETECTTION
 #if OPENTHREAD_FTD
+#if OPENTHREAD_ENABLE_BORDER_AGENT_PROXY
+    mBorderAgentProxy(mMleRouter.GetMeshLocal16(), mCoapServer, mCoapClient),
+#endif // OPENTHREAD_ENABLE_BORDER_AGENT_PROXY
     mJoinerRouter(*this),
     mLeader(*this),
 #endif  // OPENTHREAD_FTD
@@ -178,4 +187,4 @@ otInstance *ThreadNetif::GetInstance(void)
     return otInstanceFromThreadNetif(this);
 }
 
-}  // namespace Thread
+}  // namespace ot

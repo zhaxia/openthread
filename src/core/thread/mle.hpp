@@ -45,7 +45,7 @@
 #include <thread/topology.hpp>
 #include <meshcop/joiner_router.hpp>
 
-namespace Thread {
+namespace ot {
 
 class ThreadNetif;
 class AddressResolver;
@@ -71,7 +71,7 @@ namespace NetworkData { class Leader; }
  */
 
 /**
- * @namespace Thread::Mle
+ * @namespace ot::Mle
  *
  * @brief
  *   This namespace includes definitions for the MLE protocol.
@@ -110,7 +110,6 @@ enum DeviceState
  */
 enum AlocAllocation
 {
-    kAloc16Mask                         = 0xfc,
     kAloc16Leader                       = 0xfc00,
     kAloc16DhcpAgentStart               = 0xfc01,
     kAloc16DhcpAgentEnd                 = 0xfc0f,
@@ -1478,6 +1477,6 @@ private:
  *
  */
 
-}  // namespace Thread
+}  // namespace ot
 
 #endif  // MLE_HPP_

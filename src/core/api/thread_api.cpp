@@ -40,7 +40,7 @@
 #include "common/settings.hpp"
 #include "openthread/platform/settings.h"
 
-using namespace Thread;
+using namespace ot;
 
 uint8_t otThreadGetMaxAllowedChildren(otInstance *aInstance)
 {
@@ -162,6 +162,27 @@ ThreadError otThreadSetLinkMode(otInstance *aInstance, otLinkModeConfig aConfig)
 
     return aInstance->mThreadNetif.GetMle().SetDeviceMode(mode);
 }
+
+#if OPENTHREAD_FTD
+const uint8_t *otThreadGetPSKc(otInstance *aInstance)
+{
+    return aInstance->mThreadNetif.GetKeyManager().GetPSKc();
+}
+
+ThreadError otThreadSetPSKc(otInstance *aInstance, const uint8_t *aPSKc)
+{
+    ThreadError error = kThreadError_None;
+    VerifyOrExit(aInstance->mThreadNetif.GetMle().GetDeviceState() == Mle::kDeviceStateDisabled,
+                 error = kThreadError_InvalidState);
+
+    aInstance->mThreadNetif.GetKeyManager().SetPSKc(aPSKc);
+    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
+    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+
+exit:
+    return error;
+}
+#endif
 
 const uint8_t *otThreadGetMasterKey(otInstance *aInstance, uint8_t *aKeyLength)
 {
@@ -678,10 +699,10 @@ bool otThreadIsSingleton(otInstance *aInstance)
     return aInstance->mThreadNetif.GetMle().IsSingleton();
 }
 
-ThreadError otThreadDiscover(otInstance *aInstance, uint32_t aScanChannels, uint16_t aPanId,
+ThreadError otThreadDiscover(otInstance *aInstance, uint32_t aScanChannels, uint16_t aPanId, bool aJoiner,
                              otHandleActiveScanResult aCallback, void *aCallbackContext)
 {
-    return aInstance->mThreadNetif.GetMle().Discover(aScanChannels, aPanId, false, aCallback, aCallbackContext);
+    return aInstance->mThreadNetif.GetMle().Discover(aScanChannels, aPanId, aJoiner, aCallback, aCallbackContext);
 }
 
 bool otThreadIsDiscoverInProgress(otInstance *aInstance)

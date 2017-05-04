@@ -49,7 +49,7 @@
 
 #include "spinel.h"
 
-namespace Thread {
+namespace ot {
 
 class NcpBase
 {
@@ -143,6 +143,15 @@ protected:
 private:
 
     ThreadError OutboundFrameSend(void);
+
+#if OPENTHREAD_ENABLE_BORDER_AGENT_PROXY && OPENTHREAD_FTD
+    /**
+     * Trampoline for HandleBorderAgentProxyStream().
+     */
+    static void HandleBorderAgentProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort, void *aContext);
+
+    void HandleBorderAgentProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort);
+#endif // OPENTHREAD_ENABLE_BORDER_AGENT_PROXY && OPENTHREAD_FTD
 
     /**
      * Trampoline for HandleDatagramFromStack().
@@ -384,6 +393,9 @@ private:
     ThreadError GetPropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_MAC_WHITELIST_ENABLED(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_THREAD_MODE(uint8_t header, spinel_prop_key_t key);
+#if OPENTHREAD_FTD
+    ThreadError GetPropertyHandler_NET_PSKC(uint8_t header, spinel_prop_key_t key);
+#endif
     ThreadError GetPropertyHandler_THREAD_CHILD_COUNT_MAX(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_THREAD_CHILD_TIMEOUT(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_THREAD_RLOC16(uint8_t header, spinel_prop_key_t key);
@@ -401,6 +413,7 @@ private:
     ThreadError GetPropertyHandler_THREAD_COMMISSIONER_ENABLED(uint8_t header, spinel_prop_key_t key);
 #endif
 
+    ThreadError GetPropertyHandler_BA_PROXY_ENABLED(uint8_t header, spinel_prop_key_t key);
 #if OPENTHREAD_ENABLE_JAM_DETECTION
     ThreadError GetPropertyHandler_JAM_DETECT_ENABLE(uint8_t header, spinel_prop_key_t key);
     ThreadError GetPropertyHandler_JAM_DETECTED(uint8_t header, spinel_prop_key_t key);
@@ -466,6 +479,8 @@ private:
     ThreadError SetPropertyHandler_THREAD_RLOC16_DEBUG_PASSTHRU(uint8_t header, spinel_prop_key_t key,
                                                                 const uint8_t *value_ptr, uint16_t value_len);
 
+    ThreadError SetPropertyHandler_THREAD_BA_PROXY_STREAM(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
+                                                          uint16_t value_len);
 #if OPENTHREAD_ENABLE_RAW_LINK_API
     ThreadError SetPropertyHandler_PHY_ENABLED(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
                                                uint16_t value_len);
@@ -488,6 +503,10 @@ private:
                                                                  const uint8_t *value_ptr, uint16_t value_len);
     ThreadError SetPropertyHandler_MAC_SRC_MATCH_EXTENDED_ADDRESSES(uint8_t header, spinel_prop_key_t key,
                                                                     const uint8_t *value_ptr, uint16_t value_len);
+#endif
+#if OPENTHREAD_FTD
+    ThreadError SetPropertyHandler_NET_PSKC(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
+                                            uint16_t value_len);
 #endif
     ThreadError SetPropertyHandler_THREAD_MODE(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
                                                uint16_t value_len);
@@ -525,6 +544,8 @@ private:
                                                                const uint8_t *value_ptr, uint16_t value_len);
 #endif
 
+    ThreadError SetPropertyHandler_BA_PROXY_ENABLED(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
+                                                    uint16_t value_len);
 #if OPENTHREAD_ENABLE_JAM_DETECTION
     ThreadError SetPropertyHandler_JAM_DETECT_ENABLE(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
                                                      uint16_t value_len);
@@ -653,6 +674,6 @@ private:
 
 };
 
-}  // namespace Thread
+}  // namespace ot
 
 #endif  // NCP_BASE_HPP_

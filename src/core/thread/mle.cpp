@@ -31,6 +31,12 @@
  *   This file implements MLE functionality required for the Thread Child, Router and Leader roles.
  */
 
+#ifdef OPENTHREAD_CONFIG_FILE
+#include OPENTHREAD_CONFIG_FILE
+#else
+#include <openthread-config.h>
+#endif
+
 #define WPP_NAME "mle.tmh"
 
 #include "openthread/platform/radio.h"
@@ -53,9 +59,9 @@
 #include <thread/mle_router.hpp>
 #include <thread/thread_netif.hpp>
 
-using Thread::Encoding::BigEndian::HostSwap16;
+using ot::Encoding::BigEndian::HostSwap16;
 
-namespace Thread {
+namespace ot {
 namespace Mle {
 
 Mle::Mle(ThreadNetif &aThreadNetif) :
@@ -3226,12 +3232,14 @@ uint16_t Mle::GetNextHop(uint16_t aDestination) const
 
 bool Mle::IsRoutingLocator(const Ip6::Address &aAddress) const
 {
-    return memcmp(&mMeshLocal16, &aAddress, kRlocPrefixLength) == 0 && aAddress.mFields.m8[14] != kAloc16Mask;
+    return memcmp(&mMeshLocal16, &aAddress, kRlocPrefixLength) == 0 &&
+           aAddress.mFields.m8[14] < Ip6::Address::kAloc16Mask &&
+           (aAddress.mFields.m8[14] & Ip6::Address::kRloc16ReservedBitMask) == 0;
 }
 
 bool Mle::IsAnycastLocator(const Ip6::Address &aAddress) const
 {
-    return memcmp(&mMeshLocal16, &aAddress, kRlocPrefixLength) == 0 && aAddress.mFields.m8[14] == kAloc16Mask;
+    return memcmp(&mMeshLocal16, &aAddress, kRlocPrefixLength) == 0 && aAddress.mFields.m8[14] == Ip6::Address::kAloc16Mask;
 }
 
 Router *Mle::GetParent()
@@ -3272,4 +3280,4 @@ exit:
 }
 
 }  // namespace Mle
-}  // namespace Thread
+}  // namespace ot

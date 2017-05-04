@@ -34,9 +34,9 @@
 #ifndef NETWORK_DATA_LEADER_MTD_HPP_
 #define NETWORK_DATA_LEADER_MTD_HPP_
 
-#include <stdint.h>
+#include "utils/wrap_stdint.h"
 
-namespace Thread {
+namespace ot {
 
 class ThreadNetif;
 
@@ -62,6 +62,6 @@ public:
 };
 
 }  // namespace NetworkData
-}  // namespace Thread
+}  // namespace ot
 
 #endif  // NETWORK_DATA_LEADER_MTD_HPP_

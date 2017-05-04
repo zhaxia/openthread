@@ -64,10 +64,10 @@
 #define MAX_CLI_OT_INSTANCES 64
 #endif
 
-namespace Thread {
+namespace ot {
 
 /**
- * @namespace Thread::Cli
+ * @namespace ot::Cli
  *
  * @brief
  *   This namespace contains definitions for the CLI interpreter.
@@ -226,6 +226,9 @@ private:
     ThreadError ProcessPrefixRemove(int argc, char *argv[]);
     ThreadError ProcessPrefixList(void);
     void ProcessPromiscuous(int argc, char *argv[]);
+#if OPENTHREAD_FTD
+    void ProcessPSKc(int argc, char *argv[]);
+#endif
     void ProcessReleaseRouterId(int argc, char *argv[]);
     void ProcessReset(int argc, char *argv[]);
     void ProcessRoute(int argc, char *argv[]);
@@ -343,6 +346,6 @@ private:
 };
 
 }  // namespace Cli
-}  // namespace Thread
+}  // namespace ot
 
 #endif  // CLI_HPP_

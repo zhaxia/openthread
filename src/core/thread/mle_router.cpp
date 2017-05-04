@@ -55,9 +55,9 @@
 #include <thread/thread_tlvs.hpp>
 #include <thread/thread_uris.hpp>
 
-using Thread::Encoding::BigEndian::HostSwap16;
+using ot::Encoding::BigEndian::HostSwap16;
 
-namespace Thread {
+namespace ot {
 namespace Mle {
 
 MleRouter::MleRouter(ThreadNetif &aThreadNetif):
@@ -2493,6 +2493,12 @@ ThreadError MleRouter::HandleDiscoveryRequest(const Message &aMessage, const Ip6
         case MeshCoP::Tlv::kDiscoveryRequest:
             aMessage.Read(offset, sizeof(discoveryRequest), &discoveryRequest);
             VerifyOrExit(discoveryRequest.IsValid(), error = kThreadError_Parse);
+
+            if (discoveryRequest.IsJoiner())
+            {
+                VerifyOrExit(mNetif.GetNetworkDataLeader().IsJoiningEnabled());
+            }
+
             break;
 
         case MeshCoP::Tlv::kExtendedPanId:
@@ -4523,7 +4529,7 @@ uint8_t MleRouter::GetMinDowngradeNeighborRouters(void)
 }
 
 }  // namespace Mle
-}  // namespace Thread
+}  // namespace ot
 
 #endif // OPENTHREAD_FTD
 

@@ -42,7 +42,7 @@
 #include <thread/link_quality.hpp>
 #include <common/message.hpp>
 
-namespace Thread {
+namespace ot {
 
 /**
  * This class represents a Thread neighbor.
@@ -89,16 +89,7 @@ public:
      * @returns `true` if the neighbor is in valid, restored, or being restored states, `false` otherwise.
      *
      */
-    bool IsStateValidOrRestoring(void) const {
-        switch (mState) {
-        case kStateValid:
-        case kStateRestored:
-            return true;
-
-        default:
-            return false;
-        }
-    }
+    bool IsStateValidOrRestoring(void) const { return (mState == kStateValid) || (mState == kStateRestored); }
 
     /**
      * This method gets the device mode flags.
@@ -306,11 +297,7 @@ public:
      * This method generates a new challenge value for MLE Link Request/Response exchanges.
      *
      */
-    void GenerateChallenge(void) {
-        for (uint8_t i = 0; i < sizeof(mValidPending.mPending.mChallenge); i++) {
-            mValidPending.mPending.mChallenge[i] = static_cast<uint8_t>(otPlatRandomGet());
-        }
-    }
+    void GenerateChallenge(void);
 
     /**
      * This method returns the current challenge value for MLE Link Request/Response exchanges.
@@ -421,11 +408,7 @@ public:
      * This method generates a new challenge value to use during a child attach.
      *
      */
-    void GenerateChallenge(void) {
-        for (uint8_t i = 0; i < sizeof(mAttachChallenge); i++) {
-            mAttachChallenge[i] = static_cast<uint8_t>(otPlatRandomGet());
-        }
-    }
+    void GenerateChallenge(void);
 
     /**
      * This method gets the current challenge value used during attach.
@@ -634,18 +617,7 @@ public:
      * @returns A (const) reference to the mac address @a aMacAddress.
      *
      */
-    const Mac::Address &GetMacAddress(Mac::Address &aMacAddress) const {
-        if (mUseShortAddress) {
-            aMacAddress.mShortAddress = GetRloc16();
-            aMacAddress.mLength = sizeof(aMacAddress.mShortAddress);
-        }
-        else {
-            aMacAddress.mExtAddress = GetExtAddress();
-            aMacAddress.mLength = sizeof(aMacAddress.mExtAddress);
-        }
-
-        return aMacAddress;
-    }
+    const Mac::Address &GetMacAddress(Mac::Address &aMacAddress) const;
 
 private:
     Ip6::Address mIp6Address[kMaxIp6AddressPerChild];  ///< Registered IPv6 addresses
@@ -764,6 +736,6 @@ private:
     bool    mReclaimDelay : 1;    ///< Indicates whether or not this entry is waiting to be reclaimed
 };
 
-}  // namespace Thread
+}  // namespace ot
 
 #endif  // TOPOLOGY_HPP_

@@ -40,8 +40,8 @@
 #include <openthread-config.h>
 #endif
 
-#include <stdint.h>
-#include <string.h>
+#include "utils/wrap_stdint.h"
+#include "utils/wrap_string.h"
 
 #include "openthread/message.h"
 #include "openthread/platform/messagepool.h"
@@ -50,7 +50,7 @@
 #include <common/code_utils.hpp>
 #include <mac/mac_frame.hpp>
 
-namespace Thread {
+namespace ot {
 
 /**
  * @addtogroup core-message
@@ -1140,6 +1140,6 @@ private:
  *
  */
 
-}  // namespace Thread
+}  // namespace ot
 
 #endif  // MESSAGE_HPP_

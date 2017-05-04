@@ -62,7 +62,7 @@
 
 #if OPENTHREAD_FTD
 
-namespace Thread {
+namespace ot {
 namespace MeshCoP {
 
 ActiveDataset::ActiveDataset(ThreadNetif &aThreadNetif):
@@ -162,10 +162,9 @@ ThreadError ActiveDataset::GenerateLocal(void)
     // PSKc
     if (!IsTlvInitialized(Tlv::kPSKc))
     {
-        const uint8_t pskc[OT_PSKC_MAX_SIZE] = {0};
         PSKcTlv tlv;
         tlv.Init();
-        tlv.SetPSKc(pskc);
+        tlv.SetPSKc(mNetif.GetKeyManager().GetPSKc());
         mLocal.Set(tlv);
     }
 
@@ -292,6 +291,6 @@ exit:
 }
 
 }  // namespace MeshCoP
-}  // namespace Thread
+}  // namespace ot
 
 #endif // OPENTHREAD_FTD
