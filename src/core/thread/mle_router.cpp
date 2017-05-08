@@ -40,20 +40,21 @@
 #include <openthread-config.h>
 #endif
 
-#include "openthread/platform/random.h"
-#include "openthread/platform/settings.h"
+#include "mle_router.hpp"
 
-#include <common/code_utils.hpp>
-#include <common/debug.hpp>
-#include <common/logging.hpp>
-#include <common/encoding.hpp>
-#include <common/settings.hpp>
-#include <mac/mac_frame.hpp>
-#include <net/icmp6.hpp>
-#include <thread/mle_router.hpp>
-#include <thread/thread_netif.hpp>
-#include <thread/thread_tlvs.hpp>
-#include <thread/thread_uris.hpp>
+#include <openthread/platform/random.h>
+#include <openthread/platform/settings.h>
+
+#include "common/code_utils.hpp"
+#include "common/debug.hpp"
+#include "common/encoding.hpp"
+#include "common/logging.hpp"
+#include "common/settings.hpp"
+#include "mac/mac_frame.hpp"
+#include "net/icmp6.hpp"
+#include "thread/thread_netif.hpp"
+#include "thread/thread_tlvs.hpp"
+#include "thread/thread_uris.hpp"
 
 using ot::Encoding::BigEndian::HostSwap16;
 
@@ -65,7 +66,9 @@ MleRouter::MleRouter(ThreadNetif &aThreadNetif):
     mAdvertiseTimer(aThreadNetif.GetIp6().mTimerScheduler, &MleRouter::HandleAdvertiseTimer, NULL, this),
     mStateUpdateTimer(aThreadNetif.GetIp6().mTimerScheduler, &MleRouter::HandleStateUpdateTimer, this),
     mAddressSolicit(OPENTHREAD_URI_ADDRESS_SOLICIT, &MleRouter::HandleAddressSolicit, this),
-    mAddressRelease(OPENTHREAD_URI_ADDRESS_RELEASE, &MleRouter::HandleAddressRelease, this)
+    mAddressRelease(OPENTHREAD_URI_ADDRESS_RELEASE, &MleRouter::HandleAddressRelease, this),
+    mRouterSelectionJitter(kRouterSelectionJitter),
+    mRouterSelectionJitterTimeout(0)
 {
     mDeviceMode |= ModeTlv::kModeFFD | ModeTlv::kModeFullNetworkData;
 
@@ -333,6 +336,8 @@ void MleRouter::StopLeader(void)
 ThreadError MleRouter::HandleDetachStart(void)
 {
     ThreadError error = kThreadError_None;
+
+    mNetif.GetAddressResolver().Clear();
 
     for (int i = 0; i <= kMaxRouterId; i++)
     {
@@ -1129,6 +1134,18 @@ uint8_t MleRouter::GetLinkCost(uint8_t aRouterId)
 
 exit:
     return rval;
+}
+
+ThreadError MleRouter::SetRouterSelectionJitter(uint8_t aRouterJitter)
+{
+    ThreadError error = kThreadError_None;
+
+    VerifyOrExit(aRouterJitter > 0, error = kThreadError_InvalidArgs);
+
+    mRouterSelectionJitter = aRouterJitter;
+
+exit:
+    return error;
 }
 
 ThreadError MleRouter::ProcessRouteTlv(const RouteTlv &aRoute)
@@ -1949,7 +1966,10 @@ exit:
 ThreadError MleRouter::UpdateChildAddresses(const AddressRegistrationTlv &aTlv, Child &aChild)
 {
     const AddressRegistrationEntry *entry;
+    Ip6::Address address;
     Lowpan::Context context;
+    Child *child;
+    uint8_t index;
 
     aChild.ClearIp6Addresses();
 
@@ -1964,12 +1984,39 @@ ThreadError MleRouter::UpdateChildAddresses(const AddressRegistrationTlv &aTlv, 
         {
             // xxx check if context id exists
             mNetif.GetNetworkDataLeader().GetContext(entry->GetContextId(), context);
-            memcpy(&aChild.GetIp6Address(count), context.mPrefix, BitVectorBytes(context.mPrefixLength));
-            aChild.GetIp6Address(count).SetIid(entry->GetIid());
+            memcpy(&address, context.mPrefix, BitVectorBytes(context.mPrefixLength));
+            address.SetIid(entry->GetIid());
         }
         else
         {
-            aChild.GetIp6Address(count) = *entry->GetIp6Address();
+            address = *entry->GetIp6Address();
+        }
+
+        aChild.GetIp6Address(count) = address;
+
+        // We check if the same address is in-use by another child, if so
+        // remove it. This implements "last-in wins" duplicate address
+        // resolution policy.
+        //
+        // Duplicate addresses can occur if a previously attached child
+        // attaches to same parent again (after a reset, memory wipe) using
+        // a new random extended address before the old entry in the child
+        // table is timed out and then trying to register its globally unique
+        // IPv6 address as the new child.
+
+        for (int i = 0; i < mMaxChildrenAllowed; i++)
+        {
+            child = &mChildren[i];
+
+            if (!child->IsStateValidOrRestoring() || (child == &aChild))
+            {
+                continue;
+            }
+
+            if (child->FindIp6Address(address, &index) == kThreadError_None)
+            {
+                child->RemoveIp6Address(index);
+            }
         }
     }
 
@@ -2448,6 +2495,39 @@ exit:
     return kThreadError_None;
 }
 
+#if OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
+ThreadError MleRouter::SetSteeringData(otExtAddress *aExtAddress)
+{
+    ThreadError error = kThreadError_None;
+    uint8_t nullExtAddr[OT_EXT_ADDRESS_SIZE];
+    uint8_t allowAnyExtAddr[OT_EXT_ADDRESS_SIZE];
+
+    memset(nullExtAddr, 0, sizeof(nullExtAddr));
+    memset(allowAnyExtAddr, 0xFF, sizeof(allowAnyExtAddr));
+
+    mSteeringData.Init();
+
+    if ((aExtAddress == NULL) || (memcmp(aExtAddress, &nullExtAddr, sizeof(nullExtAddr)) == 0))
+    {
+        // Clear steering data
+        mSteeringData.Clear();
+    }
+    else if (memcmp(aExtAddress, &allowAnyExtAddr, sizeof(allowAnyExtAddr)) == 0)
+    {
+        // Set steering data to 0xFF
+        mSteeringData.SetLength(1);
+        mSteeringData.Set();
+    }
+    else
+    {
+        // Set bloom filter with the extended address passed in
+        mSteeringData.ComputeBloomFilter(aExtAddress);
+    }
+
+    return error;
+}
+#endif // OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
+
 ThreadError MleRouter::HandleDiscoveryRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     ThreadError error = kThreadError_None;
@@ -2496,7 +2576,17 @@ ThreadError MleRouter::HandleDiscoveryRequest(const Message &aMessage, const Ip6
 
             if (discoveryRequest.IsJoiner())
             {
-                VerifyOrExit(mNetif.GetNetworkDataLeader().IsJoiningEnabled());
+#if OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
+
+                if (!mSteeringData.IsCleared())
+                {
+                    break;
+                }
+                else // if steering data is not set out of band, fall back to network data
+#endif // OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
+                {
+                    VerifyOrExit(mNetif.GetNetworkDataLeader().IsJoiningEnabled());
+                }
             }
 
             break;
@@ -2576,12 +2666,24 @@ ThreadError MleRouter::SendDiscoveryResponse(const Ip6::Address &aDestination, u
     networkName.SetNetworkName(mNetif.GetMac().GetNetworkName());
     SuccessOrExit(error = message->Append(&networkName, sizeof(tlv) + networkName.GetLength()));
 
-    // Steering Data TLV
-    steeringData = mNetif.GetNetworkDataLeader().GetCommissioningDataSubTlv(MeshCoP::Tlv::kSteeringData);
+#if OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
 
-    if (steeringData != NULL)
+    // If steering data is set out of band, use that value.
+    // Otherwise use the one from commissioning data.
+    if (!mSteeringData.IsCleared())
     {
-        SuccessOrExit(message->Append(steeringData, sizeof(*steeringData) + steeringData->GetLength()));
+        SuccessOrExit(message->Append(&mSteeringData, sizeof(mSteeringData) + mSteeringData.GetLength()));
+    }
+    else
+#endif // OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
+    {
+        // Steering Data TLV
+        steeringData = mNetif.GetNetworkDataLeader().GetCommissioningDataSubTlv(MeshCoP::Tlv::kSteeringData);
+
+        if (steeringData != NULL)
+        {
+            SuccessOrExit(message->Append(steeringData, sizeof(*steeringData) + steeringData->GetLength()));
+        }
     }
 
     // Joiner UDP Port TLV
@@ -3182,12 +3284,9 @@ Neighbor *MleRouter::GetNeighbor(const Ip6::Address &aAddress)
             ExitNow(rval = child);
         }
 
-        for (uint8_t j = 0; j < Child::kMaxIp6AddressPerChild; j++)
+        if (child->FindIp6Address(aAddress, NULL) == kThreadError_None)
         {
-            if (child->GetIp6Address(j) == aAddress)
-            {
-                ExitNow(rval = child);
-            }
+            ExitNow(rval = child);
         }
     }
 

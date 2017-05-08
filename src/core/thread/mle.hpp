@@ -34,21 +34,20 @@
 #ifndef MLE_HPP_
 #define MLE_HPP_
 
-#include "openthread/openthread.h"
+#include <openthread/openthread.h>
 
-#include <common/encoding.hpp>
-#include <common/timer.hpp>
-#include <mac/mac.hpp>
-#include <net/udp6.hpp>
-#include <thread/mle_constants.hpp>
-#include <thread/mle_tlvs.hpp>
-#include <thread/topology.hpp>
-#include <meshcop/joiner_router.hpp>
+#include "common/encoding.hpp"
+#include "common/timer.hpp"
+#include "mac/mac.hpp"
+#include "meshcop/joiner_router.hpp"
+#include "net/udp6.hpp"
+#include "thread/mle_constants.hpp"
+#include "thread/mle_tlvs.hpp"
+#include "thread/topology.hpp"
 
 namespace ot {
 
 class ThreadNetif;
-class AddressResolver;
 class KeyManager;
 class MeshForwarder;
 
@@ -564,17 +563,19 @@ public:
     /**
      * This method initiates a Thread Discovery.
      *
-     * @param[in]  aScanChannels  A bit vector indicating which channels to scan.
-     * @param[in]  aPanId         The PAN ID filter (set to Broadcast PAN to disable filter).
-     * @param[in]  aJoiner        Value of the Joiner Flag in the Discovery Request TLV.
-     * @param[in]  aHandler       A pointer to a function that is called on receiving an MLE Discovery Response.
-     * @param[in]  aContext       A pointer to arbitrary context information.
+     * @param[in]  aScanChannels          A bit vector indicating which channels to scan.
+     * @param[in]  aPanId                 The PAN ID filter (set to Broadcast PAN to disable filter).
+     * @param[in]  aJoiner                Value of the Joiner Flag in the Discovery Request TLV.
+     * @param[in]  aEnableEui64Filtering  Enable filtering out MLE discovery responses that don't match our factory assigned EUI64.
+     * @param[in]  aHandler               A pointer to a function that is called on receiving an MLE Discovery Response.
+     * @param[in]  aContext               A pointer to arbitrary context information.
      *
      * @retval kThreadError_None  Successfully started a Thread Discovery.
      * @retval kThreadError_Busy  Thread Discovery is already in progress.
      *
      */
-    ThreadError Discover(uint32_t aScanChannels, uint16_t aPanId, bool aJoiner, DiscoverHandler aCallback,
+    ThreadError Discover(uint32_t aScanChannels, uint16_t aPanId, bool aJoiner, bool aEnableEui64Filtering,
+                         DiscoverHandler aCallback,
                          void *aContext);
 
     /**
@@ -845,22 +846,6 @@ public:
      *
      */
     void SetAssignLinkQuality(const Mac::ExtAddress aMacAddr, uint8_t aLinkQuality);
-
-    /**
-     * This method returns the ROUTER_SELECTION_JITTER value.
-     *
-     * @returns The ROUTER_SELECTION_JITTER value.
-     *
-     */
-    uint8_t GetRouterSelectionJitter(void) const { return mRouterSelectionJitter; }
-
-    /**
-     * This method sets the ROUTER_SELECTION_JITTER value.
-     *
-     * @returns The ROUTER_SELECTION_JITTER value.
-     *
-     */
-    ThreadError SetRouterSelectionJitter(uint8_t aRouterJitter);
 
     /**
      * This method returns the Child ID portion of an RLOC16.
@@ -1374,10 +1359,6 @@ protected:
 
     Timer mParentRequestTimer;    ///< The timer for driving the Parent Request process.
     Timer mDelayedResponseTimer;  ///< The timer to delay MLE responses.
-
-    uint8_t mRouterSelectionJitter;         ///< The variable to save the assigned jitter value.
-    uint8_t mRouterSelectionJitterTimeout;  ///< The Timeout prior to request/release Router ID.
-
     uint8_t mLastPartitionRouterIdSequence;
     uint32_t mLastPartitionId;
 
@@ -1454,6 +1435,7 @@ private:
     DiscoverHandler mDiscoverHandler;
     void *mDiscoverContext;
     bool mIsDiscoverInProgress;
+    bool mEnableEui64Filtering;
 
     uint8_t mAnnounceChannel;
     uint8_t mPreviousChannel;

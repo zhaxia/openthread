@@ -26,16 +26,16 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "test_util.h"
-
-#include "openthread/openthread.h"
-
-#include <openthread-instance.h>
-#include <common/debug.hpp>
-#include <common/message.hpp>
-
-#include "utils/wrap_string.h"
 #include <stdarg.h>
+#include "utils/wrap_string.h"
+
+#include <openthread/openthread.h>
+
+#include "openthread-instance.h"
+#include "common/debug.hpp"
+#include "common/message.hpp"
+
+#include "test_util.h"
 
 #define kNumTestMessages      5
 
@@ -203,7 +203,7 @@ void TestMessageQueueOtApis(void)
     otInstanceBuffer = (uint8_t *)malloc(otInstanceBufferLength);
     assert(otInstanceBuffer);
 
-    // Initialize Openthread with the buffer
+    // Initialize OpenThread with the buffer
     instance = otInstanceInit(otInstanceBuffer, &otInstanceBufferLength);
 #else
     instance = otInstanceInit();

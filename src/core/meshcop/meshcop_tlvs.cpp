@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2016-2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,26 +28,45 @@
 
 /**
  * @file
- *   This file includes definitions for Thread EID-to-RLOC mapping and caching.
+ *   This file implements MechCop TLV helper functions.
  */
 
-#ifndef ADDRESS_RESOLVER_HPP_
-#define ADDRESS_RESOLVER_HPP_
-
-#include "openthread/types.h"
+#include "meshcop_tlvs.hpp"
 
 namespace ot {
+namespace MeshCoP {
 
-class AddressResolver
+bool SteeringDataTlv::IsCleared(void) const
 {
-public:
-    explicit AddressResolver(ThreadNetif &) { }
-    void Clear(void) { }
-    ThreadError GetEntry(uint8_t, otEidCacheEntry &) const { return kThreadError_NotImplemented; }
-    void Remove(uint8_t) { }
-    ThreadError Resolve(const Ip6::Address &, Mac::ShortAddress &) { return kThreadError_NotImplemented; }
-};
+    bool rval = true;
+
+    for (uint8_t i = 0; i < GetLength(); i++)
+    {
+        if (mSteeringData[i] != 0)
+        {
+            rval = false;
+            break;
+        }
+    }
+
+    return rval;
+}
+
+void SteeringDataTlv::ComputeBloomFilter(otExtAddress *aExtAddress)
+{
+    Crc16 ccitt(Crc16::kCcitt);
+    Crc16 ansi(Crc16::kAnsi);
+
+    for (size_t j = 0; j < sizeof(otExtAddress); j++)
+    {
+        uint8_t byte = aExtAddress->m8[j];
+        ccitt.Update(byte);
+        ansi.Update(byte);
+    }
+
+    SetBit(ccitt.Get() % GetNumBits());
+    SetBit(ansi.Get() % GetNumBits());
+}
 
 }  // namespace ot
-
-#endif  // ADDRESS_RESOLVER_HPP_
+}  // namespace Thread

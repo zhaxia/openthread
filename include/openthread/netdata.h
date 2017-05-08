@@ -35,7 +35,7 @@
 #ifndef OPENTHREAD_NETDATA_H_
 #define OPENTHREAD_NETDATA_H_
 
-#include "openthread/types.h"
+#include <openthread/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -146,6 +146,22 @@ OTAPI ThreadError OTCALL otNetDataAddRoute(otInstance *aInstance, const otExtern
  * @sa otSendServerData
  */
 OTAPI ThreadError OTCALL otNetDataRemoveRoute(otInstance *aInstance, const otIp6Prefix *aPrefix);
+
+/**
+ * This function gets the next external route in the Network Data.
+ *
+ * @param[in]     aInstance  A pointer to an OpenThread instance.
+ * @param[in]     aLocal     TRUE to retrieve from the local Network Data, FALSE for partition's Network Data
+ * @param[inout]  aIterator  A pointer to the Network Data iterator context. To get the first external route entry
+                             it should be set to OT_NETWORK_DATA_ITERATOR_INIT.
+ * @param[out]    aConfig    A pointer to where the External Route information will be placed.
+ *
+ * @retval kThreadError_None      Successfully found the next External Route.
+ * @retval kThreadError_NotFound  No subsequent external route entry exists in the Thread Network Data.
+ *
+ */
+ThreadError otNetDataGetNextRoute(otInstance *aInstance, bool aLocal, otNetworkDataIterator *aIterator,
+                                  otExternalRouteConfig *aConfig);
 
 /**
  * Immediately register the local network data with the Leader.

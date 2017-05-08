@@ -31,25 +31,26 @@
  *   This file implements data poll (mac data request command) manager class.
  */
 
+#define WPP_NAME "data_poll_manager.tmh"
+
 #ifdef OPENTHREAD_CONFIG_FILE
 #include OPENTHREAD_CONFIG_FILE
 #else
 #include <openthread-config.h>
 #endif
 
-#define WPP_NAME "data_poll_manager.tmh"
+#include "data_poll_manager.hpp"
 
-#include "openthread/platform/random.h"
+#include <openthread/platform/random.h>
 
-#include <common/code_utils.hpp>
-#include <common/logging.hpp>
-#include <common/message.hpp>
-#include <net/ip6.hpp>
-#include <net/netif.hpp>
-#include <thread/data_poll_manager.hpp>
-#include <thread/mesh_forwarder.hpp>
-#include <thread/mle.hpp>
-#include <thread/thread_netif.hpp>
+#include "common/code_utils.hpp"
+#include "common/logging.hpp"
+#include "common/message.hpp"
+#include "net/ip6.hpp"
+#include "net/netif.hpp"
+#include "thread/mesh_forwarder.hpp"
+#include "thread/mle.hpp"
+#include "thread/thread_netif.hpp"
 
 namespace ot {
 
@@ -388,7 +389,7 @@ uint32_t DataPollManager::CalculatePollPeriod(void) const
 
     if (period == 0)
     {
-        period = Timer::SecToMsec(mMeshForwarder.GetNetif().GetMle().GetTimeout() / Mle::kMaxChildKeepAliveAttempts);
+        period = Timer::SecToMsec(mMeshForwarder.GetNetif().GetMle().GetTimeout()) -  kRetxPollPeriod * kMaxPollRetxAttempts;
 
         if (period == 0)
         {

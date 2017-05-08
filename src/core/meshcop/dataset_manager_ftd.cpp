@@ -32,6 +32,8 @@
  *
  */
 
+#if OPENTHREAD_FTD
+
 #define WPP_NAME "dataset_manager.tmh"
 
 #ifdef OPENTHREAD_CONFIG_FILE
@@ -42,25 +44,23 @@
 
 #include <stdio.h>
 
-#include "openthread/platform/random.h"
-#include "openthread/platform/radio.h"
+#include <openthread/platform/random.h>
+#include <openthread/platform/radio.h>
 
-#include <common/code_utils.hpp>
-#include <common/debug.hpp>
-#include <coap/coap_header.hpp>
-#include <common/debug.hpp>
-#include <common/code_utils.hpp>
-#include <common/logging.hpp>
-#include <common/timer.hpp>
-#include <meshcop/dataset.hpp>
-#include <meshcop/dataset_manager.hpp>
-#include <meshcop/tlvs.hpp>
-#include <thread/thread_netif.hpp>
-#include <thread/thread_tlvs.hpp>
-#include <thread/thread_uris.hpp>
-#include <meshcop/leader.hpp>
-
-#if OPENTHREAD_FTD
+#include "common/code_utils.hpp"
+#include "common/debug.hpp"
+#include "coap/coap_header.hpp"
+#include "common/debug.hpp"
+#include "common/code_utils.hpp"
+#include "common/logging.hpp"
+#include "common/timer.hpp"
+#include "meshcop/dataset.hpp"
+#include "meshcop/dataset_manager.hpp"
+#include "meshcop/meshcop_tlvs.hpp"
+#include "meshcop/leader.hpp"
+#include "thread/thread_netif.hpp"
+#include "thread/thread_tlvs.hpp"
+#include "thread/thread_uris.hpp"
 
 namespace ot {
 namespace MeshCoP {
@@ -137,7 +137,7 @@ ThreadError ActiveDataset::GenerateLocal(void)
     {
         NetworkMasterKeyTlv tlv;
         tlv.Init();
-        tlv.SetNetworkMasterKey(mNetif.GetKeyManager().GetMasterKey(NULL));
+        tlv.SetNetworkMasterKey(mNetif.GetKeyManager().GetMasterKey());
         mLocal.Set(tlv);
     }
 

@@ -38,7 +38,7 @@
 
 #include <stdint.h>
 
-#include "openthread/types.h"
+#include <openthread/types.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -497,6 +497,15 @@ ThreadError otPlatRadioEnergyScan(otInstance *aInstance, uint8_t aScanChannel, u
  *
  */
 extern void otPlatRadioEnergyScanDone(otInstance *aInstance, int8_t aEnergyScanMaxRssi);
+
+/**
+ * Get the radio receive sensitivity value.
+ *
+ * @param[in] aInstance  The OpenThread instance structure.
+ *
+ * @returns The radio receive sensitivity value in dBm.
+ */
+int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance);
 
 /**
  * @}

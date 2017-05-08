@@ -33,15 +33,14 @@
  */
 
 #include <openthread-config.h>
+#include <openthread/openthread.h>
+#include <openthread/platform/diag.h>
+#include <openthread/platform/platform.h>
+#include <openthread/platform/radio.h>
 
-#include "openthread/openthread.h"
-#include "openthread/platform/platform.h"
-#include "openthread/platform/radio.h"
-#include "openthread/platform/diag.h"
-
-#include <utils/code_utils.h>
-#include <common/logging.hpp>
 #include "platform-cc2538.h"
+#include "common/logging.hpp"
+#include "utils/code_utils.h"
 
 enum
 {
@@ -60,6 +59,11 @@ enum
     CC2538_RSSI_OFFSET = 73,
     CC2538_CRC_BIT_MASK = 0x80,
     CC2538_LQI_BIT_MASK = 0x7f,
+};
+
+enum
+{
+    CC2538_RECEIVE_SENSITIVITY = -100, // dBm
 };
 
 static RadioPacket sTransmitFrame;
@@ -792,4 +796,10 @@ void otPlatRadioSetDefaultTxPower(otInstance *aInstance, int8_t aPower)
     // TODO: Create a proper implementation for this driver.
     (void)aInstance;
     (void)aPower;
+}
+
+int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
+{
+    (void)aInstance;
+    return CC2538_RECEIVE_SENSITIVITY;
 }
