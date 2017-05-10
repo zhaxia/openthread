@@ -569,6 +569,38 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_BORDER_AGENT_PROXY], [test "${enable_border_ag
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_BORDER_AGENT_PROXY],[${OPENTHREAD_ENABLE_BORDER_AGENT_PROXY}],[Define to 1 to enable the border agent proxy feature.])
 
 #
+# Thread Network Diagnostic for MTD
+#
+
+AC_ARG_ENABLE(mtd_network_diagnostic,
+    [AS_HELP_STRING([--enable-mtd-network-diagnostic],[Enable network diagnostic support for MTD @<:@default=no@:>@.])],
+    [
+        case "${enableval}" in
+
+        no|yes)
+            enable_mtd_network_diagnostic=${enableval}
+            ;;
+
+        *)
+            AC_MSG_ERROR([Invalid value ${enable_mtd_network_diagnostic} for --enable-mtd-network-diagnostic])
+            ;;
+        esac
+    ],
+    [enable_mtd_network_diagnostic=no])
+
+if test "$enable_mtd_network_diagnostic" = "yes"; then
+    OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC=1
+else
+    OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC=0
+fi
+
+AC_MSG_CHECKING([whether to enable the network diagnostic for MTD])
+AC_MSG_RESULT(${enable_mtd_network_diagnostic})
+AC_SUBST(OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC)
+AM_CONDITIONAL([OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC], [test "${enable_mtd_network_diagnostic}" = "yes"])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC],[${OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC}],[Define to 1 to enable network diagnostic for MTD.])
+
+#
 # Thread Commissioner
 #
 
@@ -773,6 +805,37 @@ AC_MSG_RESULT(${enable_legacy})
 AC_SUBST(OPENTHREAD_ENABLE_LEGACY)
 AM_CONDITIONAL([OPENTHREAD_ENABLE_LEGACY], [test "${enable_legacy}" = "yes"])
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_LEGACY],[${OPENTHREAD_ENABLE_LEGACY}],[Define to 1 if you want to use legacy network support])
+
+#
+# Child Supervision
+#
+
+AC_ARG_ENABLE(child_supervision,
+    [AS_HELP_STRING([--enable-child-supervision],[Enable child supervision feature @<:@default=no@:>@.])],
+    [
+        case "${enableval}" in
+
+        no|yes)
+            enable_child_supervision=${enableval}
+            ;;
+
+        *)
+            AC_MSG_ERROR([Invalid value ${enable_child_supervision} for --enable-child-supervision])
+            ;;
+        esac
+    ],
+    [enable_child_supervision=no])
+
+if test "$enable_child_supervision" = "yes"; then
+    OPENTHREAD_ENABLE_CHILD_SUPERVISION=1
+else
+    OPENTHREAD_ENABLE_CHILD_SUPERVISION=0
+fi
+
+AC_MSG_RESULT(${enable_child_supervision})
+AC_SUBST(OPENTHREAD_ENABLE_CHILD_SUPERVISION)
+AM_CONDITIONAL([OPENTHREAD_ENABLE_CHILD_SUPERVISION], [test "${enable_child_supervision}" = "yes"])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_CHILD_SUPERVISION],[${OPENTHREAD_ENABLE_CHILD_SUPERVISION}],[Define to 1 if you want to use child supervision feature])
 
 #
 # Default Logging
@@ -1162,8 +1225,8 @@ AC_CHECK_HEADERS([string.h])
 # Missing Functions
 #
 AC_CHECK_FUNC([strlcpy], [AC_DEFINE([HAVE_STRLCPY], [1], [Define if strlcpy exists.])])
-AC_CHECK_FUNC([strlcat], [AC_DEFINE([HAVE_STRLCAT], [1], [Define if strlcpy exists.])])
-AC_CHECK_FUNC([strnlen], [AC_DEFINE([HAVE_STRNLEN], [1], [Define if strlcpy exists.])])
+AC_CHECK_FUNC([strlcat], [AC_DEFINE([HAVE_STRLCAT], [1], [Define if strlcat exists.])])
+AC_CHECK_FUNC([strnlen], [AC_DEFINE([HAVE_STRNLEN], [1], [Define if strnlen exists.])])
 
 #
 # Check for types and structures
@@ -1303,6 +1366,7 @@ AC_MSG_NOTICE([
   OpenThread NCP-MTD support                : ${enable_ncp_app_mtd}
   OpenThread NCP-FTD support                : ${enable_ncp_app_ftd}
   OpenThread NCP-BUS Configuration          : ${with_ncp_bus}
+  OpenThread MTD Network Diagnostic support : ${enable_mtd_network_diagnostic}
   OpenThread builtin mbedtls support        : ${enable_builtin_mbedtls}
   OpenThread Border Agent Proxy support     : ${enable_border_agent_proxy}
   OpenThread Commissioner support           : ${enable_commissioner}
@@ -1311,14 +1375,15 @@ AC_MSG_NOTICE([
   OpenThread Jam Detection support          : ${enable_jam_detection}
   OpenThread MAC Whitelist support          : ${enable_mac_whitelist}
   OpenThread Diagnostics support            : ${enable_diag}
+  OpenThread Child Supervision support      : ${enable_child_supervision}
   OpenThread Legacy network support         : ${enable_legacy}
   OpenThread Default logging support        : ${enable_default_logging}
   OpenThread Certification log support      : ${enable_cert_log}
   OpenThread DHCPv6 Server support          : ${enable_dhcp6_server}
   OpenThread DHCPv6 Client support          : ${enable_dhcp6_client}
   OpenThread DNS Client support             : ${enable_dns_client}
-  Openthread Application CoAP support       : ${enable_application_coap}
-  Openthread Raw Link-Layer support         : ${enable_raw_link_api}
+  OpenThread Application CoAP support       : ${enable_application_coap}
+  OpenThread Raw Link-Layer support         : ${enable_raw_link_api}
   OpenThread examples                       : ${OPENTHREAD_EXAMPLES}
   OpenThread platform information           : ${PLATFORM_INFO}
 

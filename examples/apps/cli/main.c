@@ -32,13 +32,12 @@
 #include <openthread-config.h>
 #endif
 
-#include "openthread/openthread.h"
-#include "openthread/cli.h"
-#include "openthread/diag.h"
-#include "openthread/platform/platform.h"
-
-#include <openthread-core-config.h>
 #include <assert.h>
+
+#include <openthread/cli.h>
+#include <openthread/diag.h>
+#include <openthread/openthread.h>
+#include <openthread/platform/platform.h>
 
 #ifdef OPENTHREAD_MULTIPLE_INSTANCE
 void *otPlatCAlloc(size_t aNum, size_t aSize)
@@ -76,7 +75,7 @@ int main(int argc, char *argv[])
     otInstanceBuffer = (uint8_t *)malloc(otInstanceBufferLength);
     assert(otInstanceBuffer);
 
-    // Initialize Openthread with the buffer
+    // Initialize OpenThread with the buffer
     sInstance = otInstanceInit(otInstanceBuffer, &otInstanceBufferLength);
 #else
     sInstance = otInstanceInit();

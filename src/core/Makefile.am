@@ -93,6 +93,7 @@ SOURCES_COMMON                      = \
     api/border_agent_proxy_api.cpp    \
     api/coap_api.cpp                  \
     api/commissioner_api.cpp          \
+    api/child_supervision_api.cpp     \
     api/crypto_api.cpp                \
     api/dataset_api.cpp               \
     api/dataset_ftd_api.cpp           \
@@ -148,6 +149,7 @@ SOURCES_COMMON                      = \
     meshcop/leader.cpp                \
     meshcop/panid_query_client.cpp    \
     meshcop/timestamp.cpp             \
+    meshcop/meshcop_tlvs.cpp          \
     net/dhcp6_client.cpp              \
     net/dhcp6_server.cpp              \
     net/dns_client.cpp                \
@@ -178,6 +180,7 @@ SOURCES_COMMON                      = \
     thread/src_match_controller.cpp   \
     thread/thread_netif.cpp           \
     thread/topology.cpp               \
+    utils/child_supervision.cpp       \
     utils/jam_detector.cpp            \
     utils/missing_strlcpy.c           \
     utils/missing_strlcat.c           \
@@ -246,7 +249,7 @@ HEADERS_COMMON                      = \
     meshcop/meshcop.hpp               \
     meshcop/panid_query_client.hpp    \
     meshcop/timestamp.hpp             \
-    meshcop/tlvs.hpp                  \
+    meshcop/meshcop_tlvs.hpp          \
     net/dhcp6.hpp                     \
     net/dhcp6_client.hpp              \
     net/dhcp6_server.hpp              \
@@ -264,8 +267,6 @@ HEADERS_COMMON                      = \
     net/tcp.hpp                       \
     net/udp6.hpp                      \
     thread/address_resolver.hpp       \
-    thread/address_resolver_ftd.hpp   \
-    thread/address_resolver_mtd.hpp   \
     thread/announce_begin_server.hpp  \
     thread/data_poll_manager.hpp      \
     thread/energy_scan_server.hpp     \
@@ -295,6 +296,7 @@ HEADERS_COMMON                      = \
     thread/thread_tlvs.hpp            \
     thread/thread_uris.hpp            \
     thread/topology.hpp               \
+    utils/child_supervision.hpp       \
     utils/slaac_address.hpp           \
     utils/jam_detector.hpp            \
     utils/wrap_stdbool.h              \

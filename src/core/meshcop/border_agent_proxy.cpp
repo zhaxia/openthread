@@ -39,13 +39,14 @@
 #include <openthread-config.h>
 #endif
 
-#include <openthread/types.h>
-#include <coap/coap_header.hpp>
-#include <thread/thread_uris.hpp>
-#include <thread/thread_tlvs.hpp>
-#include <net/ip6_address.hpp>
-
 #include "border_agent_proxy.hpp"
+
+#include <openthread/types.h>
+
+#include "coap/coap_header.hpp"
+#include "net/ip6_address.hpp"
+#include "thread/thread_tlvs.hpp"
+#include "thread/thread_uris.hpp"
 
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_BORDER_AGENT_PROXY
 
@@ -148,6 +149,7 @@ ThreadError BorderAgentProxy::Send(Message &aMessage, uint16_t aLocator, uint16_
 
     VerifyOrExit(mStreamHandler != NULL, error = kThreadError_InvalidState);
 
+    messageInfo.SetSockAddr(mMeshLocal16);
     messageInfo.SetPeerAddr(mMeshLocal16);
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(aLocator);
     messageInfo.SetPeerPort(aPort);

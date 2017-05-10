@@ -40,27 +40,27 @@
 #include <openthread-config.h>
 #endif
 
+#include "dataset_manager.hpp"
+
 #include <stdio.h>
 
-#include "openthread/platform/random.h"
-#include "openthread/platform/radio.h"
-
-#include <common/code_utils.hpp>
-#include <common/debug.hpp>
-#include <coap/coap_header.hpp>
-#include <common/debug.hpp>
-#include <common/code_utils.hpp>
-#include <common/logging.hpp>
-#include <common/timer.hpp>
-#include <meshcop/dataset.hpp>
-#include <meshcop/dataset_manager.hpp>
-#include <meshcop/meshcop.hpp>
-#include <meshcop/tlvs.hpp>
-#include <thread/thread_netif.hpp>
-#include <thread/thread_tlvs.hpp>
-#include <thread/thread_uris.hpp>
-#include <meshcop/leader.hpp>
 #include <openthread/types.h>
+#include <openthread/platform/random.h>
+#include <openthread/platform/radio.h>
+
+#include "coap/coap_header.hpp"
+#include "common/code_utils.hpp"
+#include "common/code_utils.hpp"
+#include "common/debug.hpp"
+#include "common/logging.hpp"
+#include "common/timer.hpp"
+#include "meshcop/dataset.hpp"
+#include "meshcop/leader.hpp"
+#include "meshcop/meshcop.hpp"
+#include "meshcop/meshcop_tlvs.hpp"
+#include "thread/thread_netif.hpp"
+#include "thread/thread_tlvs.hpp"
+#include "thread/thread_uris.hpp"
 
 namespace ot {
 namespace MeshCoP {
@@ -131,7 +131,7 @@ ThreadError DatasetManager::ApplyConfiguration(void)
         case Tlv::kNetworkMasterKey:
         {
             const NetworkMasterKeyTlv *key = static_cast<const NetworkMasterKeyTlv *>(cur);
-            mNetif.GetKeyManager().SetMasterKey(key->GetNetworkMasterKey(), key->GetLength());
+            mNetif.GetKeyManager().SetMasterKey(key->GetNetworkMasterKey());
             break;
         }
 
@@ -268,17 +268,21 @@ void DatasetManager::HandleTimer(void *aContext)
 
 void DatasetManager::HandleTimer(void)
 {
-    const Timestamp *pendingActiveTimestamp = NULL;
-    const Timestamp *localActiveTimestamp = mNetif.GetActiveDataset().GetLocal().GetTimestamp();
-    const ActiveTimestampTlv *tlv = static_cast<const ActiveTimestampTlv *>
-                                    (mNetif.GetPendingDataset().GetNetwork().Get(Tlv::kActiveTimestamp));
-    pendingActiveTimestamp = static_cast<const Timestamp *>(tlv);
+    const Timestamp *localActiveTimestamp;
+    const Timestamp *pendingActiveTimestamp;
+    const ActiveTimestampTlv *tlv;
+
+    localActiveTimestamp = mNetif.GetActiveDataset().GetLocal().GetTimestamp();
+    VerifyOrExit(localActiveTimestamp != NULL);
 
     VerifyOrExit(mNetif.GetMle().IsAttached());
 
     VerifyOrExit(mLocal.Compare(mNetwork) < 0);
 
     Register();
+
+    tlv = static_cast<const ActiveTimestampTlv *>(mNetif.GetPendingDataset().GetNetwork().Get(Tlv::kActiveTimestamp));
+    pendingActiveTimestamp = static_cast<const Timestamp *>(tlv);
 
     if (pendingActiveTimestamp != NULL &&
         localActiveTimestamp->Compare(*pendingActiveTimestamp) >= 0)
@@ -457,8 +461,7 @@ ThreadError DatasetManager::Set(Coap::Header &aHeader, Message &aMessage, const 
 
     // check network master key
     if (Tlv::GetTlv(aMessage, Tlv::kNetworkMasterKey, sizeof(masterKey), masterKey) == kThreadError_None &&
-        memcmp(masterKey.GetNetworkMasterKey(), mNetif.GetKeyManager().GetMasterKey(NULL),
-               masterKey.GetLength()))
+        memcmp(&masterKey.GetNetworkMasterKey(), &mNetif.GetKeyManager().GetMasterKey(), OT_MASTER_KEY_SIZE))
     {
         doesAffectConnectivity = true;
         doesAffectMasterKey = true;
@@ -467,8 +470,7 @@ ThreadError DatasetManager::Set(Coap::Header &aHeader, Message &aMessage, const 
     // check active timestamp rollback
     if (type == Tlv::kPendingTimestamp &&
         (masterKey.GetLength() == 0 ||
-         memcmp(masterKey.GetNetworkMasterKey(), mNetif.GetKeyManager().GetMasterKey(NULL),
-                masterKey.GetLength()) == 0))
+         memcmp(&masterKey.GetNetworkMasterKey(), &mNetif.GetKeyManager().GetMasterKey(), OT_MASTER_KEY_SIZE) == 0))
     {
         // no change to master key, active timestamp must be ahead
         const Timestamp *localActiveTimestamp = mNetif.GetActiveDataset().GetNetwork().GetTimestamp();
@@ -662,7 +664,7 @@ ThreadError DatasetManager::SendSetRequest(const otOperationalDataset &aDataset,
     {
         NetworkMasterKeyTlv masterkey;
         masterkey.Init();
-        masterkey.SetNetworkMasterKey(aDataset.mMasterKey.m8);
+        masterkey.SetNetworkMasterKey(aDataset.mMasterKey);
         SuccessOrExit(error = message->Append(&masterkey, sizeof(masterkey)));
     }
 

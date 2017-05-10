@@ -37,9 +37,10 @@
 #include <openthread-config.h>
 #endif
 
-#include <coap/coap_server.hpp>
-#include <common/code_utils.hpp>
-#include <net/ip6.hpp>
+#include "coap_server.hpp"
+
+#include "common/code_utils.hpp"
+#include "net/ip6.hpp"
 
 namespace ot {
 namespace Coap {
@@ -50,6 +51,7 @@ Server::Server(Ip6::Netif &aNetif, uint16_t aPort, SenderFunction aSender, Recei
 {
     mPort = aPort;
     mResources = NULL;
+    mInterceptor = NULL;
 }
 
 ThreadError Server::Start(void)
@@ -143,6 +145,11 @@ void Server::ProcessReceivedMessage(Message &aMessage, const Ip6::MessageInfo &a
     char *curUriPath = uriPath;
     const Header::Option *coapOption;
     Message *response;
+
+    if (mInterceptor != NULL)
+    {
+        SuccessOrExit(mInterceptor(aMessage, aMessageInfo));
+    }
 
     SuccessOrExit(header.FromMessage(aMessage, 0));
     aMessage.MoveOffset(header.GetLength());

@@ -38,15 +38,16 @@
 #include <openthread-config.h>
 #endif
 
+#include "dataset.hpp"
+
 #include <stdio.h>
 
-#include "openthread/platform/settings.h"
+#include <openthread/platform/settings.h>
 
-#include <common/code_utils.hpp>
-#include <common/settings.hpp>
-#include <meshcop/dataset.hpp>
-#include <meshcop/tlvs.hpp>
-#include <thread/mle_tlvs.hpp>
+#include "common/code_utils.hpp"
+#include "common/settings.hpp"
+#include "meshcop/meshcop_tlvs.hpp"
+#include "thread/mle_tlvs.hpp"
 
 namespace ot {
 namespace MeshCoP {
@@ -188,7 +189,7 @@ void Dataset::Get(otOperationalDataset &aDataset) const
         case Tlv::kNetworkMasterKey:
         {
             const NetworkMasterKeyTlv *tlv = static_cast<const NetworkMasterKeyTlv *>(cur);
-            memcpy(aDataset.mMasterKey.m8, tlv->GetNetworkMasterKey(), sizeof(aDataset.mMasterKey));
+            aDataset.mMasterKey = tlv->GetNetworkMasterKey();
             aDataset.mIsMasterKeySet = true;
             break;
         }
@@ -328,7 +329,7 @@ ThreadError Dataset::Set(const otOperationalDataset &aDataset)
     {
         MeshCoP::NetworkMasterKeyTlv tlv;
         tlv.Init();
-        tlv.SetNetworkMasterKey(aDataset.mMasterKey.m8);
+        tlv.SetNetworkMasterKey(aDataset.mMasterKey);
         Set(tlv);
     }
 

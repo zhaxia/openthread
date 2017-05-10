@@ -28,10 +28,10 @@
 
 /**
  * @file
- *   This file implements the OpenThread UDP API.
+ *   This file implements the OpenThread Joiner API.
  */
 
-#include "openthread/joiner.h"
+#include <openthread/joiner.h>
 
 #include "openthread-instance.h"
 

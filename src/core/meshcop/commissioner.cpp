@@ -39,24 +39,24 @@
 #include <openthread-config.h>
 #endif
 
+#include "commissioner.hpp"
+
 #include <stdio.h>
 #include "utils/wrap_string.h"
 
-#include "openthread/platform/random.h"
-
-#include <coap/coap_header.hpp>
-#include <common/crc16.hpp>
-#include <common/encoding.hpp>
-#include <common/logging.hpp>
-#include <crypto/pbkdf2_cmac.h>
-#include <meshcop/commissioner.hpp>
-#include <meshcop/joiner_router.hpp>
-#include <meshcop/meshcop.hpp>
-#include <meshcop/tlvs.hpp>
-#include <thread/thread_netif.hpp>
-#include <thread/thread_tlvs.hpp>
-#include <thread/thread_uris.hpp>
 #include <openthread/types.h>
+#include <openthread/platform/random.h>
+
+#include "coap/coap_header.hpp"
+#include "common/encoding.hpp"
+#include "common/logging.hpp"
+#include "crypto/pbkdf2_cmac.h"
+#include "meshcop/joiner_router.hpp"
+#include "meshcop/meshcop.hpp"
+#include "meshcop/meshcop_tlvs.hpp"
+#include "thread/thread_netif.hpp"
+#include "thread/thread_tlvs.hpp"
+#include "thread/thread_uris.hpp"
 
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
 
@@ -167,9 +167,6 @@ ThreadError Commissioner::SendCommissionerSet(void)
 
     for (size_t i = 0; i < sizeof(mJoiners) / sizeof(mJoiners[0]); i++)
     {
-        Crc16 ccitt(Crc16::kCcitt);
-        Crc16 ansi(Crc16::kAnsi);
-
         if (!mJoiners[i].mValid)
         {
             continue;
@@ -182,15 +179,7 @@ ThreadError Commissioner::SendCommissionerSet(void)
             break;
         }
 
-        for (size_t j = 0; j < sizeof(mJoiners[i].mExtAddress.m8); j++)
-        {
-            uint8_t byte = mJoiners[i].mExtAddress.m8[j];
-            ccitt.Update(byte);
-            ansi.Update(byte);
-        }
-
-        steeringData.SetBit(ccitt.Get() % steeringData.GetNumBits());
-        steeringData.SetBit(ansi.Get() % steeringData.GetNumBits());
+        steeringData.ComputeBloomFilter(&mJoiners[i].mExtAddress);
     }
 
     // set bloom filter
@@ -221,6 +210,8 @@ void Commissioner::ClearJoiners(void)
 ThreadError Commissioner::AddJoiner(const Mac::ExtAddress *aExtAddress, const char *aPSKd, uint32_t aTimeout)
 {
     ThreadError error = kThreadError_NoBufs;
+
+    VerifyOrExit(mState == kCommissionerStateActive, error = kThreadError_InvalidState);
 
     otLogFuncEntryMsg("%llX, %s", (aExtAddress ? HostSwap64(*reinterpret_cast<const uint64_t *>(aExtAddress)) : 0), aPSKd);
     VerifyOrExit(strlen(aPSKd) <= Dtls::kPskMaxLength, error = kThreadError_InvalidArgs);
@@ -262,6 +253,8 @@ exit:
 ThreadError Commissioner::RemoveJoiner(const Mac::ExtAddress *aExtAddress, uint32_t aDelay)
 {
     ThreadError error = kThreadError_NotFound;
+
+    VerifyOrExit(mState == kCommissionerStateActive, error = kThreadError_InvalidState);
 
     otLogFuncEntryMsg("%llX", (aExtAddress ? HostSwap64(*reinterpret_cast<const uint64_t *>(aExtAddress)) : 0));
 
@@ -666,8 +659,6 @@ void Commissioner::HandleLeaderPetitionResponse(Coap::Header *aHeader, Message *
 
     mTransmitAttempts = 0;
     mTimer.Start(Timer::SecToMsec(kKeepAliveTimeout) / 2);
-
-    SendCommissionerSet();
 
 exit:
 

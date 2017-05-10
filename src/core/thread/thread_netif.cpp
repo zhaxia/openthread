@@ -38,33 +38,35 @@
 #include <openthread-config.h>
 #endif
 
-#include <common/code_utils.hpp>
-#include <common/encoding.hpp>
-#include <common/message.hpp>
-#include <net/ip6.hpp>
-#include <net/netif.hpp>
-#include <net/udp6.hpp>
-#include <thread/mle.hpp>
-#include <thread/thread_netif.hpp>
-#include <thread/thread_tlvs.hpp>
-#include <thread/thread_uris.hpp>
-#include <openthread-instance.h>
+#include "thread_netif.hpp"
+
+#include "openthread-instance.h"
+#include "common/code_utils.hpp"
+#include "common/encoding.hpp"
+#include "common/message.hpp"
+#include "net/ip6.hpp"
+#include "net/netif.hpp"
+#include "net/udp6.hpp"
+#include "thread/mle.hpp"
+#include "thread/thread_tlvs.hpp"
+#include "thread/thread_uris.hpp"
 
 using ot::Encoding::BigEndian::HostSwap16;
 
 namespace ot {
 
-static const uint8_t kThreadMasterKey[] =
+static const otMasterKey kThreadMasterKey =
 {
-    0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-    0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+    {
+        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+        0x88, 0x99, 0xaa, 0xbb, 0xcc, 0xdd, 0xee, 0xff,
+    }
 };
 
 ThreadNetif::ThreadNetif(Ip6::Ip6 &aIp6):
     Netif(aIp6, OT_NETIF_INTERFACE_ID_THREAD),
     mCoapServer(*this, kCoapUdpPort),
     mCoapClient(*this),
-    mAddressResolver(*this),
 #if OPENTHREAD_ENABLE_DHCP6_CLIENT
     mDhcp6Client(*this),
 #endif  // OPENTHREAD_ENABLE_DHCP6_CLIENT
@@ -83,7 +85,9 @@ ThreadNetif::ThreadNetif(Ip6::Ip6 &aIp6):
     mMleRouter(*this),
     mNetworkDataLocal(*this),
     mNetworkDataLeader(*this),
+#if OPENTHREAD_FTD || OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC
     mNetworkDiagnostic(*this),
+#endif
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
     mSecureCoapServer(*this, OPENTHREAD_CONFIG_JOINER_UDP_PORT),
     mCommissioner(*this),
@@ -104,13 +108,17 @@ ThreadNetif::ThreadNetif(Ip6::Ip6 &aIp6):
 #endif // OPENTHREAD_ENABLE_BORDER_AGENT_PROXY
     mJoinerRouter(*this),
     mLeader(*this),
+    mAddressResolver(*this),
 #endif  // OPENTHREAD_FTD
+    mChildSupervisor(*this),
+    mSupervisionListener(*this),
     mAnnounceBegin(*this),
     mPanIdQuery(*this),
     mEnergyScan(*this)
 
 {
-    mKeyManager.SetMasterKey(kThreadMasterKey, sizeof(kThreadMasterKey));
+    mKeyManager.SetMasterKey(kThreadMasterKey);
+    mCoapServer.SetInterceptor(&ThreadNetif::TmfFilter);
 }
 
 ThreadError ThreadNetif::Up(void)
@@ -127,6 +135,7 @@ ThreadError ThreadNetif::Up(void)
 #if OPENTHREAD_ENABLE_DNS_CLIENT
         mDnsClient.Start();
 #endif
+        mChildSupervisor.Start();
         mMleRouter.Enable();
         mIsUp = true;
     }
@@ -144,6 +153,7 @@ ThreadError ThreadNetif::Down(void)
 #if OPENTHREAD_ENABLE_DNS_CLIENT
     mDnsClient.Stop();
 #endif
+    mChildSupervisor.Stop();
     mMleRouter.Disable();
     mMeshForwarder.Stop();
     mIp6.RemoveNetif(*this);
@@ -179,6 +189,27 @@ ThreadError ThreadNetif::RouteLookup(const Ip6::Address &source, const Ip6::Addr
     }
 
 exit:
+    return error;
+}
+
+ThreadError ThreadNetif::TmfFilter(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+{
+    ThreadError error = kThreadError_None;
+
+    // A TMF message must comply one of the following rules:
+    // 1. Source address is RLOC or ALOC, and destination address is RLOC, ALOC or realm-local multicast.
+    // 2. Both source and destination addresses are link-local.(for Joiner Entrust)
+    VerifyOrExit(((aMessageInfo.GetPeerAddr().IsRoutingLocator() ||
+                   aMessageInfo.GetPeerAddr().IsAnycastRoutingLocator()) &&
+                  (aMessageInfo.GetSockAddr().IsRoutingLocator() ||
+                   aMessageInfo.GetSockAddr().IsAnycastRoutingLocator() ||
+                   aMessageInfo.GetSockAddr().IsRealmLocalMulticast())) ||
+                 (aMessageInfo.GetPeerAddr().IsLinkLocal() &&
+                  aMessageInfo.GetSockAddr().IsLinkLocal()),
+                 error = kThreadError_Security);
+
+exit:
+    (void)aMessage;
     return error;
 }
 

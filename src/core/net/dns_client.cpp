@@ -32,12 +32,13 @@
 #include <openthread-config.h>
 #endif
 
+#include "dns_client.hpp"
+
 #include "utils/wrap_string.h"
 
-#include <common/debug.hpp>
-#include <common/code_utils.hpp>
-#include <net/dns_client.hpp>
-#include <net/udp6.hpp>
+#include "common/code_utils.hpp"
+#include "common/debug.hpp"
+#include "net/udp6.hpp"
 
 #if OPENTHREAD_ENABLE_DNS_CLIENT
 
@@ -76,7 +77,7 @@ ThreadError Client::Stop(void)
         message = message->GetNext();
 
         queryMetadata.ReadFrom(*messageToRemove);
-        FinalizeDnsTransaction(*message, queryMetadata, NULL, 0, kThreadError_Abort);
+        FinalizeDnsTransaction(*messageToRemove, queryMetadata, NULL, 0, kThreadError_Abort);
     }
 
     return mSocket.Close();

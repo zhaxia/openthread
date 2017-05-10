@@ -39,21 +39,22 @@
 #include <openthread-config.h>
 #endif
 
+#include "joiner.hpp"
+
 #include <stdio.h>
 
-#include "openthread/platform/radio.h"
-#include "openthread/platform/random.h"
+#include <openthread/platform/radio.h>
+#include <openthread/platform/random.h>
 
-#include <common/code_utils.hpp>
-#include <common/crc16.hpp>
-#include <common/debug.hpp>
-#include <common/encoding.hpp>
-#include <common/logging.hpp>
-#include <mac/mac_frame.hpp>
-#include <meshcop/joiner.hpp>
-#include <meshcop/meshcop.hpp>
-#include <thread/thread_netif.hpp>
-#include <thread/thread_uris.hpp>
+#include "common/code_utils.hpp"
+#include "common/crc16.hpp"
+#include "common/debug.hpp"
+#include "common/encoding.hpp"
+#include "common/logging.hpp"
+#include "mac/mac_frame.hpp"
+#include "meshcop/meshcop.hpp"
+#include "thread/thread_netif.hpp"
+#include "thread/thread_uris.hpp"
 
 #if OPENTHREAD_ENABLE_JOINER
 
@@ -67,8 +68,8 @@ Joiner::Joiner(ThreadNetif &aNetif):
     mState(kStateIdle),
     mCallback(NULL),
     mContext(NULL),
-    mCcitt(Crc16::kCcitt),
-    mAnsi(Crc16::kAnsi),
+    mCcitt(0),
+    mAnsi(0),
     mJoinerRouterChannel(0),
     mJoinerRouterPanId(0),
     mJoinerUdpPort(0),
@@ -94,6 +95,8 @@ ThreadError Joiner::Start(const char *aPSKd, const char *aProvisioningUrl,
 {
     ThreadError error;
     Mac::ExtAddress extAddress;
+    Crc16 ccitt(Crc16::kCcitt);
+    Crc16 ansi(Crc16::kAnsi);
 
     otLogFuncEntry();
 
@@ -106,9 +109,12 @@ ThreadError Joiner::Start(const char *aPSKd, const char *aProvisioningUrl,
 
     for (size_t i = 0; i < sizeof(extAddress); i++)
     {
-        mCcitt.Update(extAddress.m8[i]);
-        mAnsi.Update(extAddress.m8[i]);
+        ccitt.Update(extAddress.m8[i]);
+        ansi.Update(extAddress.m8[i]);
     }
+
+    mCcitt = ccitt.Get();
+    mAnsi = ansi.Get();
 
     error = mNetif.GetSecureCoapClient().GetDtls().SetPsk(reinterpret_cast<const uint8_t *>(aPSKd),
                                                           static_cast<uint8_t>(strlen(aPSKd)));
@@ -117,7 +123,7 @@ ThreadError Joiner::Start(const char *aPSKd, const char *aProvisioningUrl,
     SuccessOrExit(error);
 
     mJoinerRouterPanId = Mac::kPanIdBroadcast;
-    SuccessOrExit(error = mNetif.GetMle().Discover(0, mNetif.GetMac().GetPanId(), true, HandleDiscoverResult, this));
+    SuccessOrExit(error = mNetif.GetMle().Discover(0, mNetif.GetMac().GetPanId(), true, false, HandleDiscoverResult, this));
 
     mVendorName = aVendorName;
     mVendorModel = aVendorModel;
@@ -191,8 +197,8 @@ void Joiner::HandleDiscoverResult(otActiveScanResult *aResult)
         memcpy(steeringData.GetValue(), aResult->mSteeringData.m8, steeringData.GetLength());
 
         if (steeringData.DoesAllowAny() ||
-            (steeringData.GetBit(mCcitt.Get() % steeringData.GetNumBits()) &&
-             steeringData.GetBit(mAnsi.Get() % steeringData.GetNumBits())))
+            (steeringData.GetBit(mCcitt % steeringData.GetNumBits()) &&
+             steeringData.GetBit(mAnsi % steeringData.GetNumBits())))
         {
             mJoinerUdpPort = aResult->mJoinerUdpPort;
             mJoinerRouterPanId = aResult->mPanId;
@@ -424,7 +430,7 @@ void Joiner::HandleJoinerEntrust(Coap::Header &aHeader, Message &aMessage, const
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kNetworkKeySequence, sizeof(networkKeySeq), networkKeySeq));
     VerifyOrExit(networkKeySeq.IsValid(), error = kThreadError_Parse);
 
-    mNetif.GetKeyManager().SetMasterKey(masterKey.GetNetworkMasterKey(), masterKey.GetLength());
+    mNetif.GetKeyManager().SetMasterKey(masterKey.GetNetworkMasterKey());
     mNetif.GetKeyManager().SetCurrentKeySequence(networkKeySeq.GetNetworkKeySequence());
     mNetif.GetMle().SetMeshLocalPrefix(meshLocalPrefix.GetMeshLocalPrefix());
     mNetif.GetMac().SetExtendedPanId(extendedPanId.GetExtendedPanId());
@@ -503,11 +509,7 @@ void Joiner::HandleTimer(void)
     case kStateJoined:
         Mac::ExtAddress extAddress;
 
-        for (size_t i = 0; i < sizeof(extAddress); i++)
-        {
-            extAddress.m8[i] = static_cast<uint8_t>(otPlatRandomGet());
-        }
-
+        mNetif.GetMac().GenerateExtAddress(&extAddress);
         mNetif.GetMac().SetExtAddress(extAddress);
         mNetif.GetMle().UpdateLinkLocalAddress();
 
