@@ -64,7 +64,7 @@ AnnounceBeginServer::AnnounceBeginServer(ThreadNetif &aThreadNetif) :
     mAnnounceBegin(OPENTHREAD_URI_ANNOUNCE_BEGIN, &AnnounceBeginServer::HandleRequest, this),
     mNetif(aThreadNetif)
 {
-    mNetif.GetCoapServer().AddResource(mAnnounceBegin);
+    mNetif.GetCoap().AddResource(mAnnounceBegin);
 }
 
 otInstance *AnnounceBeginServer::GetInstance(void)
@@ -89,7 +89,7 @@ ThreadError AnnounceBeginServer::SendAnnounce(uint32_t aChannelMask, uint8_t aCo
     while ((mChannelMask & (1 << mChannel)) == 0)
     {
         mChannel++;
-        VerifyOrExit(mChannel <= kPhyMaxChannel);
+        VerifyOrExit(mChannel <= kPhyMaxChannel, error = kThreadError_InvalidArgs);
     }
 
     mTimer.Start(mPeriod);
@@ -127,7 +127,7 @@ void AnnounceBeginServer::HandleRequest(Coap::Header &aHeader, Message &aMessage
 
     if (aHeader.IsConfirmable() && !aMessageInfo.GetSockAddr().IsMulticast())
     {
-        SuccessOrExit(mNetif.GetCoapServer().SendEmptyAck(aHeader, responseInfo));
+        SuccessOrExit(mNetif.GetCoap().SendEmptyAck(aHeader, responseInfo));
         otLogInfoMeshCoP(GetInstance(), "sent announce begin response");
     }
 
