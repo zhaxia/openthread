@@ -36,9 +36,8 @@
 
 #include "utils/wrap_string.h"
 
-#include "coap/coap_client.hpp"
+#include "coap/coap.hpp"
 #include "coap/coap_header.hpp"
-#include "coap/coap_server.hpp"
 #include "common/timer.hpp"
 #include "common/trickle_timer.hpp"
 #include "mac/mac_frame.hpp"
@@ -65,18 +64,6 @@ class NetworkDataLeader;
  *
  * @{
  */
-
-/**
-* This structure represents the child information for persistent storage.
-*
-*/
-struct ChildInfo
-{
-    Mac::ExtAddress  mExtAddress;    ///< Extended Address
-    uint32_t         mTimeout;       ///< Timeout
-    uint16_t         mRloc16;        ///< RLOC16
-    uint8_t          mMode;          ///< The MLE device mode
-};
 
 /**
  * This class implements MLE functionality required by the Thread Router and Leader roles.
@@ -275,6 +262,16 @@ public:
      *
      */
     uint8_t GetLinkCost(uint8_t aRouterId);
+
+    /**
+     * This method returns the minimum cost to the given router.
+     *
+     * @param[in]  aRloc16  The short address of the given router.
+     *
+     * @returns The minimum cost to the given router (via direct link or forwarding).
+     *
+     */
+    uint8_t GetCost(uint16_t aRloc16);
 
     /**
      * This method returns the ROUTER_SELECTION_JITTER value.

@@ -210,6 +210,10 @@ const char *otLogRegionToString(otLogRegion aRegion)
         retval = "-MLE-----";
         break;
 
+    case kLogRegionCoap:
+        retval = "-COAP----";
+        break;
+
     case kLogRegionArp:
         retval = "-ARP-----";
         break;
@@ -395,6 +399,18 @@ const char *otThreadErrorToString(ThreadError aError)
 
     case kThreadError_ReassemblyTimeout:
         retval = "ReassemblyTimeout";
+        break;
+
+    case kThreadError_NotTmf:
+        retval = "NotTmf";
+        break;
+
+    case kThreadError_NonLowpanDataFrame:
+        retval = "NonLowpanDataFrame";
+        break;
+
+    case kThreadError_DisabledFeature:
+        retval = "DisabledFeature";
         break;
 
     case kThreadError_Error:

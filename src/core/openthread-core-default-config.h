@@ -550,6 +550,16 @@
 #endif  // OPENTHREAD_CONFIG_LOG_PLATFORM
 
 /**
+ * @def OPENTHREAD_CONFIG_LOG_COAP
+ *
+ * Define to enable COAP logging.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_LOG_COAP
+#define OPENTHREAD_CONFIG_LOG_COAP                              1
+#endif  // OPENTHREAD_CONFIG_LOG_COAP
+
+/**
  * @def OPENTHREAD_CONFIG_LOG_PREPEND_LEVEL
  *
  * Define to prepend the log level to all log messages
@@ -723,6 +733,16 @@
  */
 #ifndef OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE
 #define OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE                     (2048 * sizeof(void *))
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE_NO_DTLS
+ *
+ * The size of mbedTLS heap buffer when DTLS is disabled.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE_NO_DTLS
+#define OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE_NO_DTLS             384
 #endif
 
 /**
