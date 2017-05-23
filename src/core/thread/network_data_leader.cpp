@@ -55,7 +55,7 @@
 #include "thread/lowpan.hpp"
 #include "thread/thread_netif.hpp"
 #include "thread/thread_tlvs.hpp"
-#include "thread/thread_uris.hpp"
+#include "thread/thread_uri_paths.hpp"
 
 using ot::Encoding::BigEndian::HostSwap16;
 
@@ -386,7 +386,9 @@ ThreadError LeaderBase::DefaultRouteLookup(PrefixTlv &aPrefix, uint16_t *aRloc16
             if (route == NULL ||
                 entry->GetPreference() > route->GetPreference() ||
                 (entry->GetPreference() == route->GetPreference() &&
-                 mNetif.GetMle().GetCost(entry->GetRloc()) < mNetif.GetMle().GetCost(route->GetRloc())))
+                 (entry->GetRloc() == mNetif.GetMle().GetRloc16() ||
+                  (route->GetRloc() != mNetif.GetMle().GetRloc16() &&
+                   mNetif.GetMle().GetCost(entry->GetRloc()) < mNetif.GetMle().GetCost(route->GetRloc())))))
             {
                 route = entry;
             }

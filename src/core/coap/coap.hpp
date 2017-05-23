@@ -227,7 +227,7 @@ public:
     Resource *GetNext(void) const { return static_cast<Resource *>(mNext); };
 
 private:
-    void HandleRequest(Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo) {
+    void HandleRequest(Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo) const {
         mHandler(mContext, &aHeader, &aMessage, &aMessageInfo);
     }
 };
@@ -499,6 +499,13 @@ public:
      */
     void RemoveResource(Resource &aResource);
 
+    /* This function sets the default handler for unhandled CoAP requests.
+     *
+     * @param[in]  aHandler   A function pointer that shall be called when an unhandled request arrives.
+     * @param[in]  aContext   A pointer to arbitrary context information. May be NULL if not used.
+     */
+    void SetDefaultHandler(otCoapRequestHandler aHandler, void *aContext);
+
     /**
      * This method creates a new message with a CoAP header.
      *
@@ -545,6 +552,20 @@ public:
     };
 
     /**
+     * This method sends header-only CoAP response message.
+     *
+     * @param[in]  aCode           The CoAP code of this response.
+     * @param[in]  aRequestHeader  A reference to the CoAP Header that was used in CoAP request.
+     * @param[in]  aMessageInfo    The message info corresponding to the CoAP request.
+     *
+     * @retval kThreadError_None         Successfully enqueued the CoAP response message.
+     * @retval kThreadError_NoBufs       Insufficient buffers available to send the CoAP response.
+     * @retval kThreadError_InvalidArgs  The @p aRequestHeader header is not of confirmable type.
+     *
+     */
+    ThreadError SendHeaderResponse(Header::Code aCode, const Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo);
+
+    /**
      * This method sends a CoAP ACK empty message which is used in Separate Response for confirmable requests.
      *
      * @param[in]  aRequestHeader  A reference to the CoAP Header that was used in CoAP request.
@@ -570,7 +591,25 @@ public:
      * @retval kThreadError_InvalidArgs  The @p aRequestHeader header is not of confirmable type.
      *
      */
-    ThreadError SendEmptyAck(const Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo);
+    ThreadError SendEmptyAck(const Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo) {
+        return (aRequestHeader.GetType() == kCoapTypeConfirmable ?
+                SendHeaderResponse(kCoapResponseChanged, aRequestHeader, aMessageInfo) :
+                kThreadError_InvalidArgs);
+    }
+
+    /**
+     * This method sends a header-only CoAP message to indicate no resource matched for the request.
+     *
+     * @param[in]  aRequestHeader        A reference to the CoAP Header that was used in CoAP request.
+     * @param[in]  aMessageInfo          The message info corresponding to the CoAP request.
+     *
+     * @retval kThreadError_None         Successfully enqueued the CoAP response message.
+     * @retval kThreadError_NoBufs       Insufficient buffers available to send the CoAP response.
+     *
+     */
+    ThreadError SendNotFound(const Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo) {
+        return SendHeaderResponse(kCoapResponseNotFound, aRequestHeader, aMessageInfo);
+    }
 
     /**
      * This method aborts CoAP transactions associated with given handler and context.
@@ -665,6 +704,9 @@ private:
 
     Interceptor    mInterceptor;
     ResponsesQueue mResponsesQueue;
+
+    otCoapRequestHandler mDefaultHandler;
+    void *mDefaultHandlerContext;
 };
 
 }  // namespace Coap
