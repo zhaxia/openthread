@@ -59,7 +59,9 @@ Coap::Coap(ThreadNetif &aNetif):
     mRetransmissionTimer(aNetif.GetIp6().mTimerScheduler, &Coap::HandleRetransmissionTimer, this),
     mResources(NULL),
     mInterceptor(NULL),
-    mResponsesQueue(aNetif)
+    mResponsesQueue(aNetif),
+    mDefaultHandler(NULL),
+    mDefaultHandlerContext(NULL)
 {
     mMessageId = static_cast<uint16_t>(otPlatRandomGet());
 }
@@ -136,6 +138,12 @@ exit:
     aResource.mNext = NULL;
 }
 
+void Coap::SetDefaultHandler(otCoapRequestHandler aHandler, void *aContext)
+{
+    mDefaultHandler = aHandler;
+    mDefaultHandlerContext = aContext;
+}
+
 Message *Coap::NewMessage(const Header &aHeader, uint8_t aPriority)
 {
     Message *message = NULL;
@@ -181,7 +189,7 @@ ThreadError Coap::SendMessage(Message &aMessage, const Ip6::MessageInfo &aMessag
         // Create a copy of entire message and enqueue it.
         copyLength = aMessage.GetLength();
     }
-    else if (header.IsNonConfirmable() && header.IsRequest() && (aHandler != NULL))
+    else if (header.IsNonConfirmable() && (aHandler != NULL))
     {
         // As we do not retransmit non confirmable messages, create a copy of header only, for token information.
         copyLength = header.GetLength();
@@ -237,15 +245,36 @@ exit:
     return error;
 }
 
-ThreadError Coap::SendEmptyAck(const Header &aRequestHeader, const Ip6::MessageInfo &aMessageInfo)
+ThreadError Coap::SendHeaderResponse(Header::Code aCode, const Header &aRequestHeader,
+                                     const Ip6::MessageInfo &aMessageInfo)
 {
     ThreadError error = kThreadError_None;
     Header responseHeader;
+    Header::Type requestType;
     Message *message = NULL;
 
-    VerifyOrExit(aRequestHeader.GetType() == kCoapTypeConfirmable, error = kThreadError_InvalidArgs);
+    VerifyOrExit(aRequestHeader.IsRequest(), error = kThreadError_InvalidArgs);
 
-    responseHeader.SetDefaultResponseHeader(aRequestHeader);
+    requestType = aRequestHeader.GetType();
+
+    switch (requestType)
+    {
+    case kCoapTypeConfirmable:
+        responseHeader.Init(kCoapTypeAcknowledgment, aCode);
+        responseHeader.SetMessageId(aRequestHeader.GetMessageId());
+        break;
+
+    case kCoapTypeNonConfirmable:
+        responseHeader.Init(kCoapTypeNonConfirmable, aCode);
+        responseHeader.SetMessageId(mMessageId++);
+        break;
+
+    default:
+        ExitNow(error = kThreadError_InvalidArgs);
+        break;
+    }
+
+    responseHeader.SetToken(aRequestHeader.GetToken(), aRequestHeader.GetTokenLength());
 
     VerifyOrExit((message = NewMessage(responseHeader)) != NULL, error = kThreadError_NoBufs);
 
@@ -458,7 +487,9 @@ Message *Coap::FindRelatedRequest(const Header &aResponseHeader, const Ip6::Mess
              aCoapMetadata.mDestinationAddress.IsAnycastRoutingLocator()) &&
             (aCoapMetadata.mDestinationPort == aMessageInfo.GetPeerPort()))
         {
-            assert(aRequestHeader.FromMessage(*message, sizeof(CoapMetadata)) == kThreadError_None);
+            // FromMessage can return kThreadError_Parse if only partial message was stored (header only),
+            // but payload marker is present. Assume, that stored messages are always valid.
+            aRequestHeader.FromMessage(*message, sizeof(CoapMetadata));
 
             switch (aResponseHeader.GetType())
             {
@@ -512,7 +543,11 @@ void Coap::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
     }
 
 exit:
-    otLogInfoCoapErr(mNetif.GetInstance(), error, "Receive failed");
+
+    if (error)
+    {
+        otLogInfoCoapErr(mNetif.GetInstance(), error, "Receive failed");
+    }
 }
 
 void Coap::ProcessReceivedResponse(Header &aResponseHeader, Message &aMessage,
@@ -600,22 +635,22 @@ void Coap::ProcessReceivedRequest(Header &aHeader, Message &aMessage, const Ip6:
     char uriPath[Resource::kMaxReceivedUriPath] = "";
     char *curUriPath = uriPath;
     const Header::Option *coapOption;
-    Message *response;
+    Message *cachedResponse = NULL;
+    ThreadError error = kThreadError_NotFound;
 
     if (mInterceptor != NULL)
     {
-        SuccessOrExit(mInterceptor(aMessage, aMessageInfo));
+        SuccessOrExit(error = mInterceptor(aMessage, aMessageInfo));
     }
 
-    SuccessOrExit(aHeader.FromMessage(aMessage, 0));
     aMessage.MoveOffset(aHeader.GetLength());
 
-    switch (mResponsesQueue.GetMatchedResponseCopy(aHeader, aMessageInfo, &response))
+    switch (mResponsesQueue.GetMatchedResponseCopy(aHeader, aMessageInfo, &cachedResponse))
     {
     case kThreadError_None:
-        SendMessage(*response, aMessageInfo);
-
-    // fall through
+        error = Send(*cachedResponse, aMessageInfo);
+        // fall through
+        ;
 
     case kThreadError_NoBufs:
         ExitNow();
@@ -652,16 +687,39 @@ void Coap::ProcessReceivedRequest(Header &aHeader, Message &aMessage, const Ip6:
 
     curUriPath[0] = '\0';
 
-    for (Resource *resource = mResources; resource; resource = resource->GetNext())
+    for (const Resource *resource = mResources; resource; resource = resource->GetNext())
     {
         if (strcmp(resource->mUriPath, uriPath) == 0)
         {
             resource->HandleRequest(aHeader, aMessage, aMessageInfo);
+            error = kThreadError_None;
             ExitNow();
         }
     }
 
+    if (mDefaultHandler)
+    {
+        mDefaultHandler(mDefaultHandlerContext, &aHeader, &aMessage, &aMessageInfo);
+        error = kThreadError_None;
+    }
+
 exit:
+
+    if (error != kThreadError_None)
+    {
+        otLogInfoCoapErr(mNetif.GetInstance(), error, "Failed to process request");
+
+        if (error == kThreadError_NotFound)
+        {
+            SendNotFound(aHeader, aMessageInfo);
+        }
+
+        if (cachedResponse != NULL)
+        {
+            cachedResponse->Free();
+        }
+    }
+
     return;
 }
 

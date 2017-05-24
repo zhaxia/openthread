@@ -119,6 +119,7 @@ const NcpBase::GetPropertyHandlerEntry NcpBase::mGetPropertyHandlerTable[] =
     { SPINEL_PROP_POWER_STATE, &NcpBase::GetPropertyHandler_POWER_STATE },
     { SPINEL_PROP_HWADDR, &NcpBase::GetPropertyHandler_HWADDR },
     { SPINEL_PROP_LOCK, &NcpBase::GetPropertyHandler_LOCK },
+    { SPINEL_PROP_HOST_POWER_STATE, &NcpBase::GetPropertyHandler_HOST_POWER_STATE },
 
     { SPINEL_PROP_PHY_ENABLED, &NcpBase::GetPropertyHandler_PHY_ENABLED },
     { SPINEL_PROP_PHY_FREQ, &NcpBase::GetPropertyHandler_PHY_FREQ },
@@ -270,6 +271,7 @@ const NcpBase::GetPropertyHandlerEntry NcpBase::mGetPropertyHandlerTable[] =
 const NcpBase::SetPropertyHandlerEntry NcpBase::mSetPropertyHandlerTable[] =
 {
     { SPINEL_PROP_POWER_STATE, &NcpBase::SetPropertyHandler_POWER_STATE },
+    { SPINEL_PROP_HOST_POWER_STATE, &NcpBase::SetPropertyHandler_HOST_POWER_STATE },
 
 #if OPENTHREAD_ENABLE_RAW_LINK_API
     { SPINEL_PROP_PHY_ENABLED, &NcpBase::SetPropertyHandler_PHY_ENABLED },
@@ -566,6 +568,9 @@ NcpBase::NcpBase(otInstance *aInstance):
     mUpdateChangedPropsTask(aInstance->mIp6.mTaskletScheduler, &NcpBase::UpdateChangedProps, this),
     mChangedFlags(NCP_PLAT_RESET_REASON),
     mShouldSignalEndOfScan(false),
+    mHostPowerState(SPINEL_HOST_POWER_STATE_ONLINE),
+    mHostPowerStateInProgress(false),
+    mHostPowerStateHeader(0),
 #if OPENTHREAD_ENABLE_JAM_DETECTION
     mShouldSignalJamStateChange(false),
 #endif
@@ -1240,6 +1245,19 @@ exit:
 // MARK: Serial Traffic Glue
 // ----------------------------------------------------------------------------
 
+void NcpBase::HandleFrameTransmitDone(void *aContext, ThreadError aError)
+{
+    NcpBase *obj = static_cast<NcpBase *>(aContext);
+    obj->HandleFrameTransmitDone(aError);
+}
+
+void NcpBase::HandleFrameTransmitDone(ThreadError aError)
+{
+    (void) aError;
+
+    mHostPowerStateInProgress = false;
+}
+
 ThreadError NcpBase::OutboundFrameSend(void)
 {
     ThreadError errorCode;
@@ -1264,6 +1282,11 @@ void NcpBase::HandleReceive(const uint8_t *buf, uint16_t bufLength)
 
     parsedLength = spinel_datatype_unpack(buf, bufLength, SPINEL_DATATYPE_COMMAND_S SPINEL_DATATYPE_DATA_S, &header, &command, &arg_ptr, &arg_len);
     tid = SPINEL_HEADER_GET_TID(header);
+
+    // Receiving any message from the host has the side effect of transitioning the host power state to online.
+    mHostPowerState = SPINEL_HOST_POWER_STATE_ONLINE;
+    mHostPowerStateInProgress = false;
+    mTxFrameBuffer.SetFrameTransmitCallback(NULL, NULL);
 
     if (parsedLength == bufLength)
     {
@@ -1367,10 +1390,37 @@ void NcpBase::HandleSpaceAvailableInTxBuffer(void)
     }
 #endif  // OPENTHREAD_ENABLE_JAM_DETECTION
 
+    if (mHostPowerStateHeader)
+    {
+        SuccessOrExit(
+            GetPropertyHandler_HOST_POWER_STATE(
+                mHostPowerStateHeader,
+                SPINEL_PROP_HOST_POWER_STATE
+        ));
+
+        mHostPowerStateHeader = 0;
+
+        if (mHostPowerState != SPINEL_HOST_POWER_STATE_ONLINE)
+        {
+            mTxFrameBuffer.SetFrameTransmitCallback(&NcpBase::HandleFrameTransmitDone, this);
+            mHostPowerStateInProgress = true;
+        }
+    }
+
     UpdateChangedProps();
 
 exit:
     return;
+}
+
+bool NcpBase::ShouldWakeHost(void)
+{
+    return (mHostPowerState != SPINEL_HOST_POWER_STATE_ONLINE && !mHostPowerStateInProgress);
+}
+
+bool NcpBase::ShouldDeferHostSend(void)
+{
+    return (mHostPowerState == SPINEL_HOST_POWER_STATE_DEEP_SLEEP && !mHostPowerStateInProgress);
 }
 
 void NcpBase::IncrementFrameErrorCounter(void)
@@ -1950,6 +2000,17 @@ ThreadError NcpBase::GetPropertyHandler_LOCK(uint8_t header, spinel_prop_key_t k
     (void)key;
 
     return SendLastStatus(header, SPINEL_STATUS_UNIMPLEMENTED);
+}
+
+ThreadError NcpBase::GetPropertyHandler_HOST_POWER_STATE(uint8_t header, spinel_prop_key_t key)
+{
+    return SendPropertyUpdate(
+               header,
+               SPINEL_CMD_PROP_VALUE_IS,
+               key,
+               SPINEL_DATATYPE_UINT8_S,
+               mHostPowerState
+           );
 }
 
 ThreadError NcpBase::GetPropertyHandler_PHY_ENABLED(uint8_t header, spinel_prop_key_t key)
@@ -2975,10 +3036,41 @@ ThreadError NcpBase::GetPropertyHandler_THREAD_RLOC16_DEBUG_PASSTHRU(uint8_t hea
 
 ThreadError NcpBase::GetPropertyHandler_THREAD_LOCAL_ROUTES(uint8_t header, spinel_prop_key_t key)
 {
-    // TODO: Implement get external route table
-    (void)key;
+    ThreadError errorCode = kThreadError_None;
+    otExternalRouteConfig external_route_config;
+    otNetworkDataIterator iter = OT_NETWORK_DATA_ITERATOR_INIT;
+    uint8_t flags;
 
-    return SendLastStatus(header, SPINEL_STATUS_UNIMPLEMENTED);
+    mDisableStreamWrite = true;
+
+    SuccessOrExit(errorCode = OutboundFrameBegin());
+    SuccessOrExit(errorCode = OutboundFrameFeedPacked(SPINEL_DATATYPE_COMMAND_PROP_S, header, SPINEL_CMD_PROP_VALUE_IS,
+                                                      key));
+
+    while (otNetDataGetNextRoute(mInstance, false, &iter, &external_route_config) == kThreadError_None)
+    {
+        flags = static_cast<uint8_t>(external_route_config.mPreference);
+        flags <<= SPINEL_NET_FLAG_PREFERENCE_OFFSET;
+
+        SuccessOrExit(errorCode = OutboundFrameFeedPacked(
+            SPINEL_DATATYPE_STRUCT_S(
+                SPINEL_DATATYPE_IPv6ADDR_S      // IPv6 Prefix
+                SPINEL_DATATYPE_UINT8_S         // Prefix Length (in bits)
+                SPINEL_DATATYPE_BOOL_S          // isStable
+                SPINEL_DATATYPE_UINT8_S         // Flags
+            ),
+            &external_route_config.mPrefix.mPrefix,
+            external_route_config.mPrefix.mLength,
+            external_route_config.mStable,
+            flags
+        ));
+    }
+
+    SuccessOrExit(errorCode = OutboundFrameSend());
+
+exit:
+    mDisableStreamWrite = false;
+    return errorCode;
 }
 
 ThreadError NcpBase::GetPropertyHandler_STREAM_NET(uint8_t header, spinel_prop_key_t key)
@@ -3624,6 +3716,77 @@ ThreadError NcpBase::SetPropertyHandler_POWER_STATE(uint8_t header, spinel_prop_
     (void)value_len;
 
     return SendLastStatus(header, SPINEL_STATUS_UNIMPLEMENTED);
+}
+
+ThreadError NcpBase::SetPropertyHandler_HOST_POWER_STATE(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
+                                                         uint16_t value_len)
+{
+    uint8_t value;
+    spinel_ssize_t parsedLength;
+    ThreadError errorCode = kThreadError_None;
+
+    parsedLength = spinel_datatype_unpack(
+                       value_ptr,
+                       value_len,
+                       SPINEL_DATATYPE_UINT8_S,
+                       &value
+                   );
+
+    if (parsedLength > 0)
+    {
+        switch (value)
+        {        
+        case SPINEL_HOST_POWER_STATE_OFFLINE:
+        case SPINEL_HOST_POWER_STATE_DEEP_SLEEP:
+        case SPINEL_HOST_POWER_STATE_LOW_POWER:
+        case SPINEL_HOST_POWER_STATE_ONLINE:
+            // Adopt the requested power state.
+            mHostPowerState = static_cast<spinel_host_power_state_t>(value);
+            break;
+
+        case SPINEL_HOST_POWER_STATE_RESERVED:
+            // Per the specification, treat this as synonymous with SPINEL_HOST_POWER_STATE_DEEP_SLEEP.
+            mHostPowerState = SPINEL_HOST_POWER_STATE_DEEP_SLEEP;
+            break;
+
+        default:
+            // Per the specification, treat unrecognized values as synonymous with SPINEL_HOST_POWER_STATE_LOW_POWER.
+            mHostPowerState = SPINEL_HOST_POWER_STATE_LOW_POWER;
+            break;
+        }
+    }
+    else
+    {
+        errorCode = kThreadError_Parse;
+    }
+
+    if (errorCode == kThreadError_None)
+    {
+        mHostPowerStateHeader = 0;
+
+        errorCode = HandleCommandPropertyGet(header, key);
+
+        if (mHostPowerState != SPINEL_HOST_POWER_STATE_ONLINE)
+        {
+            if (errorCode == kThreadError_None)
+            {
+                mTxFrameBuffer.SetFrameTransmitCallback(&NcpBase::HandleFrameTransmitDone, this);
+            }
+
+            mHostPowerStateInProgress = true;
+        }
+
+        if (errorCode != kThreadError_None)
+        {
+            mHostPowerStateHeader = header;
+        }
+    }
+    else
+    {
+        errorCode = SendLastStatus(header, ThreadErrorToSpinelStatus(errorCode));
+    }
+
+    return errorCode;
 }
 
 #if OPENTHREAD_ENABLE_RAW_LINK_API
@@ -6378,9 +6541,6 @@ exit:
 ThreadError NcpBase::InsertPropertyHandler_THREAD_LOCAL_ROUTES(uint8_t header, spinel_prop_key_t key,
                                                                const uint8_t *value_ptr, uint16_t value_len)
 {
-    const static int kPreferenceOffset = 6;
-    const static int kPreferenceMask = 3 << kPreferenceOffset;
-
     spinel_ssize_t parsedLength;
     ThreadError errorCode = kThreadError_None;
 
@@ -6410,7 +6570,7 @@ ThreadError NcpBase::InsertPropertyHandler_THREAD_LOCAL_ROUTES(uint8_t header, s
     {
         ext_route_config.mPrefix.mPrefix = *addr_ptr;
         ext_route_config.mStable = stable;
-        ext_route_config.mPreference = ((flags & kPreferenceMask) >> kPreferenceOffset);
+        ext_route_config.mPreference = ((flags & SPINEL_NET_FLAG_PREFERENCE_MASK) >> SPINEL_NET_FLAG_PREFERENCE_OFFSET);
         errorCode = otNetDataAddRoute(mInstance, &ext_route_config);
 
         if (errorCode == kThreadError_None)
@@ -6440,15 +6600,6 @@ exit:
 ThreadError NcpBase::InsertPropertyHandler_THREAD_ON_MESH_NETS(uint8_t header, spinel_prop_key_t key,
                                                                const uint8_t *value_ptr, uint16_t value_len)
 {
-    const static int kPreferenceOffset = 6;
-    const static int kPreferenceMask = 3 << kPreferenceOffset;
-    const static int kPreferredFlag = 1 << 5;
-    const static int kSlaacFlag = 1 << 4;
-    const static int kDhcpFlag = 1 << 3;
-    const static int kConfigureFlag = 1 << 2;
-    const static int kDefaultRouteFlag = 1 << 1;
-    const static int kOnMeshFlag = 1 << 0;
-
     spinel_ssize_t parsedLength;
     ThreadError errorCode = kThreadError_None;
 
@@ -6478,13 +6629,14 @@ ThreadError NcpBase::InsertPropertyHandler_THREAD_ON_MESH_NETS(uint8_t header, s
     {
         border_router_config.mPrefix.mPrefix = *addr_ptr;
         border_router_config.mStable = stable;
-        border_router_config.mPreference = ((flags & kPreferenceMask) >> kPreferenceOffset);
-        border_router_config.mPreferred = ((flags & kPreferredFlag) == kPreferredFlag);
-        border_router_config.mSlaac = ((flags & kSlaacFlag) == kSlaacFlag);
-        border_router_config.mDhcp = ((flags & kDhcpFlag) == kDhcpFlag);
-        border_router_config.mConfigure = ((flags & kConfigureFlag) == kConfigureFlag);
-        border_router_config.mDefaultRoute = ((flags & kDefaultRouteFlag) == kDefaultRouteFlag);
-        border_router_config.mOnMesh = ((flags & kOnMeshFlag) == kOnMeshFlag);
+        border_router_config.mPreference =
+            ((flags & SPINEL_NET_FLAG_PREFERENCE_MASK) >> SPINEL_NET_FLAG_PREFERENCE_OFFSET);
+        border_router_config.mPreferred = ((flags & SPINEL_NET_FLAG_PREFERRED) != 0);
+        border_router_config.mSlaac = ((flags & SPINEL_NET_FLAG_SLAAC) != 0);
+        border_router_config.mDhcp = ((flags & SPINEL_NET_FLAG_DHCP) != 0);
+        border_router_config.mConfigure = ((flags & SPINEL_NET_FLAG_CONFIGURE) != 0);
+        border_router_config.mDefaultRoute = ((flags & SPINEL_NET_FLAG_DEFAULT_ROUTE) != 0);
+        border_router_config.mOnMesh = ((flags & SPINEL_NET_FLAG_ON_MESH) != 0);
 
         errorCode = otNetDataAddPrefixInfo(mInstance, &border_router_config);
 
