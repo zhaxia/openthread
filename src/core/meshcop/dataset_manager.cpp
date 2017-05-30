@@ -182,14 +182,14 @@ otError DatasetManager::Set(const otOperationalDataset &aDataset, uint8_t &aFlag
     mLocal.Store();
     aFlags = kFlagLocalUpdated;
 
-    switch (mNetif.GetMle().GetDeviceState())
+    switch (mNetif.GetMle().GetRole())
     {
-    case Mle::kDeviceStateChild:
-    case Mle::kDeviceStateRouter:
+    case OT_DEVICE_ROLE_CHILD:
+    case OT_DEVICE_ROLE_ROUTER:
         mTimer.Start(1000);
         break;
 
-    case Mle::kDeviceStateLeader:
+    case OT_DEVICE_ROLE_LEADER:
         mNetwork = mLocal;
         aFlags |= kFlagNetworkUpdated;
         mNetif.GetNetworkDataLeader().IncrementVersion();
@@ -391,7 +391,7 @@ otError DatasetManager::Set(Coap::Header &aHeader, Message &aMessage, const Ip6:
     pendingTimestamp.SetLength(0);
     sessionId.SetLength(0);
 
-    VerifyOrExit(mNetif.GetMle().GetDeviceState() == Mle::kDeviceStateLeader, state = StateTlv::kReject);
+    VerifyOrExit(mNetif.GetMle().GetRole() == OT_DEVICE_ROLE_LEADER, state = StateTlv::kReject);
 
     // verify that TLV data size is less than maximum TLV value size
     while (offset < aMessage.GetLength())
@@ -430,8 +430,8 @@ otError DatasetManager::Set(Coap::Header &aHeader, Message &aMessage, const Ip6:
     if (Tlv::GetTlv(aMessage, Tlv::kChannel, sizeof(channel), channel) == OT_ERROR_NONE)
     {
         VerifyOrExit(channel.IsValid() &&
-                     channel.GetChannel() >= kPhyMinChannel &&
-                     channel.GetChannel() <= kPhyMaxChannel,
+                     channel.GetChannel() >= OT_RADIO_CHANNEL_MIN &&
+                     channel.GetChannel() <= OT_RADIO_CHANNEL_MAX,
                      state = StateTlv::kReject);
 
         if (channel.GetChannel() != mNetif.GetMac().GetChannel())
@@ -578,7 +578,7 @@ otError DatasetManager::Set(Coap::Header &aHeader, Message &aMessage, const Ip6:
 
 exit:
 
-    if (mNetif.GetMle().GetDeviceState() == Mle::kDeviceStateLeader)
+    if (mNetif.GetMle().GetRole() == OT_DEVICE_ROLE_LEADER)
     {
         SendSetResponse(aHeader, aMessageInfo, state);
     }
@@ -601,11 +601,8 @@ otError DatasetManager::SendSetRequest(const otOperationalDataset &aDataset, con
     VerifyOrExit((message = NewMeshCoPMessage(mNetif.GetCoap(), header)) != NULL, error = OT_ERROR_NO_BUFS);
 
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
-    bool isCommissioner;
 
-    isCommissioner = mNetif.GetCommissioner().GetState() != kCommissionerStateDisabled ? true : false;
-
-    if (isCommissioner)
+    if (mNetif.GetCommissioner().IsActive())
     {
         const uint8_t *cur = aTlvs;
         const uint8_t *end = aTlvs + aLength;
@@ -746,8 +743,7 @@ exit:
     return error;
 }
 
-otError DatasetManager::SendGetRequest(const uint8_t *aTlvTypes, const uint8_t aLength,
-                                       const otIp6Address *aAddress)
+otError DatasetManager::SendGetRequest(const uint8_t *aTlvTypes, uint8_t aLength, const otIp6Address *aAddress)
 {
     otError error = OT_ERROR_NONE;
     Coap::Header header;
@@ -945,7 +941,7 @@ otError ActiveDatasetBase::Set(const Dataset &aDataset)
     SuccessOrExit(error = DatasetManager::Set(aDataset));
     DatasetManager::ApplyConfiguration();
 
-    if (mNetif.GetMle().GetDeviceState() == Mle::kDeviceStateLeader)
+    if (mNetif.GetMle().GetRole() == OT_DEVICE_ROLE_LEADER)
     {
         mNetif.GetNetworkDataLeader().IncrementVersion();
         mNetif.GetNetworkDataLeader().IncrementStableVersion();

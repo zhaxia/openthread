@@ -332,13 +332,12 @@ const char* otDeviceRoleToString(otDeviceRole role)
 {
     switch (role)
     {
-    case kDeviceRoleOffline:  return "offline";
-    case kDeviceRoleDisabled: return "disabled";
-    case kDeviceRoleDetached: return "detached";
-    case kDeviceRoleChild:    return "child";
-    case kDeviceRoleRouter:   return "router";
-    case kDeviceRoleLeader:   return "leader";
-    default:                  return "invalid";
+    case OT_DEVICE_ROLE_DISABLED: return "disabled";
+    case OT_DEVICE_ROLE_DETACHED: return "detached";
+    case OT_DEVICE_ROLE_CHILD:    return "child";
+    case OT_DEVICE_ROLE_ROUTER:   return "router";
+    case OT_DEVICE_ROLE_LEADER:   return "leader";
+    default:                      return "invalid";
     }
 }
 
@@ -392,7 +391,7 @@ PingHandlerRecvCallback(
             memcmp(RecvDest, &RealmLocalAllRoutersAddress, sizeof(IN6_ADDR)) == 0)
         {
             auto Role = otThreadGetDeviceRole(aPingHandler->mParentNode->mInstance);
-            if (Role != kDeviceRoleLeader && Role != kDeviceRoleRouter)
+            if (Role != OT_DEVICE_ROLE_LEADER && Role != OT_DEVICE_ROLE_ROUTER)
                 shouldReply = false;
         }
 
@@ -1406,7 +1405,7 @@ OTNODEAPI int32_t OTCALL otNodeSetState(otNode* aNode, const char *aState)
     }
     else if (strcmp(aState, "child") == 0)
     {
-        error = otThreadBecomeChild(aNode->mInstance, kMleAttachAnyPartition);
+        error = otThreadBecomeChild(aNode->mInstance);
     }
     else if (strcmp(aState, "router") == 0)
     {
@@ -1596,15 +1595,15 @@ OTNODEAPI int32_t OTCALL otNodeAddPrefix(otNode* aNode, const char *aPrefix, con
     
     if (strcmp(aPreference, "high") == 0)
     {
-        config.mPreference = kRoutePreferenceHigh;
+        config.mPreference = OT_ROUTE_PREFERENCE_HIGH;
     }
     else if (strcmp(aPreference, "med") == 0)
     {
-        config.mPreference = kRoutePreferenceMedium;
+        config.mPreference = OT_ROUTE_PREFERENCE_MED;
     }
     else if (strcmp(aPreference, "low") == 0)
     {
-        config.mPreference = kRoutePreferenceLow;
+        config.mPreference = OT_ROUTE_PREFERENCE_LOW;
     }
     else
     {
@@ -1639,15 +1638,15 @@ OTNODEAPI int32_t OTCALL otNodeAddRoute(otNode* aNode, const char *aPrefix, cons
     
     if (strcmp(aPreference, "high") == 0)
     {
-        config.mPreference = kRoutePreferenceHigh;
+        config.mPreference = OT_ROUTE_PREFERENCE_HIGH;
     }
     else if (strcmp(aPreference, "med") == 0)
     {
-        config.mPreference = kRoutePreferenceMedium;
+        config.mPreference = OT_ROUTE_PREFERENCE_MED;
     }
     else if (strcmp(aPreference, "low") == 0)
     {
-        config.mPreference = kRoutePreferenceLow;
+        config.mPreference = OT_ROUTE_PREFERENCE_LOW;
     }
     else
     {

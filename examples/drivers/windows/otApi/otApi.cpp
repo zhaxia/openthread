@@ -2788,24 +2788,18 @@ otThreadBecomeDetached(
     )
 {
     if (aInstance == nullptr) return OT_ERROR_INVALID_ARGS;
-    return DwordToThreadError(SetIOCTL(aInstance, IOCTL_OTLWF_OT_DEVICE_ROLE, (uint8_t)kDeviceRoleDetached));
+    return DwordToThreadError(SetIOCTL(aInstance, IOCTL_OTLWF_OT_DEVICE_ROLE, (uint8_t)OT_DEVICE_ROLE_DETACHED));
 }
 
 OTAPI
 otError
 OTCALL
 otThreadBecomeChild(
-    _In_ otInstance *aInstance, 
-    otMleAttachFilter aFilter
+    _In_ otInstance *aInstance
     )
 {
     if (aInstance == nullptr) return OT_ERROR_INVALID_ARGS;
-
-    uint8_t Role = kDeviceRoleDetached;
-    uint8_t Filter = (uint8_t)aFilter;
-
-    PackedBuffer3<GUID,uint8_t,uint8_t> Buffer(aInstance->InterfaceGuid, Role, Filter);
-    return DwordToThreadError(SendIOCTL(aInstance->ApiHandle, IOCTL_OTLWF_OT_DEVICE_ROLE, &Buffer, sizeof(Buffer), nullptr, 0));
+    return DwordToThreadError(SetIOCTL(aInstance, IOCTL_OTLWF_OT_DEVICE_ROLE, (uint8_t)OT_DEVICE_ROLE_CHILD));
 }
 
 OTAPI
@@ -2816,7 +2810,7 @@ otThreadBecomeRouter(
     )
 {
     if (aInstance == nullptr) return OT_ERROR_INVALID_ARGS;
-    return DwordToThreadError(SetIOCTL(aInstance, IOCTL_OTLWF_OT_DEVICE_ROLE, (uint8_t)kDeviceRoleRouter));
+    return DwordToThreadError(SetIOCTL(aInstance, IOCTL_OTLWF_OT_DEVICE_ROLE, (uint8_t)OT_DEVICE_ROLE_ROUTER));
 }
 
 OTAPI
@@ -2827,7 +2821,7 @@ otThreadBecomeLeader(
     )
 {
     if (aInstance == nullptr) return OT_ERROR_INVALID_ARGS;
-    return DwordToThreadError(SetIOCTL(aInstance, IOCTL_OTLWF_OT_DEVICE_ROLE, (uint8_t)kDeviceRoleLeader));
+    return DwordToThreadError(SetIOCTL(aInstance, IOCTL_OTLWF_OT_DEVICE_ROLE, (uint8_t)OT_DEVICE_ROLE_LEADER));
 }
 
 OTAPI
@@ -2994,7 +2988,7 @@ otThreadGetDeviceRole(
     _In_ otInstance *aInstance
     )
 {
-    uint8_t Result = kDeviceRoleOffline;
+    uint8_t Result = OT_DEVICE_ROLE_DISABLED;
     if (aInstance) (void)QueryIOCTL(aInstance, IOCTL_OTLWF_OT_DEVICE_ROLE, &Result);
     return (otDeviceRole)Result;
 }
