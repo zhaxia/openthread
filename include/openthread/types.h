@@ -369,18 +369,6 @@ enum
 };
 
 /**
-* This enumeration defines the Commissioner State.
-*
-*/
-typedef enum otCommissionerState
-{
-
-    kCommissionerStateDisabled = 0,
-    kCommissionerStatePetition = 1,
-    kCommissionerStateActive = 2,
-} otCommissionerState;
-
-/**
   * This type represents Channel Mask Page 0.
   *
   */
@@ -762,21 +750,10 @@ typedef struct otExternalRouteConfig
  */
 typedef enum otRoutePreference
 {
-    kRoutePreferenceLow    = -1,  ///< Routes assigned this value are used as a last resort when no other more preferred route exists.
-    kRoutePreferenceMedium =  0,  ///< Routes assigned this value should be selected only in the absence of any kRoutePreferenceHigh routes.
-    kRoutePreferenceHigh   =  1   ///< The most preferred route. Routes assigned this value should be selected over any other route.
+    OT_ROUTE_PREFERENCE_LOW  = -1,  ///< Low route preference.
+    OT_ROUTE_PREFERENCE_MED  = 0,   ///< Medium route preference.
+    OT_ROUTE_PREFERENCE_HIGH = 1,   ///< High route preference.
 } otRoutePreference;
-
-/**
- * Represents any restrictions on the attach process.
- */
-typedef enum otMleAttachFilter
-{
-    kMleAttachAnyPartition    = 0,  ///< Attach to any Thread partition.
-    kMleAttachSamePartition1  = 1,  ///< Attach to the same Thread partition (attempt 1).
-    kMleAttachSamePartition2  = 2,  ///< Attach to the same Thread partition (attempt 2).
-    kMleAttachBetterPartition = 3,  ///< Attach to a better (i.e. higher weight/partition id) Thread partition.
-} otMleAttachFilter;
 
 /**
  * This structure represents a whitelist entry.
@@ -805,12 +782,11 @@ typedef struct otMacBlacklistEntry
  */
 typedef enum
 {
-    kDeviceRoleOffline,   ///< The Thread device is offline and unavailable.
-    kDeviceRoleDisabled,  ///< The Thread stack is disabled.
-    kDeviceRoleDetached,  ///< Not currently participating in a Thread network/partition.
-    kDeviceRoleChild,     ///< The Thread Child role.
-    kDeviceRoleRouter,    ///< The Thread Router role.
-    kDeviceRoleLeader,    ///< The Thread Leader role.
+    OT_DEVICE_ROLE_DISABLED = 0,  ///< The Thread stack is disabled.
+    OT_DEVICE_ROLE_DETACHED = 1,  ///< Not currently participating in a Thread network/partition.
+    OT_DEVICE_ROLE_CHILD    = 2,  ///< The Thread Child role.
+    OT_DEVICE_ROLE_ROUTER   = 3,  ///< The Thread Router role.
+    OT_DEVICE_ROLE_LEADER   = 4,  ///< The Thread Leader role.
 } otDeviceRole;
 
 /**
@@ -1016,77 +992,6 @@ typedef struct
     uint8_t        *mSecretKey;          ///< Secret key used to create IID. Cannot be null.
     uint16_t        mSecretKeyLength;    ///< Secret key length in bytes. Should be at least 16 bytes == 128 bits.
 } otSemanticallyOpaqueIidGeneratorData;
-
-/**
- * ICMPv6 Message Types
- *
- */
-typedef enum otIcmp6Type
-{
-    kIcmp6TypeDstUnreach  = 1,     ///< Destination Unreachable
-    kIcmp6TypeEchoRequest = 128,   ///< Echo Request
-    kIcmp6TypeEchoReply   = 129,   ///< Echo Reply
-} otIcmp6Type;
-
-/**
- * ICMPv6 Message Codes
- *
- */
-typedef enum otIcmp6Code
-{
-    kIcmp6CodeDstUnreachNoRoute = 0,  ///< Destination Unreachable No Route
-} otIcmp6Code;
-
-#define OT_ICMP6_HEADER_DATA_SIZE  4   ///< Size of an message specific data of ICMPv6 Header.
-
-/**
- * @struct otIcmp6Header
- *
- * This structure represents an ICMPv6 header.
- *
- */
-OT_TOOL_PACKED_BEGIN
-struct otIcmp6Header
-{
-    uint8_t      mType;      ///< Type
-    uint8_t      mCode;      ///< Code
-    uint16_t     mChecksum;  ///< Checksum
-    union
-    {
-        uint8_t  m8[OT_ICMP6_HEADER_DATA_SIZE / sizeof(uint8_t)];
-        uint16_t m16[OT_ICMP6_HEADER_DATA_SIZE / sizeof(uint16_t)];
-        uint32_t m32[OT_ICMP6_HEADER_DATA_SIZE / sizeof(uint32_t)];
-    } mData;                 ///< Message-specific data
-} OT_TOOL_PACKED_END;
-
-/**
- * This type represents an ICMPv6 header.
- *
- */
-typedef struct otIcmp6Header otIcmp6Header;
-
-/**
- * This callback allows OpenThread to inform the application of a received ICMPv6 message.
- *
- * @param[in]  aContext      A pointer to arbitrary context information.
- * @param[in]  aMessage      A pointer to the received message.
- * @param[in]  aMessageInfo  A pointer to message information associated with @p aMessage.
- * @param[in]  aIcmpHeader   A pointer to the received ICMPv6 header.
- *
- */
-typedef void (*otIcmp6ReceiveCallback)(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo,
-                                       const otIcmp6Header *aIcmpHeader);
-
-/**
- * This structure implements ICMPv6 message handler.
- *
- */
-typedef struct otIcmp6Handler
-{
-    otIcmp6ReceiveCallback  mReceiveCallback;  ///< The ICMPv6 received callback
-    void                   *mContext;          ///< A pointer to arbitrary context information.
-    struct otIcmp6Handler  *mNext;             ///< A pointer to the next handler in the list.
-} otIcmp6Handler;
 
 /**
  * This structure represents an IPv6 socket address.
