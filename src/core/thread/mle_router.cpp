@@ -3509,9 +3509,6 @@ otError MleRouter::RestoreChildren(void)
 {
     otError error = OT_ERROR_NONE;
 
-    // We skip child restoration as reset-recovery workaround
-#if !ENABLE_MARBLE_387_WORKAROUND
-
     for (uint8_t i = 0; ; i++)
     {
         Child *child;
@@ -3534,16 +3531,6 @@ otError MleRouter::RestoreChildren(void)
         child->SetLastHeard(Timer::GetNow());
         mNetif.GetMeshForwarder().GetSourceMatchController().SetSrcMatchAsShort(*child, true);
     }
-
-#else  // ENABLE_MARBLE_387_WORKAROUND
-
-    // Erase all `ChildInfo` in settings (-1 as index means all the entries under this key)
-    error = otPlatSettingsDelete(mNetif.GetInstance(), kKeyChildInfo, -1);
-
-    // This is added to remove the build error/warning of unused `exit` label.
-    ExitNow();
-
-#endif // ENABLE_MARBLE_387_WORKAROUND
 
 exit:
     return error;

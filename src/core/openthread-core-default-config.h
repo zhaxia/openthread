@@ -800,12 +800,4 @@
 #define OPENTHREAD_CONFIG_SUPERVISION_MSG_NO_ACK_REQUEST       0
 #endif
 
-//---------------------------------------------------------------------------------------------
-// Nest-Only configuration options (do NOT copy/include in OpenThread on GitHub)
-
-// Define to 0 to enable MARBLE-387 workaround
-#ifndef ENABLE_MARBLE_386_WORKAROUND
-#define ENABLE_MARBLE_386_WORKAROUND                            1
-#endif // ENABLE_MARBLE_386_WORKAROUND
-
 #endif  // OPENTHREAD_CORE_DEFAULT_CONFIG_H_
