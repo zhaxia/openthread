@@ -259,7 +259,9 @@ otError Mle::Stop(bool aClearNetworkDatasets)
     mNetif.GetKeyManager().Stop();
     SetStateDetached();
     mNetif.RemoveUnicastAddress(mMeshLocal16);
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
     mNetif.GetNetworkDataLocal().Clear();
+#endif
     mNetif.GetNetworkDataLeader().Clear();
     memset(&mLeaderData, 0, sizeof(mLeaderData));
 
@@ -623,7 +625,9 @@ otError Mle::SetStateChild(uint16_t aRloc16)
         mNetif.GetMle().HandleChildStart(mParentRequestMode);
     }
 
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
     mNetif.GetNetworkDataLocal().ClearResubmitDelayTimer();
+#endif
     mNetif.GetIp6().SetForwardingEnabled(false);
     mNetif.GetIp6().mMpl.SetTimerExpirations(kMplChildDataMessageTimerExpirations);
 
@@ -695,6 +699,11 @@ otError Mle::SetDeviceMode(uint8_t aDeviceMode)
 
 exit:
     return error;
+}
+
+const Ip6::Address &Mle::GetLinkLocalAddress(void) const
+{
+    return mLinkLocal64.GetAddress();
 }
 
 otError Mle::UpdateLinkLocalAddress(void)
@@ -1281,7 +1290,9 @@ void Mle::HandleNetifStateChanged(uint32_t aFlags)
             mSendChildUpdateRequest.Post();
         }
 
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
         mNetif.GetNetworkDataLocal().SendServerDataNotification();
+#endif
     }
 
     if (aFlags & (OT_NET_ROLE | OT_NET_KEY_SEQUENCE_COUNTER))
@@ -2226,7 +2237,7 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     case Header::kCommandChildUpdateRequest:
         if (mRole == OT_DEVICE_ROLE_LEADER || mRole == OT_DEVICE_ROLE_ROUTER)
         {
-            mNetif.GetMle().HandleChildUpdateRequest(aMessage, aMessageInfo);
+            mNetif.GetMle().HandleChildUpdateRequest(aMessage, aMessageInfo, keySequence);
         }
         else
         {

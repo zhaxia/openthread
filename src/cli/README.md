@@ -14,7 +14,7 @@ OpenThread test scripts use the CLI to execute test cases.
 * [child](#child-list)
 * [childmax](#childmax)
 * [childtimeout](#childtimeout)
-* [coap](#coap-server-phase)
+* [coap](#coap-start)
 * [commissioner](#commissioner-start-provisioningurl)
 * [contextreusedelay](#contextreusedelay)
 * [counter](#counter)
@@ -208,10 +208,10 @@ Print table of attached children.
 
 ```bash
 > child table
-| ID  | RLOC16 | Timeout    | Age        | LQI In | C_VN |R|S|D|N| Extended MAC     |
-+-----+--------+------------+------------+--------+------+-+-+-+-+------------------+
-|   1 | 0xe001 |        240 |         44 |      3 |  237 |1|1|1|1| d28d7f875888fccb |
-|   2 | 0xe002 |        240 |         27 |      3 |  237 |0|1|0|1| e2b3540590b0fd87 |
+| ID  | RLOC16 | Timeout    | Age        | LQ In | C_VN |R|S|D|N| Extended MAC     |
++-----+--------+------------+------------+-------+------+-+-+-+-+------------------+
+|   1 | 0xe001 |        240 |         44 |     3 |  237 |1|1|1|1| d28d7f875888fccb |
+|   2 | 0xe002 |        240 |         27 |     3 |  237 |0|1|0|1| e2b3540590b0fd87 |
 Done
 ```
 
@@ -228,7 +228,7 @@ Mode: rsn
 Net Data: 184
 Timeout: 100
 Age: 0
-LQI: 3
+Link Quality In: 3
 RSSI: -20
 Done
 ```
@@ -271,55 +271,57 @@ Set the Thread Child Timeout value.
 Done
 ```
 
-### coap server \<phase\>
+### coap start
 
-Starts and stops the simple CoAP server.
-
-* phase: Either "start" or "stop" the server.
+Starts the application coap service.
 
 ```bash
-> coap server start
-Server started with resource '': Done
-> coap server stop
-Server stopped: Done
+> coap start
+Coap service started: Done
 ```
 
-### coap server name \[URI\]
+### coap stop
 
-Outputs the currently used URI String of the CoAP resource.
-
-* URI: If provided the URI String will be changed to the new value.
+Stops the application coap service.
 
 ```bash
-> coap server name
-Current resource name is '': Done
-> coap server name test
-Changing resource name to 'test': Done
+> coap start
+Coap service stopped: Done
 ```
 
-### coap client \<method\> \<IPv6address\> \<URI\> \[payload\] \[messageType\]
+### coap resource \[uri-path\]
 
-Simple CoAP client that can send Non-/Confirmable GET/PUT/POST/DELETE messages.
+Sets the URI-Path for the test resource.
+
+```bash
+> coap resource test
+Resource name is 'test': Done
+> coap resource
+Resource name is 'test': Done
+```
+
+### coap \<method\> \<address\> \<uri\> \[payload\] \[type\]
 
 * method: CoAP method to be used (GET/PUT/POST/DELETE).
-* IPv6address: IP address of the CoAP server to query.
-* URI: URI String of the resource on the CoAP server.
+* address: IP address of the CoAP server to query.
+* uri: URI String of the resource on the CoAP server.
 * payload: In case of PUT/POST/DELETE a payload can be encapsulated.
-* messageType: Switch between confirmable ("con") and non-confirmable (default).
+* type: Switch between confirmable ("con") and non-confirmable (default).
 
 ```bash
-> coap client get fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc test
-Sending CoAP message: Done
-Received CoAP request from [fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc]: GET
-CoAP response sent successfully!
-Received CoAP response with payload: 30
-> coap client put fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc test non-con somePayload
-Sending CoAP message: Done
-> coap client put fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc test con 123
-Sending CoAP message: Done
-Received CoAP request from [fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc]: PUT with payload: ba 00 00 20
-CoAP response sent successfully!
-Received CoAP response
+> coap get fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc test
+Sending coap message: Done
+Received coap request from [fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc]: GET
+coap response sent successfully!
+Received coap response with payload: 30
+> coap put fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc test non-con somePayload
+Sending coap message: Done
+Received coap request from [fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc]: PUT with payload: 73 6f 6d 65 50 61 79 6c 6f 61 64
+> coap put fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc test con 123
+Sending coap message: Done
+Received coap request from [fdde:ad00:beef:0:dbaa:f1d0:8afb:30dc]: PUT with payload: 31 32 33
+coap response sent successfully!
+Received coap response
 ```
 
 ### commissioner start \<provisioningUrl\>
@@ -1235,6 +1237,9 @@ Get the diagnostic information for a Thread Router as parent.
 > parent
 Ext Addr: be1857c6c21dce55
 Rloc: 5c00
+Link Quality In: 3
+Link Quality Out: 3
+Age: 20
 Done
 ```
 
@@ -1383,10 +1388,10 @@ Print table of routers.
 
 ```bash
 > router table
-| ID | RLOC16 | Next Hop | Path Cost | LQI In | LQI Out | Age | Extended MAC     |
-+----+--------+----------+-----------+--------+---------+-----+------------------+
-| 21 | 0x5400 |       21 |         0 |      3 |       3 |   5 | d28d7f875888fccb |
-| 56 | 0xe000 |       56 |         0 |      0 |       0 | 182 | f2d92a82c8d8fe43 |
+| ID | RLOC16 | Next Hop | Path Cost | LQ In | LQ Out | Age | Extended MAC     |
++----+--------+----------+-----------+-------+--------+-----+------------------+
+| 21 | 0x5400 |       21 |         0 |     3 |      3 |   5 | d28d7f875888fccb |
+| 56 | 0xe000 |       56 |         0 |     0 |      0 | 182 | f2d92a82c8d8fe43 |
 Done
 ```
 
@@ -1403,8 +1408,8 @@ Next Hop: c800
 Link: 1
 Ext Addr: e2b3540590b0fd87
 Cost: 0
-LQI In: 3
-LQI Out: 3
+Link Quality In: 3
+Link Quality Out: 3
 Age: 3
 Done
 ```
@@ -1418,8 +1423,8 @@ Next Hop: c800
 Link: 1
 Ext Addr: e2b3540590b0fd87
 Cost: 0
-LQI In: 3
-LQI Out: 3
+Link Quality In: 3
+Link Quality Out: 3
 Age: 7
 Done
 ```

@@ -50,14 +50,6 @@ LINESEPX = re.compile(r'\r\n|\n')
 """regex: used to split lines"""
 
 class OpenThread(IThci):
-    UIStatusMsg = ''
-    networkDataRequirement = ''      # indicate Thread device requests full or stable network data
-    isPowerDown = False              # indicate if Thread device experiences a power down event
-    isWhiteListEnabled = False       # indicate if Thread device enables white list filter
-    isBlackListEnabled = False       # indicate if Thread device enables black list filter
-    isActiveCommissioner = False     # indicate if Thread device is an active commissioner
-    _is_net = False                  # whether device is through ser2net
-    _lines = None                    # buffered lines read from device
     LOWEST_POSSIBLE_PARTATION_ID = 0x1
     LINK_QUALITY_CHANGE_TIME = 100
 
@@ -69,31 +61,15 @@ class OpenThread(IThci):
                       Includes 'EUI' and 'SerialPort'
         """
         try:
+            self.UIStatusMsg = ''
             self.mac = kwargs.get('EUI')
             self.port = kwargs.get('SerialPort')
             self.handle = None
-            self.networkName = ModuleHelper.Default_NwkName
-            self.networkKey = ModuleHelper.Default_NwkKey
-            self.channel = ModuleHelper.Default_Channel
-            self.channelMask = "0x7fff800" #(0xffff << 11)
-            self.panId = ModuleHelper.Default_PanId
-            self.xpanId = ModuleHelper.Default_XpanId
             self.AutoDUTEnable = False
-            self.localprefix = ModuleHelper.Default_MLPrefix
-            self.pskc = "00000000000000000000000000000000"  # OT only accept hex format PSKc for now
-            self.securityPolicySecs = ModuleHelper.Default_SecurityPolicy
-            self.securityPolicyFlags = "onrcb"
-            self.activetimestamp = ModuleHelper.Default_ActiveTimestamp
-            #self.sedPollingRate = ModuleHelper.Default_Harness_SED_Polling_Rate
-            self.sedPollingRate = 3
-            self.deviceRole = None
-            self.provisioningUrl = ''
-            self.hasActiveDatasetToCommit = False
-            self.logThread = Queue()
+            self._is_net = False                  # whether device is through ser2net
             self.logStatus = {'stop':'stop', 'running':'running', "pauseReq":'pauseReq', 'paused':'paused'}
-            self.logThreadStatus = self.logStatus['stop']
             self.joinStatus = {'notstart':'notstart', 'ongoing':'ongoing', 'succeed':'succeed', "failed":'failed'}
-            self.joinCommissionedStatus = self.joinStatus['notstart']
+            self.logThreadStatus = self.logStatus['stop']
             self.intialize()
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger("initialize() Error: " + str(e))
@@ -462,9 +438,23 @@ class OpenThread(IThci):
                 else:
                     self.hasActiveDatasetToCommit = False
 
+            # restore whitelist if rejoin after reset
+            if self.isPowerDown and self.isWhiteListEnabled:
+                self.__enableWhiteList()
+                for addr in self._whiteList:
+                    self.addAllowMAC(addr)
+
+            # restore blacklist if rejoin after reset
+            if self.isPowerDown and self.isBlackListEnabled:
+                self.__enableBlackList()
+                for addr in self._blackList:
+                    self.addBlockedMAC(addr)
+
             if self.__sendCommand('ifconfig up')[0] == 'Done':
                 self.__setRouterSelectionJitter(1)
-                return self.__sendCommand('thread start')[0] == 'Done'
+                if self.__sendCommand('thread start')[0] == 'Done':
+                    self.isPowerDown = False
+                    return True
             else:
                 return False
         except Exception, e:
@@ -903,7 +893,11 @@ class OpenThread(IThci):
         """
         print '%s call addBlockedMAC' % self.port
         print xEUI
-        macAddr = self.__convertLongToString(xEUI)
+        if isinstance(xEUI, str):
+            macAddr = xEUI
+        else:
+            macAddr = self.__convertLongToString(xEUI)
+
         try:
             # if blocked device is itself
             if macAddr == self.mac:
@@ -915,6 +909,7 @@ class OpenThread(IThci):
 
             cmd = 'blacklist add %s' % macAddr
             print cmd
+            self._blackList.add(macAddr)
             return self.__sendCommand(cmd)[0] == 'Done'
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger("addBlockedMAC() Error: " + str(e))
@@ -931,13 +926,18 @@ class OpenThread(IThci):
         """
         print '%s call addAllowMAC' % self.port
         print xEUI
-        macAddr = self.__convertLongToString(xEUI)
+        if isinstance(xEUI, str):
+            macAddr = xEUI
+        else:
+            macAddr = self.__convertLongToString(xEUI)
+
         try:
             if not self.isWhiteListEnabled:
                 self.__enableWhiteList()
 
             cmd = 'whitelist add %s' % macAddr
             print cmd
+            self._whiteList.add(macAddr)
             return self.__sendCommand(cmd)[0] == 'Done'
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger("addAllowMAC() Error: " + str(e))
@@ -955,6 +955,7 @@ class OpenThread(IThci):
         try:
             if self.__sendCommand('blacklist clear')[0] == 'Done':
                 self.__disableBlackList()
+                self._blackList.clear()
                 return True
             else:
                 return False
@@ -974,6 +975,7 @@ class OpenThread(IThci):
         try:
             if self.__sendCommand('whitelist clear')[0] == 'Done':
                 self.__disableWhiteList()
+                self._whiteList.clear()
                 self.clearBlockList()
                 return True
             else:
@@ -1096,8 +1098,8 @@ class OpenThread(IThci):
     def powerDown(self):
         """power down the Thread device"""
         print '%s call powerDown' % self.port
-        self.isPowerDown = True
         self._sendline('reset')
+        self.isPowerDown = True
 
     def powerUp(self):
         """power up the Thread device"""
@@ -1120,6 +1122,7 @@ class OpenThread(IThci):
         print '%s call reboot' % self.port
         try:
             self._sendline('reset')
+            self.isPowerDown = True
             time.sleep(3)
 
             self.__startOpenThread()
@@ -1214,6 +1217,7 @@ class OpenThread(IThci):
         try:
             self._sendline('factoryreset')
             self._read()
+
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger("reset() Error: " + str(e))
 
@@ -1246,9 +1250,39 @@ class OpenThread(IThci):
     def setDefaultValues(self):
         """set default mandatory Thread Network parameter value"""
         print '%s call setDefaultValues' % self.port
+
+        # initialize variables
+        self.networkName = ModuleHelper.Default_NwkName
+        self.networkKey = ModuleHelper.Default_NwkKey
+        self.channel = ModuleHelper.Default_Channel
+        self.channelMask = "0x7fff800" #(0xffff << 11)
+        self.panId = ModuleHelper.Default_PanId
+        self.xpanId = ModuleHelper.Default_XpanId
+        self.localprefix = ModuleHelper.Default_MLPrefix
+        self.pskc = "00000000000000000000000000000000"  # OT only accept hex format PSKc for now
+        self.securityPolicySecs = ModuleHelper.Default_SecurityPolicy
+        self.securityPolicyFlags = "onrcb"
+        self.activetimestamp = ModuleHelper.Default_ActiveTimestamp
+        #self.sedPollingRate = ModuleHelper.Default_Harness_SED_Polling_Rate
+        self.sedPollingRate = 3
+        self.deviceRole = None
+        self.provisioningUrl = ''
+        self.hasActiveDatasetToCommit = False
+        self.logThread = Queue()
+        self.logThreadStatus = self.logStatus['stop']
+        self.joinCommissionedStatus = self.joinStatus['notstart']
+        self.networkDataRequirement = ''      # indicate Thread device requests full or stable network data
+        self.isPowerDown = False              # indicate if Thread device experiences a power down event
+        self.isWhiteListEnabled = False       # indicate if Thread device enables white list filter
+        self.isBlackListEnabled = False       # indicate if Thread device enables black list filter
+        self._whiteList = set()               # cache whitelist devices when white list filter is enabled
+        self._blackList = set()               # cache blacklist devices when black list filter is enabled
+        self.isActiveCommissioner = False     # indicate if Thread device is an active commissioner
+        self._lines = None                    # buffered lines read from device
+
+        # initialize device configuration
         try:
             self.setMAC(self.mac)
-
             self.__setChannelMask(self.channelMask)
             self.__setSecurityPolicy(self.securityPolicySecs, self.securityPolicyFlags)
             self.setChannel(self.channel)
@@ -1259,10 +1293,6 @@ class OpenThread(IThci):
             self.setMLPrefix(self.localprefix)
             self.setPSKc(self.pskc)
             self.setActiveTimestamp(self.activetimestamp)
-
-            self.isWhiteListEnabled = False
-            self.isBlackListEnabled = False
-            self.isActiveCommissioner = False
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger("setDefaultValue() Error: " + str(e))
 
@@ -1373,6 +1403,7 @@ class OpenThread(IThci):
         print timeout
         try:
             self._sendline('reset')
+            self.isPowerDown = True
             time.sleep(timeout)
 
             if self.deviceRole == Thread_Device_Role.SED:

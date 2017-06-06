@@ -66,7 +66,7 @@ extern "C" {
 
 enum
 {
-    OT_RADIO_FRAME_MAX_SIZE     = 127,                             ///< aMaxPHYPacketSize (IEEE 802.15.4-2006)
+    OT_RADIO_FRAME_MAX_SIZE      = 127,                             ///< aMaxPHYPacketSize (IEEE 802.15.4-2006)
     OT_RADIO_CHANNEL_MIN         = 11,                              ///< 2.4 GHz IEEE 802.15.4-2006
     OT_RADIO_CHANNEL_MAX         = 26,                              ///< 2.4 GHz IEEE 802.15.4-2006
     OT_RADIO_SUPPORTED_CHANNELS  = 0xffff << OT_RADIO_CHANNEL_MIN,  ///< 2.4 GHz IEEE 802.15.4-2006
@@ -116,9 +116,9 @@ typedef struct otRadioFrame
 typedef enum otRadioState
 {
     OT_RADIO_STATE_DISABLED = 0,
-    OT_RADIO_STATE_SLEEP = 1,
-    OT_RADIO_STATE_RECEIVE = 2,
-    OT_RADIO_STATE_TRANSMIT = 3
+    OT_RADIO_STATE_SLEEP    = 1,
+    OT_RADIO_STATE_RECEIVE  = 2,
+    OT_RADIO_STATE_TRANSMIT = 3,
 } otRadioState;
 
 /**
@@ -470,15 +470,12 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable);
  *
  * @param[in]  aInstance      The OpenThread instance structure.
  * @param[in]  aFrame         A pointer to the frame that was transmitted.
- * @param[in]  aFramePending  TRUE if an ACK frame was received and the Frame Pending bit was set.
- * @param[in]  aError  OT_ERROR_NONE when the frame was transmitted, OT_ERROR_NO_ACK when the frame was
- *                     transmitted but no ACK was received, OT_ERROR_CHANNEL_ACCESS_FAILURE when the transmission
- *                     could not take place due to activity on the channel, OT_ERROR_ABORT when transmission was
- *                     aborted for other reasons.
+ * @param[in]  aError         OT_ERROR_NONE when the frame was transmitted, OT_ERROR_CHANNEL_ACCESS_FAILURE when the
+ *                            transmission could not take place due to activity on the channel, OT_ERROR_ABORT when
+ *                            transmission was aborted for other reasons.
  *
  */
-extern void otPlatDiagRadioTransmitDone(otInstance *aInstance, otRadioFrame *aFrame, bool aFramePending,
-                                        otError aError);
+extern void otPlatDiagRadioTransmitDone(otInstance *aInstance, otRadioFrame *aFrame, otError aError);
 
 /**
  * The radio driver calls this method to notify OpenThread diagnostics module of a received frame.

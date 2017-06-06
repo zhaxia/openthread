@@ -45,6 +45,10 @@
 #include <openthread/border_agent_proxy.h>
 #endif
 
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
+#include <openthread/border_router.h>
+#endif
+
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 #include <meshcop/commissioner.hpp>
 #endif
@@ -154,9 +158,11 @@ const NcpBase::GetPropertyHandlerEntry NcpBase::mGetPropertyHandlerTable[] =
     { SPINEL_PROP_THREAD_NEIGHBOR_TABLE, &NcpBase::GetPropertyHandler_THREAD_NEIGHBOR_TABLE },
     { SPINEL_PROP_THREAD_LEADER_RID, &NcpBase::GetPropertyHandler_THREAD_LEADER_RID },
     { SPINEL_PROP_THREAD_LEADER_WEIGHT, &NcpBase::GetPropertyHandler_THREAD_LEADER_WEIGHT },
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
     { SPINEL_PROP_THREAD_NETWORK_DATA, &NcpBase::GetPropertyHandler_THREAD_NETWORK_DATA },
-    { SPINEL_PROP_THREAD_NETWORK_DATA_VERSION, &NcpBase::GetPropertyHandler_THREAD_NETWORK_DATA_VERSION },
     { SPINEL_PROP_THREAD_STABLE_NETWORK_DATA, &NcpBase::GetPropertyHandler_THREAD_STABLE_NETWORK_DATA },
+#endif
+    { SPINEL_PROP_THREAD_NETWORK_DATA_VERSION, &NcpBase::GetPropertyHandler_THREAD_NETWORK_DATA_VERSION },
     { SPINEL_PROP_THREAD_STABLE_NETWORK_DATA_VERSION, &NcpBase::GetPropertyHandler_THREAD_STABLE_NETWORK_DATA_VERSION },
     { SPINEL_PROP_THREAD_LEADER_NETWORK_DATA, &NcpBase::GetPropertyHandler_THREAD_LEADER_NETWORK_DATA },
     { SPINEL_PROP_THREAD_STABLE_LEADER_NETWORK_DATA, &NcpBase::GetPropertyHandler_THREAD_STABLE_LEADER_NETWORK_DATA },
@@ -168,8 +174,10 @@ const NcpBase::GetPropertyHandlerEntry NcpBase::mGetPropertyHandlerTable[] =
     { SPINEL_PROP_THREAD_COMMISSIONER_ENABLED, &NcpBase::GetPropertyHandler_THREAD_COMMISSIONER_ENABLED },
 #endif
 
+#if OPENTHREAD_ENABLE_MAC_WHITELIST
     { SPINEL_PROP_MAC_WHITELIST, &NcpBase::GetPropertyHandler_MAC_WHITELIST },
     { SPINEL_PROP_MAC_WHITELIST_ENABLED, &NcpBase::GetPropertyHandler_MAC_WHITELIST_ENABLED },
+#endif
     { SPINEL_PROP_THREAD_MODE, &NcpBase::GetPropertyHandler_THREAD_MODE },
     { SPINEL_PROP_THREAD_CHILD_TIMEOUT, &NcpBase::GetPropertyHandler_THREAD_CHILD_TIMEOUT },
     { SPINEL_PROP_THREAD_RLOC16, &NcpBase::GetPropertyHandler_THREAD_RLOC16 },
@@ -306,8 +314,11 @@ const NcpBase::SetPropertyHandlerEntry NcpBase::mSetPropertyHandlerTable[] =
     { SPINEL_PROP_IPV6_ICMP_PING_OFFLOAD, &NcpBase::SetPropertyHandler_IPV6_ICMP_PING_OFFLOAD },
     { SPINEL_PROP_THREAD_RLOC16_DEBUG_PASSTHRU, &NcpBase::SetPropertyHandler_THREAD_RLOC16_DEBUG_PASSTHRU },
 
+#if OPENTHREAD_ENABLE_MAC_WHITELIST
     { SPINEL_PROP_MAC_WHITELIST, &NcpBase::SetPropertyHandler_MAC_WHITELIST },
     { SPINEL_PROP_MAC_WHITELIST_ENABLED, &NcpBase::SetPropertyHandler_MAC_WHITELIST_ENABLED },
+#endif
+
 #if OPENTHREAD_ENABLE_RAW_LINK_API
     { SPINEL_PROP_MAC_SRC_MATCH_ENABLED, &NcpBase::SetPropertyHandler_MAC_SRC_MATCH_ENABLED },
     { SPINEL_PROP_MAC_SRC_MATCH_SHORT_ADDRESSES, &NcpBase::SetPropertyHandler_MAC_SRC_MATCH_SHORT_ADDRESSES },
@@ -321,13 +332,14 @@ const NcpBase::SetPropertyHandlerEntry NcpBase::mSetPropertyHandlerTable[] =
     { SPINEL_PROP_THREAD_DISCOVERY_SCAN_ENABLE_FILTERING,
         &NcpBase::SetPropertyHandler_THREAD_DISCOVERY_SCAN_ENABLE_FILTERING },
     { SPINEL_PROP_THREAD_DISCOVERY_SCAN_PANID, &NcpBase::SetPropertyHandler_THREAD_DISCOVERY_SCAN_PANID },
-
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
+    { SPINEL_PROP_THREAD_ALLOW_LOCAL_NET_DATA_CHANGE, &NcpBase::SetPropertyHandler_THREAD_ALLOW_LOCAL_NET_DATA_CHANGE },
+#endif
 #if OPENTHREAD_FTD
     { SPINEL_PROP_NET_PSKC, &NcpBase::SetPropertyHandler_NET_PSKC },
     { SPINEL_PROP_THREAD_CHILD_TIMEOUT, &NcpBase::SetPropertyHandler_THREAD_CHILD_TIMEOUT },
     { SPINEL_PROP_THREAD_NETWORK_ID_TIMEOUT, &NcpBase::SetPropertyHandler_THREAD_NETWORK_ID_TIMEOUT },
     { SPINEL_PROP_THREAD_LOCAL_LEADER_WEIGHT, &NcpBase::SetPropertyHandler_THREAD_LOCAL_LEADER_WEIGHT },
-    { SPINEL_PROP_THREAD_ALLOW_LOCAL_NET_DATA_CHANGE, &NcpBase::SetPropertyHandler_THREAD_ALLOW_LOCAL_NET_DATA_CHANGE },
     { SPINEL_PROP_THREAD_ROUTER_ROLE_ENABLED, &NcpBase::SetPropertyHandler_THREAD_ROUTER_ROLE_ENABLED },
     { SPINEL_PROP_THREAD_CHILD_COUNT_MAX, &NcpBase::SetPropertyHandler_THREAD_CHILD_COUNT_MAX },
     { SPINEL_PROP_THREAD_ROUTER_UPGRADE_THRESHOLD, &NcpBase::SetPropertyHandler_THREAD_ROUTER_UPGRADE_THRESHOLD },
@@ -372,17 +384,19 @@ const NcpBase::InsertPropertyHandlerEntry NcpBase::mInsertPropertyHandlerTable[]
     { SPINEL_PROP_MAC_SRC_MATCH_EXTENDED_ADDRESSES, &NcpBase::InsertPropertyHandler_MAC_SRC_MATCH_EXTENDED_ADDRESSES },
 #endif
     { SPINEL_PROP_IPV6_ADDRESS_TABLE, &NcpBase::InsertPropertyHandler_IPV6_ADDRESS_TABLE },
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
     { SPINEL_PROP_THREAD_OFF_MESH_ROUTES, &NcpBase::InsertPropertyHandler_THREAD_OFF_MESH_ROUTES },
     { SPINEL_PROP_THREAD_ON_MESH_NETS, &NcpBase::InsertPropertyHandler_THREAD_ON_MESH_NETS },
+#endif
     { SPINEL_PROP_THREAD_ASSISTING_PORTS, &NcpBase::InsertPropertyHandler_THREAD_ASSISTING_PORTS },
-
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
     { SPINEL_PROP_THREAD_JOINERS, &NcpBase::NcpBase::InsertPropertyHandler_THREAD_JOINERS },
 #endif
 
     { SPINEL_PROP_CNTR_RESET, &NcpBase::SetPropertyHandler_CNTR_RESET },
-
+#if OPENTHREAD_ENABLE_MAC_WHITELIST
     { SPINEL_PROP_MAC_WHITELIST, &NcpBase::InsertPropertyHandler_MAC_WHITELIST },
+#endif
 };
 
 const NcpBase::RemovePropertyHandlerEntry NcpBase::mRemovePropertyHandlerTable[] =
@@ -392,10 +406,14 @@ const NcpBase::RemovePropertyHandlerEntry NcpBase::mRemovePropertyHandlerTable[]
     { SPINEL_PROP_MAC_SRC_MATCH_EXTENDED_ADDRESSES, &NcpBase::RemovePropertyHandler_MAC_SRC_MATCH_EXTENDED_ADDRESSES },
 #endif
     { SPINEL_PROP_IPV6_ADDRESS_TABLE, &NcpBase::RemovePropertyHandler_IPV6_ADDRESS_TABLE },
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
     { SPINEL_PROP_THREAD_OFF_MESH_ROUTES, &NcpBase::RemovePropertyHandler_THREAD_OFF_MESH_ROUTES },
     { SPINEL_PROP_THREAD_ON_MESH_NETS, &NcpBase::RemovePropertyHandler_THREAD_ON_MESH_NETS },
+#endif
     { SPINEL_PROP_THREAD_ASSISTING_PORTS, &NcpBase::RemovePropertyHandler_THREAD_ASSISTING_PORTS },
+#if OPENTHREAD_ENABLE_MAC_WHITELIST
     { SPINEL_PROP_MAC_WHITELIST, &NcpBase::RemovePropertyHandler_MAC_WHITELIST },
+#endif
 #if OPENTHREAD_FTD
     { SPINEL_PROP_THREAD_ACTIVE_ROUTER_IDS, &NcpBase::RemovePropertyHandler_THREAD_ACTIVE_ROUTER_IDS },
 #endif
@@ -1999,7 +2017,10 @@ otError NcpBase::GetPropertyHandler_CAPS(uint8_t header, spinel_prop_key_t key)
 
     SuccessOrExit(errorCode = OutboundFrameFeedPacked(SPINEL_DATATYPE_UINT_PACKED_S, SPINEL_CAP_NET_THREAD_1_0));
     SuccessOrExit(errorCode = OutboundFrameFeedPacked(SPINEL_DATATYPE_UINT_PACKED_S, SPINEL_CAP_COUNTERS));
+
+#if OPENTHREAD_ENABLE_MAC_WHITELIST
     SuccessOrExit(errorCode = OutboundFrameFeedPacked(SPINEL_DATATYPE_UINT_PACKED_S, SPINEL_CAP_MAC_WHITELIST));
+#endif
 
 #if OPENTHREAD_ENABLE_RAW_LINK_API
     SuccessOrExit(errorCode = OutboundFrameFeedPacked(SPINEL_DATATYPE_UINT_PACKED_S, SPINEL_CAP_MAC_RAW));
@@ -2537,13 +2558,14 @@ otError NcpBase::GetPropertyHandler_THREAD_STABLE_NETWORK_DATA_VERSION(uint8_t h
            );
 }
 
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
 otError NcpBase::GetPropertyHandler_THREAD_NETWORK_DATA(uint8_t header, spinel_prop_key_t key)
 {
     otError errorCode = OT_ERROR_NONE;
     uint8_t network_data[255];
     uint8_t network_data_len = 255;
 
-    otNetDataGetLocal(
+    otBorderRouterGetNetData(
         mInstance,
         false, // Stable?
         network_data,
@@ -2571,7 +2593,7 @@ otError NcpBase::GetPropertyHandler_THREAD_STABLE_NETWORK_DATA(uint8_t header, s
     uint8_t network_data[255];
     uint8_t network_data_len = 255;
 
-    otNetDataGetLocal(
+    otBorderRouterGetNetData(
         mInstance,
         true, // Stable?
         network_data,
@@ -2592,6 +2614,7 @@ otError NcpBase::GetPropertyHandler_THREAD_STABLE_NETWORK_DATA(uint8_t header, s
 exit:
     return errorCode;
 }
+#endif // OPENTHREAD_ENABLE_BORDER_ROUTER
 
 otError NcpBase::GetPropertyHandler_THREAD_LEADER_NETWORK_DATA(uint8_t header, spinel_prop_key_t key)
 {
@@ -2599,7 +2622,7 @@ otError NcpBase::GetPropertyHandler_THREAD_LEADER_NETWORK_DATA(uint8_t header, s
     uint8_t network_data[255];
     uint8_t network_data_len = 255;
 
-    otNetDataGetLeader(
+    otNetDataGet(
         mInstance,
         false, // Stable?
         network_data,
@@ -2627,7 +2650,7 @@ otError NcpBase::GetPropertyHandler_THREAD_STABLE_LEADER_NETWORK_DATA(uint8_t he
     uint8_t network_data[255];
     uint8_t network_data_len = 255;
 
-    otNetDataGetLeader(
+    otNetDataGet(
         mInstance,
         true, // Stable?
         network_data,
@@ -2959,7 +2982,7 @@ otError NcpBase::GetPropertyHandler_THREAD_ON_MESH_NETS(uint8_t header, spinel_p
     // Fill from non-local network data first
     for (otNetworkDataIterator iter = OT_NETWORK_DATA_ITERATOR_INIT ;;)
     {
-        errorCode = otNetDataGetNextPrefixInfo(mInstance, false, &iter, &border_router_config);
+        errorCode = otNetDataGetNextOnMeshPrefix(mInstance, &iter, &border_router_config);
 
         if (errorCode != OT_ERROR_NONE)
         {
@@ -2984,10 +3007,11 @@ otError NcpBase::GetPropertyHandler_THREAD_ON_MESH_NETS(uint8_t header, spinel_p
                                   ));
     }
 
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
     // Fill from local network data last
     for (otNetworkDataIterator iter = OT_NETWORK_DATA_ITERATOR_INIT ;;)
     {
-        errorCode = otNetDataGetNextPrefixInfo(mInstance, true, &iter, &border_router_config);
+        errorCode = otBorderRouterGetNextOnMeshPrefix(mInstance, &iter, &border_router_config);
 
         if (errorCode != OT_ERROR_NONE)
         {
@@ -3011,6 +3035,7 @@ otError NcpBase::GetPropertyHandler_THREAD_ON_MESH_NETS(uint8_t header, spinel_p
                                       true
                                   ));
     }
+#endif // OPENTHREAD_ENABLE_BORDER_ROUTER
 
     SuccessOrExit(errorCode = OutboundFrameSend());
 
@@ -3121,10 +3146,30 @@ otError NcpBase::GetPropertyHandler_IPV6_ML_ADDR(uint8_t header, spinel_prop_key
 
 otError NcpBase::GetPropertyHandler_IPV6_LL_ADDR(uint8_t header, spinel_prop_key_t key)
 {
-    // TODO!
-    (void)key;
+    otError errorCode = OT_ERROR_NONE;
+    const otIp6Address *address = otThreadGetLinkLocalIp6Address(mInstance);
 
-    return SendLastStatus(header, SPINEL_STATUS_UNIMPLEMENTED);
+    if (address)
+    {
+        errorCode = SendPropertyUpdate(
+                        header,
+                        SPINEL_CMD_PROP_VALUE_IS,
+                        key,
+                        SPINEL_DATATYPE_IPv6ADDR_S,
+                        address
+                    );
+    }
+    else
+    {
+        errorCode = SendPropertyUpdate(
+                        header,
+                        SPINEL_CMD_PROP_VALUE_IS,
+                        key,
+                        SPINEL_DATATYPE_VOID_S
+                    );
+    }
+
+    return errorCode;
 }
 
 otError NcpBase::GetPropertyHandler_IPV6_ADDRESS_TABLE(uint8_t header, spinel_prop_key_t key)
@@ -3216,7 +3261,7 @@ otError NcpBase::GetPropertyHandler_THREAD_OFF_MESH_ROUTES(uint8_t header, spine
                         key
                     ));
 
-    while (otNetDataGetNextRoute(mInstance, false, &iter, &external_route_config) == OT_ERROR_NONE)
+    while (otNetDataGetNextRoute(mInstance, &iter, &external_route_config) == OT_ERROR_NONE)
     {
         flags = static_cast<uint8_t>(external_route_config.mPreference);
         flags <<= SPINEL_NET_FLAG_PREFERENCE_OFFSET;
@@ -3238,7 +3283,8 @@ otError NcpBase::GetPropertyHandler_THREAD_OFF_MESH_ROUTES(uint8_t header, spine
                         ));
     }
 
-    while (otNetDataGetNextRoute(mInstance, true, &iter, &external_route_config) == OT_ERROR_NONE)
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
+    while (otBorderRouterGetNextRoute(mInstance, &iter, &external_route_config) == OT_ERROR_NONE)
     {
         flags = static_cast<uint8_t>(external_route_config.mPreference);
         flags <<= SPINEL_NET_FLAG_PREFERENCE_OFFSET;
@@ -3259,6 +3305,7 @@ otError NcpBase::GetPropertyHandler_THREAD_OFF_MESH_ROUTES(uint8_t header, spine
                             true
                         ));
     }
+#endif // OPENTHREAD_ENABLE_BORDER_ROUTER
 
     SuccessOrExit(errorCode = OutboundFrameSend());
 
@@ -3697,6 +3744,8 @@ otError NcpBase::GetPropertyHandler_DEBUG_NCP_LOG_LEVEL(uint8_t header, spinel_p
            );
 }
 
+#if OPENTHREAD_ENABLE_MAC_WHITELIST
+
 otError NcpBase::GetPropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop_key_t key)
 {
     otMacWhitelistEntry entry;
@@ -3706,12 +3755,12 @@ otError NcpBase::GetPropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop_ke
 
     SuccessOrExit(errorCode = OutboundFrameBegin());
     SuccessOrExit(
-            errorCode = OutboundFrameFeedPacked(
-                            SPINEL_DATATYPE_COMMAND_PROP_S,
-                            header,
-                            SPINEL_CMD_PROP_VALUE_IS,
-                            key
-                        ));
+        errorCode = OutboundFrameFeedPacked(
+                        SPINEL_DATATYPE_COMMAND_PROP_S,
+                        header,
+                        SPINEL_CMD_PROP_VALUE_IS,
+                        key
+                    ));
 
     for (uint8_t i = 0; (i != 255) && (errorCode == OT_ERROR_NONE); i++)
     {
@@ -3758,6 +3807,64 @@ otError NcpBase::GetPropertyHandler_MAC_WHITELIST_ENABLED(uint8_t header, spinel
                otLinkIsWhitelistEnabled(mInstance)
            );
 }
+
+otError NcpBase::GetPropertyHandler_MAC_BLACKLIST(uint8_t header, spinel_prop_key_t key)
+{
+    otMacBlacklistEntry entry;
+    otError errorCode = OT_ERROR_NONE;
+
+    mDisableStreamWrite = true;
+
+    SuccessOrExit(errorCode = OutboundFrameBegin());
+    SuccessOrExit(
+        errorCode = OutboundFrameFeedPacked(
+                        SPINEL_DATATYPE_COMMAND_PROP_S,
+                        header,
+                        SPINEL_CMD_PROP_VALUE_IS,
+                        key
+                    ));
+
+    for (uint8_t i = 0; (i != 255) && (errorCode == OT_ERROR_NONE); i++)
+    {
+        errorCode = otLinkGetBlacklistEntry(mInstance, i, &entry);
+
+        if (errorCode != OT_ERROR_NONE)
+        {
+            break;
+        }
+
+        if (entry.mValid)
+        {
+            SuccessOrExit(
+                errorCode = OutboundFrameFeedPacked(
+                                SPINEL_DATATYPE_STRUCT_S(
+                                    SPINEL_DATATYPE_EUI64_S   // Extended address
+                                ),
+                                entry.mExtAddress.m8
+                            ));
+        }
+    }
+
+    SuccessOrExit(errorCode = OutboundFrameSend());
+
+exit:
+    mDisableStreamWrite = false;
+    return errorCode;
+}
+
+otError NcpBase::GetPropertyHandler_MAC_BLACKLIST_ENABLED(uint8_t header, spinel_prop_key_t key)
+{
+    return SendPropertyUpdate(
+               header,
+               SPINEL_CMD_PROP_VALUE_IS,
+               key,
+               SPINEL_DATATYPE_BOOL_S,
+               otLinkIsBlacklistEnabled(mInstance)
+           );
+}
+
+
+#endif // OPENTHREAD_ENABLE_MAC_WHITELIST
 
 #if OPENTHREAD_FTD
 otError NcpBase::GetPropertyHandler_NET_PSKC(uint8_t header, spinel_prop_key_t key)
@@ -5515,7 +5622,7 @@ otError NcpBase::SetPropertyHandler_THREAD_ASSISTING_PORTS(uint8_t header, spine
     return errorCode;
 }
 
-#if OPENTHREAD_FTD
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
 otError NcpBase::SetPropertyHandler_THREAD_ALLOW_LOCAL_NET_DATA_CHANGE(uint8_t header, spinel_prop_key_t key,
                                                                        const uint8_t *value_ptr, uint16_t value_len)
 {
@@ -5554,12 +5661,14 @@ otError NcpBase::SetPropertyHandler_THREAD_ALLOW_LOCAL_NET_DATA_CHANGE(uint8_t h
 
     if (should_register_with_leader)
     {
-        otNetDataRegister(mInstance);
+        otBorderRouterRegister(mInstance);
     }
 
     return errorCode;
 }
+#endif // OPENTHREAD_ENABLE_BORDER_ROUTER
 
+#if OPENTHREAD_FTD
 otError NcpBase::SetPropertyHandler_THREAD_ROUTER_ROLE_ENABLED(uint8_t header, spinel_prop_key_t key,
                                                                const uint8_t *value_ptr, uint16_t value_len)
 {
@@ -5711,6 +5820,8 @@ otError NcpBase::SetPropertyHandler_THREAD_COMMISSIONER_ENABLED(uint8_t header, 
 }
 #endif // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 
+#if OPENTHREAD_ENABLE_MAC_WHITELIST
+
 otError NcpBase::SetPropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
                                                   uint16_t value_len)
 {
@@ -5815,6 +5926,90 @@ otError NcpBase::SetPropertyHandler_MAC_WHITELIST_ENABLED(uint8_t header, spinel
 
     return errorCode;
 }
+
+otError NcpBase::SetPropertyHandler_MAC_BLACKLIST(uint8_t header, spinel_prop_key_t key, const uint8_t *value_ptr,
+                                                  uint16_t value_len)
+{
+    otError errorCode = OT_ERROR_NONE;
+    spinel_ssize_t parsedLength = 1;
+
+    // First, clear the blacklist.
+    otLinkClearBlacklist(mInstance);
+
+    while ((errorCode == OT_ERROR_NONE)
+           && (parsedLength > 0)
+           && (value_len > 0)
+          )
+    {
+        otExtAddress *ext_addr = NULL;
+
+        parsedLength = spinel_datatype_unpack(
+                           value_ptr,
+                           value_len,
+                           SPINEL_DATATYPE_STRUCT_S(
+                               SPINEL_DATATYPE_EUI64_S
+                           ),
+                           &ext_addr
+                       );
+
+        if (parsedLength <= 0)
+        {
+            errorCode = OT_ERROR_PARSE;
+            break;
+        }
+
+        errorCode = otLinkAddBlacklist(mInstance, ext_addr->m8);
+
+        value_ptr += parsedLength;
+        value_len -= parsedLength;
+    }
+
+    if (errorCode == OT_ERROR_NONE)
+    {
+        errorCode = HandleCommandPropertyGet(header, key);
+    }
+    else
+    {
+        errorCode = SendLastStatus(header, ThreadErrorToSpinelStatus(errorCode));
+
+        // We had an error, but we may have actually changed
+        // the state of the blacklist---so we need to report
+        // those incomplete changes via an asynchronous
+        // change event.
+        HandleCommandPropertyGet(SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0, key);
+    }
+
+    return errorCode;
+}
+
+otError NcpBase::SetPropertyHandler_MAC_BLACKLIST_ENABLED(uint8_t header, spinel_prop_key_t key,
+                                                          const uint8_t *value_ptr, uint16_t value_len)
+{
+    bool isEnabled;
+    spinel_ssize_t parsedLength;
+    otError errorCode = OT_ERROR_NONE;
+
+    parsedLength = spinel_datatype_unpack(
+                       value_ptr,
+                       value_len,
+                       SPINEL_DATATYPE_BOOL_S,
+                       &isEnabled
+                   );
+
+    if (parsedLength > 0)
+    {
+        otLinkSetBlacklistEnabled(mInstance, isEnabled);
+        errorCode = HandleCommandPropertyGet(header, key);
+    }
+    else
+    {
+        errorCode = SendLastStatus(header, SPINEL_STATUS_PARSE_ERROR);
+    }
+
+    return errorCode;
+}
+
+#endif // OPENTHREAD_ENABLE_MAC_WHITELIST
 
 #if OPENTHREAD_ENABLE_RAW_LINK_API
 
@@ -6810,6 +7005,7 @@ exit:
     return errorCode;
 }
 
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
 otError NcpBase::InsertPropertyHandler_THREAD_OFF_MESH_ROUTES(uint8_t header, spinel_prop_key_t key,
                                                               const uint8_t *value_ptr, uint16_t value_len)
 {
@@ -6848,7 +7044,7 @@ otError NcpBase::InsertPropertyHandler_THREAD_OFF_MESH_ROUTES(uint8_t header, sp
         ext_route_config.mPrefix.mPrefix = *addr_ptr;
         ext_route_config.mStable = stable;
         ext_route_config.mPreference = ((flags & SPINEL_NET_FLAG_PREFERENCE_MASK) >> SPINEL_NET_FLAG_PREFERENCE_OFFSET);
-        errorCode = otNetDataAddRoute(mInstance, &ext_route_config);
+        errorCode = otBorderRouterAddRoute(mInstance, &ext_route_config);
 
         if (errorCode == OT_ERROR_NONE)
         {
@@ -6920,7 +7116,7 @@ otError NcpBase::InsertPropertyHandler_THREAD_ON_MESH_NETS(uint8_t header, spine
         border_router_config.mDefaultRoute = ((flags & SPINEL_NET_FLAG_DEFAULT_ROUTE) != 0);
         border_router_config.mOnMesh = ((flags & SPINEL_NET_FLAG_ON_MESH) != 0);
 
-        errorCode = otNetDataAddPrefixInfo(mInstance, &border_router_config);
+        errorCode = otBorderRouterAddOnMeshPrefix(mInstance, &border_router_config);
 
         if (errorCode == OT_ERROR_NONE)
         {
@@ -6945,6 +7141,7 @@ otError NcpBase::InsertPropertyHandler_THREAD_ON_MESH_NETS(uint8_t header, spine
 exit:
     return errorCode;
 }
+#endif // OPENTHREAD_ENABLE_BORDER_ROUTER
 
 otError NcpBase::InsertPropertyHandler_THREAD_ASSISTING_PORTS(uint8_t header, spinel_prop_key_t key,
                                                               const uint8_t *value_ptr, uint16_t value_len)
@@ -6987,6 +7184,8 @@ otError NcpBase::InsertPropertyHandler_THREAD_ASSISTING_PORTS(uint8_t header, sp
     return errorCode;
 }
 
+#if OPENTHREAD_ENABLE_MAC_WHITELIST
+
 otError NcpBase::InsertPropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop_key_t key,
                                                      const uint8_t *value_ptr, uint16_t value_len)
 {
@@ -6995,8 +7194,7 @@ otError NcpBase::InsertPropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop
     otExtAddress *ext_addr = NULL;
     int8_t rssi = RSSI_OVERRIDE_DISABLED;
 
-
-    if (value_len > static_cast<spinel_ssize_t>(sizeof(ext_addr)))
+    if (value_len > static_cast<spinel_ssize_t>(sizeof(otExtAddress)))
     {
         parsedLength = spinel_datatype_unpack(
                            value_ptr,
@@ -7049,6 +7247,49 @@ otError NcpBase::InsertPropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop
 
     return errorCode;
 }
+
+otError NcpBase::InsertPropertyHandler_MAC_BLACKLIST(uint8_t header, spinel_prop_key_t key,
+                                                     const uint8_t *value_ptr, uint16_t value_len)
+{
+    otError errorCode = OT_ERROR_NONE;
+    spinel_ssize_t parsedLength;
+    otExtAddress *ext_addr = NULL;
+
+    parsedLength = spinel_datatype_unpack(
+                       value_ptr,
+                       value_len,
+                       SPINEL_DATATYPE_EUI64_S,
+                       &ext_addr
+                   );
+
+    if (parsedLength > 0)
+    {
+        errorCode = otLinkAddBlacklist(mInstance, ext_addr->m8);
+
+        if (errorCode == OT_ERROR_NONE)
+        {
+            errorCode = SendPropertyUpdate(
+                            header,
+                            SPINEL_CMD_PROP_VALUE_INSERTED,
+                            key,
+                            value_ptr,
+                            value_len
+                        );
+        }
+        else
+        {
+            errorCode = SendLastStatus(header, ThreadErrorToSpinelStatus(errorCode));
+        }
+    }
+    else
+    {
+        errorCode = SendLastStatus(header, SPINEL_STATUS_PARSE_ERROR);
+    }
+
+    return errorCode;
+}
+
+#endif // OPENTHREAD_ENABLE_MAC_WHITELIST
 
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 otError NcpBase::InsertPropertyHandler_THREAD_JOINERS(uint8_t header, spinel_prop_key_t key,
@@ -7254,6 +7495,7 @@ otError NcpBase::RemovePropertyHandler_IPV6_ADDRESS_TABLE(uint8_t header, spinel
     return errorCode;
 }
 
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
 otError NcpBase::RemovePropertyHandler_THREAD_OFF_MESH_ROUTES(uint8_t header, spinel_prop_key_t key,
                                                               const uint8_t *value_ptr, uint16_t value_len)
 {
@@ -7283,7 +7525,7 @@ otError NcpBase::RemovePropertyHandler_THREAD_OFF_MESH_ROUTES(uint8_t header, sp
     if (parsedLength > 0)
     {
         ip6_prefix.mPrefix = *addr_ptr;
-        errorCode = otNetDataRemoveRoute(mInstance, &ip6_prefix);
+        errorCode = otBorderRouterRemoveRoute(mInstance, &ip6_prefix);
 
         if (errorCode == OT_ERROR_NONE)
         {
@@ -7338,7 +7580,7 @@ otError NcpBase::RemovePropertyHandler_THREAD_ON_MESH_NETS(uint8_t header, spine
     if (parsedLength > 0)
     {
         ip6_prefix.mPrefix = *addr_ptr;
-        errorCode = otNetDataRemovePrefixInfo(mInstance, &ip6_prefix);
+        errorCode = otBorderRouterRemoveOnMeshPrefix(mInstance, &ip6_prefix);
 
         if (errorCode == OT_ERROR_NONE)
         {
@@ -7363,6 +7605,7 @@ otError NcpBase::RemovePropertyHandler_THREAD_ON_MESH_NETS(uint8_t header, spine
 exit:
     return errorCode;
 }
+#endif
 
 otError NcpBase::RemovePropertyHandler_THREAD_ASSISTING_PORTS(uint8_t header, spinel_prop_key_t key,
                                                               const uint8_t *value_ptr, uint16_t value_len)
@@ -7448,6 +7691,8 @@ otError NcpBase::RemovePropertyHandler_THREAD_ACTIVE_ROUTER_IDS(uint8_t header, 
 }
 #endif  // OPENTHREAD_FTD
 
+#if OPENTHREAD_ENABLE_MAC_WHITELIST
+
 otError NcpBase::RemovePropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop_key_t key,
                                                      const uint8_t *value_ptr, uint16_t value_len)
 {
@@ -7481,6 +7726,42 @@ otError NcpBase::RemovePropertyHandler_MAC_WHITELIST(uint8_t header, spinel_prop
 
     return errorCode;
 }
+
+otError NcpBase::RemovePropertyHandler_MAC_BLACKLIST(uint8_t header, spinel_prop_key_t key,
+                                                     const uint8_t *value_ptr, uint16_t value_len)
+{
+    otError errorCode = OT_ERROR_NONE;
+    spinel_ssize_t parsedLength;
+    otExtAddress *ext_addr_ptr = NULL;
+
+    parsedLength = spinel_datatype_unpack(
+                       value_ptr,
+                       value_len,
+                       SPINEL_DATATYPE_EUI64_S,
+                       &ext_addr_ptr
+                   );
+
+    if (parsedLength > 0)
+    {
+        otLinkRemoveBlacklist(mInstance, ext_addr_ptr->m8);
+
+        errorCode = SendPropertyUpdate(
+                        header,
+                        SPINEL_CMD_PROP_VALUE_REMOVED,
+                        key,
+                        value_ptr,
+                        value_len
+                    );
+    }
+    else
+    {
+        errorCode = SendLastStatus(header, SPINEL_STATUS_PARSE_ERROR);
+    }
+
+    return errorCode;
+}
+
+#endif // OPENTHREAD_ENABLE_MAC_WHITELIST
 
 #if OPENTHREAD_ENABLE_LEGACY
 
