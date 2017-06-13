@@ -1088,21 +1088,21 @@ exit:
     return rval;
 }
 
-uint8_t MleRouter::LqiToCost(uint8_t aLqi)
+uint8_t MleRouter::LinkQualityToCost(uint8_t aLinkQuality)
 {
-    switch (aLqi)
+    switch (aLinkQuality)
     {
     case 1:
-        return kLqi1LinkCost;
+        return kLinkQuality1LinkCost;
 
     case 2:
-        return kLqi2LinkCost;
+        return kLinkQuality2LinkCost;
 
     case 3:
-        return kLqi3LinkCost;
+        return kLinkQuality3LinkCost;
 
     default:
-        return kLqi0LinkCost;
+        return kLinkQuality0LinkCost;
     }
 }
 
@@ -1129,7 +1129,7 @@ uint8_t MleRouter::GetLinkCost(uint8_t aRouterId)
         rval = mAssignLinkQuality;
     }
 
-    rval = LqiToCost(rval);
+    rval = LinkQualityToCost(rval);
 
 exit:
     return rval;
@@ -1503,7 +1503,9 @@ otError MleRouter::HandleAdvertisement(const Message &aMessage, const Ip6::Messa
 
     UpdateRoutes(route, routerId);
 
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
     mNetif.GetNetworkDataLocal().SendServerDataNotification();
+#endif
 
 exit:
     return error;
@@ -1515,7 +1517,7 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
     uint8_t newCost;
     uint8_t oldNextHop;
     uint8_t cost;
-    uint8_t lqi;
+    uint8_t linkQuality;
     bool update;
 
     // update routes
@@ -1538,11 +1540,11 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
 
             if (i == mRouterId)
             {
-                lqi = aRoute.GetLinkQualityIn(routeCount);
+                linkQuality = aRoute.GetLinkQualityIn(routeCount);
 
-                if (mRouters[aRouterId].GetLinkQualityOut() != lqi)
+                if (mRouters[aRouterId].GetLinkQualityOut() != linkQuality)
                 {
-                    mRouters[aRouterId].SetLinkQualityOut(lqi);
+                    mRouters[aRouterId].SetLinkQualityOut(linkQuality);
                     update = true;
                 }
             }
@@ -2215,7 +2217,8 @@ exit:
     return error;
 }
 
-otError MleRouter::HandleChildUpdateRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+otError MleRouter::HandleChildUpdateRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo,
+                                            uint32_t aKeySequence)
 {
     static const uint8_t kMaxResponseTlvs = 10;
 
@@ -2314,6 +2317,12 @@ otError MleRouter::HandleChildUpdateRequest(const Message &aMessage, const Ip6::
     }
 
     child->SetLastHeard(Timer::GetNow());
+
+    if (child->IsStateRestoring())
+    {
+        SetChildStateToValid(child);
+        child->SetKeySequence(aKeySequence);
+    }
 
     SendChildUpdateResponse(child, aMessageInfo, tlvs, tlvslength, &challenge);
 
@@ -3800,7 +3809,7 @@ otError MleRouter::SendAddressSolicit(ThreadStatusTlv::Status aStatus)
     Ip6::MessageInfo messageInfo;
     Message *message;
 
-    header.Init(kCoapTypeConfirmable, kCoapRequestPost);
+    header.Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
     header.SetToken(Coap::Header::kDefaultTokenLength);
     header.AppendUriPathOptions(OT_URI_PATH_ADDRESS_SOLICIT);
     header.SetPayloadMarker();
@@ -3850,7 +3859,7 @@ otError MleRouter::SendAddressRelease(void)
     Ip6::MessageInfo messageInfo;
     Message *message;
 
-    header.Init(kCoapTypeConfirmable, kCoapRequestPost);
+    header.Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
     header.SetToken(Coap::Header::kDefaultTokenLength);
     header.AppendUriPathOptions(OT_URI_PATH_ADDRESS_RELEASE);
     header.SetPayloadMarker();
@@ -3906,7 +3915,7 @@ void MleRouter::HandleAddressSolicitResponse(Coap::Header *aHeader, Message *aMe
 
     VerifyOrExit(aResult == OT_ERROR_NONE && aHeader != NULL && aMessage != NULL);
 
-    VerifyOrExit(aHeader->GetCode() == kCoapResponseChanged);
+    VerifyOrExit(aHeader->GetCode() == OT_COAP_CODE_CHANGED);
 
     otLogInfoMle(GetInstance(), "Received address reply");
 
@@ -4027,7 +4036,7 @@ void MleRouter::HandleAddressSolicit(Coap::Header &aHeader, Message &aMessage, c
     uint8_t routerId = kInvalidRouterId;
     Router *router = NULL;
 
-    VerifyOrExit(aHeader.GetType() == kCoapTypeConfirmable && aHeader.GetCode() == kCoapRequestPost,
+    VerifyOrExit(aHeader.GetType() == OT_COAP_TYPE_CONFIRMABLE && aHeader.GetCode() == OT_COAP_CODE_POST,
                  error = OT_ERROR_PARSE);
 
     otLogInfoMle(GetInstance(), "Received address solicit");
@@ -4188,8 +4197,8 @@ void MleRouter::HandleAddressRelease(Coap::Header &aHeader, Message &aMessage,
     uint8_t routerId;
     Router *router;
 
-    VerifyOrExit(aHeader.GetType() == kCoapTypeConfirmable &&
-                 aHeader.GetCode() == kCoapRequestPost);
+    VerifyOrExit(aHeader.GetType() == OT_COAP_TYPE_CONFIRMABLE &&
+                 aHeader.GetCode() == OT_COAP_CODE_POST);
 
     otLogInfoMle(GetInstance(), "Received address release");
 
@@ -4219,7 +4228,7 @@ void MleRouter::FillConnectivityTlv(ConnectivityTlv &aTlv)
 {
     ConnectivityTlv &tlv = aTlv;
     uint8_t cost;
-    uint8_t lqi;
+    uint8_t linkQuality;
     uint8_t numChildren = 0;
 
     for (int i = 0; i < mMaxChildrenAllowed; i++)
@@ -4269,7 +4278,7 @@ void MleRouter::FillConnectivityTlv(ConnectivityTlv &aTlv)
             break;
         }
 
-        cost += LqiToCost(mParent.GetLinkInfo().GetLinkQuality(mNetif.GetMac().GetNoiseFloor()));
+        cost += LinkQualityToCost(mParent.GetLinkInfo().GetLinkQuality(mNetif.GetMac().GetNoiseFloor()));
         break;
 
     case OT_DEVICE_ROLE_ROUTER:
@@ -4301,14 +4310,14 @@ void MleRouter::FillConnectivityTlv(ConnectivityTlv &aTlv)
             continue;
         }
 
-        lqi = mRouters[i].GetLinkInfo().GetLinkQuality(mNetif.GetMac().GetNoiseFloor());
+        linkQuality = mRouters[i].GetLinkInfo().GetLinkQuality(mNetif.GetMac().GetNoiseFloor());
 
-        if (lqi > mRouters[i].GetLinkQualityOut())
+        if (linkQuality > mRouters[i].GetLinkQualityOut())
         {
-            lqi = mRouters[i].GetLinkQualityOut();
+            linkQuality = mRouters[i].GetLinkQualityOut();
         }
 
-        switch (lqi)
+        switch (linkQuality)
         {
         case 1:
             tlv.SetLinkQuality1(tlv.GetLinkQuality1() + 1);
@@ -4499,8 +4508,8 @@ bool MleRouter::HasMinDowngradeNeighborRouters(void)
 bool MleRouter::HasOneNeighborwithComparableConnectivity(const RouteTlv &aRoute, uint8_t aRouterId)
 {
     bool rval = true;
-    uint8_t localLqi = 0;
-    uint8_t peerLqi = 0;
+    uint8_t localLinkQuality = 0;
+    uint8_t peerLinkQuality = 0;
     uint8_t routerCount = 0;
 
     // process local neighbor routers
@@ -4522,14 +4531,14 @@ bool MleRouter::HasOneNeighborwithComparableConnectivity(const RouteTlv &aRoute,
                 continue;
             }
 
-            localLqi = mRouters[i].GetLinkInfo().GetLinkQuality(mNetif.GetMac().GetNoiseFloor());
+            localLinkQuality = mRouters[i].GetLinkInfo().GetLinkQuality(mNetif.GetMac().GetNoiseFloor());
 
-            if (localLqi > mRouters[i].GetLinkQualityOut())
+            if (localLinkQuality > mRouters[i].GetLinkQualityOut())
             {
-                localLqi = mRouters[i].GetLinkQualityOut();
+                localLinkQuality = mRouters[i].GetLinkQualityOut();
             }
 
-            if (localLqi >= 2)
+            if (localLinkQuality >= 2)
             {
                 // check if this neighbor router is in peer Route64 TLV
                 if (aRoute.IsRouterIdSet(i) == false)
@@ -4537,16 +4546,16 @@ bool MleRouter::HasOneNeighborwithComparableConnectivity(const RouteTlv &aRoute,
                     ExitNow(rval = false);
                 }
 
-                // get the peer's two-way lqi to this router
-                peerLqi = aRoute.GetLinkQualityIn(routerCount);
+                // get the peer's two-way link quality to this router
+                peerLinkQuality = aRoute.GetLinkQualityIn(routerCount);
 
-                if (peerLqi > aRoute.GetLinkQualityOut(routerCount))
+                if (peerLinkQuality > aRoute.GetLinkQualityOut(routerCount))
                 {
-                    peerLqi = aRoute.GetLinkQualityOut(routerCount);
+                    peerLinkQuality = aRoute.GetLinkQualityOut(routerCount);
                 }
 
-                // compare local lqi to this router with peer's
-                if (peerLqi >= localLqi)
+                // compare local link quality to this router with peer's
+                if (peerLinkQuality >= localLinkQuality)
                 {
                     routerCount++;
                     continue;
@@ -4641,7 +4650,7 @@ exit:
 
 uint8_t MleRouter::GetMinDowngradeNeighborRouters(void)
 {
-    uint8_t lqi;
+    uint8_t linkQuality;
     uint8_t routerCount = 0;
 
     for (uint8_t i = 0; i <= kMaxRouterId; i++)
@@ -4651,14 +4660,14 @@ uint8_t MleRouter::GetMinDowngradeNeighborRouters(void)
             continue;
         }
 
-        lqi = mRouters[i].GetLinkInfo().GetLinkQuality(mNetif.GetMac().GetNoiseFloor());
+        linkQuality = mRouters[i].GetLinkInfo().GetLinkQuality(mNetif.GetMac().GetNoiseFloor());
 
-        if (lqi > mRouters[i].GetLinkQualityOut())
+        if (linkQuality > mRouters[i].GetLinkQualityOut())
         {
-            lqi = mRouters[i].GetLinkQualityOut();
+            linkQuality = mRouters[i].GetLinkQualityOut();
         }
 
-        if (lqi >= 2)
+        if (linkQuality >= 2)
         {
             routerCount++;
         }

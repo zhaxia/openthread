@@ -624,6 +624,17 @@ public:
     uint8_t GetDeviceMode(void) const { return mDeviceMode; }
 
     /**
+     * This method indicates whether or not the device is a Minimal End Device.
+     *
+     * @returns TRUE if the device is a Minimal End Device, FALSE otherwise.
+     *
+     */
+    bool IsMinimalEndDevice(void) const {
+        return (mDeviceMode & (ModeTlv::kModeFFD | ModeTlv::kModeRxOnWhenIdle)) !=
+               (ModeTlv::kModeFFD | ModeTlv::kModeRxOnWhenIdle);
+    }
+
+    /**
      * This method sets the Device Mode as reported in the Mode TLV.
      *
      * @retval OT_ERROR_NONE          Successfully set the Mode TLV.
@@ -649,6 +660,16 @@ public:
      *
      */
     otError SetMeshLocalPrefix(const uint8_t *aPrefix);
+
+    /**
+     * This method returns a reference to the Thread link-local address.
+     *
+     * The Thread link local address is derived using IEEE802.15.4 Extended Address as Interface Identifier.
+     *
+     * @returns A reference to the Thread link local address.
+     *
+     */
+    const Ip6::Address &GetLinkLocalAddress(void) const;
 
     /**
      * This method updates the link local address.
