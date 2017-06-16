@@ -31,11 +31,7 @@
  *   This file implements MPL.
  */
 
-#ifdef OPENTHREAD_CONFIG_FILE
-#include OPENTHREAD_CONFIG_FILE
-#else
-#include <openthread-config.h>
-#endif
+#include <openthread/config.h>
 
 #include "ip6_mpl.hpp"
 
@@ -196,7 +192,7 @@ void Mpl::AddBufferedMessage(Message &aMessage, uint16_t aSeedId, uint8_t aSeque
     if (mRetransmissionTimer.IsRunning())
     {
         // If timer is already running, check if it should be restarted with earlier fire time.
-        nextTransmissionTime = mRetransmissionTimer.Gett0() + mRetransmissionTimer.Getdt();
+        nextTransmissionTime = mRetransmissionTimer.GetFireTime();
 
         if (messageMetadata.IsEarlier(nextTransmissionTime))
         {

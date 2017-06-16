@@ -35,11 +35,7 @@
 #ifndef PLATFORM_POSIX_H_
 #define PLATFORM_POSIX_H_
 
-#ifdef OPENTHREAD_CONFIG_FILE
-#include OPENTHREAD_CONFIG_FILE
-#else
-#include <openthread-config.h>
-#endif
+#include <openthread/config.h>
 
 #include <assert.h>
 #include <stdlib.h>
@@ -162,5 +158,11 @@ void platformUartUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aE
  *
  */
 void platformUartProcess(void);
+
+/**
+ * This function restores the Uart.
+ *
+ */
+void platformUartRestore(void);
 
 #endif  // PLATFORM_POSIX_H_

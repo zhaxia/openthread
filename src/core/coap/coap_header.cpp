@@ -31,11 +31,7 @@
  *   This file implements the CoAP header generation and parsing.
  */
 
-#ifdef OPENTHREAD_CONFIG_FILE
-#include OPENTHREAD_CONFIG_FILE
-#else
-#include <openthread-config.h>
-#endif
+#include <openthread/config.h>
 
 #include "coap_header.hpp"
 
@@ -317,9 +313,9 @@ exit:
     return error;
 }
 
-otError Header::AppendContentFormatOption(MediaType aType)
+otError Header::AppendContentFormatOption(otCoapOptionContentFormat aContentFormat)
 {
-    return AppendUintOption(OT_COAP_OPTION_CONTENT_FORMAT, aType);
+    return AppendUintOption(OT_COAP_OPTION_CONTENT_FORMAT, static_cast<uint32_t>(aContentFormat));
 }
 
 otError Header::AppendMaxAgeOption(uint32_t aMaxAge)

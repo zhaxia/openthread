@@ -32,11 +32,7 @@
  *   This file implements the Thread network interface.
  */
 
-#ifdef OPENTHREAD_CONFIG_FILE
-#include OPENTHREAD_CONFIG_FILE
-#else
-#include <openthread-config.h>
-#endif
+#include <openthread/config.h>
 
 #include "thread_netif.hpp"
 
@@ -103,9 +99,9 @@ ThreadNetif::ThreadNetif(Ip6::Ip6 &aIp6):
     mJamDetector(*this),
 #endif // OPENTHREAD_ENABLE_JAM_DETECTTION
 #if OPENTHREAD_FTD
-#if OPENTHREAD_ENABLE_BORDER_AGENT_PROXY
-    mBorderAgentProxy(mMleRouter.GetMeshLocal16(), mCoap),
-#endif // OPENTHREAD_ENABLE_BORDER_AGENT_PROXY
+#if OPENTHREAD_ENABLE_TMF_PROXY
+    mTmfProxy(mMleRouter.GetMeshLocal16(), mCoap),
+#endif // OPENTHREAD_ENABLE_TMF_PROXY
     mJoinerRouter(*this),
     mLeader(*this),
     mAddressResolver(*this),

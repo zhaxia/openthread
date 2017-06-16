@@ -600,6 +600,19 @@
 #endif
 
 /**
+ * @def OPENTHREAD_CONFIG_ENABLE_DEFAULT_LOG_OUTPUT
+ *
+ * Define to 1 to enable default log output.
+ *
+ * When enabled OpenThread provides a default implementation for `otPlatLog()` which is tied to either NCP or CLI
+ * stream writes.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_ENABLE_DEFAULT_LOG_OUTPUT
+#define OPENTHREAD_CONFIG_ENABLE_DEFAULT_LOG_OUTPUT             0
+#endif
+
+/**
  * @def OPENTHREAD_CONFIG_NUM_DHCP_PREFIXES
  *
  * The number of dhcp prefixes.
@@ -726,6 +739,16 @@
 #endif
 
 /**
+ * @def OPENTHREAD_CONFIG_ENABLE_BEACON_RSP_IF_JOINABLE
+ *
+ * Define to 1 if you want to enable beacon response for joinable networks.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_ENABLE_BEACON_RSP_IF_JOINABLE
+#define OPENTHREAD_CONFIG_ENABLE_BEACON_RSP_IF_JOINABLE         0
+#endif
+
+/**
  * @def OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE
  *
  * The size of mbedTLS heap buffer when DTLS is enabled.
@@ -797,7 +820,19 @@
  *
  */
 #ifndef OPENTHREAD_CONFIG_SUPERVISION_MSG_NO_ACK_REQUEST
-#define OPENTHREAD_CONFIG_SUPERVISION_MSG_NO_ACK_REQUEST       0
+#define OPENTHREAD_CONFIG_SUPERVISION_MSG_NO_ACK_REQUEST        0
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
+ *
+ * Define as 1 to enable peek/poke functionality on NCP.
+ *
+ * Peek/Poke allows the host to read/write to memory addresses on NCP. This is intended for debugging.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
+#define OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE                  0
 #endif
 
 #endif  // OPENTHREAD_CORE_DEFAULT_CONFIG_H_
