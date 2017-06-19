@@ -31,11 +31,7 @@
  *   This file implements the CLI server on the UART service.
  */
 
-#ifdef OPENTHREAD_CONFIG_FILE
-#include OPENTHREAD_CONFIG_FILE
-#else
-#include <openthread-config.h>
-#endif
+#include <openthread/config.h>
 
 #include "cli_uart.hpp"
 
@@ -238,7 +234,7 @@ void Uart::SendDoneTask(void)
     Send();
 }
 
-#if OPENTHREAD_ENABLE_DEFAULT_LOGGING
+#if OPENTHREAD_CONFIG_ENABLE_DEFAULT_LOG_OUTPUT
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -261,7 +257,7 @@ void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat
 #ifdef __cplusplus
 }  // extern "C"
 #endif
-#endif // OPENTHREAD_ENABLE_DEFAULT_LOGGING
+#endif // OPENTHREAD_CONFIG_ENABLE_DEFAULT_LOG_OUTPUT
 
 }  // namespace Cli
 }  // namespace ot

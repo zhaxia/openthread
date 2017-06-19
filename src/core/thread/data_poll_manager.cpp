@@ -32,15 +32,9 @@
  */
 
 #define WPP_NAME "data_poll_manager.tmh"
-
-#ifdef OPENTHREAD_CONFIG_FILE
-#include OPENTHREAD_CONFIG_FILE
-#else
-#include <openthread-config.h>
-#endif
+#include <openthread/config.h>
 
 #include "data_poll_manager.hpp"
-
 #include <openthread/platform/random.h>
 
 #include "common/code_utils.hpp"
@@ -57,6 +51,7 @@ namespace ot {
 DataPollManager::DataPollManager(MeshForwarder &aMeshForwarder):
     mMeshForwarder(aMeshForwarder),
     mTimer(aMeshForwarder.GetNetif().GetIp6().mTimerScheduler, &DataPollManager::HandlePollTimer, this),
+    mTimerStartTime(0),
     mExternalPollPeriod(0),
     mPollPeriod(0),
     mEnabled(false),
@@ -333,11 +328,12 @@ void DataPollManager::ScheduleNextPoll(PollPeriodSelector aPollPeriodSelector)
 
     if (mTimer.IsRunning())
     {
-        mTimer.StartAt(mTimer.Gett0(), mPollPeriod);
+        mTimer.StartAt(mTimerStartTime, mPollPeriod);
     }
     else
     {
-        mTimer.Start(mPollPeriod);
+        mTimerStartTime = Timer::GetNow();
+        mTimer.StartAt(mTimerStartTime, mPollPeriod);
     }
 }
 

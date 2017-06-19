@@ -33,11 +33,7 @@
 
 #define WPP_NAME "mesh_forwarder.tmh"
 
-#ifdef OPENTHREAD_CONFIG_FILE
-#include OPENTHREAD_CONFIG_FILE
-#else
-#include <openthread-config.h>
-#endif
+#include <openthread/config.h>
 
 #include "mesh_forwarder.hpp"
 
@@ -93,6 +89,11 @@ MeshForwarder::MeshForwarder(ThreadNetif &aThreadNetif):
     mNetif.GetMac().RegisterReceiver(mMacReceiver);
     mMacSource.mLength = 0;
     mMacDest.mLength = 0;
+
+    mIpCounters.mTxSuccess = 0;
+    mIpCounters.mRxSuccess = 0;
+    mIpCounters.mTxFailure = 0;
+    mIpCounters.mRxFailure = 0;
 }
 
 otInstance *MeshForwarder::GetInstance(void)
@@ -1611,6 +1612,15 @@ void MeshForwarder::HandleSentFrame(Mac::Frame &aFrame, otError aError)
     if (mMessageNextOffset >= mSendMessage->GetLength())
     {
         LogIp6Message(kMessageTransmit, *mSendMessage, &macDest, aError);
+
+        if (aError == OT_ERROR_NONE)
+        {
+            mIpCounters.mTxSuccess++;
+        }
+        else
+        {
+            mIpCounters.mTxFailure++;
+        }
     }
 
     if (mSendMessage->GetDirectTransmission() == false && mSendMessage->IsChildPending() == false)
@@ -2021,6 +2031,7 @@ void MeshForwarder::ClearReassemblyList(void)
         mReassemblyList.Dequeue(*message);
 
         LogIp6Message(kMessageDrop, *message, NULL, OT_ERROR_NO_FRAME_RECEIVED);
+        mIpCounters.mRxFailure++;
 
         message->Free();
     }
@@ -2050,6 +2061,7 @@ void MeshForwarder::HandleReassemblyTimer()
             mReassemblyList.Dequeue(*message);
 
             LogIp6Message(kMessageDrop, *message, NULL, OT_ERROR_REASSEMBLY_TIMEOUT);
+            mIpCounters.mRxFailure++;
 
             message->Free();
         }
@@ -2121,6 +2133,7 @@ otError MeshForwarder::HandleDatagram(Message &aMessage, const ThreadMessageInfo
                                       const Mac::Address &aMacSource)
 {
     LogIp6Message(kMessageReceive, aMessage, &aMacSource, OT_ERROR_NONE);
+    mIpCounters.mRxSuccess++;
 
     return mNetif.GetIp6().HandleDatagram(aMessage, &mNetif, mNetif.GetInterfaceId(), &aMessageInfo, false);
 }
@@ -2215,7 +2228,15 @@ void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage
         break;
 
     case kMessageTransmit:
-        actionText = (aError == OT_ERROR_NONE) ? "Sent" : "Failed to send";
+        if (aError == OT_ERROR_NONE)
+        {
+            actionText = "Sent";
+        }
+        else
+        {
+            actionText = "Failed to send";
+        }
+
         break;
 
     case kMessagePrepareIndirect:

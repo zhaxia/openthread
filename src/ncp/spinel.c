@@ -43,20 +43,23 @@
 // MARK: -
 // MARK: Headers
 
-#ifdef OPENTHREAD_CONFIG_FILE
-#include OPENTHREAD_CONFIG_FILE
-#else
-#include <openthread-config.h>
-#endif
+
+#include <openthread/config.h>
 
 #include "spinel.h"
 
 #include <assert.h>
+#include <errno.h>
+
+#ifndef SPINEL_PLATFORM_HEADER
+/* These are all already included in the spinel platform header
+ * if SPINEL_PLATFORM_HEADER was defined.
+ */
 #include <stdio.h>
 #include <stdlib.h>
-#include "utils/wrap_string.h"
-#include <errno.h>
-#include "utils/wrap_stdbool.h"
+#include <string.h>
+#endif // #ifndef SPINEL_PLATFORM_HEADER
+
 // ----------------------------------------------------------------------------
 // MARK: -
 
@@ -1276,12 +1279,12 @@ spinel_prop_key_to_cstr(spinel_prop_key_t prop_key)
         ret = "PROP_THREAD_COMMISSIONER_ENABLED";
         break;
 
-    case SPINEL_PROP_THREAD_BA_PROXY_ENABLED:
-        ret = "PROP_THREAD_BA_PROXY_ENABLED";
+    case SPINEL_PROP_THREAD_TMF_PROXY_ENABLED:
+        ret = "PROP_THREAD_TMF_PROXY_ENABLED";
         break;
 
-    case SPINEL_PROP_THREAD_BA_PROXY_STREAM:
-        ret = "PROP_THREAD_BA_PROXY_STREAM";
+    case SPINEL_PROP_THREAD_TMF_PROXY_STREAM:
+        ret = "PROP_THREAD_TMF_PROXY_STREAM";
         break;
 
     case SPINEL_PROP_THREAD_DISCOVERY_SCAN_JOINER_FLAG:
@@ -1526,6 +1529,22 @@ spinel_prop_key_to_cstr(spinel_prop_key_t prop_key)
 
     case SPINEL_PROP_CNTR_RX_SPINEL_OUT_OF_ORDER_TID:
         ret = "PROP_CNTR_RX_SPINEL_OUT_OF_ORDER_TID";
+        break;
+
+    case SPINEL_PROP_CNTR_IP_TX_SUCCESS:
+        ret = "PROP_CNTR_IP_TX_SUCCESS";
+        break;
+
+    case SPINEL_PROP_CNTR_IP_RX_SUCCESS:
+        ret = "PROP_CNTR_IP_RX_SUCCESS";
+        break;
+
+    case SPINEL_PROP_CNTR_IP_TX_FAILURE:
+        ret = "PROP_CNTR_IP_TX_FAILURE";
+        break;
+
+    case SPINEL_PROP_CNTR_IP_RX_FAILURE:
+        ret = "PROP_CNTR_IP_RX_FAILURE";
         break;
 
     case SPINEL_PROP_MSG_BUFFER_COUNTERS:
@@ -1863,8 +1882,8 @@ const char *spinel_capability_to_cstr(unsigned int capability)
         ret = "CAP_THREAD_COMMISSIONER";
         break;
 
-    case SPINEL_CAP_THREAD_BA_PROXY:
-        ret = "CAP_THREAD_BA_PROXY";
+    case SPINEL_CAP_THREAD_TMF_PROXY:
+        ret = "CAP_THREAD_TMF_PROXY";
         break;
 
     case SPINEL_CAP_NEST_LEGACY_INTERFACE:
@@ -1891,10 +1910,6 @@ const char *spinel_capability_to_cstr(unsigned int capability)
 /* -------------------------------------------------------------------------- */
 
 #if SPINEL_SELF_TEST
-
-#include <stdlib.h>
-#include "utils/wrap_string.h"
-
 
 int
 main(void)

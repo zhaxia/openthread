@@ -31,6 +31,8 @@
  *   This file implements the OpenThread CoAP API.
  */
 
+#include <openthread/config.h>
+
 #include <openthread/coap.h>
 
 #include "openthread-instance.h"
@@ -54,6 +56,11 @@ void otCoapHeaderSetToken(otCoapHeader *aHeader, const uint8_t *aToken, uint8_t 
 void otCoapHeaderGenerateToken(otCoapHeader *aHeader, uint8_t aTokenLength)
 {
     static_cast<Coap::Header *>(aHeader)->SetToken(aTokenLength);
+}
+
+otError otCoapHeaderAppendContentFormatOption(otCoapHeader *aHeader, otCoapOptionContentFormat aContentFormat)
+{
+    return static_cast<Coap::Header *>(aHeader)->AppendContentFormatOption(aContentFormat);
 }
 
 otError otCoapHeaderAppendOption(otCoapHeader *aHeader, const otCoapOption *aOption)

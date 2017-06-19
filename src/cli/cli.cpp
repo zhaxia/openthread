@@ -31,11 +31,7 @@
  *   This file implements the CLI interpreter.
  */
 
-#ifdef OPENTHREAD_CONFIG_FILE
-#include OPENTHREAD_CONFIG_FILE
-#else
-#include <openthread-config.h>
-#endif
+#include <openthread/config.h>
 
 #include "cli.hpp"
 
@@ -3055,7 +3051,7 @@ void Interpreter::HandleNetifStateChanged(otInstance *mInstance, uint32_t aFlags
 void Interpreter::HandleNetifStateChanged(uint32_t aFlags)
 #endif
 {
-    VerifyOrExit((aFlags & OT_THREAD_NETDATA_UPDATED) != 0);
+    VerifyOrExit((aFlags & OT_CHANGED_THREAD_NETDATA) != 0);
 
 #ifndef OTDLL
     otIp6SlaacUpdate(mInstance, mSlaacAddresses, sizeof(mSlaacAddresses) / sizeof(mSlaacAddresses[0]),
