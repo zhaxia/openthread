@@ -36,12 +36,13 @@
 #include <stdint.h>
 
 #include <openthread/types.h>
+#include <openthread/platform/toolchain.h>
 #include <openthread/platform/uart.h>
 #include <utils/code_utils.h>
 
-#include "drivers/nrf_drv_clock.h"
-#include "hal/nrf_uart.h"
-#include "hal/nrf_gpio.h"
+#include <drivers/clock/nrf_drv_clock.h>
+#include <hal/nrf_uart.h>
+#include <hal/nrf_gpio.h>
 #include "platform-nrf5.h"
 
 /**
@@ -86,10 +87,10 @@ static __INLINE bool isRxBufferEmpty()
  */
 static void processReceive(void)
 {
-    otEXPECT(isRxBufferEmpty() == false);
-
     // Set head position to not be changed during read procedure.
     uint16_t head = sReceiveHead;
+
+    otEXPECT(isRxBufferEmpty() == false);
 
     // In case head roll back to the beginning of the buffer, notify about left
     // bytes from the end of the buffer.
@@ -279,4 +280,18 @@ void UARTE0_UART0_IRQHandler(void)
             nrf_uart_task_trigger(UART_INSTANCE, NRF_UART_TASK_STOPTX);
         }
     }
+}
+
+/**
+ * The UART driver weak functions definition.
+ *
+ */
+OT_TOOL_WEAK void otPlatUartSendDone(void)
+{
+}
+
+OT_TOOL_WEAK void otPlatUartReceived(const uint8_t *aBuf, uint16_t aBufLength)
+{
+    (void)aBuf;
+    (void)aBufLength;
 }
