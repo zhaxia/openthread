@@ -248,8 +248,8 @@ void NcpSpi::SpiTransactionProcess(void)
 
 void NcpSpi::HandleFrameAddedToTxBuffer(void *aContext, NcpFrameBuffer::FrameTag aTag, NcpFrameBuffer *aNcpFrameBuffer)
 {
-    (void)aNcpFrameBuffer;
-    (void)aTag;
+    OT_UNUSED_VARIABLE(aNcpFrameBuffer);
+    OT_UNUSED_VARIABLE(aTag);
 
     static_cast<NcpSpi *>(aContext)->mPrepareTxFrameTask.Post();
 }
@@ -311,9 +311,10 @@ exit:
     return errorCode;
 }
 
-void NcpSpi::PrepareTxFrame(void *aContext)
+void NcpSpi::PrepareTxFrame(Tasklet &aTasklet)
 {
-    static_cast<NcpSpi *>(aContext)->PrepareTxFrame();
+    OT_UNUSED_VARIABLE(aTasklet);
+    static_cast<NcpSpi *>(GetNcpInstance())->PrepareTxFrame();
 }
 
 void NcpSpi::PrepareTxFrame(void)

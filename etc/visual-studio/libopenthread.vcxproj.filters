@@ -126,6 +126,9 @@
     <ClCompile Include="..\..\src\core\coap\coap_secure.cpp">
       <Filter>Source Files\coap</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\common\locator.cpp">
+      <Filter>Source Files\common</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\common\logging.cpp">
       <Filter>Source Files\common</Filter>
     </ClCompile>
@@ -246,6 +249,9 @@
     <ClCompile Include="..\..\src\core\meshcop\dataset.cpp">
       <Filter>Source Files\thread</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\meshcop\dataset_local.cpp">
+      <Filter>Source Files\thread</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\meshcop\dataset_manager.cpp">
       <Filter>Source Files\thread</Filter>
     </ClCompile>
@@ -335,10 +341,16 @@
     <ClInclude Include="..\..\src\core\common\code_utils.hpp">
       <Filter>Header Files\common</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\common\context.hpp">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\core\common\debug.hpp">
       <Filter>Header Files\common</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\common\encoding.hpp">
+      <Filter>Header Files\common</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\common\locator.hpp">
       <Filter>Header Files\common</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\common\logging.hpp">
@@ -498,6 +510,9 @@
       <Filter>Header Files\meshcop</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\meshcop\dataset.hpp">
+      <Filter>Header Files\thread</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\meshcop\dataset_local.hpp">
       <Filter>Header Files\thread</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\meshcop\dataset_manager.hpp">

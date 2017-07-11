@@ -38,12 +38,11 @@
 
 #include "openthread-core-config.h"
 #include "common/code_utils.hpp"
+#include "common/locator.hpp"
 #include "common/timer.hpp"
 #include "mac/mac_frame.hpp"
 
 namespace ot {
-
-class MeshForwarder;
 
 /**
  * @addtogroup core-data-poll-manager
@@ -59,7 +58,7 @@ class MeshForwarder;
  *
  */
 
-class DataPollManager
+class DataPollManager: public MeshForwarderLocator
 {
 public:
     enum
@@ -75,14 +74,6 @@ public:
      *
      */
     explicit DataPollManager(MeshForwarder &aMeshForwarder);
-
-    /**
-     * This method returns the pointer to the parent otInstance structure.
-     *
-     * @returns The pointer to the parent otInstance structure.
-     *
-     */
-    otInstance *GetInstance(void);
 
     /**
      * This method instructs the data poll manager to start sending periodic data polls.
@@ -194,11 +185,19 @@ public:
      */
     void SendFastPolls(uint8_t aNumFastPolls);
 
+    /**
+     * This method gets the maximum data polling period in use.
+     *
+     * @returns the maximum data polling period in use.
+     *
+     */
+    uint32_t GetKeepAlivePollPeriod(void) const;
+
 private:
     enum  // Poll period under different conditions (in milliseconds).
     {
         kAttachDataPollPeriod   = OPENTHREAD_CONFIG_ATTACH_DATA_POLL_PERIOD,  ///< Poll period during attach.
-        kRetxPollPeriod         = 500,                                        ///< Poll retx period due to tx failure.
+        kRetxPollPeriod         = 1000,                                       ///< Poll retx period due to tx failure.
         kNoBufferRetxPollPeriod = 200,                                        ///< Poll retx due to no buffer space.
         kFastPollPeriod         = 188,                                        ///< Period used for fast polls.
         kMinPollPeriod          = 10,                                         ///< Minimum allowed poll period.
@@ -218,9 +217,10 @@ private:
 
     void ScheduleNextPoll(PollPeriodSelector aPollPeriodSelector);
     uint32_t CalculatePollPeriod(void) const;
-    static void HandlePollTimer(void *aContext);
+    static void HandlePollTimer(Timer &aTimer);
+    static DataPollManager &GetOwner(Context &aContext);
+    uint32_t GetDefaultPollPeriod(void) const;
 
-    MeshForwarder &mMeshForwarder;
     Timer     mTimer;
     uint32_t  mTimerStartTime;
     uint32_t  mExternalPollPeriod;
