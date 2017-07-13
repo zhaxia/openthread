@@ -75,8 +75,8 @@ otError otThreadSetExtendedPanId(otInstance *aInstance, const uint8_t *aExtended
     mlPrefix[7] = 0x00;
     aInstance->mThreadNetif.GetMle().SetMeshLocalPrefix(mlPrefix);
 
-    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
-    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+    aInstance->mThreadNetif.GetActiveDataset().Clear();
+    aInstance->mThreadNetif.GetPendingDataset().Clear();
 
 exit:
     return error;
@@ -165,8 +165,8 @@ otError otThreadSetMasterKey(otInstance *aInstance, const otMasterKey *aKey)
                  error = OT_ERROR_INVALID_STATE);
 
     error = aInstance->mThreadNetif.GetKeyManager().SetMasterKey(*aKey);
-    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
-    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+    aInstance->mThreadNetif.GetActiveDataset().Clear();
+    aInstance->mThreadNetif.GetPendingDataset().Clear();
 
 exit:
     return error;
@@ -190,8 +190,8 @@ otError otThreadSetMeshLocalPrefix(otInstance *aInstance, const uint8_t *aMeshLo
                  error = OT_ERROR_INVALID_STATE);
 
     error = aInstance->mThreadNetif.GetMle().SetMeshLocalPrefix(aMeshLocalPrefix);
-    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
-    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+    aInstance->mThreadNetif.GetActiveDataset().Clear();
+    aInstance->mThreadNetif.GetPendingDataset().Clear();
 
 exit:
     return error;
@@ -215,8 +215,8 @@ otError otThreadSetNetworkName(otInstance *aInstance, const char *aNetworkName)
                  error = OT_ERROR_INVALID_STATE);
 
     error = aInstance->mThreadNetif.GetMac().SetNetworkName(aNetworkName);
-    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
-    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+    aInstance->mThreadNetif.GetActiveDataset().Clear();
+    aInstance->mThreadNetif.GetPendingDataset().Clear();
 
 exit:
     return error;
@@ -458,7 +458,7 @@ bool otThreadGetAutoStart(otInstance *aInstance)
 
     return autoStart != 0;
 #else
-    (void)aInstance;
+    OT_UNUSED_VARIABLE(aInstance);
     return false;
 #endif
 }
@@ -469,8 +469,8 @@ otError otThreadSetAutoStart(otInstance *aInstance, bool aStartAutomatically)
     uint8_t autoStart = aStartAutomatically ? 1 : 0;
     return otPlatSettingsSet(aInstance, Settings::kKeyThreadAutoStart, &autoStart, sizeof(autoStart));
 #else
-    (void)aInstance;
-    (void)aStartAutomatically;
+    OT_UNUSED_VARIABLE(aInstance);
+    OT_UNUSED_VARIABLE(aStartAutomatically);
     return OT_ERROR_NOT_IMPLEMENTED;
 #endif
 }

@@ -121,7 +121,7 @@ otError ThreadNetif::Up(void)
 {
     if (!mIsUp)
     {
-        mIp6.AddNetif(*this);
+        GetIp6().AddNetif(*this);
         mMeshForwarder.Start();
         mCoap.Start(kCoapUdpPort);
 #if OPENTHREAD_ENABLE_DNS_CLIENT
@@ -144,7 +144,7 @@ otError ThreadNetif::Down(void)
     mChildSupervisor.Stop();
     mMleRouter.Disable();
     mMeshForwarder.Stop();
-    mIp6.RemoveNetif(*this);
+    GetIp6().RemoveNetif(*this);
     RemoveAllExternalUnicastAddresses();
     UnsubscribeAllExternalMulticastAddresses();
     mIsUp = false;
@@ -195,13 +195,8 @@ otError ThreadNetif::TmfFilter(const Message &aMessage, const Ip6::MessageInfo &
                  (aMessageInfo.GetSockAddr().IsLinkLocal() && aMessageInfo.GetPeerAddr().IsLinkLocal()),
                  error = OT_ERROR_NOT_TMF);
 exit:
-    (void)aMessage;
+    OT_UNUSED_VARIABLE(aMessage);
     return error;
-}
-
-otInstance *ThreadNetif::GetInstance(void)
-{
-    return otInstanceFromThreadNetif(this);
 }
 
 }  // namespace ot

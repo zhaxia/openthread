@@ -55,8 +55,8 @@ otError otLinkSetChannel(otInstance *aInstance, uint8_t aChannel)
                  error = OT_ERROR_INVALID_STATE);
 
     error = aInstance->mThreadNetif.GetMac().SetChannel(aChannel);
-    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
-    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+    aInstance->mThreadNetif.GetActiveDataset().Clear();
+    aInstance->mThreadNetif.GetPendingDataset().Clear();
 
 exit:
     return error;
@@ -117,8 +117,8 @@ otError otLinkSetPanId(otInstance *aInstance, otPanId aPanId)
                  error = OT_ERROR_INVALID_STATE);
 
     error = aInstance->mThreadNetif.GetMac().SetPanId(aPanId);
-    aInstance->mThreadNetif.GetActiveDataset().Clear(false);
-    aInstance->mThreadNetif.GetPendingDataset().Clear(false);
+    aInstance->mThreadNetif.GetActiveDataset().Clear();
+    aInstance->mThreadNetif.GetPendingDataset().Clear();
 
 exit:
     return error;
@@ -126,7 +126,7 @@ exit:
 
 uint32_t otLinkGetPollPeriod(otInstance *aInstance)
 {
-    return aInstance->mThreadNetif.GetMeshForwarder().GetDataPollManager().GetExternalPollPeriod();
+    return aInstance->mThreadNetif.GetMeshForwarder().GetDataPollManager().GetKeepAlivePollPeriod();
 }
 
 void otLinkSetPollPeriod(otInstance *aInstance, uint32_t aPollPeriod)

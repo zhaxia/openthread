@@ -138,6 +138,7 @@ const NcpBase::GetPropertyHandlerEntry NcpBase::mGetPropertyHandlerTable[] =
     NCP_GET_PROP_HANDLER_ENTRY(MAC_RAW_STREAM_ENABLED),
     NCP_GET_PROP_HANDLER_ENTRY(MAC_PROMISCUOUS_MODE),
     NCP_GET_PROP_HANDLER_ENTRY(MAC_EXTENDED_ADDR),
+    NCP_GET_PROP_HANDLER_ENTRY(MAC_DATA_POLL_PERIOD),
     NCP_GET_PROP_HANDLER_ENTRY(NET_SAVED),
     NCP_GET_PROP_HANDLER_ENTRY(NET_IF_UP),
     NCP_GET_PROP_HANDLER_ENTRY(NET_STACK_UP),
@@ -287,6 +288,7 @@ const NcpBase::SetPropertyHandlerEntry NcpBase::mSetPropertyHandlerTable[] =
     NCP_SET_PROP_HANDLER_ENTRY(MAC_SCAN_PERIOD),
     NCP_SET_PROP_HANDLER_ENTRY(MAC_15_4_PANID),
     NCP_SET_PROP_HANDLER_ENTRY(MAC_15_4_LADDR),
+    NCP_SET_PROP_HANDLER_ENTRY(MAC_DATA_POLL_PERIOD),
     NCP_SET_PROP_HANDLER_ENTRY(MAC_RAW_STREAM_ENABLED),
     NCP_SET_PROP_HANDLER_ENTRY(NET_IF_UP),
     NCP_SET_PROP_HANDLER_ENTRY(NET_STACK_UP),
@@ -1192,10 +1194,10 @@ void NcpBase::HandleNetifStateChanged(uint32_t aFlags, void *aContext)
     obj->mUpdateChangedPropsTask.Post();
 }
 
-void NcpBase::UpdateChangedProps(void *aContext)
+void NcpBase::UpdateChangedProps(Tasklet &aTasklet)
 {
-    NcpBase *obj = static_cast<NcpBase *>(aContext);
-    obj->UpdateChangedProps();
+    OT_UNUSED_VARIABLE(aTasklet);
+    GetNcpInstance()->UpdateChangedProps();
 }
 
 void NcpBase::UpdateChangedProps(void)
@@ -1467,7 +1469,7 @@ void NcpBase::HandleReceive(const uint8_t *aBuf, uint16_t aBufLength)
 void NcpBase::HandleFrameRemovedFromNcpBuffer(void *aContext, NcpFrameBuffer::FrameTag aFrameTag,
                                               NcpFrameBuffer *aNcpBuffer)
 {
-    (void)aNcpBuffer;
+    OT_UNUSED_VARIABLE(aNcpBuffer);
     static_cast<NcpBase *>(aContext)->HandleFrameRemovedFromNcpBuffer(aFrameTag);
 }
 
@@ -1833,9 +1835,9 @@ otError NcpBase::OutboundFrameFeedPacked(const char *aPackFormat, ...)
 
 otError NcpBase::CommandHandler_NOOP(uint8_t aHeader, unsigned int aCommand, const uint8_t *aArgPtr, uint16_t aArgLen)
 {
-    (void)aCommand;
-    (void)aArgPtr;
-    (void)aArgLen;
+    OT_UNUSED_VARIABLE(aCommand);
+    OT_UNUSED_VARIABLE(aArgPtr);
+    OT_UNUSED_VARIABLE(aArgLen);
 
     return SendLastStatus(aHeader, SPINEL_STATUS_OK);
 }
@@ -1846,10 +1848,10 @@ otError NcpBase::CommandHandler_RESET(uint8_t aHeader, unsigned int aCommand, co
     otError error = OT_ERROR_NONE;
 
     // We aren't using any of the arguments to this function.
-    (void)aHeader;
-    (void)aCommand;
-    (void)aArgPtr;
-    (void)aArgLen;
+    OT_UNUSED_VARIABLE(aHeader);
+    OT_UNUSED_VARIABLE(aCommand);
+    OT_UNUSED_VARIABLE(aArgPtr);
+    OT_UNUSED_VARIABLE(aArgLen);
 
     // Signal a platform reset. If implemented, this function
     // shouldn't return.
@@ -1891,7 +1893,7 @@ otError NcpBase::CommandHandler_PROP_VALUE_GET(uint8_t aHeader, unsigned int aCo
         error = SendLastStatus(aHeader, SPINEL_STATUS_PARSE_ERROR);
     }
 
-    (void)aCommand;
+    OT_UNUSED_VARIABLE(aCommand);
 
     return error;
 }
@@ -1928,7 +1930,7 @@ otError NcpBase::CommandHandler_PROP_VALUE_SET(uint8_t aHeader, unsigned int aCo
         error = SendLastStatus(aHeader, SPINEL_STATUS_PARSE_ERROR);
     }
 
-    (void)aCommand;
+    OT_UNUSED_VARIABLE(aCommand);
 
     return error;
 }
@@ -1965,7 +1967,7 @@ otError NcpBase::CommandHandler_PROP_VALUE_INSERT(uint8_t aHeader, unsigned int 
         error = SendLastStatus(aHeader, SPINEL_STATUS_PARSE_ERROR);
     }
 
-    (void)aCommand;
+    OT_UNUSED_VARIABLE(aCommand);
 
     return error;
 }
@@ -2002,7 +2004,7 @@ otError NcpBase::CommandHandler_PROP_VALUE_REMOVE(uint8_t aHeader, unsigned int 
         error = SendLastStatus(aHeader, SPINEL_STATUS_PARSE_ERROR);
     }
 
-    (void)aCommand;
+    OT_UNUSED_VARIABLE(aCommand);
 
     return error;
 }
@@ -2010,9 +2012,9 @@ otError NcpBase::CommandHandler_PROP_VALUE_REMOVE(uint8_t aHeader, unsigned int 
 otError NcpBase::CommandHandler_NET_SAVE(uint8_t aHeader, unsigned int aCommand, const uint8_t *aArgPtr,
                                          uint16_t aArgLen)
 {
-    (void)aCommand;
-    (void)aArgPtr;
-    (void)aArgLen;
+    OT_UNUSED_VARIABLE(aCommand);
+    OT_UNUSED_VARIABLE(aArgPtr);
+    OT_UNUSED_VARIABLE(aArgLen);
 
     return SendLastStatus(aHeader, SPINEL_STATUS_UNIMPLEMENTED);
 }
@@ -2020,9 +2022,9 @@ otError NcpBase::CommandHandler_NET_SAVE(uint8_t aHeader, unsigned int aCommand,
 otError NcpBase::CommandHandler_NET_CLEAR(uint8_t aHeader, unsigned int aCommand, const uint8_t *aArgPtr,
                                           uint16_t aArgLen)
 {
-    (void)aCommand;
-    (void)aArgPtr;
-    (void)aArgLen;
+    OT_UNUSED_VARIABLE(aCommand);
+    OT_UNUSED_VARIABLE(aArgPtr);
+    OT_UNUSED_VARIABLE(aArgLen);
 
     return SendLastStatus(aHeader, ThreadErrorToSpinelStatus(otInstanceErasePersistentInfo(mInstance)));
 }
@@ -2030,9 +2032,9 @@ otError NcpBase::CommandHandler_NET_CLEAR(uint8_t aHeader, unsigned int aCommand
 otError NcpBase::CommandHandler_NET_RECALL(uint8_t aHeader, unsigned int aCommand, const uint8_t *aArgPtr,
                                            uint16_t aArgLen)
 {
-    (void)aCommand;
-    (void)aArgPtr;
-    (void)aArgLen;
+    OT_UNUSED_VARIABLE(aCommand);
+    OT_UNUSED_VARIABLE(aArgPtr);
+    OT_UNUSED_VARIABLE(aArgLen);
 
     return SendLastStatus(aHeader, SPINEL_STATUS_UNIMPLEMENTED);
 }
@@ -2089,7 +2091,7 @@ exit:
         error = SendLastStatus(aHeader, spinelError);
     }
 
-    (void)aCommand;
+    OT_UNUSED_VARIABLE(aCommand);
 
     return error;
 }
@@ -2133,7 +2135,7 @@ otError NcpBase::CommandHandler_POKE(uint8_t aHeader, unsigned int aCommand, con
 exit:
     error = SendLastStatus(aHeader, spinelError);
 
-    (void)aCommand;
+    OT_UNUSED_VARIABLE(aCommand);
 
     return error;
 }
@@ -2232,6 +2234,8 @@ otError NcpBase::GetPropertyHandler_CAPS(uint8_t aHeader, spinel_prop_key_t aKey
     SuccessOrExit(error = OutboundFrameFeedPacked(SPINEL_DATATYPE_UINT_PACKED_S, SPINEL_CAP_ROLE_ROUTER));
 #endif
 
+    SuccessOrExit(error = OutboundFrameFeedPacked(SPINEL_DATATYPE_UINT_PACKED_S, SPINEL_CAP_ROLE_SLEEPY));
+
 #if OPENTHREAD_ENABLE_LEGACY
     SuccessOrExit(error = OutboundFrameFeedPacked(SPINEL_DATATYPE_UINT_PACKED_S, SPINEL_CAP_NEST_LEGACY_INTERFACE));
 #endif
@@ -2299,7 +2303,7 @@ otError NcpBase::GetPropertyHandler_HWADDR(uint8_t aHeader, spinel_prop_key_t aK
 otError NcpBase::GetPropertyHandler_LOCK(uint8_t aHeader, spinel_prop_key_t aKey)
 {
     // TODO: Implement property lock (Needs API!)
-    (void)aKey;
+    OT_UNUSED_VARIABLE(aKey);
 
     return SendLastStatus(aHeader, SPINEL_STATUS_UNIMPLEMENTED);
 }
@@ -2571,6 +2575,17 @@ otError NcpBase::GetPropertyHandler_MAC_EXTENDED_ADDR(uint8_t aHeader, spinel_pr
                aKey,
                SPINEL_DATATYPE_EUI64_S,
                otLinkGetExtendedAddress(mInstance)
+           );
+}
+
+otError NcpBase::GetPropertyHandler_MAC_DATA_POLL_PERIOD(uint8_t aHeader, spinel_prop_key_t aKey)
+{
+    return SendPropertyUpdate(
+               aHeader,
+               SPINEL_CMD_PROP_VALUE_IS,
+               aKey,
+               SPINEL_DATATYPE_UINT32_S,
+               otLinkGetPollPeriod(mInstance)
            );
 }
 
@@ -3364,7 +3379,7 @@ exit:
 otError NcpBase::GetPropertyHandler_IPV6_ROUTE_TABLE(uint8_t aHeader, spinel_prop_key_t aKey)
 {
     // TODO: Implement get route table
-    (void)aKey;
+    OT_UNUSED_VARIABLE(aKey);
 
     return SendLastStatus(aHeader, SPINEL_STATUS_UNIMPLEMENTED);
 }
@@ -3463,7 +3478,7 @@ exit:
 otError NcpBase::GetPropertyHandler_STREAM_NET(uint8_t aHeader, spinel_prop_key_t aKey)
 {
     // TODO: Implement explicit data poll.
-    (void)aKey;
+    OT_UNUSED_VARIABLE(aKey);
 
     return SendLastStatus(aHeader, SPINEL_STATUS_UNIMPLEMENTED);
 }
@@ -4247,9 +4262,9 @@ otError NcpBase::SetPropertyHandler_POWER_STATE(uint8_t aHeader, spinel_prop_key
                                                 uint16_t aValueLen)
 {
     // TODO: Implement POWER_STATE
-    (void)aKey;
-    (void)aValuePtr;
-    (void)aValueLen;
+    OT_UNUSED_VARIABLE(aKey);
+    OT_UNUSED_VARIABLE(aValuePtr);
+    OT_UNUSED_VARIABLE(aValueLen);
 
     return SendLastStatus(aHeader, SPINEL_STATUS_UNIMPLEMENTED);
 }
@@ -4708,6 +4723,28 @@ exit:
     return SendSetPropertyResponse(aHeader, aKey, error);
 }
 
+otError NcpBase::SetPropertyHandler_MAC_DATA_POLL_PERIOD(uint8_t aHeader, spinel_prop_key_t aKey,
+                                                         const uint8_t *aValuePtr, uint16_t aValueLen)
+{
+    uint32_t pollPeriod;
+    spinel_ssize_t parsedLength;
+    otError error = OT_ERROR_NONE;
+
+    parsedLength = spinel_datatype_unpack(
+                       aValuePtr,
+                       aValueLen,
+                       SPINEL_DATATYPE_UINT32_S,
+                       &pollPeriod
+                   );
+
+    VerifyOrExit(parsedLength > 0, error = OT_ERROR_PARSE);
+
+    otLinkSetPollPeriod(mInstance, pollPeriod);
+
+exit:
+    return SendSetPropertyResponse(aHeader, aKey, error);
+}
+
 otError NcpBase::SetPropertyHandler_MAC_RAW_STREAM_ENABLED(uint8_t aHeader, spinel_prop_key_t aKey,
                                                            const uint8_t *aValuePtr, uint16_t aValueLen)
 {
@@ -4822,7 +4859,7 @@ exit:
         error = SendLastStatus(aHeader, ThreadErrorToSpinelStatus(error));
     }
 
-    (void)aKey;
+    OT_UNUSED_VARIABLE(aKey);
 
     return error;
 }
@@ -5152,7 +5189,7 @@ exit:
         error = SendLastStatus(aHeader, ThreadErrorToSpinelStatus(error));
     }
 
-    (void)aKey;
+    OT_UNUSED_VARIABLE(aKey);
 
     return error;
 }
@@ -5219,7 +5256,7 @@ exit:
         error = SendLastStatus(aHeader, ThreadErrorToSpinelStatus(error));
     }
 
-    (void)aKey;
+    OT_UNUSED_VARIABLE(aKey);
 
     return error;
 }
@@ -5601,7 +5638,7 @@ otError NcpBase::SetPropertyHandler_CNTR_RESET(uint8_t aHeader, spinel_prop_key_
     error = OT_ERROR_NOT_IMPLEMENTED;
 
 exit:
-    (void)aKey;
+    OT_UNUSED_VARIABLE(aKey);
 
     // There is currently no getter for PROP_CNTR_RESET, so we just
     // return SPINEL_STATUS_OK for success when the counters are reset.
@@ -5638,7 +5675,7 @@ otError NcpBase::SetPropertyHandler_THREAD_COMMISSIONER_ENABLED(uint8_t aHeader,
     }
 
 exit:
-    (void)aKey;
+    OT_UNUSED_VARIABLE(aKey);
 
     return SendLastStatus(aHeader, ThreadErrorToSpinelStatus(error));
 }
@@ -7490,8 +7527,8 @@ otError otNcpRegisterPeekPokeDelagates(otNcpDelegateAllowPeekPoke aAllowPeekDele
         ncp->RegisterPeekPokeDelagates(aAllowPeekDelegate, aAllowPokeDelegate);
     }
 #else
-    (void)aAllowPeekDelegate;
-    (void)aAllowPokeDelegate;
+    OT_UNUSED_VARIABLE(aAllowPeekDelegate);
+    OT_UNUSED_VARIABLE(aAllowPokeDelegate);
 
     error = OT_ERROR_DISABLED_FEATURE;
 
@@ -7515,7 +7552,7 @@ void otNcpRegisterLegacyHandlers(const otNcpLegacyHandlers *aHandlers)
     }
 
 #else
-    (void)aHandlers;
+    OT_UNUSED_VARIABLE(aHandlers);
 #endif
 }
 
@@ -7530,7 +7567,7 @@ void otNcpHandleDidReceiveNewLegacyUlaPrefix(const uint8_t *aUlaPrefix)
     }
 
 #else
-    (void)aUlaPrefix;
+    OT_UNUSED_VARIABLE(aUlaPrefix);
 #endif
 }
 
@@ -7545,6 +7582,6 @@ void otNcpHandleLegacyNodeDidJoin(const otExtAddress *aExtAddr)
     }
 
 #else
-    (void)aExtAddr;
+    OT_UNUSED_VARIABLE(aExtAddr);
 #endif
 }

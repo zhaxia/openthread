@@ -43,9 +43,6 @@
 // MARK: -
 // MARK: Headers
 
-
-#include <openthread/config.h>
-
 #include "spinel.h"
 
 #include <assert.h>
@@ -1069,6 +1066,10 @@ spinel_prop_key_to_cstr(spinel_prop_key_t prop_key)
 
     case SPINEL_PROP_MAC_ENERGY_SCAN_RESULT:
         ret = "PROP_MAC_ENERGY_SCAN_RESULT";
+        break;
+
+    case SPINEL_PROP_MAC_DATA_POLL_PERIOD:
+        ret = "PROP_MAC_DATA_POLL_PERIOD";
         break;
 
     case SPINEL_PROP_MAC_WHITELIST:

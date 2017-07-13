@@ -2273,27 +2273,40 @@ class OpenThread(IThci):
 
             if listSecurityPolicy != None:
                 cmd += '0c03'
-                policy = str(hex(listSecurityPolicy[2]))[2:]
+
+                rotationTime = 0
+                policyBits = 0
+
+                # previous passing way listSecurityPolicy=[True, True, 3600, False, False, True]
+                if (len(listSecurityPolicy) == 6):
+                    rotationTime = listSecurityPolicy[2]
+
+                    # the last three reserved bits must be 1
+                    policyBits = 0b00000111
+
+                    if listSecurityPolicy[0]:
+                        policyBits = policyBits | 0b10000000
+                    if listSecurityPolicy[1]:
+                        policyBits = policyBits | 0b01000000
+                    if listSecurityPolicy[3]:
+                        policyBits = policyBits | 0b00100000
+                    if listSecurityPolicy[4]:
+                        policyBits = policyBits | 0b00010000
+                    if listSecurityPolicy[5]:
+                        policyBits = policyBits | 0b00001000
+                else:
+                    # new passing way listSecurityPolicy=[3600, 0b11001111]
+                    rotationTime = listSecurityPolicy[0]
+                    policyBits = listSecurityPolicy[1]
+
+                policy = str(hex(rotationTime))[2:]
 
                 if len(policy) < 4:
                     policy = policy.zfill(4)
 
                 cmd += policy
 
-                policyBit = 0
-
-                if listSecurityPolicy[0]:
-                    policyBit = policyBit | 0b10000000
-                if listSecurityPolicy[1]:
-                    policyBit = policyBit | 0b01000000
-                if listSecurityPolicy[3]:
-                    policyBit = policyBit | 0b00100000
-                if listSecurityPolicy[4]:
-                    policyBit = policyBit | 0b00010000
-                if listSecurityPolicy[5]:
-                    policyBit = policyBit | 0b00001000
-
-                cmd += str(hex(policyBit))[2:]
+                cmd += str(hex(policyBits))[2:]
 
             if xCommissioningSessionId != None:
                 cmd += '0b02'

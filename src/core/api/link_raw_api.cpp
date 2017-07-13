@@ -32,12 +32,13 @@
  */
 
 #include <openthread/config.h>
-#include <common/debug.hpp>
-#include <common/logging.hpp>
+
 #include <openthread/platform/random.h>
 #include <openthread/platform/usec-alarm.h>
 
 #include "openthread-instance.h"
+#include "common/debug.hpp"
+#include "common/logging.hpp"
 
 #if OPENTHREAD_ENABLE_RAW_LINK_API
 
@@ -345,7 +346,7 @@ otError LinkRaw::Transmit(otRadioFrame *aFrame, otLinkRawTransmitDone aCallback)
         mTransmitDoneCallback = aCallback;
 
 #if OPENTHREAD_CONFIG_ENABLE_SOFTWARE_RETRANSMIT
-        (void)aFrame;
+        OT_UNUSED_VARIABLE(aFrame);
         mTransmitAttempts = 0;
         mCsmaAttempts = 0;
 
@@ -483,6 +484,11 @@ void LinkRaw::HandleTimer(void *aContext)
     static_cast<LinkRaw *>(aContext)->HandleTimer();
 }
 
+void LinkRaw::HandleTimer(Timer &aTimer)
+{
+    GetOwner(aTimer).HandleTimer();
+}
+
 void LinkRaw::HandleTimer(void)
 {
     TimerReason timerReason = mTimerReason;
@@ -556,31 +562,23 @@ void LinkRaw::StartCsmaBackoff(void)
     backoff = (otPlatRandomGet() % (1UL << backoffExponent));
     backoff *= (static_cast<uint32_t>(Mac::kUnitBackoffPeriod) * OT_RADIO_SYMBOL_TIME);
 
-#if OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_BACKOFF_TIMER
-    otPlatUsecAlarmTime now;
-    otPlatUsecAlarmTime delay;
-
-    otPlatUsecAlarmGetNow(&now);
-    delay.mMs = backoff / 1000UL;
-    delay.mUs = backoff - (delay.mMs * 1000UL);
-
     otLogDebgPlat(aInstance, "LinkRaw Starting RetransmitTimeout Timer (%d ms)", backoff);
     mTimerReason = kTimerReasonRetransmitTimeout;
-    otPlatUsecAlarmStartAt(&mInstance, &now, &delay, &HandleTimer, this);
+
+#if OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_BACKOFF_TIMER
+    otPlatUsecAlarmStartAt(&mInstance, otPlatUsecAlarmGetNow(), backoff, &HandleTimer, this);
 #else // OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_BACKOFF_TIMER
-    mTimerReason = kTimerReasonRetransmitTimeout;
     mTimer.Start(backoff / 1000UL);
 #endif // OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_BACKOFF_TIMER
-
 }
 
 #endif // OPENTHREAD_CONFIG_ENABLE_SOFTWARE_RETRANSMIT
 
 #if OPENTHREAD_CONFIG_ENABLE_SOFTWARE_ENERGY_SCAN
 
-void LinkRaw::HandleEnergyScanTask(void *aContext)
+void LinkRaw::HandleEnergyScanTask(Tasklet &aTasklet)
 {
-    static_cast<LinkRaw *>(aContext)->HandleEnergyScanTask();
+    GetOwner(aTasklet).HandleEnergyScanTask();
 }
 
 void LinkRaw::HandleEnergyScanTask(void)
@@ -606,6 +604,17 @@ void LinkRaw::HandleEnergyScanTask(void)
 }
 
 #endif // OPENTHREAD_CONFIG_ENABLE_SOFTWARE_ENERGY_SCAN
+
+LinkRaw &LinkRaw::GetOwner(const Context &aContext)
+{
+#if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
+    LinkRaw &link = *static_cast<LinkRaw *>(aContext.GetContext());
+#else
+    LinkRaw &link = otGetInstance()->mLinkRaw;
+    OT_UNUSED_VARIABLE(aContext);
+#endif
+    return link;
+}
 
 } // namespace ot
 
