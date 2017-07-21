@@ -127,14 +127,14 @@ SOURCES_COMMON                      = \
     common/trickle_timer.cpp          \
     crypto/aes_ccm.cpp                \
     crypto/aes_ecb.cpp                \
+    crypto/heap.cpp                   \
     crypto/hmac_sha256.cpp            \
     crypto/mbedtls.cpp                \
     crypto/pbkdf2_cmac.cpp            \
     crypto/sha256.cpp                 \
     mac/mac.cpp                       \
-    mac/mac_blacklist.cpp             \
+    mac/mac_filter.cpp                \
     mac/mac_frame.cpp                 \
-    mac/mac_whitelist.cpp             \
     meshcop/announce_begin_client.cpp \
     meshcop/commissioner.cpp          \
     meshcop/dataset.cpp               \
@@ -222,18 +222,14 @@ HEADERS_COMMON                      = \
     common/trickle_timer.hpp          \
     crypto/aes_ccm.hpp                \
     crypto/aes_ecb.hpp                \
+    crypto/heap.hpp                   \
     crypto/hmac_sha256.hpp            \
     crypto/mbedtls.hpp                \
     crypto/pbkdf2_cmac.h              \
     crypto/sha256.hpp                 \
     mac/mac.hpp                       \
-    mac/mac_blacklist.hpp             \
-    mac/mac_blacklist_impl.hpp        \
-    mac/mac_blacklist_stub.hpp        \
+    mac/mac_filter.hpp                \
     mac/mac_frame.hpp                 \
-    mac/mac_whitelist.hpp             \
-    mac/mac_whitelist_impl.hpp        \
-    mac/mac_whitelist_stub.hpp        \
     meshcop/announce_begin_client.hpp \
     meshcop/commissioner.hpp          \
     meshcop/dataset.hpp               \

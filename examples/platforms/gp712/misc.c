@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2016-2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,77 +26,48 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-/**
- * @file
- * @brief
- *   This file includes the platform abstraction for the millisecond alarm service.
- */
+#include "platform_qorvo.h"
 
-#ifndef ALARM_H_
-#define ALARM_H_
-
-#include <stdint.h>
+#include <unistd.h>
+#include <stdio.h>
 
 #include <openthread/types.h>
+#include <openthread/platform/misc.h>
+#include "radio_qorvo.h"
+#include <stdlib.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+extern int      gArgumentsCount;
+extern char   **gArguments;
 
-/**
- * @addtogroup plat-alarm
- *
- * @brief
- *   This module includes the platform abstraction for the alarm service.
- *
- * @{
- *
- */
+extern void platformUartRestore(void);
 
-/**
- * Set the alarm to fire at @p aDt milliseconds after @p aT0.
- *
- * @param[in] aInstance  The OpenThread instance structure.
- * @param[in] aT0        The reference time.
- * @param[in] aDt        The time delay in milliseconds from @p aT0.
- */
-void otPlatAlarmStartAt(otInstance *aInstance, uint32_t aT0, uint32_t aDt);
+void otPlatReset(otInstance *aInstance)
+{
+    char *argv[gArgumentsCount + 1];
 
-/**
- * Stop the alarm.
- *
- * @param[in] aInstance  The OpenThread instance structure.
- */
-void otPlatAlarmStop(otInstance *aInstance);
+    for (int i = 0; i < gArgumentsCount; ++i)
+    {
+        argv[i] = gArguments[i];
+    }
 
-/**
- * Get the current time.
- *
- * @returns The current time in milliseconds.
- */
-uint32_t otPlatAlarmGetNow(void);
+    argv[gArgumentsCount] = NULL;
 
-/**
- * Signal that the alarm has fired.
- *
- * @param[in] aInstance  The OpenThread instance structure.
- */
-extern void otPlatAlarmFired(otInstance *aInstance);
+    qorvoRadioReset();
+    platformUartRestore();
 
-/**
- * Signal diagnostics module that the alarm has fired.
- *
- * @param[in] aInstance  The OpenThread instance structure.
- */
-extern void otPlatDiagAlarmFired(otInstance *aInstance);
+    execvp(argv[0], argv);
+    perror("reset failed");
+    exit(EXIT_FAILURE);
+    (void)aInstance;
+}
 
-/**
- * @}
- *
- */
+otPlatResetReason otPlatGetResetReason(otInstance *aInstance)
+{
+    (void)aInstance;
+    return OT_PLAT_RESET_REASON_POWER_ON;
+}
 
-#ifdef __cplusplus
-}  // extern "C"
-#endif
-
-#endif  // ALARM_H_
+void otPlatWakeHost(void)
+{
+    // TODO: implement an operation to wake the host from sleep state.
+}

@@ -41,9 +41,8 @@
 #include "common/locator.hpp"
 #include "common/tasklet.hpp"
 #include "common/timer.hpp"
-#include "mac/mac_blacklist.hpp"
 #include "mac/mac_frame.hpp"
-#include "mac/mac_whitelist.hpp"
+#include "mac/mac_filter.hpp"
 #include "thread/key_manager.hpp"
 #include "thread/network_diagnostic_tlvs.hpp"
 #include "thread/topology.hpp"
@@ -482,21 +481,15 @@ public:
      */
     otError SetExtendedPanId(const uint8_t *aExtPanId);
 
+#if OPENTHREAD_ENABLE_MAC_FILTER
     /**
-     * This method returns the MAC whitelist filter.
+     * This method returns the MAC filter.
      *
-     * @returns A reference to the MAC whitelist filter.
+     * @returns A reference to the MAC filter.
      *
      */
-    Whitelist &GetWhitelist(void) { return mWhitelist; }
-
-    /**
-     * This method returns the MAC blacklist filter.
-     *
-     * @returns A reference to the MAC blacklist filter.
-     *
-     */
-    Blacklist &GetBlacklist(void) { return mBlacklist; }
+    Filter &GetFilter(void) { return mFilter; }
+#endif  // OPENTHREAD_ENABLE_MAC_FILTER
 
     /**
      * This method is called to handle receive events.
@@ -507,6 +500,13 @@ public:
      *
      */
     void ReceiveDoneTask(Frame *aFrame, otError aError);
+
+    /**
+     * This method is called to handle transmission start events.
+     *
+     * @param[in]  aFrame  A pointer to the frame that is transmitted.
+     */
+    void TransmitStartedTask(otRadioFrame *aFrame);
 
 #if OPENTHREAD_CONFIG_LEGACY_TRANSMIT_DONE
     /**
@@ -675,7 +675,6 @@ private:
 
     static void HandleMacTimer(Timer &aTimer);
     void HandleMacTimer(void);
-    static void HandleBeginTransmit(void *aContext);
     static void HandleBeginTransmit(Timer &aTimer);
     void HandleBeginTransmit(void);
     static void HandleReceiveTimer(Timer &aTimer);
@@ -692,11 +691,13 @@ private:
 
     static Mac &GetOwner(const Context &aContext);
 
-    Timer mMacTimer;
-#if !OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_BACKOFF_TIMER
-    Timer mBackoffTimer;
+    TimerMilli mMacTimer;
+#if OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
+    TimerMicro mBackoffTimer;
+#else
+    TimerMilli mBackoffTimer;
 #endif
-    Timer mReceiveTimer;
+    TimerMilli mReceiveTimer;
 
     ExtAddress mExtAddress;
     ShortAddress mShortAddress;
@@ -744,8 +745,9 @@ private:
     otLinkPcapCallback mPcapCallback;
     void *mPcapCallbackContext;
 
-    Whitelist mWhitelist;
-    Blacklist mBlacklist;
+#if OPENTHREAD_ENABLE_MAC_FILTER
+    Filter mFilter;
+#endif  // OPENTHREAD_ENABLE_MAC_FILTER
 
     Frame *mTxFrame;
 

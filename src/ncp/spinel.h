@@ -365,6 +365,7 @@ enum
     SPINEL_CAP_GPIO                     = 9,
     SPINEL_CAP_TRNG                     = 10,
     SPINEL_CAP_CMD_MULTI                = 11,
+    SPINEL_CAP_UNSOL_UPDATE_FILTER      = 12,
 
     SPINEL_CAP_802_15_4__BEGIN          = 16,
     SPINEL_CAP_802_15_4_2003            = (SPINEL_CAP_802_15_4__BEGIN + 0),
@@ -550,6 +551,37 @@ typedef enum
     /// Raw samples from TRNG entropy source representing 32 bits of entropy.
     SPINEL_PROP_TRNG_RAW_32             = SPINEL_PROP_BASE_EXT__BEGIN + 7,
 
+
+    /// NCP Unsolicited update filter
+    /** Format: `A(I)`
+     *  Type: Read-Write (optional Insert-Remove)
+     *  Required capability: `CAP_UNSOL_UPDATE_FILTER`
+     *
+     * Contains a list of properties which are excluded from generating
+     * unsolicited value updates. This property is empty after reset.
+     * In other words, the host may opt-out of unsolicited property updates
+     * for a specific property by adding that property id to this list.
+     * Hosts SHOULD NOT add properties to this list which are not
+     * present in `PROP_UNSOL_UPDATE_LIST`. If such properties are added,
+     * the NCP ignores the unsupported properties.
+     */
+    SPINEL_PROP_UNSOL_UPDATE_FILTER     = SPINEL_PROP_BASE_EXT__BEGIN + 8,
+
+    /// List of properties capable of generating unsolicited value update.
+    /** Format: `A(I)`
+     *  Type: Read-Only
+     *  Required capability: `CAP_UNSOL_UPDATE_FILTER`
+     *
+     * Contains a list of properties which are capable of generating
+     * unsolicited value updates. This list can be used when populating
+     * `PROP_UNSOL_UPDATE_FILTER` to disable all unsolicited property
+     * updates.
+     *
+     * This property is intended to effectively behave as a constant
+     * for a given NCP firmware.
+     */
+    SPINEL_PROP_UNSOL_UPDATE_LIST       = SPINEL_PROP_BASE_EXT__BEGIN + 9,
+
     SPINEL_PROP_BASE_EXT__END           = 0x1100,
 
     SPINEL_PROP_PHY__BEGIN              = 0x20,
@@ -702,6 +734,17 @@ typedef enum
     /** Format: `b`
      */
     SPINEL_PROP_MAC_BLACKLIST_ENABLED   = SPINEL_PROP_MAC_EXT__BEGIN + 7,
+
+    /// MAC Received Signal Strength Filter
+    /** Format: `A(t(Ec))`
+     *
+     * Structure Parameters:
+     *
+     * * `E`: Optional EUI64 address of node. Set default RSS if not included.
+     * * `c`: Fixed RSS. OT_MAC_FILTER_FIXED_RSS_OVERRIDE_DISABLED(127) means not set.
+     */
+    SPINEL_PROP_MAC_FIXED_RSS            = SPINEL_PROP_MAC_EXT__BEGIN + 8,
+
     SPINEL_PROP_MAC_EXT__END            = 0x1400,
 
     SPINEL_PROP_NET__BEGIN              = 0x40,
@@ -978,6 +1021,9 @@ typedef enum
      * Default value is `false`.
      */
     SPINEL_PROP_IPV6_ICMP_PING_OFFLOAD  = SPINEL_PROP_IPV6__BEGIN + 5, ///< [b]
+
+    SPINEL_PROP_IPV6_MULTICAST_ADDRESS_TABLE
+                                        = SPINEL_PROP_IPV6__BEGIN + 6, ///< [A(t(6))]
 
     SPINEL_PROP_IPV6__END               = 0x70,
 
@@ -1261,9 +1307,10 @@ typedef enum
     /** Format: 'D' */
     SPINEL_PROP_NEST_LEGACY_ULA_PREFIX  = SPINEL_PROP_NEST__BEGIN + 1,
 
-    /// A (newly) joined legacy node (this is signaled from NCP)
+    /// The EUI64 of last node joined using legacy protocol (if none, all zero EUI64 is returned).
     /** Format: 'E' */
-    SPINEL_PROP_NEST_LEGACY_JOINED_NODE = SPINEL_PROP_NEST__BEGIN + 2,
+    SPINEL_PROP_NEST_LEGACY_LAST_NODE_JOINED
+                                        = SPINEL_PROP_NEST__BEGIN + 2,
 
     SPINEL_PROP_NEST__END               = 15360,
 

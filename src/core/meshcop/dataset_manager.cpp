@@ -66,7 +66,7 @@ DatasetManager::DatasetManager(ThreadNetif &aThreadNetif, const Tlv::Type aType,
     ThreadNetifLocator(aThreadNetif),
     mLocal(aThreadNetif.GetInstance(), aType),
     mNetwork(aType),
-    mTimer(aThreadNetif.GetIp6().mTimerScheduler, aTimerHander, this),
+    mTimer(aThreadNetif.GetInstance(), aTimerHander, this),
     mUriSet(aUriSet),
     mUriGet(aUriGet)
 {
@@ -511,14 +511,33 @@ otError DatasetManager::Set(Coap::Header &aHeader, Message &aMessage, const Ip6:
                  state = StateTlv::kReject);
 
     // update dataset
+    // Thread specification allows partial dataset changes for MGMT_ACTIVE_SET.req/MGMT_PENDING_SET.req
+    // from Commissioner.
+    // Updates based on existing active/pending dataset if it is from Commissioner.
     if (isUpdateFromCommissioner)
     {
-        mNetwork.Set(netif.GetActiveDataset().GetNetwork());
+        // take active dataset as the update base for MGMT_PENDING_SET.req if no existing pending dataset.
+        if (type == Tlv::kPendingTimestamp && mNetwork.GetSize() == 0)
+        {
+            mNetwork.Set(netif.GetActiveDataset().GetNetwork());
+        }
     }
+
+#if 0
+    // Interim workaround for certification:
+    // Thread specification requires entire dataset for MGMT_ACTIVE_SET.req/MGMT_PENDING_SET.req from thread device.
+    // Not all stack vendors would send entire dataset in MGMT_ACTIVE_SET.req triggered by command as known when
+    // testing 9.2.5.
+    // So here would accept even if it is not entire, update the Tlvs in the message on existing mNetwork in
+    // order to avoid interop issue for now.
+    // TODO: remove '#if 0' condition after all stack vendors reach consensus-MGMT_ACTIVE_SET.req/MGMT_PENDING_SET.req
+    // from thread device triggered by command would include entire dataset as expected.
     else
     {
         mNetwork.Clear();
     }
+
+#endif
 
     if (type == Tlv::kPendingTimestamp || !doesAffectConnectivity)
     {
@@ -1022,7 +1041,7 @@ static PendingDatasetBase &GetPendingDatasetOwner(const Context &aContext)
 PendingDatasetBase::PendingDatasetBase(ThreadNetif &aThreadNetif):
     DatasetManager(aThreadNetif, Tlv::kPendingTimestamp, OT_URI_PATH_PENDING_SET, OT_URI_PATH_PENDING_GET,
                    &PendingDatasetBase::HandleTimer),
-    mDelayTimer(aThreadNetif.GetIp6().mTimerScheduler, &PendingDatasetBase::HandleDelayTimer, this),
+    mDelayTimer(aThreadNetif.GetInstance(), &PendingDatasetBase::HandleDelayTimer, this),
     mResourceGet(OT_URI_PATH_PENDING_GET, &PendingDatasetBase::HandleGet, this)
 {
     aThreadNetif.GetCoap().AddResource(mResourceGet);
@@ -1043,6 +1062,7 @@ void PendingDatasetBase::ClearNetwork(void)
 {
     mNetwork.Clear();
     mDelayTimer.Stop();
+    DatasetManager::HandleNetworkUpdate();
 }
 
 void PendingDatasetBase::HandleDetach(void)

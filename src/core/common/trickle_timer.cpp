@@ -37,20 +37,19 @@
 
 #include <openthread/platform/random.h>
 
-#include "openthread-instance.h"
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 
 namespace ot {
 
 TrickleTimer::TrickleTimer(
-    TimerScheduler &aScheduler,
+    otInstance *aInstance,
 #ifdef ENABLE_TRICKLE_TIMER_SUPPRESSION_SUPPORT
     uint32_t aRedundancyConstant,
 #endif
     Handler aTransmitHandler, Handler aIntervalExpiredHandler, void *aContext)
     :
-    Timer(aScheduler, HandleTimerFired, aContext),
+    TimerMilli(aInstance, HandleTimerFired, aContext),
 #ifdef ENABLE_TRICKLE_TIMER_SUPPRESSION_SUPPORT
     k(aRedundancyConstant),
     c(0),
@@ -97,7 +96,7 @@ void TrickleTimer::Start(uint32_t aIntervalMin, uint32_t aIntervalMax, Mode aMod
 void TrickleTimer::Stop(void)
 {
     mPhase = kPhaseDormant;
-    Timer::Stop();
+    TimerMilli::Stop();
 }
 
 #ifdef ENABLE_TRICKLE_TIMER_SUPPRESSION_SUPPORT
@@ -117,7 +116,7 @@ void TrickleTimer::IndicateInconsistent(void)
         I = Imin;
 
         // Stop the existing timer
-        Timer::Stop();
+        TimerMilli::Stop();
 
         // Start a new interval
         StartNewInterval();
@@ -156,7 +155,7 @@ void TrickleTimer::StartNewInterval(void)
     }
 
     // Start the timer for 't' milliseconds from now
-    Timer::Start(t);
+    TimerMilli::Start(t);
 }
 
 void TrickleTimer::HandleTimerFired(Timer &aTimer)
@@ -204,7 +203,7 @@ void TrickleTimer::HandleTimerFired(void)
                 mPhase = kPhaseInterval;
 
                 // Start the time for 'I - t' milliseconds
-                Timer::Start(I - t);
+                TimerMilli::Start(I - t);
             }
         }
 

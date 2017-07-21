@@ -160,7 +160,7 @@ private:
     void HandleTimer(void);
     static ChildSupervisor &GetOwner(const Context &aContext);
 
-    Timer        mTimer;
+    TimerMilli   mTimer;
     uint16_t     mSupervisionInterval;
 };
 
@@ -252,7 +252,7 @@ private:
     void HandleTimer(void);
     static SupervisionListener &GetOwner(const Context &aContext);
 
-    Timer mTimer;
+    TimerMilli mTimer;
     uint16_t mTimeout;
 };
 

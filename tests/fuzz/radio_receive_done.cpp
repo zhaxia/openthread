@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,48 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <openthread/config.h>
+#include <stdlib.h>
+#include <string.h>
 
-#if OPENTHREAD_ENABLE_MAC_WHITELIST
-#include "mac_blacklist_impl.hpp"
-#else
-#include "mac_blacklist_stub.hpp"
-#endif
+#include <openthread/openthread.h>
+#include <openthread/platform/radio.h>
+
+#include "common/code_utils.hpp"
+
+static otInstance *sInstance;
+
+extern "C" int LLVMFuzzerInitialize(int *argc, char ***argv)
+{
+    (void)argc;
+    (void)argv;
+
+    sInstance = otInstanceInitSingle();
+    otLinkSetPanId(sInstance, (otPanId)0xdead);
+    otIp6SetEnabled(sInstance, true);
+
+    return 0;
+}
+
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+    otRadioFrame frame;
+    uint8_t *buf;
+
+    VerifyOrExit(size <= OT_RADIO_FRAME_MAX_SIZE);
+
+    buf = static_cast<uint8_t *>(malloc(size));
+
+    memset(&frame, 0, sizeof(frame));
+    frame.mPsdu = buf;
+    frame.mChannel = 11;
+    frame.mLength = static_cast<uint8_t>(size);
+
+    memcpy(buf, data, frame.mLength);
+
+    otPlatRadioReceiveDone(sInstance, &frame, OT_ERROR_NONE);
+
+    free(buf);
+
+exit:
+    return 0;
+}

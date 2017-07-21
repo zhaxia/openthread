@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2016-2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,46 +28,51 @@
 
 /**
  * @file
- *   This file includes definitions for IEEE 802.15.4 frame filtering based on MAC address.
+ *   This file implements the OpenThread platform abstraction for the alarm.
+ *
  */
 
-#ifndef MAC_BLACKLIST_HPP_
-#define MAC_BLACKLIST_HPP_
+#include <stdbool.h>
+#include <stdint.h>
+#include <sys/time.h>
 
-#include "utils/wrap_stdint.h"
+#include <openthread/openthread.h>
+#include <openthread/platform/platform.h>
+#include <openthread/platform/alarm.h>
+#include <openthread/platform/diag.h>
+#include "alarm_qorvo.h"
 
-#include <openthread/types.h>
-
-#include "mac/mac_frame.hpp"
-
-namespace ot {
-namespace Mac {
-
-class Blacklist
+void qorvoAlarmInit(void)
 {
-public:
-    typedef otMacBlacklistEntry Entry;
+}
 
-    Blacklist(void) { }
+uint32_t otPlatAlarmGetNow(void)
+{
+    return qorvoAlarmGetTimeMs();
+}
 
-    bool IsEnabled(void) const { return false; }
+static void qorvoAlarmFired(void *aInstance)
+{
+    otPlatAlarmFired((otInstance *)aInstance);
+}
 
-    void SetEnabled(bool) { }
+void otPlatAlarmStartAt(otInstance *aInstance, uint32_t t0, uint32_t dt)
+{
+    (void)t0;
+    qorvoAlarmUnScheduleEventArg((qorvoAlarmCallback_t)qorvoAlarmFired, aInstance);
+    qorvoAlarmScheduleEventArg(dt * 1000, qorvoAlarmFired, aInstance);
+}
 
-    int GetMaxEntries(void) const { return 0; }
+void otPlatAlarmStop(otInstance *aInstance)
+{
+    qorvoAlarmUnScheduleEventArg((qorvoAlarmCallback_t)qorvoAlarmFired, aInstance);
+}
 
-    otError GetEntry(uint8_t, Entry &) const { return OT_ERROR_NOT_IMPLEMENTED; }
+void qorvoAlarmUpdateTimeout(struct timeval *aTimeout)
+{
+    (void)aTimeout;
+}
 
-    Entry *Add(const ExtAddress &) { return NULL; }
-
-    void Remove(const ExtAddress &) { }
-
-    void Clear(void) { }
-
-    Entry *Find(const ExtAddress &) { return NULL; }
-};
-
-}  // namespace Mac
-}  // namespace ot
-
-#endif  // MAC_BLACKLIST_HPP_
+void qorvoAlarmProcess(void)
+{
+}

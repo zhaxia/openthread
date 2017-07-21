@@ -28,6 +28,7 @@
 
 #include "platform-posix.h"
 
+#include <openthread/platform/alarm-milli.h>
 #include <openthread/platform/diag.h>
 #include <openthread/platform/radio.h>
 
@@ -368,7 +369,18 @@ void platformRadioInit(void)
     sockaddr.sin_addr.s_addr = INADDR_ANY;
 
     sSockFd = (int)socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-    bind(sSockFd, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
+
+    if (sSockFd == -1)
+    {
+        perror("socket");
+        exit(EXIT_FAILURE);
+    }
+
+    if (bind(sSockFd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) == -1)
+    {
+        perror("bind");
+        exit(EXIT_FAILURE);
+    }
 
     sReceiveFrame.mPsdu = sReceiveMessage.mPsdu;
     sTransmitFrame.mPsdu = sTransmitMessage.mPsdu;
@@ -485,6 +497,12 @@ void radioReceive(otInstance *aInstance)
         exit(EXIT_FAILURE);
     }
 
+#if OPENTHREAD_ENABLE_RAW_LINK_API
+    // Timestamp
+    sReceiveFrame.mMsec = otPlatAlarmMilliGetNow();
+    sReceiveFrame.mUsec = 0;  // Don't support microsecond timer for now.
+#endif
+
     sReceiveFrame.mLength = (uint8_t)(rval - 1);
 
     if (sAckWait &&
@@ -508,6 +526,7 @@ void radioSendMessage(otInstance *aInstance)
 {
     sTransmitMessage.mChannel = sTransmitFrame.mChannel;
 
+    otPlatRadioTxStarted(aInstance, &sTransmitFrame);
     radioTransmit(&sTransmitMessage, &sTransmitFrame);
 
     sAckWait = isAckRequested(sTransmitFrame.mPsdu);

@@ -35,7 +35,7 @@
 #include <stdint.h>
 
 #include <openthread/openthread.h>
-#include <openthread/platform/alarm.h>
+#include <openthread/platform/alarm-milli.h>
 #include <openthread/platform/uart.h>
 
 #include "platform-da15000.h"
@@ -52,6 +52,8 @@ static bool sBlink = false;
 static int  sMsCounterInit;
 static int  sMsCounter;
 
+#define ALIVE_LED_PERIOD      (50000)
+#define ALIVE_LED_DUTY        (500)
 #define LEADER_BLINK_TIME     (200)
 #define ROUTER_BLINK_TIME     (500)
 #define CHILD_BLINK_TIME      (2000)
@@ -102,18 +104,19 @@ void ClkInit(void)
 
 void ExampleProcess(otInstance *aInstance)
 {
+    static int    aliveLEDcounter = 0;
     otDeviceRole  devRole;
     static int    thrValue;
 
     devRole = otThreadGetDeviceRole(aInstance);
 
-    if (sBlink == false && otPlatAlarmGetNow() != 0)
+    if (sBlink == false && otPlatAlarmMilliGetNow() != 0)
     {
-        sMsCounterInit = otPlatAlarmGetNow();
+        sMsCounterInit = otPlatAlarmMilliGetNow();
         sBlink = true;
     }
 
-    sMsCounter = otPlatAlarmGetNow() - sMsCounterInit;
+    sMsCounter = otPlatAlarmMilliGetNow() - sMsCounterInit;
 
     switch (devRole)
     {
@@ -136,12 +139,27 @@ void ExampleProcess(otInstance *aInstance)
     if ((thrValue != 0x00) && (sMsCounter >= thrValue))
     {
         hw_gpio_toggle(HW_GPIO_PORT_1, HW_GPIO_PIN_5);
-        sMsCounterInit = otPlatAlarmGetNow();
+        sMsCounterInit = otPlatAlarmMilliGetNow();
     }
 
     if (thrValue == 0)
     {
-        hw_gpio_set_inactive(HW_GPIO_PORT_1, HW_GPIO_PIN_5);
+        // No specific role, let's generate 'alive blink'
+        // to inform that we are running.
+        // Loop counter is used to run even if timers
+        // are not initialized yet.
+        aliveLEDcounter++;
+
+        if (aliveLEDcounter > ALIVE_LED_PERIOD)
+        {
+            aliveLEDcounter = 0;
+            hw_gpio_set_active(HW_GPIO_PORT_1, HW_GPIO_PIN_5);
+        }
+
+        if (aliveLEDcounter > ALIVE_LED_DUTY)
+        {
+            hw_gpio_set_inactive(HW_GPIO_PORT_1, HW_GPIO_PIN_5);
+        }
     }
 }
 

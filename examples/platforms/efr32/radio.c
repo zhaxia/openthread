@@ -36,6 +36,7 @@
 
 #include <openthread/types.h>
 #include <openthread/config.h>
+#include <openthread/platform/alarm-milli.h>
 #include <openthread/platform/platform.h>
 #include <openthread/platform/radio.h>
 #include <openthread/platform/diag.h>
@@ -344,6 +345,8 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
 
     otEXPECT_ACTION(RAIL_TxStartWithOptions(aFrame->mChannel, &txOption, RAIL_CcaCsma, &csmaConfig) == RAIL_STATUS_NO_ERROR,
                     error = OT_ERROR_FAILED);
+
+    otPlatRadioTxStarted(aInstance, aFrame);
 
 exit:
     CORE_EXIT_CRITICAL();
@@ -684,6 +687,12 @@ void RAILCb_RxPacketReceived(void *aRxPacketHandle)
     otEXPECT(length >= IEEE802154_MIN_LENGTH && length <= IEEE802154_MAX_LENGTH);
 
     otLogInfoPlat(sInstance, "Received data:%d", rxPacketInfo->dataLength);
+
+#if OPENTHREAD_ENABLE_RAW_LINK_API
+    // Timestamp
+    sReceiveFrame.mMsec = otPlatAlarmMilliGetNow();
+    sReceiveFrame.mUsec = 0;  // Don't support microsecond timer for now.
+#endif
 
     memcpy(sReceiveFrame.mPsdu, rxPacketInfo->dataPtr + 1, rxPacketInfo->dataLength);
     sReceiveFrame.mPower = rxPacketInfo->appendedInfo.rssiLatch;

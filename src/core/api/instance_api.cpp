@@ -64,14 +64,9 @@ ot::MeshForwarder &otGetMeshForwarder(void)
     return sInstance->mThreadNetif.GetMeshForwarder();
 }
 
-ot::TimerScheduler &otGetTimerScheduler(void)
-{
-    return sInstance->mIp6.mTimerScheduler;
-}
-
 ot::TaskletScheduler &otGetTaskletScheduler(void)
 {
-    return sInstance->mIp6.mTaskletScheduler;
+    return sInstance->mTaskletScheduler;
 }
 
 ot::Ip6::Ip6 &otGetIp6(void)
@@ -87,6 +82,10 @@ otInstance::otInstance(void) :
     mActiveScanCallbackContext(NULL),
     mEnergyScanCallback(NULL),
     mEnergyScanCallbackContext(NULL),
+    mTimerMilliScheduler(this),
+#if OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
+    mTimerMicroScheduler(this),
+#endif
     mThreadNetif(mIp6)
 #if OPENTHREAD_ENABLE_RAW_LINK_API
     , mLinkRaw(*this)
@@ -156,6 +155,11 @@ exit:
     return instance;
 }
 
+bool otInstanceIsInitialized(otInstance *aInstance)
+{
+    return (aInstance != NULL);
+}
+
 #else // #if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
 
 otInstance *otInstanceInitSingle(void)
@@ -180,6 +184,11 @@ exit:
 
     otLogFuncExit();
     return sInstance;
+}
+
+bool otInstanceIsInitialized(otInstance *aInstance)
+{
+    return (aInstance != NULL) && (aInstance == sInstance);
 }
 
 #endif // #if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
