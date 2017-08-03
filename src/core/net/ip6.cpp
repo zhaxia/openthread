@@ -59,7 +59,7 @@ Ip6::Ip6(void):
     mMpl(*this),
     mMessagePool(GetInstance()),
     mForwardingEnabled(false),
-    mSendQueueTask(mTaskletScheduler, HandleSendQueue, this),
+    mSendQueueTask(GetInstance(), HandleSendQueue, this),
     mReceiveIp6DatagramCallback(NULL),
     mReceiveIp6DatagramCallbackContext(NULL),
     mIsReceiveIp6FilterEnabled(false),

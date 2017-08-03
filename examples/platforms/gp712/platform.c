@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2016-2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -29,71 +29,65 @@
 /**
  * @file
  * @brief
- *   This file includes the platform abstraction for the microsecond alarm service.
+ *   This file includes the platform-specific initializers.
  */
 
-#ifndef USEC_ALARM_H_
-#define USEC_ALARM_H_
+#include "platform_qorvo.h"
 
-#include <stdint.h>
+#include "stdio.h"
+#include "stdlib.h"
 
-#include <openthread/types.h>
+#include <openthread/tasklet.h>
+#include <openthread/platform/uart.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "radio_qorvo.h"
+#include "random_qorvo.h"
+#include "uart_qorvo.h"
 
-/**
- * @addtogroup plat-alarm
- *
- * @{
- *
- */
+void platformUartInit(void);
+void platformUartProcess(void);
 
-/**
- * This defines the callback for indicating when the alarm has expired.
- *
- * @param[in]  aContext  A pointer to arbitrary context information.
- *
- */
-typedef void (*otPlatUsecAlarmHandler)(void *aContext);
+otInstance *localInstance = NULL;
 
-/**
- * Set the alarm to fire at @p aDt microseconds after @p aT0.
- *
- * @param[in]  aInstance  The OpenThread instance structure.
- * @param[in]  aT0        The reference time.
- * @param[in]  aDt        The time delay in microseconds from @p aT0.
- * @param[in]  aHandler   A pointer to a function that is called when the timer expires.
- * @param[in]  aContext   A pointer to arbitrary context information.
- *
- */
-void otPlatUsecAlarmStartAt(otInstance *aInstance, uint32_t aT0, uint32_t aDt,
-                            otPlatUsecAlarmHandler aHandler, void *aContext);
+int     gArgumentsCount = 0;
+char  **gArguments = NULL;
 
-/**
- * Stop the alarm.
- *
- * @param[in] aInstance  The OpenThread instance structure.
- *
- */
-void otPlatUsecAlarmStop(otInstance *aInstance);
+bool qorvoPlatGotoSleepCheck(void)
+{
+    bool canGotoSleep = false;
 
-/**
- * Get the current time.
- *
- * @param[out]  aNow  The current time in microseconds.
- *
- */
-uint32_t otPlatUsecAlarmGetNow(void);
+    if (localInstance)
+    {
+        canGotoSleep = !otTaskletsArePending(localInstance);
+    }
 
-/**
- * @}
- *
- */
+    return canGotoSleep;
+}
 
-#ifdef __cplusplus
-}  // extern "C"
-#endif
+void PlatformInit(int argc, char *argv[])
+{
+    gArgumentsCount = argc;
+    gArguments      = argv;
 
-#endif  // USEC_ALARM_H_
+    qorvoPlatInit((qorvoPlatGotoSleepCheckCallback_t)qorvoPlatGotoSleepCheck);
+    platformUartInit();
+    //qorvoAlarmInit();
+    qorvoRandomInit();
+    qorvoRadioInit();
+
+}
+
+void PlatformProcessDrivers(otInstance *aInstance)
+{
+    if (localInstance == NULL)
+    {
+        // local copy in case we need to perform a callback.
+        localInstance = aInstance;
+    }
+
+    qorvoPlatMainLoop(!otTaskletsArePending(aInstance));
+    platformUartProcess();
+    //qorvoRadioProcess();
+    //qorvoAlarmProcess();
+
+}

@@ -62,8 +62,8 @@ MeshForwarder::MeshForwarder(ThreadNetif &aThreadNetif):
     ThreadNetifLocator(aThreadNetif),
     mMacReceiver(&MeshForwarder::HandleReceivedFrame, &MeshForwarder::HandleDataPollTimeout, this),
     mMacSender(&MeshForwarder::HandleFrameRequest, &MeshForwarder::HandleSentFrame, this),
-    mDiscoverTimer(aThreadNetif.GetIp6().mTimerScheduler, &MeshForwarder::HandleDiscoverTimer, this),
-    mReassemblyTimer(aThreadNetif.GetIp6().mTimerScheduler, &MeshForwarder::HandleReassemblyTimer, this),
+    mDiscoverTimer(aThreadNetif.GetInstance(), &MeshForwarder::HandleDiscoverTimer, this),
+    mReassemblyTimer(aThreadNetif.GetInstance(), &MeshForwarder::HandleReassemblyTimer, this),
     mMessageNextOffset(0),
     mSendMessageFrameCounter(0),
     mSendMessage(NULL),
@@ -76,7 +76,7 @@ MeshForwarder::MeshForwarder(ThreadNetif &aThreadNetif):
     mMeshDest(Mac::kShortAddrInvalid),
     mAddMeshHeader(false),
     mSendBusy(false),
-    mScheduleTransmissionTask(aThreadNetif.GetIp6().mTaskletScheduler, ScheduleTransmissionTask, this),
+    mScheduleTransmissionTask(aThreadNetif.GetInstance(), ScheduleTransmissionTask, this),
     mEnabled(false),
     mScanChannels(0),
     mScanChannel(0),
@@ -237,6 +237,79 @@ void MeshForwarder::UpdateIndirectMessages(void)
     }
 }
 
+void MeshForwarder::RemoveMessages(Child &aChild, uint8_t aSubType)
+{
+    ThreadNetif &netif = GetNetif();
+    Message *nextMessage;
+
+    for (Message *message = mSendQueue.GetHead(); message; message = nextMessage)
+    {
+        uint8_t childIndex = netif.GetMle().GetChildIndex(aChild);
+
+        nextMessage = message->GetNext();
+
+        if ((aSubType != Message::kSubTypeNone) && (aSubType != message->GetSubType()))
+        {
+            continue;
+        }
+
+        if (message->GetChildMask(childIndex))
+        {
+            message->ClearChildMask(childIndex);
+            mSourceMatchController.DecrementMessageCount(aChild);
+        }
+        else
+        {
+            switch (message->GetType())
+            {
+            case Message::kTypeIp6:
+            {
+                Ip6::Header ip6header;
+
+                IgnoreReturnValue(message->Read(0, sizeof(ip6header), &ip6header));
+
+                if (&aChild == static_cast<Child *>(netif.GetMle().GetNeighbor(ip6header.GetDestination())))
+                {
+                    message->ClearDirectTransmission();
+                }
+
+                break;
+            }
+
+            case Message::kType6lowpan:
+            {
+                Lowpan::MeshHeader meshHeader;
+
+                IgnoreReturnValue(meshHeader.Init(*message));
+
+                if (&aChild == static_cast<Child *>(netif.GetMle().GetNeighbor(meshHeader.GetDestination())))
+                {
+                    message->ClearDirectTransmission();
+                }
+
+                break;
+            }
+
+            default:
+            {
+                break;
+            }
+            }
+        }
+
+        if (!message->IsChildPending() && !message->GetDirectTransmission())
+        {
+            if (mSendMessage == message)
+            {
+                mSendMessage = NULL;
+            }
+
+            mSendQueue.Dequeue(*message);
+            message->Free();
+        }
+    }
+}
+
 void MeshForwarder::ScheduleTransmissionTask(Tasklet &aTasklet)
 {
     GetOwner(aTasklet).ScheduleTransmissionTask();
@@ -245,13 +318,12 @@ void MeshForwarder::ScheduleTransmissionTask(Tasklet &aTasklet)
 void MeshForwarder::ScheduleTransmissionTask(void)
 {
     ThreadNetif &netif = GetNetif();
-    otError error = OT_ERROR_NONE;
     uint8_t numChildren;
     uint8_t childIndex;
     uint8_t nextIndex;
     Child *children;
 
-    VerifyOrExit(mSendBusy == false, error = OT_ERROR_BUSY);
+    VerifyOrExit(mSendBusy == false);
 
     UpdateIndirectMessages();
 
@@ -331,12 +403,7 @@ void MeshForwarder::ScheduleTransmissionTask(void)
     }
 
 exit:
-
-    if (error != OT_ERROR_NONE)
-    {
-        otLogWarnMac(GetInstance(), "Error while scheduling transmission task: %s",
-                     otThreadErrorToString(error));
-    }
+    return;
 }
 
 otError MeshForwarder::SendMessage(Message &aMessage)
@@ -1946,6 +2013,7 @@ void MeshForwarder::HandleFragment(uint8_t *aFrame, uint8_t aFrameLength,
                      error = OT_ERROR_NO_BUFS);
         message->SetLinkSecurityEnabled(aMessageInfo.mLinkSecurity);
         message->SetPanId(aMessageInfo.mPanId);
+        message->AddRss(aMessageInfo.mRss);
         headerLength = netif.GetLowpan().Decompress(*message, aMacSource, aMacDest, aFrame, aFrameLength,
                                                     datagramLength);
         VerifyOrExit(headerLength > 0, error = OT_ERROR_PARSE);
@@ -2019,6 +2087,7 @@ void MeshForwarder::HandleFragment(uint8_t *aFrame, uint8_t aFrameLength,
         // copy Fragment
         message->Write(message->GetOffset(), aFrameLength, aFrame);
         message->MoveOffset(aFrameLength);
+        message->AddRss(aMessageInfo.mRss);
     }
 
 exit:
@@ -2125,6 +2194,7 @@ void MeshForwarder::HandleLowpanHC(uint8_t *aFrame, uint8_t aFrameLength,
                  error = OT_ERROR_NO_BUFS);
     message->SetLinkSecurityEnabled(aMessageInfo.mLinkSecurity);
     message->SetPanId(aMessageInfo.mPanId);
+    message->AddRss(aMessageInfo.mRss);
 
     headerLength = netif.GetLowpan().Decompress(*message, aMacSource, aMacDest, aFrame, aFrameLength, 0);
     VerifyOrExit(headerLength > 0, error = OT_ERROR_PARSE);
@@ -2192,7 +2262,7 @@ void MeshForwarder::HandleDataRequest(const Mac::Address &aMacSource, const Thre
     VerifyOrExit(netif.GetMle().GetRole() != OT_DEVICE_ROLE_DETACHED);
 
     VerifyOrExit((child = netif.GetMle().GetChild(aMacSource)) != NULL);
-    child->SetLastHeard(Timer::GetNow());
+    child->SetLastHeard(TimerMilli::GetNow());
     child->ResetLinkFailures();
     indirectMsgCount = child->GetIndirectMessageCount();
 
@@ -2233,10 +2303,12 @@ void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage
     uint16_t checksum = 0;
     Ip6::Header ip6Header;
     Ip6::IpProto protocol;
-    char stringBuffer[Ip6::Address::kIp6AddressStringSize];
     const char *actionText;
     const char *priorityText;
+    bool shouldLogRss = false;
     bool shouldLogSrcDstAddresses = true;
+    char stringBuffer[Ip6::Address::kIp6AddressStringSize];
+    char rssString[RssAverager::kStringSize];
 
     VerifyOrExit(aMessage.GetType() == Message::kTypeIp6);
 
@@ -2279,6 +2351,7 @@ void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage
     {
     case kMessageReceive:
         actionText = "Received";
+        shouldLogRss = true;
         break;
 
     case kMessageTransmit:
@@ -2300,6 +2373,7 @@ void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage
 
     case kMessageDrop:
         actionText = "Dropping";
+        shouldLogRss = true;
         break;
 
     default:
@@ -2332,7 +2406,7 @@ void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage
 
     otLogInfoMac(
         GetInstance(),
-        "%s IPv6 %s msg, len:%d, chksum:%04x%s%s, sec:%s%s%s, prio:%s",
+        "%s IPv6 %s msg, len:%d, chksum:%04x%s%s, sec:%s%s%s, prio:%s%s%s",
         actionText,
         Ip6::Ip6::IpProtoToString(protocol),
         aMessage.GetLength(),
@@ -2342,7 +2416,9 @@ void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage
         aMessage.IsLinkSecurityEnabled() ? "yes" : "no",
         (aError == OT_ERROR_NONE) ? "" : ", error:",
         (aError == OT_ERROR_NONE) ? "" : otThreadErrorToString(aError),
-        priorityText
+        priorityText,
+        shouldLogRss ? "" : ", rss:",
+        shouldLogRss ? "" : aMessage.GetRssAverager().ToString(rssString, sizeof(rssString))
     );
 
     if (shouldLogSrcDstAddresses)

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2016-2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,54 +26,58 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/time.h>
+
+#include <openthread/config.h>
+#include <openthread/openthread.h>
+#include <openthread/platform/alarm.h>
+#include <openthread/platform/radio.h>
+
 /**
- * @file
- *   This file includes definitions for IEEE 802.15.4 frame filtering based on MAC address.
+ * Diagnostics mode variables.
+ *
  */
+static bool sDiagMode = false;
 
-#ifndef MAC_WHITELIST_HPP_
-#define MAC_WHITELIST_HPP_
-
-#include "utils/wrap_stdint.h"
-
-#include <openthread/types.h>
-
-#include "mac/mac_frame.hpp"
-
-namespace ot {
-namespace Mac {
-
-class Whitelist
+void otPlatDiagProcess(otInstance *aInstance, int argc, char *argv[], char *aOutput, size_t aOutputMaxLen)
 {
-public:
-    typedef otMacWhitelistEntry Entry;
+    // Add more plarform specific diagnostics features here.
+    snprintf(aOutput, aOutputMaxLen, "diag feature '%s' is not supported\r\n", argv[0]);
+    (void) argc;
+    (void) aInstance;
+}
 
-    Whitelist(void) { }
+void otPlatDiagModeSet(bool aMode)
+{
+    sDiagMode = aMode;
+}
 
-    bool IsEnabled(void) const { return false; }
+bool otPlatDiagModeGet()
+{
+    return sDiagMode;
+}
 
-    void SetEnabled(bool) { }
+void otPlatDiagChannelSet(uint8_t aChannel)
+{
+    (void) aChannel;
+}
 
-    int GetMaxEntries(void) const { return 0; }
+void otPlatDiagTxPowerSet(int8_t aTxPower)
+{
+    (void) aTxPower;
+}
 
-    otError GetEntry(uint8_t, Entry &) const { return OT_ERROR_NOT_IMPLEMENTED; }
+void otPlatDiagRadioReceived(otInstance *aInstance, otRadioFrame *aFrame, otError aError)
+{
+    (void) aInstance;
+    (void) aFrame;
+    (void) aError;
+}
 
-    Entry *Add(const ExtAddress &) { return NULL; }
-
-    void Remove(const ExtAddress &) { }
-
-    void Clear(void) { }
-
-    Entry *Find(const ExtAddress &) { return NULL; }
-
-    void ClearFixedRssi(Entry &) { }
-
-    otError GetFixedRssi(Entry &, int8_t &) const { return OT_ERROR_NOT_IMPLEMENTED; }
-
-    void SetFixedRssi(Entry &, int8_t) { }
-};
-
-}  // namespace Mac
-}  // namespace ot
-
-#endif  // MAC_WHITELIST_HPP_
+void otPlatDiagAlarmCallback(otInstance *aInstance)
+{
+    (void) aInstance;
+}

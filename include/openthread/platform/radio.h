@@ -107,6 +107,10 @@ typedef struct otRadioFrame
     bool     mSecurityValid: 1; ///< Security Enabled flag is set and frame passes security checks.
     bool     mDidTX: 1;         ///< Set to true if this frame sent from the radio. Ignored by radio driver.
     bool     mIsARetx: 1;       ///< Set to true if this frame is a retransmission. Should be ignored by radio driver.
+#if OPENTHREAD_ENABLE_RAW_LINK_API
+    uint32_t mMsec;             ///< The timestamp when the frame was received (milliseconds).
+    uint16_t mUsec;             ///< The timestamp when the frame was received (microseconds, the offset to mMsec).
+#endif
 } otRadioFrame;
 
 /**
@@ -387,6 +391,18 @@ otRadioFrame *otPlatRadioGetTransmitBuffer(otInstance *aInstance);
  * @retval OT_ERROR_INVALID_STATE The radio was not in the Receive state.
  */
 otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame);
+
+/**
+ * The radio driver calls this method to notify OpenThread that the transmission has started.
+ *
+ * @note  This function should be called by the same thread that executes all of the other OpenThread code. It should
+ *        not be called by ISR or any other task.
+ *
+ * @param[in]  aInstance  A pointer to the OpenThread instance structure.
+ * @param[in]  aFrame     A pointer to the frame that is being transmitted.
+ *
+ */
+extern void otPlatRadioTxStarted(otInstance *aInstance, otRadioFrame *aFrame);
 
 /**
  * The radio driver calls this method to notify OpenThread that the transmission has completed,

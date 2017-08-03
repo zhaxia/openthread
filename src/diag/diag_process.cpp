@@ -35,10 +35,12 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "utils/wrap_string.h"
+
+#include <openthread/instance.h>
 
 #include "diag_process.hpp"
 #include "common/code_utils.hpp"
+#include "utils/wrap_string.h"
 
 namespace ot {
 namespace Diagnostics {
@@ -136,7 +138,7 @@ void Diag::ProcessStart(int argc, char *argv[], char *aOutput, size_t aOutputMax
     otPlatRadioSetPromiscuous(sContext, true);
 
     // stop timer
-    otPlatAlarmStop(sContext);
+    otPlatAlarmMilliStop(sContext);
 
     // start to listen on the default channel
     SuccessOrExit(error = otPlatRadioReceive(sContext, sChannel));
@@ -160,7 +162,7 @@ void Diag::ProcessStop(int argc, char *argv[], char *aOutput, size_t aOutputMaxL
 
     VerifyOrExit(otPlatDiagModeGet(), error = OT_ERROR_INVALID_STATE);
 
-    otPlatAlarmStop(sContext);
+    otPlatAlarmMilliStop(sContext);
     otPlatDiagModeSet(false);
     otPlatRadioSetPromiscuous(sContext, false);
 
@@ -277,7 +279,7 @@ void Diag::ProcessRepeat(int argc, char *argv[], char *aOutput, size_t aOutputMa
 
     if (strcmp(argv[0], "stop") == 0)
     {
-        otPlatAlarmStop(sContext);
+        otPlatAlarmMilliStop(sContext);
         sRepeatActive = false;
         snprintf(aOutput, aOutputMaxLen, "repeated packet transmission is stopped\r\nstatus 0x%02x\r\n", error);
     }
@@ -295,8 +297,8 @@ void Diag::ProcessRepeat(int argc, char *argv[], char *aOutput, size_t aOutputMa
         sTxLen = static_cast<uint8_t>(value);
 
         sRepeatActive = true;
-        uint32_t now = otPlatAlarmGetNow();
-        otPlatAlarmStartAt(sContext, now, sTxPeriod);
+        uint32_t now = otPlatAlarmMilliGetNow();
+        otPlatAlarmMilliStartAt(sContext, now, sTxPeriod);
         snprintf(aOutput, aOutputMaxLen, "sending packets of length %#x at the delay of %#x ms\r\nstatus 0x%02x\r\n", static_cast<int>(sTxLen), static_cast<int>(sTxPeriod), error);
     }
 
@@ -337,7 +339,8 @@ exit:
 
 void Diag::DiagTransmitDone(otInstance *aInstance, otError aError)
 {
-    OT_UNUSED_VARIABLE(aInstance);
+    VerifyOrExit(aInstance == sContext);
+
     if (aError == OT_ERROR_NONE)
     {
         sStats.sent_packets++;
@@ -352,11 +355,15 @@ void Diag::DiagTransmitDone(otInstance *aInstance, otError aError)
     {
         TxPacket();
     }
+
+exit:
+    return;
 }
 
 void Diag::DiagReceiveDone(otInstance *aInstance, otRadioFrame *aFrame, otError aError)
 {
-    OT_UNUSED_VARIABLE(aInstance);
+    VerifyOrExit(aInstance == sContext);
+
     if (aError == OT_ERROR_NONE)
     {
         // for sensitivity test, only record the rssi and lqi for the first packet
@@ -370,21 +377,29 @@ void Diag::DiagReceiveDone(otInstance *aInstance, otRadioFrame *aFrame, otError 
     }
     otPlatDiagRadioReceived(aInstance, aFrame, aError);
     otPlatRadioReceive(aInstance, sChannel);
+
+exit:
+    return;
 }
 
 void Diag::AlarmFired(otInstance *aInstance)
 {
+    VerifyOrExit(aInstance == sContext);
+
     if(sRepeatActive)
     {
-        uint32_t now = otPlatAlarmGetNow();
+        uint32_t now = otPlatAlarmMilliGetNow();
 
         TxPacket();
-        otPlatAlarmStartAt(aInstance, now, sTxPeriod);
+        otPlatAlarmMilliStartAt(aInstance, now, sTxPeriod);
     }
     else
     {
         otPlatDiagAlarmCallback(aInstance);
     }
+
+exit:
+    return;
 }
 
 extern "C" void otPlatDiagAlarmFired(otInstance *aInstance)

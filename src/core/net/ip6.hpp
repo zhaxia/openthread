@@ -373,8 +373,6 @@ public:
     Mpl mMpl;
 
     MessagePool mMessagePool;
-    TaskletScheduler mTaskletScheduler;
-    TimerScheduler mTimerScheduler;
 
 private:
     static void HandleSendQueue(Tasklet &aTasklet);
@@ -406,16 +404,6 @@ private:
 
     Netif *mNetifListHead;
 };
-
-static inline Ip6 *Ip6FromTaskletScheduler(TaskletScheduler *aTaskletScheduler)
-{
-    return (Ip6 *)CONTAINING_RECORD(aTaskletScheduler, Ip6, mTaskletScheduler);
-}
-
-static inline Ip6 *Ip6FromTimerScheduler(TimerScheduler *aTimerScheduler)
-{
-    return (Ip6 *)CONTAINING_RECORD(aTimerScheduler, Ip6, mTimerScheduler);
-}
 
 /**
  * @}

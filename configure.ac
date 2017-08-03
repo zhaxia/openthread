@@ -297,6 +297,29 @@ NL_ENABLE_OPTIMIZATION([yes])
 
 AM_CONDITIONAL([OPENTHREAD_BUILD_OPTIMIZED], [test "${nl_cv_build_optimized}" = "yes"])
 
+# Fuzz Targets
+
+AC_MSG_CHECKING([whether to build fuzz targets])
+AC_ARG_ENABLE(fuzz-targets,
+    [AS_HELP_STRING([--enable-fuzz-targets],[Enable building of fuzz targets @<:@default=no@:>@.])],
+    [
+        case "${enableval}" in
+
+        no|yes)
+            enable_fuzz_targets=${enableval}
+            ;;
+
+        *)
+            AC_MSG_ERROR([Invalid value ${enableval} for --enable-fuzz-targets])
+            ;;
+
+        esac
+    ],
+    [enable_fuzz_targets=no])
+AC_MSG_RESULT(${enable_fuzz_targets})
+
+AM_CONDITIONAL([OPENTHREAD_ENABLE_FUZZ_TARGETS], [test "${enable_fuzz_targets}" = "yes"])
+
 # Address Sanitizer
 
 AC_MSG_CHECKING([whether to build with Address Sanitizer support])
@@ -742,36 +765,36 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_JAM_DETECTION], [test "${enable_jam_detection}
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_JAM_DETECTION],[${OPENTHREAD_ENABLE_JAM_DETECTION}],[Define to 1 if you want to use jam detection feature])
 
 #
-# MAC Whitelist and Blacklist
+# MAC Filter (include AddressFilter and RssInFilter)
 #
 
-AC_ARG_ENABLE(mac_whitelist,
-    [AS_HELP_STRING([--enable-mac-whitelist],[Enable MAC whitelist/blacklist support @<:@default=yes@:>@.])],
+AC_ARG_ENABLE(mac_filter,
+              [AS_HELP_STRING([--enable-mac-filter],[Enable MAC filter support @<:@default=no@:>@.])],
     [
         case "${enableval}" in
 
         no|yes)
-            enable_mac_whitelist=${enableval}
+            enable_mac_filter=${enableval}
             ;;
 
         *)
-            AC_MSG_ERROR([Invalid value ${enable_mac_whitelist} for --enable-mac-whitelist])
+            AC_MSG_ERROR([Invalid value ${enable_mac_filter} for --enable-mac-filter])
             ;;
         esac
     ],
-    [enable_mac_whitelist=yes])
+    [enable_mac_filter=no])
 
-if test "$enable_mac_whitelist" = "yes"; then
-    OPENTHREAD_ENABLE_MAC_WHITELIST=1
+if test "$enable_mac_filter" = "yes"; then
+    OPENTHREAD_ENABLE_MAC_FILTER=1
 else
-    OPENTHREAD_ENABLE_MAC_WHITELIST=0
+    OPENTHREAD_ENABLE_MAC_FILTER=0
 fi
 
-AC_MSG_CHECKING([whether to enable mac whitelist])
-AC_MSG_RESULT(${enable_mac_whitelist})
-AC_SUBST(OPENTHREAD_ENABLE_MAC_WHITELIST)
-AM_CONDITIONAL([OPENTHREAD_ENABLE_MAC_WHITELIST], [test "${enable_mac_whitelist}" = "yes"])
-AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_MAC_WHITELIST],[${OPENTHREAD_ENABLE_MAC_WHITELIST}],[Define to 1 if you want to use MAC whitelist/blacklist feature])
+AC_MSG_CHECKING([whether to enable mac filter])
+AC_MSG_RESULT(${enable_mac_filter})
+AC_SUBST(OPENTHREAD_ENABLE_MAC_FILTER)
+AM_CONDITIONAL([OPENTHREAD_ENABLE_MAC_FILTER], [test "${enable_mac_filter}" = "yes"])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_MAC_FILTER],[${OPENTHREAD_ENABLE_MAC_FILTER}],[Define to 1 if you want to use MAC filter feature])
 
 #
 # Diagnostics Library
@@ -1079,16 +1102,40 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_BORDER_ROUTER], [test "${enable_border_router}
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_BORDER_ROUTER],[${OPENTHREAD_ENABLE_BORDER_ROUTER}],[Define to 1 if you want to enable Border Router])
 
 #
+# Linker Map Output
+#
+
+AC_ARG_ENABLE(linker-map,
+    [AS_HELP_STRING([--enable-linker-map],[Enable linker map output @<:@default=no@:>@.])],
+    [
+        case "${enableval}" in
+
+        no|yes)
+            enable_linker_map=${enableval}
+            ;;
+
+        *)
+            AC_MSG_ERROR([Invalid value ${enable_linker_map} for --enable-linker-map])
+            ;;
+        esac
+    ],
+    [enable_linker_map=no])
+
+AC_MSG_CHECKING([whether to enable linker map output])
+AC_MSG_RESULT(${enable_linker_map})
+AM_CONDITIONAL([OPENTHREAD_ENABLE_LINKER_MAP], [test "${enable_linker_map}" = "yes"])
+
+#
 # Examples
 #
 
 AC_ARG_WITH(examples,
     [AS_HELP_STRING([--with-examples=TARGET],
-        [Specify the examples from one of: none, posix, cc2538, cc2650, da15000, efr32, emsk, kw41z, nrf52840 @<:@default=none@:>@.])],
+        [Specify the examples from one of: none, posix, cc2538, cc2650, da15000, efr32, emsk, gp712, kw41z, nrf52840 @<:@default=none@:>@.])],
     [
         case "${with_examples}" in
 
-        none|posix|cc2538|cc2650|da15000|efr32|emsk|kw41z|nrf52840)
+        none|posix|cc2538|cc2650|da15000|efr32|emsk|gp712|kw41z|nrf52840)
             ;;
         *)
             AC_MSG_ERROR([Invalid value ${with_examples} for --with-examples])
@@ -1131,6 +1178,11 @@ case ${with_examples} in
         AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_EMSK],[${OPENTHREAD_EXAMPLES_EMSK}],[Define to 1 if you want to use emsk examples])
         ;;
 
+    gp712)
+        OPENTHREAD_EXAMPLES_GP712=1
+        AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_GP712],[${OPENTHREAD_EXAMPLES_GP712}],[Define to 1 if you want to use gp712 examples])
+        ;;
+
     kw41z)
         OPENTHREAD_EXAMPLES_KW41Z=1
         AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_KW41Z],[${OPENTHREAD_EXAMPLES_KW41Z}],[Define to 1 if you want to use kw41z examples])
@@ -1140,7 +1192,6 @@ case ${with_examples} in
         OPENTHREAD_EXAMPLES_NRF52840=1
         AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_NRF52840],[${OPENTHREAD_EXAMPLES_NRF52840}],[Define to 1 if you want to use nrf52840 examples])
         ;;
-
 esac
 
 AC_MSG_CHECKING([whether to enable examples])
@@ -1167,6 +1218,9 @@ AM_CONDITIONAL([OPENTHREAD_EXAMPLES_EFR32], [test "${OPENTHREAD_EXAMPLES}" = "ef
 
 AC_SUBST(OPENTHREAD_EXAMPLES_EMSK)
 AM_CONDITIONAL([OPENTHREAD_EXAMPLES_EMSK], [test "${OPENTHREAD_EXAMPLES}" = "emsk"])
+
+AC_SUBST(OPENTHREAD_EXAMPLES_GP712)
+AM_CONDITIONAL([OPENTHREAD_EXAMPLES_GP712], [test "${OPENTHREAD_EXAMPLES}" = "gp712"])
 
 AC_SUBST(OPENTHREAD_EXAMPLES_KW41Z)
 AM_CONDITIONAL([OPENTHREAD_EXAMPLES_KW41Z], [test "${OPENTHREAD_EXAMPLES}" = "kw41z"])
@@ -1335,6 +1389,7 @@ examples/platforms/cc2650/Makefile
 examples/platforms/da15000/Makefile
 examples/platforms/efr32/Makefile
 examples/platforms/emsk/Makefile
+examples/platforms/gp712/Makefile
 examples/platforms/kw41z/Makefile
 examples/platforms/nrf52840/Makefile
 examples/platforms/posix/Makefile
@@ -1344,6 +1399,7 @@ tools/harness-automation/Makefile
 tools/harness-thci/Makefile
 tools/spi-hdlc-adapter/Makefile
 tests/Makefile
+tests/fuzz/Makefile
 tests/scripts/Makefile
 tests/scripts/thread-cert/Makefile
 tests/unit/Makefile
@@ -1381,6 +1437,7 @@ AC_MSG_NOTICE([
   Lcov                                      : ${LCOV:--}
   Genhtml                                   : ${GENHTML:--}
   Build tests                               : ${nl_cv_build_tests}
+  Build fuzz targets                        : ${enable_fuzz_targets}
   Build tools                               : ${build_tools}
   OpenThread tests                          : ${with_tests}
   Prefix                                    : ${prefix}
@@ -1402,6 +1459,7 @@ AC_MSG_NOTICE([
   Assembler flags                           : ${CCASFLAGS:--}
   Link flags                                : ${LDFLAGS:--}
   Link libraries                            : ${LIBS}
+  Link maps                                 : ${enable_linker_map}
   Pretty                                    : ${PRETTY:--}
   Pretty args                               : ${PRETTY_ARGS:--}
   Pretty check                              : ${PRETTY_CHECK:--}
@@ -1421,7 +1479,7 @@ AC_MSG_NOTICE([
   OpenThread Joiner support                 : ${enable_joiner}
   OpenThread DTLS support                   : ${enable_dtls}
   OpenThread Jam Detection support          : ${enable_jam_detection}
-  OpenThread MAC Whitelist support          : ${enable_mac_whitelist}
+  OpenThread MAC Filter support             : ${enable_mac_filter}
   OpenThread Diagnostics support            : ${enable_diag}
   OpenThread Child Supervision support      : ${enable_child_supervision}
   OpenThread Legacy network support         : ${enable_legacy}

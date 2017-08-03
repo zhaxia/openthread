@@ -40,7 +40,6 @@
 #include "utils/wrap_string.h"
 
 #include <openthread/platform/random.h>
-#include <openthread/platform/usec-alarm.h>
 
 #include "openthread-instance.h"
 #include "common/code_utils.hpp"
@@ -98,21 +97,19 @@ void Mac::StartCsmaBackoff(void)
         backoff = (otPlatRandomGet() % (1UL << backoffExponent));
         backoff *= (static_cast<uint32_t>(kUnitBackoffPeriod) * OT_RADIO_SYMBOL_TIME);
 
-#if OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_BACKOFF_TIMER
-        otPlatUsecAlarmStartAt(GetInstance(), otPlatUsecAlarmGetNow(), backoff, &Mac::HandleBeginTransmit, this);
-#else // OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_BACKOFF_TIMER
+#if OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
+        mBackoffTimer.Start(backoff);
+#else // OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
         mBackoffTimer.Start(backoff / 1000UL);
-#endif // OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_BACKOFF_TIMER
+#endif // OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
     }
 }
 
 Mac::Mac(ThreadNetif &aThreadNetif):
     ThreadNetifLocator(aThreadNetif),
-    mMacTimer(aThreadNetif.GetIp6().mTimerScheduler, &Mac::HandleMacTimer, this),
-#if !OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_BACKOFF_TIMER
-    mBackoffTimer(aThreadNetif.GetIp6().mTimerScheduler, &Mac::HandleBeginTransmit, this),
-#endif
-    mReceiveTimer(aThreadNetif.GetIp6().mTimerScheduler, &Mac::HandleReceiveTimer, this),
+    mMacTimer(aThreadNetif.GetInstance(), &Mac::HandleMacTimer, this),
+    mBackoffTimer(aThreadNetif.GetInstance(), &Mac::HandleBeginTransmit, this),
+    mReceiveTimer(aThreadNetif.GetInstance(), &Mac::HandleReceiveTimer, this),
     mShortAddress(kShortAddrInvalid),
     mPanId(kPanIdBroadcast),
     mChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL),
@@ -136,11 +133,12 @@ Mac::Mac(ThreadNetif &aThreadNetif):
     mScanContext(NULL),
     mActiveScanHandler(NULL), // initialize mActiveScanHandler and mEnergyScanHandler union
     mEnergyScanCurrentMaxRssi(kInvalidRssiValue),
-    mEnergyScanSampleRssiTask(aThreadNetif.GetIp6().mTaskletScheduler, &Mac::HandleEnergyScanSampleRssi, this),
+    mEnergyScanSampleRssiTask(aThreadNetif.GetInstance(), &Mac::HandleEnergyScanSampleRssi, this),
     mPcapCallback(NULL),
     mPcapCallbackContext(NULL),
-    mWhitelist(),
-    mBlacklist(),
+#if OPENTHREAD_ENABLE_MAC_FILTER
+    mFilter(),
+#endif  // OPENTHREAD_ENABLE_MAC_FILTER
     mTxFrame(static_cast<Frame *>(otPlatRadioGetTransmitBuffer(aThreadNetif.GetInstance()))),
     mKeyIdMode2FrameCounter(0),
 #if OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS
@@ -294,6 +292,8 @@ void Mac::StartEnergyScan(void)
 
 extern "C" void otPlatRadioEnergyScanDone(otInstance *aInstance, int8_t aEnergyScanMaxRssi)
 {
+    VerifyOrExit(otInstanceIsInitialized(aInstance));
+
 #if OPENTHREAD_ENABLE_RAW_LINK_API
 
     if (aInstance->mLinkRaw.IsEnabled())
@@ -305,6 +305,9 @@ extern "C" void otPlatRadioEnergyScanDone(otInstance *aInstance, int8_t aEnergyS
     {
         aInstance->mThreadNetif.GetMac().EnergyScanDone(aEnergyScanMaxRssi);
     }
+
+exit:
+    return;
 }
 
 void Mac::EnergyScanDone(int8_t aEnergyScanMaxRssi)
@@ -666,6 +669,7 @@ void Mac::ProcessTransmitSecurity(Frame &aFrame)
     Crypto::AesCcm aesCcm;
     const uint8_t *key = NULL;
     const ExtAddress *extAddress = NULL;
+    otError error;
 
     if (aFrame.GetSecurityEnabled() == false)
     {
@@ -732,7 +736,8 @@ void Mac::ProcessTransmitSecurity(Frame &aFrame)
     aesCcm.SetKey(key, 16);
     tagLength = aFrame.GetFooterLength() - Frame::kFcsSize;
 
-    aesCcm.Init(aFrame.GetHeaderLength(), aFrame.GetPayloadLength(), tagLength, nonce, sizeof(nonce));
+    error = aesCcm.Init(aFrame.GetHeaderLength(), aFrame.GetPayloadLength(), tagLength, nonce, sizeof(nonce));
+    assert(error == OT_ERROR_NONE);
 
     aesCcm.Header(aFrame.GetHeader(), aFrame.GetHeaderLength());
     aesCcm.Payload(aFrame.GetPayload(), aFrame.GetPayload(), aFrame.GetPayloadLength(), true);
@@ -740,11 +745,6 @@ void Mac::ProcessTransmitSecurity(Frame &aFrame)
 
 exit:
     return;
-}
-
-void Mac::HandleBeginTransmit(void *aContext)
-{
-    static_cast<Mac *>(aContext)->HandleBeginTransmit();
 }
 
 void Mac::HandleBeginTransmit(Timer &aTimer)
@@ -810,12 +810,6 @@ void Mac::HandleBeginTransmit(void)
 
     assert(error == OT_ERROR_NONE);
 
-    if (sendFrame.GetAckRequest() && !(otPlatRadioGetCaps(GetInstance()) & OT_RADIO_CAPS_ACK_TIMEOUT))
-    {
-        mMacTimer.Start(kAckTimeout);
-        otLogDebgMac(GetInstance(), "Ack timer start");
-    }
-
     if (mPcapCallback)
     {
         sendFrame.mDidTX = true;
@@ -834,11 +828,32 @@ exit:
     }
 }
 
+extern "C" void otPlatRadioTxStarted(otInstance *aInstance, otRadioFrame *aFrame)
+{
+    otLogFuncEntry();
+    VerifyOrExit(otInstanceIsInitialized(aInstance));
+    aInstance->mThreadNetif.GetMac().TransmitStartedTask(aFrame);
+exit:
+    otLogFuncExit();
+}
+
+void Mac::TransmitStartedTask(otRadioFrame *aFrame)
+{
+    Frame *frame = static_cast<Frame *>(aFrame);
+
+    if (frame->GetAckRequest() && !(otPlatRadioGetCaps(GetInstance()) & OT_RADIO_CAPS_ACK_TIMEOUT))
+    {
+        mMacTimer.Start(kAckTimeout);
+        otLogDebgMac(GetInstance(), "Ack timer start");
+    }
+}
+
 #if OPENTHREAD_CONFIG_LEGACY_TRANSMIT_DONE
 extern "C" void otPlatRadioTransmitDone(otInstance *aInstance, otRadioFrame *aFrame, bool aRxPending,
                                         otError aError)
 {
     otLogFuncEntryMsg("%!otError!, aRxPending=%u", aError, aRxPending ? 1 : 0);
+    VerifyOrExit(otInstanceIsInitialized(aInstance));
 
 #if OPENTHREAD_ENABLE_RAW_LINK_API
 
@@ -852,6 +867,7 @@ extern "C" void otPlatRadioTransmitDone(otInstance *aInstance, otRadioFrame *aFr
         aInstance->mThreadNetif.GetMac().TransmitDoneTask(aFrame, aRxPending, aError);
     }
 
+exit:
     otLogFuncExit();
 }
 
@@ -933,6 +949,7 @@ extern "C" void otPlatRadioTxDone(otInstance *aInstance, otRadioFrame *aFrame, o
                                   otError aError)
 {
     otLogFuncEntryMsg("%!otError!", aError);
+    VerifyOrExit(otInstanceIsInitialized(aInstance));
 
 #if OPENTHREAD_ENABLE_RAW_LINK_API
 
@@ -946,6 +963,7 @@ extern "C" void otPlatRadioTxDone(otInstance *aInstance, otRadioFrame *aFrame, o
         aInstance->mThreadNetif.GetMac().TransmitDoneTask(aFrame, aAckFrame, aError);
     }
 
+exit:
     otLogFuncExit();
 }
 
@@ -1394,7 +1412,10 @@ otError Mac::ProcessReceiveSecurity(Frame &aFrame, const Address &aSrcAddr, Neig
     tagLength = aFrame.GetFooterLength() - Frame::kFcsSize;
 
     aesCcm.SetKey(macKey, 16);
-    aesCcm.Init(aFrame.GetHeaderLength(), aFrame.GetPayloadLength(), tagLength, nonce, sizeof(nonce));
+
+    error = aesCcm.Init(aFrame.GetHeaderLength(), aFrame.GetPayloadLength(), tagLength, nonce, sizeof(nonce));
+    VerifyOrExit(error == OT_ERROR_NONE, error = OT_ERROR_SECURITY);
+
     aesCcm.Header(aFrame.GetHeader(), aFrame.GetHeaderLength());
     aesCcm.Payload(aFrame.GetPayload(), aFrame.GetPayload(), aFrame.GetPayloadLength(), false);
     aesCcm.Finalize(tag, &tagLength);
@@ -1426,6 +1447,7 @@ exit:
 extern "C" void otPlatRadioReceiveDone(otInstance *aInstance, otRadioFrame *aFrame, otError aError)
 {
     otLogFuncEntryMsg("%!otError!", aError);
+    VerifyOrExit(otInstanceIsInitialized(aInstance));
 
 #if OPENTHREAD_ENABLE_RAW_LINK_API
 
@@ -1439,6 +1461,7 @@ extern "C" void otPlatRadioReceiveDone(otInstance *aInstance, otRadioFrame *aFra
         aInstance->mThreadNetif.GetMac().ReceiveDoneTask(static_cast<Frame *>(aFrame), aError);
     }
 
+exit:
     otLogFuncExit();
 }
 
@@ -1448,12 +1471,13 @@ void Mac::ReceiveDoneTask(Frame *aFrame, otError aError)
     Address dstaddr;
     PanId panid;
     Neighbor *neighbor;
-    otMacWhitelistEntry *whitelistEntry;
-    int8_t rssi;
     bool receive = false;
     uint8_t commandId;
     bool scheduleNextTrasmission = false;
     otError error = aError;
+#if OPENTHREAD_ENABLE_MAC_FILTER
+    int8_t rssi = OT_MAC_FILTER_FIXED_RSS_DISABLED;
+#endif  // OPENTHREAD_ENABLE_MAC_FILTER
 
     mCounters.mRxTotal++;
 
@@ -1505,22 +1529,22 @@ void Mac::ReceiveDoneTask(Frame *aFrame, otError aError)
         ExitNow(error = OT_ERROR_INVALID_SOURCE_ADDRESS);
     }
 
-    // Source Whitelist Processing
-    if (srcaddr.mLength != 0 && mWhitelist.IsEnabled())
-    {
-        VerifyOrExit((whitelistEntry = mWhitelist.Find(srcaddr.mExtAddress)) != NULL, error = OT_ERROR_WHITELIST_FILTERED);
+#if OPENTHREAD_ENABLE_MAC_FILTER
 
-        if (mWhitelist.GetFixedRssi(*whitelistEntry, rssi) == OT_ERROR_NONE)
+    // Source filter Processing.
+    if (srcaddr.mLength != 0)
+    {
+        // check if filtered out by whitelist or blacklist.
+        SuccessOrExit(error = mFilter.Apply(srcaddr.mExtAddress, rssi));
+
+        // override with the rssi in setting
+        if (rssi != OT_MAC_FILTER_FIXED_RSS_DISABLED)
         {
             aFrame->mPower = rssi;
         }
     }
 
-    // Source Blacklist Processing
-    if (srcaddr.mLength != 0 && mBlacklist.IsEnabled())
-    {
-        VerifyOrExit((mBlacklist.Find(srcaddr.mExtAddress)) == NULL, error = OT_ERROR_BLACKLIST_FILTERED);
-    }
+#endif  // OPENTHREAD_ENABLE_MAC_FILTER
 
     // Destination Address Filtering
     aFrame->GetDstAddr(dstaddr);
@@ -1562,6 +1586,16 @@ void Mac::ReceiveDoneTask(Frame *aFrame, otError aError)
 
     if (neighbor != NULL)
     {
+#if OPENTHREAD_ENABLE_MAC_FILTER
+
+        // make assigned rssi to take effect quickly
+        if (rssi != OT_MAC_FILTER_FIXED_RSS_DISABLED)
+        {
+            neighbor->GetLinkInfo().Clear();
+        }
+
+#endif  // OPENTHREAD_ENABLE_MAC_FILTER
+
         neighbor->GetLinkInfo().AddRss(GetNoiseFloor(), aFrame->mPower);
 
         if (aFrame->GetSecurityEnabled() == true)

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2017, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,10 +26,52 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <openthread/config.h>
+/**
+ * @file
+ *   This file includes the platform-specific initializers.
+ *
+ */
 
-#if OPENTHREAD_ENABLE_MAC_WHITELIST
-#include "mac_whitelist_impl.hpp"
-#else
-#include "mac_whitelist_stub.hpp"
-#endif
+#ifndef PLATFORM_QORVO_H_
+#define PLATFORM_QORVO_H_
+
+#include <stdint.h>
+#include <openthread/types.h>
+
+typedef void     (*qorvoPlatPollFunction_t)(uint8_t);
+typedef uint8_t  (*qorvoPlatGotoSleepCheckCallback_t) (void);
+
+/**
+ * This function registers a callback to a file descriptor.
+ *
+ * @param[in]  fd            The file descriptor.
+ * @param[in]  pollFunction  The callback which should be called when data is ready or needed for the file descriptor.
+ *
+ */
+void qorvoPlatRegisterPollFunction(int fd, qorvoPlatPollFunction_t pollFunction);
+
+/**
+ * This function unregisters a callback for a file descriptor.
+ *
+ * @param[in]  fd            The file descriptor.
+ *
+ */
+void qorvoPlatUnRegisterPollFunction(int fd);
+
+/**
+ * This function initializes the platform.
+ *
+ * @param[in]  gotoSleepCheckCallback  The callback which needs to return if sleep is allowed.
+ *
+ */
+void qorvoPlatInit(qorvoPlatGotoSleepCheckCallback_t gotoSleepCheckCallback);
+
+/**
+ * This function runs the main loop of the platform once.
+ *
+ * @param[in]  canGoToSleep  Indicates if the platform can got to sleep.
+ *
+ */
+void qorvoPlatMainLoop(bool canGoToSleep);
+
+#endif  // PLATFORM_QORVO_H_

@@ -165,6 +165,16 @@ public:
     void UpdateIndirectMessages(void);
 
     /**
+     * This method frees any messages queued for an existing child.
+     *
+     * @param[in]  aChild    A reference to the child.
+     * @param[in]  aSubType  The message sub-type to remove.
+     *                       Use Message::kSubTypeNone remove all messages for @p aChild.
+     *
+     */
+    void RemoveMessages(Child &aChild, uint8_t aSubType);
+
+    /**
      * This method returns a reference to the send queue.
      *
      * @returns  A reference to the send queue.
@@ -296,8 +306,8 @@ private:
 
     Mac::Receiver         mMacReceiver;
     Mac::Sender           mMacSender;
-    Timer                 mDiscoverTimer;
-    Timer                 mReassemblyTimer;
+    TimerMilli            mDiscoverTimer;
+    TimerMilli            mReassemblyTimer;
 
     PriorityQueue         mSendQueue;
     MessageQueue          mReassemblyList;

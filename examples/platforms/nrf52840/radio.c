@@ -50,6 +50,8 @@
 #include <openthread/platform/radio.h>
 #include <openthread/platform/diag.h>
 
+#include "platform-nrf5.h"
+
 #include <device/nrf.h>
 #include <nrf_drv_radio802154.h>
 
@@ -60,6 +62,7 @@
 #define SHORT_ADDRESS_SIZE    2
 #define EXTENDED_ADDRESS_SIZE 8
 #define PENDING_BIT           0x10
+#define US_PER_MS             1000ULL
 
 enum
 {
@@ -92,6 +95,7 @@ static int8_t       sEnergyDetected;
 typedef enum
 {
     kPendingEventSleep,                // Requested to enter Sleep state.
+    kPendingEventTransmit,             // Frame is queued for transmission.
     kPendingEventFrameTransmitted,     // Transmitted frame and received ACK (if requested).
     kPendingEventChannelAccessFailure, // Failed to transmit frame (channel busy).
     kPendingEventEnergyDetectionStart, // Requested to start Energy Detection procedure.
@@ -327,11 +331,12 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
     if (nrf_drv_radio802154_transmit(&aFrame->mPsdu[-1], aFrame->mChannel, aFrame->mPower, true))
     {
         clearPendingEvents();
+        otPlatRadioTxStarted(aInstance, aFrame);
     }
     else
     {
         clearPendingEvents();
-        setPendingEvent(kPendingEventChannelAccessFailure);
+        setPendingEvent(kPendingEventTransmit);
     }
 
     return OT_ERROR_NONE;
@@ -523,6 +528,15 @@ void nrf5RadioProcess(otInstance *aInstance)
         }
     }
 
+    if (isPendingEventSet(kPendingEventTransmit))
+    {
+        if (nrf_drv_radio802154_transmit(sTransmitPsdu, sTransmitFrame.mChannel, sTransmitFrame.mPower, true))
+        {
+            resetPendingEvent(kPendingEventTransmit);
+            otPlatRadioTxStarted(aInstance, &sTransmitFrame);
+        }
+    }
+
     if (isPendingEventSet(kPendingEventFrameTransmitted))
     {
 #if OPENTHREAD_ENABLE_DIAG
@@ -592,6 +606,13 @@ void nrf_drv_radio802154_received(uint8_t *p_data, int8_t power, int8_t lqi)
 {
     otRadioFrame *receivedFrame = NULL;
 
+    if (isPendingEventSet(kPendingEventTransmit))
+    {
+        nrf_drv_radio802154_buffer_free(p_data);
+
+        return;
+    }
+
     for (uint32_t i = 0; i < RADIO_RX_BUFFERS; i++)
     {
         if (sReceivedFrames[i].mPsdu == NULL)
@@ -610,6 +631,11 @@ void nrf_drv_radio802154_received(uint8_t *p_data, int8_t power, int8_t lqi)
     receivedFrame->mPower   = power;
     receivedFrame->mLqi     = lqi;
     receivedFrame->mChannel = nrf_drv_radio802154_channel_get();
+#if OPENTHREAD_ENABLE_RAW_LINK_API
+    uint64_t timestamp      = nrf5AlarmGetCurrentTime();
+    receivedFrame->mMsec    = timestamp / US_PER_MS;
+    receivedFrame->mUsec    = timestamp - receivedFrame->mMsec * US_PER_MS;
+#endif
 }
 
 void nrf_drv_radio802154_transmitted(uint8_t *aAckPsdu, int8_t aPower, int8_t aLqi)

@@ -35,7 +35,8 @@
 #include "openthread/types.h"
 
 #include <utils/code_utils.h>
-#include "openthread/platform/radio.h"
+#include <openthread/platform/alarm-milli.h>
+#include <openthread/platform/radio.h>
 #include "platform-emsk.h"
 
 #include "device/device_hal/inc/dev_gpio.h"
@@ -459,6 +460,12 @@ void readFrame(void)
 
     otEXPECT_ACTION(IEEE802154_MIN_LENGTH <= length && length <= IEEE802154_MAX_LENGTH, ;);
 
+#if OPENTHREAD_ENABLE_RAW_LINK_API
+    // Timestamp
+    sReceiveFrame.mMsec = otPlatAlarmMilliGetNow();
+    sReceiveFrame.mUsec = 0;  // Don't support microsecond timer for now.
+#endif
+
     /* Read PSDU */
     memcpy(sReceiveFrame.mPsdu, readBuffer, length - 2);
 
@@ -473,7 +480,6 @@ exit:
 
 void radioTransmitMessage(otInstance *aInstance)
 {
-    (void)aInstance;
     uint8_t header_len = 0;
 
     sTransmitError = OT_ERROR_NONE;
@@ -505,6 +511,8 @@ void radioTransmitMessage(otInstance *aInstance)
     mrf24j40_txfifo_write(MRF24J40_TXNFIFO, sTransmitFrame.mPsdu, header_len, (sTransmitFrame.mLength - 2));
 
     mrf24j40_write_short_ctrl_reg(MRF24J40_TXNCON, reg | MRF24J40_TXNTRIG);
+
+    otPlatRadioTxStarted(aInstance, &sTransmitFrame);
 
     int16_t tx_timeout = 500;
     Mrf24StatusTx = 0;

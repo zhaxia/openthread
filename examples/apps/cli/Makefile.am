@@ -123,6 +123,14 @@ LDFLAGS_COMMON                                                        += \
     $(NULL)
 endif # OPENTHREAD_EXAMPLES_EMSK
 
+if OPENTHREAD_EXAMPLES_GP712
+LDADD_COMMON                                                          += \
+    $(top_builddir)/examples/platforms/gp712/libopenthread-gp712.a       \
+    $(top_srcdir)/third_party/Qorvo/gp712/libQorvoRPi.a                  \
+    $(NULL)
+
+endif # OPENTHREAD_EXAMPLES_GP712
+
 if OPENTHREAD_EXAMPLES_NRF52840
 LDADD_COMMON                                                          += \
     $(top_builddir)/examples/platforms/nrf52840/libopenthread-nrf52840.a \
@@ -190,6 +198,11 @@ ot_cli_mtd_LDFLAGS                                                     = \
 ot_cli_mtd_SOURCES                                                     = \
     $(SOURCES_COMMON)                                                    \
     $(NULL)
+
+if OPENTHREAD_ENABLE_LINKER_MAP
+ot_cli_ftd_LDFLAGS                                                    += -Wl,-Map=ot-cli-ftd.map
+ot_cli_mtd_LDFLAGS                                                    += -Wl,-Map=ot-cli-mtd.map
+endif
 
 if OPENTHREAD_BUILD_COVERAGE
 CLEANFILES                                                             = $(wildcard *.gcda *.gcno)
