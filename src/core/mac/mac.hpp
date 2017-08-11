@@ -259,7 +259,8 @@ public:
      * completes.
      *
      * @param[in]  aContext  A pointer to arbitrary context information.
-     * @param[in]  aResult   A valid pointer to the energy scan result information or NULL when the energy scan completes.
+     * @param[in]  aResult   A valid pointer to the energy scan result information or NULL when the energy scan
+     *                       completes.
      *
      */
     typedef void (*EnergyScanHandler)(void *aContext, otEnergyScanResult *aResult);
@@ -508,21 +509,6 @@ public:
      */
     void TransmitStartedTask(otRadioFrame *aFrame);
 
-#if OPENTHREAD_CONFIG_LEGACY_TRANSMIT_DONE
-    /**
-     * This method is called to handle transmit events.
-     *
-     * @param[in]  aFrame         A pointer to the frame that was transmitted.
-     * @param[in]  aFramePending  TRUE if an ACK frame was received and the Frame Pending bit was set.
-     * @param[in]  aError         OT_ERROR_NONE when the frame was transmitted, OT_ERROR_NO_ACK when the frame was
-     *                            transmitted but no ACK was received, OT_ERROR_CHANNEL_ACCESS_FAILURE when the
-     *                            transmission could not take place due to activity on the channel, OT_ERROR_ABORT when
-     *                            transmission was aborted for other reasons.
-     *
-     */
-    void TransmitDoneTask(otRadioFrame *aFrame, bool aRxPending, otError aError);
-
-#else // #if OPENTHREAD_CONFIG_LEGACY_TRANSMIT_DONE
     /**
      * This method is called to handle transmit events.
      *
@@ -535,7 +521,6 @@ public:
      *
      */
     void TransmitDoneTask(otRadioFrame *aFrame, otRadioFrame *aAckFrame, otError aError);
-#endif // OPENTHREAD_CONFIG_LEGACY_TRANSMIT_DONE
 
     /**
      * This method returns if an active scan is in progress.
@@ -627,7 +612,7 @@ public:
      * @returns The noise floor value in dBm.
      *
      */
-    int8_t GetNoiseFloor(void) { return otPlatRadioGetReceiveSensitivity(GetInstance()); }
+    int8_t GetNoiseFloor(void) { return otPlatRadioGetReceiveSensitivity(&GetInstance()); }
 
     /**
      * This method indicates whether or not CSMA backoff is supported by the radio layer.
@@ -648,23 +633,27 @@ public:
     bool RadioSupportsRetries(void);
 
 private:
-    enum ScanType
-    {
-        kScanTypeNone = 0,
-        kScanTypeActive,
-        kScanTypeEnergy,
-    };
-
     enum
     {
         kInvalidRssiValue = 127
     };
 
+    enum Operation
+    {
+        kOperationIdle = 0,
+        kOperationActiveScan,
+        kOperationEnergyScan,
+        kOperationTransmitBeacon,
+        kOperationTransmitData,
+        kOperationWaitingForData,
+    };
+
     void GenerateNonce(const ExtAddress &aAddress, uint32_t aFrameCounter, uint8_t aSecurityLevel, uint8_t *aNonce);
-    void NextOperation(void);
     void ProcessTransmitSecurity(Frame &aFrame);
     otError ProcessReceiveSecurity(Frame &aFrame, const Address &aSrcAddr, Neighbor *aNeighbor);
-    void ScheduleNextTransmission(void);
+    void UpdateIdleMode(void);
+    void StartOperation(Operation aOperation);
+    void FinishOperation(void);
     void SentFrame(otError aError);
     void SendBeaconRequest(Frame &aFrame);
     void SendBeacon(Frame &aFrame);
@@ -682,13 +671,15 @@ private:
     void HandleEnergyScanSampleRssi(void);
 
     void StartCsmaBackoff(void);
-    otError Scan(ScanType aType, uint32_t aScanChannels, uint16_t aScanDuration, void *aContext);
+    otError Scan(Operation aScanOperation, uint32_t aScanChannels, uint16_t aScanDuration, void *aContext);
 
     otError RadioTransmit(Frame *aSendFrame);
     otError RadioReceive(uint8_t aChannel);
-    void RadioSleep(void);
+    otError RadioSleep(void);
 
     static Mac &GetOwner(const Context &aContext);
+
+    static const char *OperationToString(Operation aOperation);
 
     TimerMilli mMacTimer;
 #if OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
@@ -710,35 +701,34 @@ private:
     Sender *mSendHead, *mSendTail;
     Receiver *mReceiveHead, *mReceiveTail;
 
-    enum
-    {
-        kStateIdle = 0,
-        kStateActiveScan,
-        kStateEnergyScan,
-        kStateTransmitBeacon,
-        kStateTransmitData,
-    };
-    uint8_t mState;
+    Operation mOperation;
+
+    bool mPendingActiveScan       : 1;
+    bool mPendingEnergyScan       : 1;
+    bool mPendingTransmitBeacon   : 1;
+    bool mPendingTransmitData     : 1;
+    bool mPendingWaitingForData   : 1;
+    bool mRxOnWhenIdle            : 1;
+    bool mBeaconsEnabled          : 1;
+#if OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS
+    bool mDelaySleep              : 1;
+#endif
 
     uint8_t mBeaconSequence;
     uint8_t mDataSequence;
-    bool mRxOnWhenIdle;
     uint8_t mCsmaAttempts;
     uint8_t mTransmitAttempts;
-    bool mTransmitBeacon;
-    bool mBeaconsEnabled;
 
-    ScanType mPendingScanRequest;
-    uint8_t mScanChannel;
     uint32_t mScanChannels;
     uint16_t mScanDuration;
+    uint8_t mScanChannel;
+    int8_t mEnergyScanCurrentMaxRssi;
     void *mScanContext;
     union
     {
         ActiveScanHandler mActiveScanHandler;
         EnergyScanHandler mEnergyScanHandler;
     };
-    int8_t mEnergyScanCurrentMaxRssi;
     Tasklet mEnergyScanSampleRssiTask;
 
     otLinkPcapCallback mPcapCallback;
@@ -752,11 +742,6 @@ private:
 
     otMacCounters mCounters;
     uint32_t mKeyIdMode2FrameCounter;
-
-#if OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS
-    bool mDelaySleep;
-#endif
-    bool mWaitingForData;
 };
 
 /**

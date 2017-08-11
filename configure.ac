@@ -582,8 +582,8 @@ AC_ARG_ENABLE(builtin-mbedtls,
 
 if test "$enable_builtin_mbedtls" = "yes" -a ! "${MBEDTLS_CPPFLAGS}"; then
     MBEDTLS_CPPFLAGS="-I\${abs_top_srcdir}/third_party/mbedtls"
-    MBEDTLS_CPPFLAGS="${MBEDTLS_CPPFLAGS} -I\${abs_top_srcdir}/third_party/mbedtls/repo/include"
-    MBEDTLS_CPPFLAGS="${MBEDTLS_CPPFLAGS} -I\${abs_top_srcdir}/third_party/mbedtls/repo/include/mbedtls"
+    MBEDTLS_CPPFLAGS="${MBEDTLS_CPPFLAGS} -I\${abs_top_srcdir}/third_party/mbedtls/repo.patched/include"
+    MBEDTLS_CPPFLAGS="${MBEDTLS_CPPFLAGS} -I\${abs_top_srcdir}/third_party/mbedtls/repo.patched/include/mbedtls"
     MBEDTLS_CPPFLAGS="${MBEDTLS_CPPFLAGS} -DMBEDTLS_CONFIG_FILE=\\\"mbedtls-config.h\\\""
 fi
 AC_MSG_CHECKING([whether mbed TLS should be enabled])
@@ -1131,11 +1131,11 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_LINKER_MAP], [test "${enable_linker_map}" = "y
 
 AC_ARG_WITH(examples,
     [AS_HELP_STRING([--with-examples=TARGET],
-        [Specify the examples from one of: none, posix, cc2538, cc2650, da15000, efr32, emsk, gp712, kw41z, nrf52840 @<:@default=none@:>@.])],
+        [Specify the examples from one of: none, posix, cc2538, cc2650, cc2652, da15000, efr32, emsk, gp712, kw41z, nrf52840 @<:@default=none@:>@.])],
     [
         case "${with_examples}" in
 
-        none|posix|cc2538|cc2650|da15000|efr32|emsk|gp712|kw41z|nrf52840)
+        none|posix|cc2538|cc2650|cc2652|da15000|efr32|emsk|gp712|kw41z|nrf52840)
             ;;
         *)
             AC_MSG_ERROR([Invalid value ${with_examples} for --with-examples])
@@ -1161,6 +1161,11 @@ case ${with_examples} in
     cc2650)
         OPENTHREAD_EXAMPLES_CC2650=1
         AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_CC2650],[${OPENTHREAD_EXAMPLES_CC2650}],[Define to 1 if you want to use cc2650 examples])
+        ;;
+
+    cc2652)
+        OPENTHREAD_EXAMPLES_CC2652=1
+        AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_CC2652],[${OPENTHREAD_EXAMPLES_CC2652}],[Define to 1 if you want to use cc2652 examples])
         ;;
 
     da15000)
@@ -1210,6 +1215,9 @@ AM_CONDITIONAL([OPENTHREAD_EXAMPLES_CC2538], [test "${OPENTHREAD_EXAMPLES}" = "c
 AC_SUBST(OPENTHREAD_EXAMPLES_CC2650)
 AM_CONDITIONAL([OPENTHREAD_EXAMPLES_CC2650], [test "${OPENTHREAD_EXAMPLES}" = "cc2650"])
 
+AC_SUBST(OPENTHREAD_EXAMPLES_CC2652)
+AM_CONDITIONAL([OPENTHREAD_EXAMPLES_CC2652], [test "${OPENTHREAD_EXAMPLES}" = "cc2652"])
+
 AC_SUBST(OPENTHREAD_EXAMPLES_DA15000)
 AM_CONDITIONAL([OPENTHREAD_EXAMPLES_DA15000], [test "${OPENTHREAD_EXAMPLES}" = "da15000"])
 
@@ -1227,24 +1235,6 @@ AM_CONDITIONAL([OPENTHREAD_EXAMPLES_KW41Z], [test "${OPENTHREAD_EXAMPLES}" = "kw
 
 AC_SUBST(OPENTHREAD_EXAMPLES_NRF52840)
 AM_CONDITIONAL([OPENTHREAD_EXAMPLES_NRF52840], [test "${OPENTHREAD_EXAMPLES}" = "nrf52840"])
-
-#
-# Platform Information
-#
-
-AC_ARG_WITH(platform-info,
-    [AS_HELP_STRING([--with-platform-info=PLATFORM],
-        [Specify the platform information @<:@default=none@:>@.])],
-    [],
-    [with_platform_info=none])
-
-PLATFORM_INFO=${with_platform_info}
-
-AC_MSG_CHECKING([with platform info])
-AC_MSG_RESULT(${PLATFORM_INFO})
-
-AC_SUBST(PLATFORM_INFO)
-AC_DEFINE_UNQUOTED([PLATFORM_INFO],["${PLATFORM_INFO}"],[OpenThread platform information])
 
 #
 # Tools
@@ -1386,6 +1376,7 @@ examples/apps/ncp/Makefile
 examples/platforms/Makefile
 examples/platforms/cc2538/Makefile
 examples/platforms/cc2650/Makefile
+examples/platforms/cc2652/Makefile
 examples/platforms/da15000/Makefile
 examples/platforms/efr32/Makefile
 examples/platforms/emsk/Makefile

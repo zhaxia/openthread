@@ -94,7 +94,6 @@ configure_OPTIONS                   = \
     --enable-ncp-app=all              \
     --with-ncp-bus=uart               \
     --with-examples=posix             \
-    --with-platform-info=POSIX        \
     --enable-application-coap         \
     --enable-border-router            \
     --enable-cert-log                 \
@@ -112,6 +111,8 @@ configure_OPTIONS                   = \
     --enable-raw-link-api             \
     --enable-tmf-proxy                \
     $(NULL)
+
+include $(dir $(abspath $(lastword $(MAKEFILE_LIST))))/common-switches.mk
 
 ifndef BuildJobs
 BuildJobs := $(shell getconf _NPROCESSORS_ONLN)

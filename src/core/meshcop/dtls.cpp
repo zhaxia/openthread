@@ -101,7 +101,7 @@ otError Dtls::Start(bool aClient, ConnectedHandler aConnectedHandler, ReceiveHan
 
     // mbedTLS's debug level is almost the same as OpenThread's
     mbedtls_debug_set_threshold(OPENTHREAD_CONFIG_LOG_LEVEL);
-    otPlatRadioGetIeeeEui64(GetInstance(), eui64.m8);
+    otPlatRadioGetIeeeEui64(&GetInstance(), eui64.m8);
     rval = mbedtls_ctr_drbg_seed(&mCtrDrbg, mbedtls_entropy_func, &mEntropy, eui64.m8, sizeof(eui64));
     VerifyOrExit(rval == 0);
 
@@ -488,6 +488,7 @@ void Dtls::HandleMbedtlsDebug(void *ctx, int level, const char *, int, const cha
 {
     Dtls *pThis = static_cast<Dtls *>(ctx);
     OT_UNUSED_VARIABLE(pThis);
+    OT_UNUSED_VARIABLE(str);
 
     switch (level)
     {

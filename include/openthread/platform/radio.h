@@ -174,11 +174,12 @@ void otPlatRadioSetPanId(otInstance *aInstance, uint16_t aPanId);
 /**
  * Set the Extended Address for address filtering.
  *
- * @param[in] aInstance         The OpenThread instance structure.
- * @param[in] aExtendedAddress  A pointer to the IEEE 802.15.4 Extended Address.
+ * @param[in] aInstance    The OpenThread instance structure.
+ * @param[in] aExtAddress  A pointer to the IEEE 802.15.4 Extended Address stored in little-endian byte order.
+ *
  *
  */
-void otPlatRadioSetExtendedAddress(otInstance *aInstance, uint8_t *aExtendedAddress);
+void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aExtAddress);
 
 /**
  * Set the Short Address for address filtering.
@@ -304,12 +305,12 @@ otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, const uint16_t a
  * Add an extended address to the source address match table.
  *
  * @param[in]  aInstance    The OpenThread instance structure.
- * @param[in]  aExtAddress  The extended address to be added.
+ * @param[in]  aExtAddress  The extended address to be added stored in little-endian byte order.
  *
  * @retval OT_ERROR_NONE      Successfully added extended address to the source match table.
  * @retval OT_ERROR_NO_BUFS   No available entry in the source match table.
  */
-otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress);
+otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress);
 
 /**
  * Remove a short address from the source address match table.
@@ -326,12 +327,12 @@ otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint16_t
  * Remove an extended address from the source address match table.
  *
  * @param[in]  aInstance    The OpenThread instance structure.
- * @param[in]  aExtAddress  The extended address to be removed.
+ * @param[in]  aExtAddress  The extended address to be removed stoerd in little-endian byte order.
  *
  * @retval OT_ERROR_NONE        Successfully removed the extended address from the source match table.
  * @retval OT_ERROR_NO_ADDRESS  The extended address is not in source address match table.
  */
-otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress);
+otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress);
 
 /**
  * Clear all short addresses from the source address match table.
@@ -405,8 +406,8 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame);
 extern void otPlatRadioTxStarted(otInstance *aInstance, otRadioFrame *aFrame);
 
 /**
- * The radio driver calls this method to notify OpenThread that the transmission has completed,
- * this callback pass up the ACK frame, new add platforms should use this callback function.
+ * The radio driver calls this function to notify OpenThread that the transmit operation has completed,
+ * providing both the transmitted frame and, if applicable, the received ack frame.
  *
  * @param[in]  aInstance  The OpenThread instance structure.
  * @param[in]  aFrame     A pointer to the frame that was transmitted.
@@ -419,22 +420,6 @@ extern void otPlatRadioTxStarted(otInstance *aInstance, otRadioFrame *aFrame);
  */
 extern void otPlatRadioTxDone(otInstance *aInstance, otRadioFrame *aFrame, otRadioFrame *aAckFrame,
                               otError aError);
-
-/**
- * The radio driver calls this method to notify OpenThread that the transmission has completed,
- * this function is going to be deprecated, new add platfroms should not use this callback function.
- *
- * @param[in]  aInstance      The OpenThread instance structure.
- * @param[in]  aFrame         A pointer to the frame that was transmitted.
- * @param[in]  aFramePending  TRUE if an ACK frame was received and the Frame Pending bit was set.
- * @param[in]  aError         OT_ERROR_NONE when the frame was transmitted, OT_ERROR_NO_ACK when the frame was
- *                            transmitted but no ACK was received, OT_ERROR_CHANNEL_ACCESS_FAILURE when the transmission
- *                            could not take place due to activity on the channel, OT_ERROR_ABORT when transmission was
- *                            aborted for other reasons.
- *
- */
-extern void otPlatRadioTransmitDone(otInstance *aInstance, otRadioFrame *aFrame, bool aFramePending,
-                                    otError aError);
 
 /**
  * Get the most recent RSSI measurement.

@@ -35,8 +35,6 @@ lib_LIBRARIES                       = \
 
 CPPFLAGS_COMMON                     = \
     -I$(top_srcdir)/include           \
-    -I${abs_top_srcdir}/third_party/mbedtls/repo/include \
-    $(MBEDTLS_CPPFLAGS)               \
     $(OPENTHREAD_TARGET_DEFINES)      \
     $(NULL)
 
@@ -156,6 +154,7 @@ SOURCES_COMMON                      = \
     net/ip6.cpp                       \
     net/ip6_address.cpp               \
     net/ip6_filter.cpp                \
+    net/ip6_headers.cpp               \
     net/ip6_mpl.cpp                   \
     net/ip6_routes.cpp                \
     net/netif.cpp                     \

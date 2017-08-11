@@ -39,6 +39,7 @@
 #include "test_util.h"
 
 namespace ot {
+namespace Ncp {
 
 // This module implements unit-test for NcpFrameBuffer class.
 
@@ -377,7 +378,7 @@ void TestNcpFrameBuffer(void)
     NcpFrameBuffer::WritePosition pos1, pos2;
 
     sInstance = testInitInstance();
-    sMessagePool = &sInstance->mIp6.mMessagePool;
+    sMessagePool = &sInstance->mMessagePool;
 
     for (i = 0; i < sizeof(buffer); i++)
     {
@@ -768,7 +769,7 @@ void TestNcpFrameBuffer(void)
     SuccessOrQuit(message->SetLength(sizeof(sMysteryText)), "Could not set the length of message.");
     message->Write(0, sizeof(sMysteryText), sMysteryText);
     VerifyOrQuit(ncpBuffer.InFrameFeedMessage(message) == OT_ERROR_INVALID_STATE, "Incorrect error status");
-    SuccessOrQuit(message->Free(), "Failed to free allocated message");
+    message->Free();
     VerifyOrQuit(ncpBuffer.InFrameEnd() == OT_ERROR_INVALID_STATE, "Incorrect error status");
     VerifyAndRemoveFrame2(ncpBuffer);
     VerifyAndRemoveFrame1(ncpBuffer);
@@ -1000,7 +1001,7 @@ void TestFuzzNcpFrameBuffer(void)
     uint32_t lensArrayCount[kNumPrios];
 
     sInstance = testInitInstance();
-    sMessagePool = &sInstance->mIp6.mMessagePool;
+    sMessagePool = &sInstance->mMessagePool;
 
     memset(buffer, 0, sizeof(buffer));
 
@@ -1089,13 +1090,14 @@ void TestFuzzNcpFrameBuffer(void)
     testFreeInstance(sInstance);
 }
 
+}  // namespace Ncp
 }  // namespace ot
 
 #ifdef ENABLE_TEST_MAIN
 int main(void)
 {
-    ot::TestNcpFrameBuffer();
-    ot::TestFuzzNcpFrameBuffer();
+    ot::Ncp::TestNcpFrameBuffer();
+    ot::Ncp::TestFuzzNcpFrameBuffer();
     printf("\nAll tests passed.\n");
     return 0;
 }

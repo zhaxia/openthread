@@ -54,7 +54,7 @@ otError otLinkSetChannel(otInstance *aInstance, uint8_t aChannel)
     VerifyOrExit(aInstance->mThreadNetif.GetMle().GetRole() == OT_DEVICE_ROLE_DISABLED,
                  error = OT_ERROR_INVALID_STATE);
 
-    error = aInstance->mThreadNetif.GetMac().SetChannel(aChannel);
+    SuccessOrExit(error = aInstance->mThreadNetif.GetMac().SetChannel(aChannel));
     aInstance->mThreadNetif.GetActiveDataset().Clear();
     aInstance->mThreadNetif.GetPendingDataset().Clear();
 
@@ -62,9 +62,9 @@ exit:
     return error;
 }
 
-const uint8_t *otLinkGetExtendedAddress(otInstance *aInstance)
+const otExtAddress *otLinkGetExtendedAddress(otInstance *aInstance)
 {
-    return reinterpret_cast<const uint8_t *>(aInstance->mThreadNetif.GetMac().GetExtAddress());
+    return reinterpret_cast<const otExtAddress *>(aInstance->mThreadNetif.GetMac().GetExtAddress());
 }
 
 otError otLinkSetExtendedAddress(otInstance *aInstance, const otExtAddress *aExtAddress)

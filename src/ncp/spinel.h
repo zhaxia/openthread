@@ -25,6 +25,11 @@
  *    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file
+ *   This file contains definitions of spinel API.
+ */
+
 #ifndef SPINEL_HEADER_INCLUDED
 #define SPINEL_HEADER_INCLUDED 1
 
@@ -802,7 +807,7 @@ typedef enum
                                         = SPINEL_PROP_THREAD__BEGIN + 8, ///< [D]
     SPINEL_PROP_THREAD_STABLE_NETWORK_DATA_VERSION
                                         = SPINEL_PROP_THREAD__BEGIN + 9,  ///< [S]
-    SPINEL_PROP_THREAD_ON_MESH_NETS     = SPINEL_PROP_THREAD__BEGIN + 10, ///< array(ipv6prefix,prefixlen,stable,flags,isLocal) [A(t(6CbCb))]
+    SPINEL_PROP_THREAD_ON_MESH_NETS     = SPINEL_PROP_THREAD__BEGIN + 10, ///< array(ipv6prefix,prefixlen,stable,flags,isLocal,rloc6) [A(t(6CbCbS))]
 
     /// Off-mesh routes
     /** Format: [A(t(6CbCbb))]
@@ -821,6 +826,8 @@ typedef enum
      *       route is this device itself (i.e., route was added by this device)
      *       This value is ignored when adding an external route. For any added
      *       route the next hop is this device.
+     *  `S`: The RLOC16 of the device that registered this route entry.
+     *       This value is not used and ignored when adding a route.
      *
      */
     SPINEL_PROP_THREAD_OFF_MESH_ROUTES  = SPINEL_PROP_THREAD__BEGIN + 11,
@@ -1455,7 +1462,57 @@ SPINEL_API_EXTERN spinel_ssize_t spinel_datatype_vpack(uint8_t *data_out, spinel
                                                        const char *pack_format, va_list args);
 SPINEL_API_EXTERN spinel_ssize_t spinel_datatype_unpack(const uint8_t *data_in, spinel_size_t data_len,
                                                         const char *pack_format, ...);
+/**
+ * This function parses spinel data similar to sscanf().
+ *
+ * This function actually calls spinel_datatype_vunpack_in_place() to parse data.
+ *
+ * @param[in]   data_in     A pointer to the data to parse.
+ * @param[in]   data_len    The length of @p data_in in bytes.
+ * @param[in]   pack_format C string that contains a format string follows the same specification of spinel.
+ * @param[in]   ...         Additional arguments depending on the format string @p pack_format.
+ *
+ * @returns The parsed length in bytes.
+ *
+ * @note This function behaves different from `spinel_datatype_unpack()`:
+ *       - This function expects composite data arguments of pointer to data type, while `spinel_datatype_unpack()`
+ *         expects them of pointer to data type pointer. For example, if `SPINEL_DATATYPE_EUI64_C` is present in
+ *         @p pack_format, this function expects a `spinel_eui64_t *` is included in variable arguments, while
+ *         `spinel_datatype_unpack()` expects a `spinel_eui64_t **` is included.
+ *       - For `SPINEL_DATATYPE_UTF8_C`, this function expects two arguments, the first of type `char *` and the
+ *         second is of type `size_t` to indicate length of the provided buffer in the first argument just like
+ *         `strncpy()`, while `spinel_datatype_unpack()` only expects a `const char **`.
+ *
+ * @sa spinel_datatype_vunpack_in_place()
+ *
+ */
+SPINEL_API_EXTERN spinel_ssize_t spinel_datatype_unpack_in_place(const uint8_t *data_in, spinel_size_t data_len,
+                                                        const char *pack_format, ...);
 SPINEL_API_EXTERN spinel_ssize_t spinel_datatype_vunpack(const uint8_t *data_in, spinel_size_t data_len,
+                                                         const char *pack_format, va_list args);
+/**
+ * This function parses spinel data similar to vsscanf().
+ *
+ * @param[in]   data_in     A pointer to the data to parse.
+ * @param[in]   data_len    The length of @p data_in in bytes.
+ * @param[in]   pack_format C string that contains a format string follows the same specification of spinel.
+ * @param[in]   args        A value identifying a variable arguments list.
+ *
+ * @returns The parsed length in bytes.
+ *
+ * @note This function behaves different from `spinel_datatype_vunpack()`:
+ *       - This function expects composite data arguments of pointer to data type, while `spinel_datatype_vunpack()`
+ *         expects them of pointer to data type pointer. For example, if `SPINEL_DATATYPE_EUI64_C` is present in
+ *         @p pack_format, this function expects a `spinel_eui64_t *` is included in variable arguments, while
+ *         `spinel_datatype_vunpack()` expects a `spinel_eui64_t **` is included.
+ *       - For `SPINEL_DATATYPE_UTF8_C`, this function expects two arguments, the first of type `char *` and the
+ *         second is of type `size_t` to indicate length of the provided buffer in the first argument just like
+ *         `strncpy()`, while `spinel_datatype_vunpack()` only expects a `const char **`.
+ *
+ * @sa spinel_datatype_unpack_in_place()
+ *
+ */
+SPINEL_API_EXTERN spinel_ssize_t spinel_datatype_vunpack_in_place(const uint8_t *data_in, spinel_size_t data_len,
                                                          const char *pack_format, va_list args);
 
 SPINEL_API_EXTERN spinel_ssize_t spinel_packed_uint_decode(const uint8_t *bytes, spinel_size_t len,

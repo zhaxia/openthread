@@ -114,6 +114,19 @@ otError UdpSocket::SendTo(Message &aMessage, const MessageInfo &aMessageInfo)
         GetSockName().mPort = static_cast<Udp *>(mTransport)->GetEphemeralPort();
     }
 
+    if (messageInfoLocal.GetPeerAddr().IsUnspecified())
+    {
+        VerifyOrExit(!GetPeerName().GetAddress().IsUnspecified(), error = OT_ERROR_INVALID_ARGS);
+
+        messageInfoLocal.SetPeerAddr(GetPeerName().GetAddress());
+    }
+
+    if (messageInfoLocal.mPeerPort == 0)
+    {
+        VerifyOrExit(GetPeerName().mPort != 0, error = OT_ERROR_INVALID_ARGS);
+        messageInfoLocal.mPeerPort = GetPeerName().mPort;
+    }
+
     udpHeader.SetSourcePort(GetSockName().mPort);
     udpHeader.SetDestinationPort(messageInfoLocal.mPeerPort);
     udpHeader.SetLength(sizeof(udpHeader) + aMessage.GetLength());
@@ -216,7 +229,10 @@ otError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
     checksum = Ip6::ComputePseudoheaderChecksum(aMessageInfo.GetPeerAddr(), aMessageInfo.GetSockAddr(),
                                                 payloadLength, kProtoUdp);
     checksum = aMessage.UpdateChecksum(checksum, aMessage.GetOffset(), payloadLength);
+
+#ifndef FUZZING_BUILD_MODE_UNSAFE_FOR_PRODUCTION
     VerifyOrExit(checksum == 0xffff, error = OT_ERROR_DROP);
+#endif
 
     VerifyOrExit(aMessage.Read(aMessage.GetOffset(), sizeof(udpHeader), &udpHeader) == sizeof(udpHeader),
                  error = OT_ERROR_PARSE);

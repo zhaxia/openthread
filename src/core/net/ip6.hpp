@@ -40,6 +40,7 @@
 #include <openthread/udp.h>
 
 #include "common/encoding.hpp"
+#include "common/locator.hpp"
 #include "common/message.hpp"
 #include "net/icmp6.hpp"
 #include "net/ip6_address.hpp"
@@ -95,7 +96,7 @@ namespace Ip6 {
  * This class implements the core IPv6 message processing.
  *
  */
-class Ip6
+class Ip6 : public InstanceLocator
 {
 public:
     enum
@@ -116,8 +117,11 @@ public:
 
     /**
      * This constructor initializes the object.
+     *
+     * @param[in]  aInstance   A reference to the otInstance object.
+     *
      */
-    Ip6(void);
+    Ip6(otInstance &aInstance);
 
     /**
      * This method sends an IPv6 datagram.
@@ -167,29 +171,6 @@ public:
      * @param aMessage A reference to the message.
      */
     void EnqueueDatagram(Message &aMessage);
-
-    /**
-     * This static method updates a checksum.
-     *
-     * @param[in]  aChecksum  The checksum value to update.
-     * @param[in]  aValue     The 16-bit value to update @p aChecksum with.
-     *
-     * @returns The updated checksum.
-     *
-     */
-    static uint16_t UpdateChecksum(uint16_t aChecksum, uint16_t aValue);
-
-    /**
-     * This static method updates a checksum.
-     *
-     * @param[in]  aChecksum  The checksum value to update.
-     * @param[in]  aBuf       A pointer to a buffer.
-     * @param[in]  aLength    The number of bytes in @p aBuf.
-     *
-     * @returns The updated checksum.
-     *
-     */
-    static uint16_t UpdateChecksum(uint16_t aChecksum, const void *aBuf, uint16_t aLength);
 
     /**
      * This static method updates a checksum.
@@ -344,14 +325,6 @@ public:
     int8_t GetOnLinkNetif(const Address &aAddress);
 
     /**
-     * This method returns the pointer to the parent otInstance structure.
-     *
-     * @returns The pointer to the parent otInstance structure.
-     *
-     */
-    otInstance *GetInstance(void);
-
-    /**
      * This method returns a reference to the send queue.
      *
      * @returns A reference to the send queue.
@@ -371,8 +344,6 @@ public:
     Icmp mIcmp;
     Udp mUdp;
     Mpl mMpl;
-
-    MessagePool mMessagePool;
 
 private:
     static void HandleSendQueue(Tasklet &aTasklet);

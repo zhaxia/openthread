@@ -47,7 +47,7 @@ void TestMessage(void)
     instance = testInitInstance();
     VerifyOrQuit(instance != NULL, "Null OpenThread instance\n");
 
-    messagePool = &instance->mIp6.mMessagePool;
+    messagePool = &instance->mMessagePool;
 
     for (unsigned i = 0; i < sizeof(writeBuffer); i++)
     {
@@ -66,8 +66,7 @@ void TestMessage(void)
                  "Message compare failed\n");
     VerifyOrQuit(message->GetLength() == 1024,
                  "Message::GetLength failed\n");
-    SuccessOrQuit(message->Free(),
-                  "Message::Free failed\n");
+    message->Free();
 
     testFreeInstance(instance);
 }
