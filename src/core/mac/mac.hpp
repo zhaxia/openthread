@@ -661,11 +661,10 @@ private:
     };
 
     void GenerateNonce(const ExtAddress &aAddress, uint32_t aFrameCounter, uint8_t aSecurityLevel, uint8_t *aNonce);
+    void NextOperation(void);
     void ProcessTransmitSecurity(Frame &aFrame);
     otError ProcessReceiveSecurity(Frame &aFrame, const Address &aSrcAddr, Neighbor *aNeighbor);
-    void PutRadioInIdleMode(void);
-    void StartOperation(void);
-    void FinishOperation(void);
+    void ScheduleNextTransmission(void);
     void SentFrame(otError aError);
     void SendBeaconRequest(Frame &aFrame);
     void SendBeacon(Frame &aFrame);
@@ -713,13 +712,13 @@ private:
 
     enum
     {
-        kOperationNone = 0,
-        kOperationActiveScan,
-        kOperationEnergyScan,
-        kOperationTransmitBeacon,
-        kOperationTransmitData,
+        kStateIdle = 0,
+        kStateActiveScan,
+        kStateEnergyScan,
+        kStateTransmitBeacon,
+        kStateTransmitData,
     };
-    uint8_t mOperation;
+    uint8_t mState;
 
     uint8_t mBeaconSequence;
     uint8_t mDataSequence;
