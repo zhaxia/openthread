@@ -2735,7 +2735,7 @@ otError MleRouter::SendChildIdResponse(Child *aChild)
     SuccessOrExit(error = AppendActiveTimestamp(*message));
     SuccessOrExit(error = AppendPendingTimestamp(*message));
 
-    if (aChild->GetState() != Neighbor::kStateValid)
+    if (aChild->GetRloc16() == 0)
     {
         // pick next Child ID that is not being used
         do
