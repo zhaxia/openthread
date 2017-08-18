@@ -34,6 +34,7 @@
 
 #include "common/logging.hpp"
 #include "meshcop/dtls.hpp"
+#include "openthread-instance.h"
 #include "thread/thread_netif.hpp"
 
 #if OPENTHREAD_ENABLE_DTLS
@@ -218,7 +219,7 @@ void CoapSecure::HandleDtlsReceive(uint8_t *aBuf, uint16_t aLength)
 
     otLogFuncEntry();
 
-    VerifyOrExit((message = GetNetif().GetIp6().mMessagePool.New(Message::kTypeIp6, 0)) != NULL);
+    VerifyOrExit((message = GetInstance().mMessagePool.New(Message::kTypeIp6, 0)) != NULL);
     SuccessOrExit(message->Append(aBuf, aLength));
 
     Coap::Receive(*message, mPeerAddress);
@@ -251,21 +252,22 @@ otError CoapSecure::HandleDtlsSend(const uint8_t *aBuf, uint16_t aLength, uint8_
         mTransmitMessage->SetLinkSecurityEnabled(false);
     }
 
+    SuccessOrExit(error = mTransmitMessage->Append(aBuf, aLength));
+
     // Set message sub type in case Joiner Finalize Response is appended to the message.
     if (aMessageSubType != Message::kSubTypeNone)
     {
         mTransmitMessage->SetSubType(aMessageSubType);
     }
 
-    VerifyOrExit(mTransmitMessage->Append(aBuf, aLength) == OT_ERROR_NONE, error = OT_ERROR_NO_BUFS);
-
     mTransmitTask.Post();
 
 exit:
 
-    if (error != OT_ERROR_NONE && mTransmitMessage != NULL)
+    if (error != OT_ERROR_NONE && mTransmitMessage != NULL && mTransmitMessage->GetLength() == 0)
     {
         mTransmitMessage->Free();
+        mTransmitMessage = NULL;
     }
 
     otLogFuncExitErr(error);

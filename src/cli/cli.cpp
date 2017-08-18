@@ -201,6 +201,9 @@ const struct Command Interpreter::sCommands[] =
     { "state", &Interpreter::ProcessState },
     { "thread", &Interpreter::ProcessThread },
     { "txpowermax", &Interpreter::ProcessTxPowerMax },
+#ifndef OTDLL
+    { "udp", &Interpreter::ProcessUdp },
+#endif
     { "version", &Interpreter::ProcessVersion },
 };
 
@@ -244,10 +247,11 @@ Interpreter::Interpreter(otInstance *aInstance):
     mLength(8),
     mCount(1),
     mInterval(1000),
-    mPingTimer(aInstance, &Interpreter::s_HandlePingTimer, this),
+    mPingTimer(*aInstance, &Interpreter::s_HandlePingTimer, this),
 #if OPENTHREAD_ENABLE_DNS_CLIENT
     mResolvingInProgress(0),
 #endif
+    mUdp(*this),
 #endif
     mInstance(aInstance)
 {
@@ -877,7 +881,7 @@ void Interpreter::ProcessExtAddress(int argc, char *argv[])
 
     if (argc == 0)
     {
-        otBufferPtr extAddress(otLinkGetExtendedAddress(mInstance));
+        otBufferPtr extAddress(reinterpret_cast<const uint8_t *>(otLinkGetExtendedAddress(mInstance)));
         OutputBytes(extAddress, OT_EXT_ADDRESS_SIZE);
         mServer->OutputFormat("\r\n");
     }
@@ -2487,6 +2491,15 @@ void Interpreter::ProcessVersion(int argc, char *argv[])
     OT_UNUSED_VARIABLE(argv);
 }
 
+#ifndef OTDLL
+void Interpreter::ProcessUdp(int argc, char *argv[])
+{
+    otError error;
+    error = mUdp.Process(argc, argv);
+    AppendResult(error);
+}
+#endif
+
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 
 void Interpreter::ProcessCommissioner(int argc, char *argv[])
@@ -2787,7 +2800,7 @@ void Interpreter::ProcessJoiner(int argc, char *argv[])
         VerifyOrExit(argc > 1, error = OT_ERROR_PARSE);
         provisioningUrl = (argc > 2) ? argv[2] : NULL;
         otJoinerStart(mInstance, argv[1], provisioningUrl,
-                      PACKAGE_NAME, PLATFORM_INFO, PACKAGE_VERSION, NULL,
+                      PACKAGE_NAME, OPENTHREAD_CONFIG_PLATFORM_INFO, PACKAGE_VERSION, NULL,
                       &Interpreter::s_HandleJoinerCallback, this);
     }
     else if (strcmp(argv[0], "stop") == 0)

@@ -51,6 +51,7 @@
 #if OPENTHREAD_ENABLE_NCP_UART
 
 namespace ot {
+namespace Ncp {
 
 static otDEFINE_ALIGNED_VAR(sNcpRaw, sizeof(NcpUart), uint64_t);
 
@@ -98,7 +99,7 @@ NcpUart::NcpUart(otInstance *aInstance):
     mUartBuffer(),
     mState(kStartingFrame),
     mByte(0),
-    mUartSendTask(aInstance, EncodeAndSendToUart, this)
+    mUartSendTask(*aInstance, EncodeAndSendToUart, this)
 {
     mTxFrameBuffer.SetFrameAddedCallback(HandleFrameAddedToNcpBuffer, this);
 
@@ -301,6 +302,7 @@ void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat
 #endif
 #endif // OPENTHREAD_ENABLE_CLI_LOGGING
 
+}  // namespace Ncp
 }  // namespace ot
 
 #endif // OPENTHREAD_ENABLE_NCP_UART

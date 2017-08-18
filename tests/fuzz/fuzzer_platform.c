@@ -54,6 +54,23 @@ void otPlatAlarmMilliStop(otInstance *aInstance)
     (void)aInstance;
 }
 
+uint32_t otPlatAlarmMicroGetNow(void)
+{
+    return 0;
+}
+
+void otPlatAlarmMicroStartAt(otInstance *aInstance, uint32_t aT0, uint32_t aDt)
+{
+    (void)aInstance;
+    (void)aT0;
+    (void)aDt;
+}
+
+void otPlatAlarmMicroStop(otInstance *aInstance)
+{
+    (void)aInstance;
+}
+
 void otPlatReset(otInstance *aInstance)
 {
     (void)aInstance;
@@ -84,7 +101,7 @@ void otPlatRadioSetPanId(otInstance *aInstance, uint16_t aPanId)
     (void)aPanId;
 }
 
-void otPlatRadioSetExtendedAddress(otInstance *aInstance, uint8_t *aExtAddr)
+void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aExtAddr)
 {
     (void)aInstance;
     (void)aExtAddr;
@@ -177,7 +194,7 @@ otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, const uint16_t a
     return OT_ERROR_NONE;
 }
 
-otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress)
+otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
     (void)aInstance;
     (void)aExtAddress;
@@ -191,7 +208,7 @@ otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint16_t
     return OT_ERROR_NONE;
 }
 
-otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress)
+otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
     (void)aInstance;
     (void)aExtAddress;

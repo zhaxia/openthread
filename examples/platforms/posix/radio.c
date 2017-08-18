@@ -79,6 +79,7 @@ enum
 enum
 {
     POSIX_RECEIVE_SENSITIVITY = -100,  // dBm
+    POSIX_MAX_SRC_MATCH_ENTRIES = OPENTHREAD_CONFIG_MAX_CHILDREN,
 };
 
 OT_TOOL_PACKED_BEGIN
@@ -104,10 +105,46 @@ static otRadioFrame sAckFrame;
 static uint8_t sExtendedAddress[OT_EXT_ADDRESS_SIZE];
 static uint16_t sShortAddress;
 static uint16_t sPanid;
+static uint16_t sPortOffset = 0;
 static int sSockFd;
 static bool sPromiscuous = false;
 static bool sAckWait = false;
-static uint16_t sPortOffset = 0;
+
+static uint8_t sShortAddressMatchTableCount = 0;
+static uint8_t sExtAddressMatchTableCount = 0;
+static uint16_t sShortAddressMatchTable[POSIX_MAX_SRC_MATCH_ENTRIES];
+static otExtAddress sExtAddressMatchTable[POSIX_MAX_SRC_MATCH_ENTRIES];
+static bool sSrcMatchEnabled = false;
+
+static bool findShortAddress(uint16_t aShortAddress)
+{
+    uint8_t i;
+
+    for (i = 0; i < sShortAddressMatchTableCount; ++i)
+    {
+        if (sShortAddressMatchTable[i] == aShortAddress)
+        {
+            break;
+        }
+    }
+
+    return i < sShortAddressMatchTableCount;
+}
+
+static bool findExtAddress(const otExtAddress *aExtAddress)
+{
+    uint8_t i;
+
+    for (i = 0; i < sExtAddressMatchTableCount; ++i)
+    {
+        if (!memcmp(&sExtAddressMatchTable[i], aExtAddress, sizeof(otExtAddress)))
+        {
+            break;
+        }
+    }
+
+    return i < sExtAddressMatchTableCount;
+}
 
 static inline bool isFrameTypeAck(const uint8_t *frame)
 {
@@ -134,16 +171,17 @@ static inline bool isPanIdCompressed(const uint8_t *frame)
     return (frame[0] & IEEE802154_PANID_COMPRESSION) != 0;
 }
 
-static inline bool isDataRequest(const uint8_t *frame)
+static inline bool isDataRequestAndHasFramePending(const uint8_t *frame)
 {
     const uint8_t *cur = frame;
     uint8_t securityControl;
-    bool rval;
+    bool isDataRequest = false;
+    bool hasFramePending = false;
 
     // FCF + DSN
     cur += 2 + 1;
 
-    otEXPECT_ACTION(isFrameTypeMacCmd(frame), rval = false);
+    otEXPECT(isFrameTypeMacCmd(frame));
 
     // Destination PAN + Address
     switch (frame[1] & IEEE802154_DST_ADDR_MASK)
@@ -157,7 +195,6 @@ static inline bool isDataRequest(const uint8_t *frame)
         break;
 
     default:
-        rval = false;
         goto exit;
     }
 
@@ -170,6 +207,11 @@ static inline bool isDataRequest(const uint8_t *frame)
             cur += sizeof(otPanId);
         }
 
+        if (sSrcMatchEnabled)
+        {
+            hasFramePending = findShortAddress((uint16_t)(cur[1] << 8 | cur[0]));
+        }
+
         cur += sizeof(otShortAddress);
         break;
 
@@ -179,11 +221,15 @@ static inline bool isDataRequest(const uint8_t *frame)
             cur += sizeof(otPanId);
         }
 
+        if (sSrcMatchEnabled)
+        {
+            hasFramePending = findExtAddress((const otExtAddress *)cur);
+        }
+
         cur += sizeof(otExtAddress);
         break;
 
     default:
-        rval = false;
         goto exit;
     }
 
@@ -218,10 +264,10 @@ static inline bool isDataRequest(const uint8_t *frame)
     }
 
     // Command ID
-    rval = cur[0] == IEEE802154_MACCMD_DATA_REQ;
+    isDataRequest = cur[0] == IEEE802154_MACCMD_DATA_REQ;
 
 exit:
-    return rval;
+    return isDataRequest && hasFramePending;
 }
 
 static inline uint8_t getDsn(const uint8_t *frame)
@@ -311,13 +357,13 @@ void otPlatRadioSetPanId(otInstance *aInstance, uint16_t panid)
     sPanid = panid;
 }
 
-void otPlatRadioSetExtendedAddress(otInstance *aInstance, uint8_t *address)
+void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
     (void)aInstance;
 
     for (size_t i = 0; i < sizeof(sExtendedAddress); i++)
     {
-        sExtendedAddress[i] = address[sizeof(sExtendedAddress) - 1 - i];
+        sExtendedAddress[i] = aExtAddress->m8[sizeof(sExtendedAddress) - 1 - i];
     }
 }
 
@@ -351,7 +397,7 @@ void platformRadioInit(void)
         if (*endptr != '\0')
         {
             fprintf(stderr, "Invalid PORT_OFFSET: %s\n", offset);
-            exit(1);
+            exit(EXIT_FAILURE);
         }
 
         sPortOffset *= WELLKNOWN_NODE_ID;
@@ -588,21 +634,21 @@ void platformRadioProcess(otInstance *aInstance)
     }
 }
 
-void radioTransmit(struct RadioMessage *msg, const struct otRadioFrame *pkt)
+void radioTransmit(struct RadioMessage *aMessage, const struct otRadioFrame *aFrame)
 {
     uint32_t i;
     struct sockaddr_in sockaddr;
 
     uint16_t crc = 0;
-    uint16_t crc_offset = pkt->mLength - sizeof(uint16_t);
+    uint16_t crc_offset = aFrame->mLength - sizeof(uint16_t);
 
     for (i = 0; i < crc_offset; i++)
     {
-        crc = crc16_citt(crc, msg->mPsdu[i]);
+        crc = crc16_citt(crc, aMessage->mPsdu[i]);
     }
 
-    msg->mPsdu[crc_offset] = crc & 0xff;
-    msg->mPsdu[crc_offset + 1] = crc >> 8;
+    aMessage->mPsdu[crc_offset] = crc & 0xff;
+    aMessage->mPsdu[crc_offset + 1] = crc >> 8;
 
     memset(&sockaddr, 0, sizeof(sockaddr));
     sockaddr.sin_family = AF_INET;
@@ -618,7 +664,7 @@ void radioTransmit(struct RadioMessage *msg, const struct otRadioFrame *pkt)
         }
 
         sockaddr.sin_port = htons(9000 + sPortOffset + i);
-        rval = sendto(sSockFd, (const char *)msg, 1 + pkt->mLength,
+        rval = sendto(sSockFd, (const char *)aMessage, 1 + aFrame->mLength,
                       0, (struct sockaddr *)&sockaddr, sizeof(sockaddr));
 
         if (rval < 0)
@@ -634,7 +680,7 @@ void radioSendAck(void)
     sAckFrame.mLength = IEEE802154_ACK_LENGTH;
     sAckMessage.mPsdu[0] = IEEE802154_FRAME_TYPE_ACK;
 
-    if (isDataRequest(sReceiveFrame.mPsdu))
+    if (isDataRequestAndHasFramePending(sReceiveFrame.mPsdu))
     {
         sAckMessage.mPsdu[0] |= IEEE802154_FRAME_PENDING;
     }
@@ -708,45 +754,98 @@ exit:
 
 void otPlatRadioEnableSrcMatch(otInstance *aInstance, bool aEnable)
 {
+    sSrcMatchEnabled = aEnable;
     (void)aInstance;
-    (void)aEnable;
 }
 
 otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, const uint16_t aShortAddress)
 {
+    otError error = OT_ERROR_NONE;
+    otEXPECT_ACTION(sShortAddressMatchTableCount < sizeof(sShortAddressMatchTable) / sizeof(uint16_t),
+                    error = OT_ERROR_NO_BUFS);
+
+    for (uint8_t i = 0; i < sShortAddressMatchTableCount; ++i)
+    {
+        otEXPECT_ACTION(sShortAddressMatchTable[i] != aShortAddress, error = OT_ERROR_DUPLICATED);
+    }
+
+    sShortAddressMatchTable[sShortAddressMatchTableCount++] = aShortAddress;
+
+exit:
     (void)aInstance;
-    (void)aShortAddress;
-    return OT_ERROR_NONE;
+    return error;
 }
 
-otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress)
+otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
+    otError error = OT_ERROR_NONE;
+
+    otEXPECT_ACTION(sExtAddressMatchTableCount < sizeof(sExtAddressMatchTable) / sizeof(otExtAddress),
+                    error = OT_ERROR_NO_BUFS);
+
+    for (uint8_t i = 0; i < sExtAddressMatchTableCount; ++i)
+    {
+        otEXPECT_ACTION(memcmp(&sExtAddressMatchTable[i], aExtAddress, sizeof(otExtAddress)),
+                        error = OT_ERROR_DUPLICATED);
+    }
+
+    sExtAddressMatchTable[sExtAddressMatchTableCount++] = *aExtAddress;
+
+exit:
     (void)aInstance;
-    (void)aExtAddress;
-    return OT_ERROR_NONE;
+    return error;
 }
 
 otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint16_t aShortAddress)
 {
+    otError error = OT_ERROR_NOT_FOUND;
+    otEXPECT(sShortAddressMatchTableCount > 0);
+
+    for (uint8_t i = 0; i < sShortAddressMatchTableCount; ++i)
+    {
+        if (sShortAddressMatchTable[i] == aShortAddress)
+        {
+            sShortAddressMatchTable[i] = sShortAddressMatchTable[--sShortAddressMatchTableCount];
+            error = OT_ERROR_NONE;
+            goto exit;
+        }
+    }
+
+exit:
     (void)aInstance;
-    (void)aShortAddress;
-    return OT_ERROR_NONE;
+    return error;
 }
 
-otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress)
+otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
+    otError error = OT_ERROR_NOT_FOUND;
+
+    otEXPECT(sExtAddressMatchTableCount > 0);
+
+    for (uint8_t i = 0; i < sExtAddressMatchTableCount; ++i)
+    {
+        if (!memcmp(&sExtAddressMatchTable[i], aExtAddress, sizeof(otExtAddress)))
+        {
+            sExtAddressMatchTable[i] = sExtAddressMatchTable[--sExtAddressMatchTableCount];
+            error = OT_ERROR_NONE;
+            goto exit;
+        }
+    }
+
+exit:
     (void)aInstance;
-    (void)aExtAddress;
-    return OT_ERROR_NONE;
+    return error;
 }
 
 void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
 {
+    sShortAddressMatchTableCount = 0;
     (void)aInstance;
 }
 
 void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
 {
+    sExtAddressMatchTableCount = 0;
     (void)aInstance;
 }
 

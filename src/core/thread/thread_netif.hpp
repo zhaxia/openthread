@@ -412,6 +412,15 @@ public:
       */
     PanIdQueryServer &GetPanIdQueryServer(void) { return mPanIdQuery; }
 
+    /**
+     * This method returns whether Thread Management Framework Addressing Rules are met.
+     *
+     * @retval TRUE   if Thread Management Framework Addressing Rules are met.
+     * @retval FALSE  if Thread Management Framework Addressing Rules are not met.
+     *
+     */
+    bool IsTmfMessage(const Ip6::MessageInfo &aMessageInfo);
+
 private:
     static otError TmfFilter(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo, void *aContext);
 
@@ -474,19 +483,6 @@ private:
     AnnounceBeginServer mAnnounceBegin;
     PanIdQueryServer mPanIdQuery;
     EnergyScanServer mEnergyScan;
-};
-
-/**
- * This structure represents Thread-specific link information.
- *
- */
-struct ThreadMessageInfo
-{
-    uint16_t mPanId;         ///< Source PAN ID
-    uint8_t  mChannel;       ///< 802.15.4 Channel
-    int8_t   mRss;           ///< Received Signal Strength in dBm.
-    uint8_t  mLqi;           ///< Link Quality Indicator for a received message.
-    bool     mLinkSecurity;  ///< Indicates whether or not link security is enabled.
 };
 
 /**

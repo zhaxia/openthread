@@ -90,14 +90,14 @@ otError otLinkRawSetPanId(otInstance *aInstance, uint16_t aPanId);
 /**
  * This function sets the IEEE 802.15.4 Extended Address.
  *
- * @param[in]  aInstance         A pointer to an OpenThread instance.
- * @param[in]  aExtendedAddress  A pointer to the IEEE 802.15.4 Extended Address.
+ * @param[in]  aInstance    A pointer to an OpenThread instance.
+ * @param[in]  aExtAddress  A pointer to the IEEE 802.15.4 Extended Address.
  *
  * @retval OT_ERROR_NONE             If successful.
  * @retval OT_ERROR_INVALID_STATE    If the raw link-layer isn't enabled.
  *
  */
-otError otLinkRawSetExtendedAddress(otInstance *aInstance, const otExtAddress *aExtendedAddress);
+otError otLinkRawSetExtendedAddress(otInstance *aInstance, const otExtAddress *aExtAddress);
 
 /**
  * Set the Short Address for address filtering.
@@ -191,7 +191,7 @@ otRadioFrame *otLinkRawGetTransmitBuffer(otInstance *aInstance);
  *
  * @param[in]  aInstance        A pointer to an OpenThread instance.
  * @param[in]  aFrame           A pointer to the frame that was transmitted.
- * @param[in]  aFramePending    TRUE if an ACK frame was received and the Frame Pending bit was set.
+ * @param[in]  aAckFrame        A pointer to the ACK frame.
  * @param[in]  aError           OT_ERROR_NONE when the frame was transmitted.
  *                              OT_ERROR_NO_ACK when the frame was transmitted but no ACK was received
  *                              OT_ERROR_CHANNEL_ACCESS_FAILURE when the transmission could not take place
@@ -199,8 +199,8 @@ otRadioFrame *otLinkRawGetTransmitBuffer(otInstance *aInstance);
  *                              OT_ERROR_ABORT when transmission was aborted for other reasons.
  *
  */
-typedef void (*otLinkRawTransmitDone)(otInstance *aInstance, otRadioFrame *aFrame, bool aFramePending,
-                                      otError aError);
+typedef void (*otLinkRawTransmitDone)(otInstance *aInstance, otRadioFrame *aFrame,
+                                      otRadioFrame *aAckFrame, otError aError);
 
 /**
  * This method begins the transmit sequence on the radio.
@@ -303,7 +303,7 @@ otError otLinkRawSrcMatchAddShortEntry(otInstance *aInstance, const uint16_t aSh
  * @retval OT_ERROR_INVALID_STATE    If the raw link-layer isn't enabled.
  *
  */
-otError otLinkRawSrcMatchAddExtEntry(otInstance *aInstance, const uint8_t *aExtAddress);
+otError otLinkRawSrcMatchAddExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress);
 
 /**
  * Removing short address to the source match table.
@@ -329,7 +329,7 @@ otError otLinkRawSrcMatchClearShortEntry(otInstance *aInstance, const uint16_t a
  * @retval OT_ERROR_INVALID_STATE    If the raw link-layer isn't enabled.
  *
  */
-otError otLinkRawSrcMatchClearExtEntry(otInstance *aInstance, const uint8_t *aExtAddress);
+otError otLinkRawSrcMatchClearExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress);
 
 /**
  * Removing all the short addresses from the source match table.

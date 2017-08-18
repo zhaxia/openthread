@@ -35,12 +35,11 @@
 #define OPENTHREAD_CORE_GP712_CONFIG_H_
 
 /**
-  * @def OPENTHREAD_CONFIG_LEGACY_TRANSMIT_DONE
-  *
-  * Define to 1 if you want use legacy transmit done.
-  *
-  */
-#define OPENTHREAD_CONFIG_LEGACY_TRANSMIT_DONE 1
-
+ * @def OPENTHREAD_CONFIG_PLATFORM_INFO
+ *
+ * The platform-specific string to insert into the OpenThread version string.
+ *
+ */
+#define OPENTHREAD_CONFIG_PLATFORM_INFO                         "GP712"
 
 #endif  // OPENTHREAD_CORE_GP712_CONFIG_H_

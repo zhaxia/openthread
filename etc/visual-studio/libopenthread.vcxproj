@@ -48,7 +48,7 @@
         ..\..\include;
         ..\..\src\core;
         ..\..\third_party\mbedtls;
-        ..\..\third_party\mbedtls\repo\include;
+        ..\..\third_party\mbedtls\repo.patched\include;
       </AdditionalIncludeDirectories>
       <WarningLevel>Level3</WarningLevel>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -72,6 +72,7 @@
     <ClCompile Include="..\..\src\core\api\tasklet_api.cpp" />
     <ClCompile Include="..\..\src\core\api\thread_api.cpp" />
     <ClCompile Include="..\..\src\core\api\thread_ftd_api.cpp" />
+    <ClCompile Include="..\..\src\core\api\udp_api.cpp" />
     <ClCompile Include="..\..\src\core\coap\coap.cpp" />
     <ClCompile Include="..\..\src\core\coap\coap_header.cpp" />
     <ClCompile Include="..\..\src\core\coap\coap_secure.cpp" />
@@ -112,6 +113,7 @@
     <ClCompile Include="..\..\src\core\net\ip6.cpp" />
     <ClCompile Include="..\..\src\core\net\ip6_address.cpp" />
     <ClCompile Include="..\..\src\core\net\ip6_filter.cpp" />
+    <ClCompile Include="..\..\src\core\net\ip6_headers.cpp" />
     <ClCompile Include="..\..\src\core\net\ip6_mpl.cpp" />
     <ClCompile Include="..\..\src\core\net\ip6_routes.cpp" />
     <ClCompile Include="..\..\src\core\net\netif.cpp" />

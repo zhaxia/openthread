@@ -235,7 +235,7 @@ public:
      * This method frees this message buffer.
      *
      */
-    otError Free(void);
+    void Free(void);
 
     /**
      * This method returns a pointer to the next message in the same interface list.
@@ -644,6 +644,29 @@ public:
      *
      */
     const RssAverager &GetRssAverager(void) const { return mBuffer.mHead.mInfo.mRssAverager; }
+
+    /**
+     * This static method updates a checksum.
+     *
+     * @param[in]  aChecksum  The checksum value to update.
+     * @param[in]  aValue     The 16-bit value to update @p aChecksum with.
+     *
+     * @returns The updated checksum.
+     *
+     */
+    static uint16_t UpdateChecksum(uint16_t aChecksum, uint16_t aValue);
+
+    /**
+     * This static method updates a checksum.
+     *
+     * @param[in]  aChecksum  The checksum value to update.
+     * @param[in]  aBuf       A pointer to a buffer.
+     * @param[in]  aLength    The number of bytes in @p aBuf.
+     *
+     * @returns The updated checksum.
+     *
+     */
+    static uint16_t UpdateChecksum(uint16_t aChecksum, const void *aBuf, uint16_t aLength);
 
     /**
      * This method is used to update a checksum value.
@@ -1084,7 +1107,7 @@ public:
      * This constructor initializes the object.
      *
      */
-    MessagePool(otInstance *aInstance);
+    MessagePool(otInstance &aInstance);
 
     /**
      * This method is used to obtain a new message. The default priority `kDefaultMessagePriority`
@@ -1103,11 +1126,8 @@ public:
      *
      * @param[in]  aMessage  The message to free.
      *
-     * @retval OT_ERROR_NONE          Successfully freed the message.
-     * @retval OT_ERROR_INVALID_ARGS  The message is already freed.
-     *
      */
-    otError Free(Message *aMessage);
+    void Free(Message *aMessage);
 
     /**
      * This method returns a pointer to the first message (head) in the all-messages list.
@@ -1134,7 +1154,7 @@ public:
      *
      */
 #if OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT
-    uint16_t GetFreeBufferCount(void) const { return otPlatMessagePoolNumFreeBuffers(GetInstance()); }
+    uint16_t GetFreeBufferCount(void) const { return otPlatMessagePoolNumFreeBuffers(&GetInstance()); }
 #else
     uint16_t GetFreeBufferCount(void) const { return mNumFreeBuffers; }
 #endif
@@ -1146,7 +1166,7 @@ private:
     };
 
     Buffer *NewBuffer(void);
-    otError FreeBuffers(Buffer *aBuffer);
+    void FreeBuffers(Buffer *aBuffer);
     otError ReclaimBuffers(int aNumBuffers);
     PriorityQueue *GetAllMessagesQueue(void) { return &mAllQueue; }
 

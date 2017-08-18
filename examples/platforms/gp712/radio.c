@@ -96,10 +96,10 @@ void otPlatRadioSetPanId(otInstance *aInstance, uint16_t panid)
     otCachedSettings.panid = panid;
 }
 
-void otPlatRadioSetExtendedAddress(otInstance *aInstance, uint8_t *address)
+void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *address)
 {
     (void)aInstance;
-    qorvoRadioSetExtendedAddress(address);
+    qorvoRadioSetExtendedAddress(address->m8);
 }
 
 void otPlatRadioSetShortAddress(otInstance *aInstance, uint16_t address)
@@ -196,7 +196,23 @@ exit:
 
 void cbQorvoRadioTransmitDone(otRadioFrame *aPacket, bool aFramePending, otError aError)
 {
-    otPlatRadioTransmitDone(pQorvoInstance, aPacket, aFramePending, aError);
+    // TODO: pass received ACK frame instead of generating one.
+    otRadioFrame ackFrame;
+    uint8_t psdu[IEEE802154_ACK_LENGTH];
+
+    ackFrame.mPsdu = psdu;
+    ackFrame.mLength = IEEE802154_ACK_LENGTH;
+    ackFrame.mPsdu[0] = IEEE802154_FRAME_TYPE_ACK;
+
+    if (aFramePending)
+    {
+        ackFrame.mPsdu[0] |= IEEE802154_FRAME_PENDING;
+    }
+
+    ackFrame.mPsdu[1] = 0;
+    ackFrame.mPsdu[2] = aPacket->mPsdu[IEEE802154_DSN_OFFSET];
+
+    otPlatRadioTxDone(pQorvoInstance, aPacket, &ackFrame, aError);
 }
 
 void cbQorvoRadioReceiveDone(otRadioFrame *aPacket, otError aError)
@@ -252,10 +268,10 @@ otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, const uint16_t a
     return qorvoRadioAddSrcMatchShortEntry(aShortAddress, otCachedSettings.panid);
 }
 
-otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress)
+otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
     (void)aInstance;
-    return qorvoRadioAddSrcMatchExtEntry(aExtAddress, otCachedSettings.panid);
+    return qorvoRadioAddSrcMatchExtEntry(aExtAddress->m8, otCachedSettings.panid);
 }
 
 otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint16_t aShortAddress)
@@ -264,10 +280,10 @@ otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, const uint16_t
     return qorvoRadioClearSrcMatchShortEntry(aShortAddress, otCachedSettings.panid);
 }
 
-otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const uint8_t *aExtAddress)
+otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
     (void)aInstance;
-    return qorvoRadioClearSrcMatchExtEntry(aExtAddress, otCachedSettings.panid);
+    return qorvoRadioClearSrcMatchExtEntry(aExtAddress->m8, otCachedSettings.panid);
 }
 
 void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)

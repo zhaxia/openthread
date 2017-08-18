@@ -48,7 +48,6 @@ set -x
         --enable-ncp-app=all              \
         --with-ncp-bus=uart               \
         --with-examples=posix             \
-        --with-platform-info=POSIX        \
         --enable-application-coap         \
         --enable-border-router            \
         --enable-cert-log                 \
@@ -113,6 +112,15 @@ set -x
     make -f examples/Makefile-cc2650 || die
     arm-none-eabi-size  output/cc2650/bin/ot-cli-mtd || die
     arm-none-eabi-size  output/cc2650/bin/ot-ncp-mtd || die
+
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    COMMISSIONER=1 JOINER=1 DHCP6_CLIENT=1 DHCP6_SERVER=1 DNS_CLIENT=1 make -f examples/Makefile-cc2652 || die
+    arm-none-eabi-size  output/cc2652/bin/ot-cli-ftd || die
+    arm-none-eabi-size  output/cc2652/bin/ot-cli-mtd || die
+    arm-none-eabi-size  output/cc2652/bin/ot-ncp-ftd || die
+    arm-none-eabi-size  output/cc2652/bin/ot-ncp-mtd || die
 }
 
 [ $BUILD_TARGET != arm-gcc54 ] || {
@@ -160,6 +168,15 @@ set -x
     make -f examples/Makefile-cc2650 || die
     arm-none-eabi-size  output/cc2650/bin/ot-cli-mtd || die
     arm-none-eabi-size  output/cc2650/bin/ot-ncp-mtd || die
+
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    COMMISSIONER=1 JOINER=1 DHCP6_CLIENT=1 DHCP6_SERVER=1 DNS_CLIENT=1 make -f examples/Makefile-cc2652 || die
+    arm-none-eabi-size  output/cc2652/bin/ot-cli-ftd || die
+    arm-none-eabi-size  output/cc2652/bin/ot-cli-mtd || die
+    arm-none-eabi-size  output/cc2652/bin/ot-ncp-ftd || die
+    arm-none-eabi-size  output/cc2652/bin/ot-ncp-mtd || die
 }
 
 [ $BUILD_TARGET != arm-gcc63 ] || {
@@ -178,8 +195,16 @@ set -x
 [ $BUILD_TARGET != posix ] || {
     sh -c '$CC --version' || die
     sh -c '$CXX --version' || die
+
+    git checkout -- . || die
+    git clean -xfd || die
     ./bootstrap || die
-    make -f examples/Makefile-posix || die
+    CPPFLAGS=-DOPENTHREAD_CONFIG_LOG_LEVEL=OT_LOG_LEVEL_NONE make -f examples/Makefile-posix || die
+
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    CPPFLAGS=-DOPENTHREAD_CONFIG_LOG_LEVEL=OT_LOG_LEVEL_DEBG make -f examples/Makefile-posix || die
 }
 
 [ $BUILD_TARGET != posix-distcheck ] || {
@@ -196,7 +221,7 @@ set -x
 
 [ $BUILD_TARGET != posix-ncp-spi ] || {
     ./bootstrap || die
-    make -f examples/Makefile-posix check configure_OPTIONS="--enable-ncp-app=ftd --with-ncp-bus=spi --with-examples=posix --with-platform-info=POSIX" || die
+    make -f examples/Makefile-posix check configure_OPTIONS="--enable-ncp-app=ftd --with-ncp-bus=spi --with-examples=posix" || die
 }
 
 [ $BUILD_TARGET != posix-ncp ] || {

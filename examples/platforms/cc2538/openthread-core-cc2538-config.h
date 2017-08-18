@@ -35,6 +35,14 @@
 #define OPENTHREAD_CORE_CC2538_CONFIG_H_
 
 /**
+ * @def OPENTHREAD_CONFIG_PLATFORM_INFO
+ *
+ * The platform-specific string to insert into the OpenThread version string.
+ *
+ */
+#define OPENTHREAD_CONFIG_PLATFORM_INFO                        "CC2538"
+
+/**
  * @def OPENTHREAD_CONFIG_ENABLE_DEFAULT_LOG_OUTPUT
  *
  * Define to 1 to enable default log output.
@@ -42,28 +50,47 @@
  */
 #define OPENTHREAD_CONFIG_ENABLE_DEFAULT_LOG_OUTPUT            1
 
- /**
-  * @def OPENTHREAD_CONFIG_ENABLE_SOFTWARE_ACK_TIMEOUT
-  *
-  * Define to 1 if you want to enable software ACK timeout logic.
-  *
-  */
+/**
+ * @def OPENTHREAD_CONFIG_ENABLE_SOFTWARE_ACK_TIMEOUT
+ *
+ * Define to 1 if you want to enable software ACK timeout logic.
+ *
+ */
 #define OPENTHREAD_CONFIG_ENABLE_SOFTWARE_ACK_TIMEOUT          1
 
- /**
-  * @def OPENTHREAD_CONFIG_ENABLE_SOFTWARE_RETRANSMIT
-  *
-  * Define to 1 if you want to enable software retransmission logic.
-  *
-  */
+/**
+ * @def OPENTHREAD_CONFIG_ENABLE_SOFTWARE_RETRANSMIT
+ *
+ * Define to 1 if you want to enable software retransmission logic.
+ *
+ */
 #define OPENTHREAD_CONFIG_ENABLE_SOFTWARE_RETRANSMIT           1
 
- /**
-  * @def OPENTHREAD_CONFIG_ENABLE_SOFTWARE_ENERGY_SCAN
-  *
-  * Define to 1 if you want to enable software energy scanning logic.
-  *
-  */
+/**
+ * @def OPENTHREAD_CONFIG_ENABLE_SOFTWARE_ENERGY_SCAN
+ *
+ * Define to 1 if you want to enable software energy scanning logic.
+ *
+ */
 #define OPENTHREAD_CONFIG_ENABLE_SOFTWARE_ENERGY_SCAN          1
+
+/**
+ * @def SETTINGS_CONFIG_BASE_ADDRESS
+ *
+ * The actual physical address used for the cc2538 is set by the
+ * linker file, the value here is "relative to the base address" set
+ * in the linker file.
+ */
+#define SETTINGS_CONFIG_BASE_ADDRESS                           0
+
+/**
+ * @def The CC2538 linker script sets aside 2 pages.
+ */
+#define SETTINGS_CONFIG_PAGE_NUM                               2
+
+/**
+ * @def The page size of settings, 2K bytes
+ */
+#define SETTINGS_CONFIG_PAGE_SIZE                              2048
 
 #endif  // OPENTHREAD_CORE_CC2538_CONFIG_H_
