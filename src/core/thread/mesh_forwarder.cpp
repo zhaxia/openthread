@@ -382,14 +382,9 @@ void MeshForwarder::ScheduleTransmissionTask(void)
             child.GetMacAddress(mMacDest);
         }
 
-        // To ensure fairness in handling of data requests from sleepy
-        // children, once a message is scheduled and prepared for indirect
-        // transmission to a child, the `mStartChildIndex` is updated to
-        // the next index after the current child. Subsequent call to
-        // `ScheduleTransmissionTask()` will begin the iteration through
-        // the children list from this index.
+        // Record current child index, and move it to next index after this indirect transmission has completed.
 
-        mStartChildIndex = nextIndex;
+        mStartChildIndex = childIndex;
 
         netif.GetMac().SendFrameRequest(mMacSender);
         ExitNow();
@@ -571,7 +566,35 @@ Message *MeshForwarder::GetDirectTransmission(void)
             break;
 
         case Message::kTypeMacDataPoll:
-            ExitNow();
+        {
+            ThreadNetif &netif = GetNetif();
+            Neighbor *parent = netif.GetMle().GetParent();
+
+            if ((parent != NULL) && (parent->IsStateValidOrRestoring()))
+            {
+                mMacSource.mShortAddress = netif.GetMac().GetShortAddress();
+
+                if (mMacSource.mShortAddress != Mac::kShortAddrInvalid)
+                {
+                    mMacSource.mLength = sizeof(mMacSource.mShortAddress);
+                    mMacDest.mLength = sizeof(mMacDest.mShortAddress);
+                    mMacDest.mShortAddress = parent->GetRloc16();
+                }
+                else
+                {
+                    mMacSource.mLength = sizeof(mMacSource.mExtAddress);
+                    memcpy(mMacSource.mExtAddress.m8, netif.GetMac().GetExtAddress(), sizeof(mMacSource.mExtAddress));
+                    mMacDest.mLength = sizeof(mMacDest.mExtAddress);
+                    memcpy(mMacDest.mExtAddress.m8, &parent->GetExtAddress(), sizeof(mMacDest.mExtAddress));
+                }
+            }
+            else
+            {
+                error = OT_ERROR_DROP;
+            }
+
+            break;
+        }
 
         case Message::kTypeSupervision:
             error = OT_ERROR_DROP;
@@ -1110,26 +1133,12 @@ exit:
 otError MeshForwarder::SendPoll(Message &aMessage, Mac::Frame &aFrame)
 {
     ThreadNetif &netif = GetNetif();
-    Mac::Address macSource;
     uint16_t fcf;
-    Neighbor *neighbor;
-
-    macSource.mShortAddress = netif.GetMac().GetShortAddress();
-
-    if (macSource.mShortAddress != Mac::kShortAddrInvalid)
-    {
-        macSource.mLength = sizeof(macSource.mShortAddress);
-    }
-    else
-    {
-        macSource.mLength = sizeof(macSource.mExtAddress);
-        memcpy(&macSource.mExtAddress, netif.GetMac().GetExtAddress(), sizeof(macSource.mExtAddress));
-    }
 
     // initialize MAC header
     fcf = Mac::Frame::kFcfFrameMacCmd | Mac::Frame::kFcfPanidCompression | Mac::Frame::kFcfFrameVersion2006;
 
-    if (macSource.mLength == sizeof(Mac::ShortAddress))
+    if (mMacSource.mLength == sizeof(Mac::ShortAddress))
     {
         fcf |= Mac::Frame::kFcfDstAddrShort | Mac::Frame::kFcfSrcAddrShort;
     }
@@ -1142,21 +1151,8 @@ otError MeshForwarder::SendPoll(Message &aMessage, Mac::Frame &aFrame)
 
     aFrame.InitMacHeader(fcf, Mac::Frame::kKeyIdMode1 | Mac::Frame::kSecEncMic32);
     aFrame.SetDstPanId(netif.GetMac().GetPanId());
-
-    neighbor = netif.GetMle().GetParent();
-    assert(neighbor != NULL);
-
-    if (macSource.mLength == 2)
-    {
-        aFrame.SetDstAddr(neighbor->GetRloc16());
-        aFrame.SetSrcAddr(macSource.mShortAddress);
-    }
-    else
-    {
-        aFrame.SetDstAddr(neighbor->GetExtAddress());
-        aFrame.SetSrcAddr(macSource.mExtAddress);
-    }
-
+    aFrame.SetSrcAddr(mMacSource);
+    aFrame.SetDstAddr(mMacDest);
     aFrame.SetCommandId(Mac::Frame::kMacCmdDataRequest);
 
     mMessageNextOffset = aMessage.GetLength();
@@ -1278,24 +1274,8 @@ otError MeshForwarder::SendFragment(Message &aMessage, Mac::Frame &aFrame)
     aFrame.InitMacHeader(fcf, secCtl);
     aFrame.SetDstPanId(dstpan);
     aFrame.SetSrcPanId(netif.GetMac().GetPanId());
-
-    if (mMacDest.mLength == 2)
-    {
-        aFrame.SetDstAddr(mMacDest.mShortAddress);
-    }
-    else
-    {
-        aFrame.SetDstAddr(mMacDest.mExtAddress);
-    }
-
-    if (mMacSource.mLength == 2)
-    {
-        aFrame.SetSrcAddr(mMacSource.mShortAddress);
-    }
-    else
-    {
-        aFrame.SetSrcAddr(mMacSource.mExtAddress);
-    }
+    aFrame.SetDstAddr(mMacDest);
+    aFrame.SetSrcAddr(mMacSource);
 
     payload = aFrame.GetPayload();
 
@@ -1473,25 +1453,8 @@ otError MeshForwarder::SendEmptyFrame(Mac::Frame &aFrame, bool aAckRequest)
 
     aFrame.SetDstPanId(netif.GetMac().GetPanId());
     aFrame.SetSrcPanId(netif.GetMac().GetPanId());
-
-    if (mMacDest.mLength == 2)
-    {
-        aFrame.SetDstAddr(mMacDest.mShortAddress);
-    }
-    else
-    {
-        aFrame.SetDstAddr(mMacDest.mExtAddress);
-    }
-
-    if (macSource.mLength == 2)
-    {
-        aFrame.SetSrcAddr(macSource.mShortAddress);
-    }
-    else
-    {
-        aFrame.SetSrcAddr(macSource.mExtAddress);
-    }
-
+    aFrame.SetDstAddr(mMacDest);
+    aFrame.SetSrcAddr(macSource);
     aFrame.SetPayloadLength(0);
     aFrame.SetFramePending(false);
 
@@ -1565,6 +1528,15 @@ void MeshForwarder::HandleSentFrame(Mac::Frame &aFrame, otError aError)
 
         if (mSendMessage == child->GetIndirectMessage())
         {
+            // To ensure fairness in handling of data requests from sleepy
+            // children, once a message is completed for indirect transmission to a
+            // child (no matter succeed or failed), the `mStartChildIndex` is updated to
+            // the next index after the current child. Subsequent call to
+            // `ScheduleTransmissionTask()` will begin the iteration through
+            // the children list from this index.
+
+            mStartChildIndex++;
+
             if (aError == OT_ERROR_NONE)
             {
                 child->ResetIndirectTxAttempts();

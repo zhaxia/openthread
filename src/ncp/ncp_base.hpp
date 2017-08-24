@@ -206,7 +206,7 @@ protected:
      *
      * If no buffer space is available, this method should discard and clear the frame before returning an error status.
      * In case of success, the passed-in message @aMessage should be owned by outbound buffer and should be freed
-     * when either the the frame is successfully sent and removed or if the frame is discarded.
+     * when either the frame is successfully sent and removed or if the frame is discarded.
      *
      * @param[in]  aMessage         A reference to the message to be added to current frame.
      *
@@ -370,6 +370,10 @@ private:
     static void HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort, void *aContext);
     void HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort);
 #endif // OPENTHREAD_FTD && OPENTHREAD_ENABLE_TMF_PROXY
+
+#if OPENTHREAD_ENABLE_SPINEL_VENDOR_SUPPORT
+    otError VendorCommandHandler(uint8_t aHeader, unsigned int aCommand, const uint8_t *aArgPtr, uint16_t aArgLen);
+#endif // OPENTHREAD_ENABLE_SPINEL_VENDOR_SUPPORT
 
     NCP_COMMAND_HANDLER(NOOP);
     NCP_COMMAND_HANDLER(RESET);
