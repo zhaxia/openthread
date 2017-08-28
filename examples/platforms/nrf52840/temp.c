@@ -26,50 +26,46 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <stddef.h>
+#include <limits.h>
+#include <stdint.h>
+#include <string.h>
 
-#include <openthread/instance.h>
-#include <openthread/ip6.h>
-#include <openthread/link.h>
-#include <openthread/message.h>
-#include <openthread/thread.h>
-#include <openthread/thread_ftd.h>
-#include <openthread/types.h>
+#include <utils/code_utils.h>
+#include <hal/nrf_temp.h>
 
-#include "common/code_utils.hpp"
+#include "platform-nrf5.h"
 
-extern "C" void FuzzerPlatformInit(void);
-
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+__STATIC_INLINE void dataReadyEventClear(void)
 {
-    const otPanId panId = 0xdead;
+    NRF_TEMP->EVENTS_DATARDY = 0;
+    volatile uint32_t dummy = NRF_TEMP->EVENTS_DATARDY;
+    (void)dummy;
+}
 
-    otInstance *sInstance;
-    otMessage *message = NULL;
-    otError error = OT_ERROR_NONE;
-    bool isSecure;
+void nrf5TempInit(void)
+{
+    nrf_temp_init();
+}
 
-    VerifyOrExit(size > 0);
+void nrf5TempDeinit(void)
+{
+    NRF_TEMP->TASKS_STOP = 1;
+}
 
-    FuzzerPlatformInit();
+int32_t nrf5TempGet(void)
+{
+    NRF_TEMP->TASKS_START = 1;
 
-    sInstance = otInstanceInitSingle();
-    otLinkSetPanId(sInstance, panId);
-    otIp6SetEnabled(sInstance, true);
-    otThreadSetEnabled(sInstance, true);
-    otThreadBecomeLeader(sInstance);
+    while (NRF_TEMP->EVENTS_DATARDY == 0)
+    {
+        ;
+    }
 
-    isSecure = (data[0] & 0x1) != 0;
+    dataReadyEventClear();
 
-    message = otIp6NewMessage(sInstance, isSecure);
-    VerifyOrExit(message != NULL, error = OT_ERROR_NO_BUFS);
+    int32_t temperature = nrf_temp_read();
 
-    error = otMessageAppend(message, data + 1, static_cast<uint16_t>(size - 1));
-    SuccessOrExit(error);
+    NRF_TEMP->TASKS_STOP = 1;
 
-    error = otIp6Send(sInstance, message);
-    SuccessOrExit(error);
-
-exit:
-    return 0;
+    return temperature;
 }
