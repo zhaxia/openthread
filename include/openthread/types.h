@@ -648,7 +648,7 @@ typedef struct otLinkModeConfig
     bool mRxOnWhenIdle : 1;
 
     /**
-     * 1, if the sender will use IEEE 802.15.4 to secure all data requests.  0, otherwise.
+     * 1, if the sender uses IEEE 802.15.4 to secure all data requests.  0, otherwise.
      */
     bool mSecureDataRequests : 1;
 
@@ -683,6 +683,8 @@ enum
     OT_CHANGED_THREAD_CHILD_REMOVED         = 1 << 11,  ///< Child was removed
     OT_CHANGED_IP6_MULTICAST_SUBSRCRIBED    = 1 << 12,  ///< Subscribed to a IPv6 multicast address
     OT_CHANGED_IP6_MULTICAST_UNSUBSRCRIBED  = 1 << 13,  ///< Unsubscribed from a IPv6 multicast address
+    OT_CHANGED_COMMISSIONER_STATE           = 1 << 14,  ///< Commissioner state changed
+    OT_CHANGED_JOINER_STATE                 = 1 << 15,  ///< Joiner state changed
 };
 
 /**
@@ -767,7 +769,7 @@ typedef struct otExternalRouteConfig
     /**
      * The Rloc associated with the external route entry.
      *
-     * This value is ignored when adding an external route. For any added route the device's Rloc will be used.
+     * This value is ignored when adding an external route. For any added route, the device's Rloc is used.
      */
     uint16_t mRloc16;
 
@@ -951,6 +953,7 @@ typedef struct otMacCounters
     uint32_t mTxRetry;                ///< The number of retransmission times.
     uint32_t mTxErrCca;               ///< The number of CCA failure times.
     uint32_t mTxErrAbort;             ///< The number of frame transmission failures due to abort error.
+    uint32_t mTxErrBusyChannel;       ///< The number of frames that were dropped due to a busy channel.
     uint32_t mRxTotal;                ///< The total number of received packets.
     uint32_t mRxUnicast;              ///< The total number of unicast packets received.
     uint32_t mRxBroadcast;            ///< The total number of broadcast packets received.
@@ -1094,6 +1097,40 @@ typedef struct otThreadLinkInfo
 typedef void (OTCALL *otDeviceAvailabilityChangedCallback)(bool aAdded, const GUID *aDeviceGuid, void *aContext);
 
 #endif // OTDLL
+
+/**
+ * Log levels.
+ *
+ * Implimentation note: Log Levels are defines so that embedded
+ * implimentations can elimiate code at compile time via if/else/endif
+ * See openthread/platform/logging.h for details.
+ *
+ * @sa OT_LOG_LEVEL_NONE and related macros.
+ */
+typedef uint8_t otLogLevel;
+
+/**
+ * This enum represents log regions.
+ *
+ */
+typedef enum otLogRegion
+{
+    OT_LOG_REGION_API      = 1,  ///< OpenThread API
+    OT_LOG_REGION_MLE      = 2,  ///< MLE
+    OT_LOG_REGION_ARP      = 3,  ///< EID-to-RLOC mapping.
+    OT_LOG_REGION_NET_DATA = 4,  ///< Network Data
+    OT_LOG_REGION_ICMP     = 5,  ///< ICMPv6
+    OT_LOG_REGION_IP6      = 6,  ///< IPv6
+    OT_LOG_REGION_MAC      = 7,  ///< IEEE 802.15.4 MAC
+    OT_LOG_REGION_MEM      = 8,  ///< Memory
+    OT_LOG_REGION_NCP      = 9,  ///< NCP
+    OT_LOG_REGION_MESH_COP = 10, ///< Mesh Commissioning Protocol
+    OT_LOG_REGION_NET_DIAG = 11, ///< Network Diagnostic
+    OT_LOG_REGION_PLATFORM = 12, ///< Platform
+    OT_LOG_REGION_COAP     = 13, ///< CoAP
+    OT_LOG_REGION_CLI      = 14, ///< Cli
+} otLogRegion;
+
 
 #ifdef __cplusplus
 }  // extern "C"

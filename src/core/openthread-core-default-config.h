@@ -306,6 +306,16 @@
 #endif  // OPENTHREAD_CONFIG_MAX_JOINER_ENTRIES
 
 /**
+ * @def OPENTHREAD_CONFIG_MAX_JOINER_ENTRIES
+ *
+ * The maximum number of Joiner Router entries that can be queued by the Joiner.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MAX_JOINER_ROUTER_ENTRIES
+#define OPENTHREAD_CONFIG_MAX_JOINER_ROUTER_ENTRIES             2
+#endif  // OPENTHREAD_CONFIG_MAX_JOINER_ENTRIES
+
+/**
  * @def OPENTHREAD_CONFIG_MAX_STATECHANGE_HANDLERS
  *
  * The maximum number of state-changed callback handlers (set using `otSetStateChangedCallback()`).
@@ -566,6 +576,16 @@
 #endif  // OPENTHREAD_CONFIG_LOG_PLATFORM
 
 /**
+ * @def OPENTHREAD_CONFIG_LOG_CLI
+ *
+ * Define to enable CLI logging.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_LOG_CLI
+#define OPENTHREAD_CONFIG_LOG_CLI                               1
+#endif  // OPENTHREAD_CONFIG_LOG_CLI
+
+/**
  * @def OPENTHREAD_CONFIG_LOG_COAP
  *
  * Define to enable COAP logging.
@@ -615,18 +635,6 @@
 #define OPENTHREAD_CONFIG_PLAT_LOG_FUNCTION                     otPlatLog
 #endif
 
-/**
- * @def OPENTHREAD_CONFIG_ENABLE_DEFAULT_LOG_OUTPUT
- *
- * Define to 1 to enable default log output.
- *
- * When enabled OpenThread provides a default implementation for `otPlatLog()` which is tied to either NCP or CLI
- * stream writes.
- *
- */
-#ifndef OPENTHREAD_CONFIG_ENABLE_DEFAULT_LOG_OUTPUT
-#define OPENTHREAD_CONFIG_ENABLE_DEFAULT_LOG_OUTPUT             0
-#endif
 
 /**
  * @def OPENTHREAD_CONFIG_NUM_DHCP_PREFIXES
@@ -755,13 +763,16 @@
 #endif
 
 /**
- * @def OPENTHREAD_CONFIG_ENABLE_BEACON_RSP_IF_JOINABLE
+ * @def OPENTHREAD_CONFIG_ENABLE_BEACON_RSP_WHEN_JOINABLE
  *
- * Define to 1 if you want to enable beacon response for joinable networks.
+ * Define to 1 to enable IEEE 802.15.4 Beacons when joining is enabled.
+ *
+ * @note When this feature is enabled, the device will transmit IEEE 802.15.4 Beacons in response to IEEE 802.15.4
+ * Beacon Requests even while the device is not router capable and detached.
  *
  */
-#ifndef OPENTHREAD_CONFIG_ENABLE_BEACON_RSP_IF_JOINABLE
-#define OPENTHREAD_CONFIG_ENABLE_BEACON_RSP_IF_JOINABLE         0
+#ifndef OPENTHREAD_CONFIG_ENABLE_BEACON_RSP_WHEN_JOINABLE
+#define OPENTHREAD_CONFIG_ENABLE_BEACON_RSP_WHEN_JOINABLE       0
 #endif
 
 /**
@@ -851,7 +862,7 @@
 #define OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE                  0
 #endif
 
-/*
+/**
  * @def OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS
  *
  * Define as 1 to stay awake between fragments while transmitting a large packet,
@@ -861,5 +872,76 @@
 #ifndef OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS
 #define OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS          0
 #endif
+
+
+/*
+ * @def OPENTHREAD_CONFIG_ENABLE_DEBUG_UART
+ *
+ * Enable the "Debug Uart" platform feature.
+ *
+ * In the embedded world, the CLI application uses a UART as a console
+ * and the NCP application can be configured to use either a UART or
+ * a SPI type device to transfer data to the host.
+ *
+ * The Debug UART is or requires a second uart on the platform.
+ *
+ * The Debug Uart has two uses:
+ *
+ * Use #1 - for random 'debug printf' type messages a developer may need
+ * Use #2 (selected via DEBUG_LOG_OUTPUT) is a log output.
+ *
+ * See #include <openthread/platform/debug_uart.h> for more details
+ */
+#ifndef OPENTHREAD_CONFIG_ENABLE_DEBUG_UART
+#define OPENTHREAD_CONFIG_ENABLE_DEBUG_UART                     0
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_LOG_OUTPUT
+ *
+ * Selects if, and where the LOG output goes to.
+ *
+ * There are several options available
+ * - @sa OPENTHREAD_CONFIG_LOG_OUTPUT_NONE
+ * - @sa OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
+ * - @sa OPENTHREAD_CONFIG_LOG_OUTPUT_DEBUG_UART
+ * - and others
+ *
+ * Note:
+ *
+ * 1) Because the default is: OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
+ *    The platform is expected to provide at least a stub for `otPlatLog()`
+ *
+ * 2) This is effectively an ENUM so it can be if/else/endif at compile time.
+ */
+
+/**
+ * @def OPENTHREAD_CONFIG_LOG_OUTPUT Select the DEFAULT log output method.
+ */
+#if !defined(OPENTHREAD_CONFIG_LOG_OUTPUT)
+#define OPENTHREAD_CONFIG_LOG_OUTPUT    OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
+#endif
+
+/** Log output goes to the bit bucket (disabled) */
+#define OPENTHREAD_CONFIG_LOG_OUTPUT_NONE                       0
+/** Log output goes to the debug uart */
+#define OPENTHREAD_CONFIG_LOG_OUTPUT_DEBUG_UART                 1
+/** Log output goes to the "application" provides otPlatLog() */
+#define OPENTHREAD_CONFIG_LOG_OUTPUT_APP                        2
+/** Log output goes to POSIX and WIN32 logging schemes */
+#define OPENTHREAD_CONFIG_LOG_OUTPUT_HOST_OS                    3
+/** Log output is handled by a platform defined function */
+#define OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED           4
+
+/*
+ * Verify debug uart dependency
+ *
+ * It is reasonable to only enable the debug uart
+ * and not enable logs to the DEBUG uart.
+ */
+#if (OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_DEBUG_UART) && (!OPENTHREAD_CONFIG_ENABLE_DEBUG_UART)
+#error OPENTHREAD_CONFIG_ENABLE_DEBUG_UART_LOG requires OPENTHREAD_CONFIG_ENABLE_DEBUG_UART
+#endif
+
 
 #endif  // OPENTHREAD_CORE_DEFAULT_CONFIG_H_
