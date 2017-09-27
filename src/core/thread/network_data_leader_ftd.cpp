@@ -237,8 +237,11 @@ void Leader::HandleCommissioningSet(Coap::Header &aHeader, Message &aMessage, co
         }
         else if (type == MeshCoP::Tlv::kCommissionerSessionId)
         {
+            MeshCoP::CommissionerSessionIdTlv *tlv = static_cast<MeshCoP::CommissionerSessionIdTlv *>(cur);
+
+            VerifyOrExit(tlv->IsValid());
+            sessionId = tlv->GetCommissionerSessionId();
             hasSessionId = true;
-            sessionId = static_cast<MeshCoP::CommissionerSessionIdTlv *>(cur)->GetCommissionerSessionId();
         }
         else
         {
@@ -448,6 +451,8 @@ otError Leader::RlocLookup(uint16_t aRloc16, bool &aIn, bool &aStable, uint8_t *
         if (cur->GetType() == NetworkDataTlv::kTypePrefix)
         {
             prefix = static_cast<PrefixTlv *>(cur);
+            VerifyOrExit(prefix->IsValid(), error = OT_ERROR_PARSE);
+
             subCur = prefix->GetSubTlvs();
             subEnd = prefix->GetNext();
 
@@ -519,8 +524,7 @@ exit:
     return error;
 }
 
-bool Leader::IsStableUpdated(uint16_t aRloc16, uint8_t *aTlvs, uint8_t aTlvsLength, uint8_t *aTlvsBase,
-                             uint8_t aTlvsBaseLength)
+bool Leader::IsStableUpdated(uint8_t *aTlvs, uint8_t aTlvsLength, uint8_t *aTlvsBase, uint8_t aTlvsBaseLength)
 {
     bool rval = false;
     NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(aTlvs);
@@ -534,8 +538,8 @@ bool Leader::IsStableUpdated(uint16_t aRloc16, uint8_t *aTlvs, uint8_t aTlvsLeng
         {
             PrefixTlv *prefix = static_cast<PrefixTlv *>(cur);
             ContextTlv *context = FindContext(*prefix);
-            BorderRouterTlv *borderRouter = FindBorderRouter(*prefix);
-            HasRouteTlv *hasRoute = FindHasRoute(*prefix);
+            BorderRouterTlv *borderRouter = FindBorderRouter(*prefix, true);
+            HasRouteTlv *hasRoute = FindHasRoute(*prefix, true);
 
             if (cur->IsStable() && (!context || borderRouter))
             {
@@ -549,7 +553,7 @@ bool Leader::IsStableUpdated(uint16_t aRloc16, uint8_t *aTlvs, uint8_t aTlvsLeng
 
                 if (borderRouter)
                 {
-                    BorderRouterTlv *borderRouterBase = FindBorderRouter(*prefixBase);
+                    BorderRouterTlv *borderRouterBase = FindBorderRouter(*prefixBase, true);
 
                     if (!borderRouterBase || memcmp(borderRouter, borderRouterBase, borderRouter->GetLength()) != 0)
                     {
@@ -559,7 +563,7 @@ bool Leader::IsStableUpdated(uint16_t aRloc16, uint8_t *aTlvs, uint8_t aTlvsLeng
 
                 if (hasRoute)
                 {
-                    HasRouteTlv *hasRouteBase = FindHasRoute(*prefixBase);
+                    HasRouteTlv *hasRouteBase = FindHasRoute(*prefixBase, true);
 
                     if (!hasRouteBase || (memcmp(hasRoute, hasRouteBase, hasRoute->GetLength()) != 0))
                     {
@@ -573,7 +577,6 @@ bool Leader::IsStableUpdated(uint16_t aRloc16, uint8_t *aTlvs, uint8_t aTlvsLeng
     }
 
 exit:
-    OT_UNUSED_VARIABLE(aRloc16);
     return rval;
 }
 
@@ -588,8 +591,8 @@ otError Leader::RegisterNetworkData(uint16_t aRloc16, uint8_t *aTlvs, uint8_t aT
 
     if (rlocIn)
     {
-        if (IsStableUpdated(aRloc16, aTlvs, aTlvsLength, mTlvs, mLength) ||
-            IsStableUpdated(aRloc16, mTlvs, mLength, aTlvs, aTlvsLength))
+        if (IsStableUpdated(aTlvs, aTlvsLength, mTlvs, mLength) ||
+            IsStableUpdated(mTlvs, mLength, aTlvs, aTlvsLength))
         {
             stableUpdated = true;
         }
@@ -656,8 +659,12 @@ exit:
 otError Leader::AddPrefix(PrefixTlv &aPrefix)
 {
     otError error = OT_ERROR_NONE;
-    NetworkDataTlv *cur = aPrefix.GetSubTlvs();
-    NetworkDataTlv *end = aPrefix.GetNext();
+    NetworkDataTlv *cur;
+    NetworkDataTlv *end;
+
+    VerifyOrExit(aPrefix.IsValid(), error = OT_ERROR_PARSE);
+    cur = aPrefix.GetSubTlvs();
+    end = aPrefix.GetNext();
 
     while (cur < end)
     {
