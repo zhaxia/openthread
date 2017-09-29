@@ -953,6 +953,16 @@
 #define OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS          0
 #endif
 
+/**
+ * @def OPENTHREAD_CONFIG_MLE_SEND_LINK_REQUEST_ON_ADV_TIMEOUT
+ *
+ * Define to 1 to send an MLE Link Request when MAX_NEIGHBOR_AGE is reached for a neighboring router.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MLE_SEND_LINK_REQUEST_ON_ADV_TIMEOUT
+#define OPENTHREAD_CONFIG_MLE_SEND_LINK_REQUEST_ON_ADV_TIMEOUT  0
+#endif
+
 /*
  * @def OPENTHREAD_CONFIG_ENABLE_DEBUG_UART
  *
@@ -973,6 +983,19 @@
  */
 #ifndef OPENTHREAD_CONFIG_ENABLE_DEBUG_UART
 #define OPENTHREAD_CONFIG_ENABLE_DEBUG_UART                     0
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_ENABLE_DYNAMIC_MPL_INTERVAL
+ *
+ * Define as 1 to enable dynamic MPL interval feature.
+ *
+ * If this feature is enabled, the MPL forward interval will be adjusted dynamically according to
+ * the network scale, which helps to reduce multicast latency.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_ENABLE_DYNAMIC_MPL_INTERVAL
+#define OPENTHREAD_CONFIG_ENABLE_DYNAMIC_MPL_INTERVAL           0
 #endif
 
 #endif  // OPENTHREAD_CORE_DEFAULT_CONFIG_H_

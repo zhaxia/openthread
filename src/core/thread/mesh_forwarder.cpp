@@ -2338,7 +2338,8 @@ void MeshForwarder::HandleDataRequest(const Mac::Address &aMacSource, const otTh
 
     mScheduleTransmissionTask.Post();
 
-    otLogInfoMac(GetInstance(), "Rx data poll, src:0x%04x, qed_msgs:%d", child->GetRloc16(), indirectMsgCount);
+    otLogInfoMac(GetInstance(), "Rx data poll, src:0x%04x, qed_msgs:%d, rss:%d", child->GetRloc16(), indirectMsgCount,
+                 aLinkInfo.mRss);
 
 exit:
     return;
@@ -2442,6 +2443,7 @@ void MeshForwarder::LogIp6Message(MessageAction aAction, const Message &aMessage
 
     case kMessageReassemblyDrop:
         actionText = "Dropping (reassembly timeout)";
+        shouldLogRss = true;
         break;
 
     case kMessageEvict:
