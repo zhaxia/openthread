@@ -1343,10 +1343,11 @@ protected:
     };
     ReattachState mReattachState;
 
-    TimerMilli mParentRequestTimer;    ///< The timer for driving the Parent Request process.
-    TimerMilli mDelayedResponseTimer;  ///< The timer to delay MLE responses.
-    uint8_t mLastPartitionRouterIdSequence;
-    uint32_t mLastPartitionId;
+    TimerMilli mParentRequestTimer;          ///< The timer for driving the Parent Request process.
+    TimerMilli mDelayedResponseTimer;        ///< The timer to delay MLE responses.
+    uint32_t mLastPartitionId;               ///< The partition ID of the previous Thread partition
+    uint8_t mLastPartitionRouterIdSequence;  ///< The router ID sequence from the previous Thread partition
+    uint8_t mLastPartitionIdTimeout;         ///< The time remaining to avoid the previous Thread partition
 
     uint8_t mParentLeaderCost;
 
@@ -1386,7 +1387,8 @@ private:
     otError SendChildIdRequest(void);
     void SendOrphanAnnounce(void);
 
-    bool IsBetterParent(uint16_t aRloc16, uint8_t aLinkQuality, ConnectivityTlv &aConnectivityTlv);
+    bool IsBetterParent(uint16_t aRloc16, uint8_t aLinkQuality, uint8_t aLinkMargin,
+                        ConnectivityTlv &aConnectivityTlv);
     void ResetParentCandidate(void);
 
 #if OPENTHREAD_CONFIG_INFORM_PREVIOUS_PARENT_ON_REATTACH
@@ -1415,6 +1417,7 @@ private:
     uint8_t mParentLinkQuality1;
     uint8_t mChildUpdateAttempts;
     LeaderDataTlv mParentLeaderData;
+    uint8_t mParentLinkMargin;
     bool mParentIsSingleton;
 
     Router mParentCandidate;
