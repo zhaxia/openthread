@@ -70,8 +70,9 @@ Mle::Mle(ThreadNetif &aThreadNetif) :
     mReattachState(kReattachStop),
     mParentRequestTimer(aThreadNetif.GetInstance(), &Mle::HandleParentRequestTimer, this),
     mDelayedResponseTimer(aThreadNetif.GetInstance(), &Mle::HandleDelayedResponseTimer, this),
-    mLastPartitionRouterIdSequence(0),
     mLastPartitionId(0),
+    mLastPartitionRouterIdSequence(0),
+    mLastPartitionIdTimeout(0),
     mParentLeaderCost(0),
     mParentRequestMode(kAttachAny),
     mParentPriority(0),
@@ -79,6 +80,7 @@ Mle::Mle(ThreadNetif &aThreadNetif) :
     mParentLinkQuality2(0),
     mParentLinkQuality1(0),
     mChildUpdateAttempts(0),
+    mParentLinkMargin(0),
     mParentIsSingleton(false),
     mSocket(aThreadNetif.GetIp6().mUdp),
     mTimeout(kMleEndDeviceTimeout),
@@ -256,7 +258,6 @@ otError Mle::Stop(bool aClearNetworkDatasets)
     netif.GetNetworkDataLocal().Clear();
 #endif
     netif.GetNetworkDataLeader().Clear();
-    memset(&mLeaderData, 0, sizeof(mLeaderData));
 
     if (aClearNetworkDatasets)
     {
@@ -546,8 +547,6 @@ otError Mle::BecomeChild(AttachMode aMode)
     if (aMode == kAttachAny)
     {
         mParent.SetState(Neighbor::kStateInvalid);
-        mLastPartitionId = netif.GetMle().GetPreviousPartitionId();
-        mLastPartitionRouterIdSequence = netif.GetMle().GetRouterIdSequence();
     }
 
     netif.GetMeshForwarder().SetRxOnWhenIdle(true);
@@ -817,6 +816,9 @@ void Mle::SetLeaderData(uint32_t aPartitionId, uint8_t aWeighting, uint8_t aLead
 {
     if (mLeaderData.GetPartitionId() != aPartitionId)
     {
+        mLastPartitionId = mLeaderData.GetPartitionId();
+        mLastPartitionRouterIdSequence = GetNetif().GetMle().GetRouterIdSequence();
+        mLastPartitionIdTimeout = GetNetif().GetMle().GetNetworkIdTimeout();
         GetNetif().SetStateChangedFlags(OT_CHANGED_THREAD_PARTITION_ID);
     }
 
@@ -2531,7 +2533,8 @@ exit:
     return error;
 }
 
-bool Mle::IsBetterParent(uint16_t aRloc16, uint8_t aLinkQuality, ConnectivityTlv &aConnectivityTlv)
+bool Mle::IsBetterParent(uint16_t aRloc16, uint8_t aLinkQuality, uint8_t aLinkMargin,
+                         ConnectivityTlv &aConnectivityTlv)
 {
     bool rval = false;
 
@@ -2568,6 +2571,8 @@ bool Mle::IsBetterParent(uint16_t aRloc16, uint8_t aLinkQuality, ConnectivityTlv
     {
         ExitNow(rval = (aConnectivityTlv.GetLinkQuality1() > mParentLinkQuality1));
     }
+
+    rval = (aLinkMargin > mParentLinkMargin);
 
 exit:
     return rval;
@@ -2672,7 +2677,7 @@ otError Mle::HandleParentResponse(const Message &aMessage, const Ip6::MessageInf
         VerifyOrExit(compare >= 0);
 
         // only consider better parents if the partitions are the same
-        VerifyOrExit(compare != 0 || IsBetterParent(sourceAddress.GetRloc16(), linkQuality, connectivity));
+        VerifyOrExit(compare != 0 || IsBetterParent(sourceAddress.GetRloc16(), linkQuality, linkMargin, connectivity));
     }
 
     // Link Frame Counter
@@ -2715,6 +2720,7 @@ otError Mle::HandleParentResponse(const Message &aMessage, const Ip6::MessageInf
     mParentLeaderCost = connectivity.GetLeaderCost();
     mParentLeaderData = leaderData;
     mParentIsSingleton = connectivity.GetActiveRouters() <= 1;
+    mParentLinkMargin = linkMargin;
 
 exit:
 
@@ -2848,10 +2854,12 @@ otError Mle::HandleChildUpdateRequest(const Message &aMessage, const Ip6::Messag
     static const uint8_t kMaxResponseTlvs = 5;
 
     otError error = OT_ERROR_NONE;
+    Mac::ExtAddress srcAddr;
     SourceAddressTlv sourceAddress;
     LeaderDataTlv leaderData;
     NetworkDataTlv networkData;
     ChallengeTlv challenge;
+    StatusTlv status;
     TlvRequestTlv tlvRequest;
     uint8_t tlvs[kMaxResponseTlvs] = {};
     uint8_t numTlvs = 0;
@@ -2866,6 +2874,22 @@ otError Mle::HandleChildUpdateRequest(const Message &aMessage, const Ip6::Messag
 
     // Leader Data, Network Data, Active Timestamp, Pending Timestamp
     SuccessOrExit(error = HandleLeaderData(aMessage, aMessageInfo));
+
+    // Status
+    if (Tlv::GetTlv(aMessage, Tlv::kStatus, sizeof(status), status) == OT_ERROR_NONE)
+    {
+        VerifyOrExit(status.IsValid(), error = OT_ERROR_PARSE);
+
+        aMessageInfo.GetPeerAddr().ToExtAddress(srcAddr);
+        VerifyOrExit((memcmp(&mParent.GetExtAddress(), &srcAddr, sizeof(srcAddr)) == 0),
+                     error = OT_ERROR_DROP);
+
+        if (status.GetStatus() == StatusTlv::kError)
+        {
+            BecomeDetached();
+            ExitNow();
+        }
+    }
 
     // TLV Request
     if (Tlv::GetTlv(aMessage, Tlv::kTlvRequest, sizeof(tlvRequest), tlvRequest) == OT_ERROR_NONE)
