@@ -33,7 +33,7 @@
 
 #define WPP_NAME "instance_api.tmh"
 
-#include <openthread/config.h>
+#include "openthread-core-config.h"
 
 #include <openthread/instance.h>
 #include <openthread/platform/misc.h>
@@ -92,7 +92,7 @@ otInstance::otInstance(void) :
     mLinkRaw(*this),
 #endif // OPENTHREAD_ENABLE_RAW_LINK_API
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
-    mApplicationCoap(mThreadNetif),
+    mApplicationCoap(*this),
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP
 #if OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
     mLogLevel(static_cast<otLogLevel>(OPENTHREAD_CONFIG_LOG_LEVEL)),

@@ -33,8 +33,6 @@
 
 #define WPP_NAME "mac.tmh"
 
-#include <openthread/config.h>
-
 #include "mac.hpp"
 
 #include "utils/wrap_string.h"
@@ -198,10 +196,16 @@ otError Mac::ActiveScan(uint32_t aScanChannels, uint16_t aScanDuration, ActiveSc
 {
     otError error;
 
-    SuccessOrExit(error = Scan(kOperationActiveScan, aScanChannels, aScanDuration, aContext));
     mActiveScanHandler = aHandler;
+    SuccessOrExit(error = Scan(kOperationActiveScan, aScanChannels, aScanDuration, aContext));
 
 exit:
+
+    if (OT_ERROR_NONE != error)
+    {
+        mActiveScanHandler = NULL;
+    }
+
     return error;
 }
 
@@ -209,10 +213,16 @@ otError Mac::EnergyScan(uint32_t aScanChannels, uint16_t aScanDuration, EnergySc
 {
     otError error;
 
-    SuccessOrExit(error = Scan(kOperationEnergyScan, aScanChannels, aScanDuration, aContext));
     mEnergyScanHandler = aHandler;
+    SuccessOrExit(error = Scan(kOperationEnergyScan, aScanChannels, aScanDuration, aContext));
 
 exit:
+
+    if (OT_ERROR_NONE != error)
+    {
+        mEnergyScanHandler = NULL;
+    }
+
     return error;
 }
 
@@ -1795,8 +1805,8 @@ exit:
             mCounters.mRxErrInvalidSrcAddr++;
             break;
 
-        case OT_ERROR_WHITELIST_FILTERED:
-            mCounters.mRxWhitelistFiltered++;
+        case OT_ERROR_ADDRESS_FILTERED:
+            mCounters.mRxAddressFiltered++;
             break;
 
         case OT_ERROR_DESTINATION_ADDRESS_FILTERED:
@@ -1893,10 +1903,10 @@ void Mac::FillMacCountersTlv(NetworkDiagnostic::MacCountersTlv &aMacCounters) co
     aMacCounters.SetIfOutErrors(mCounters.mTxErrCca);
     aMacCounters.SetIfInUcastPkts(mCounters.mRxUnicast);
     aMacCounters.SetIfInBroadcastPkts(mCounters.mRxBroadcast);
-    aMacCounters.SetIfInDiscards(mCounters.mRxWhitelistFiltered + mCounters.mRxDestAddrFiltered + mCounters.mRxDuplicated);
+    aMacCounters.SetIfInDiscards(mCounters.mRxAddressFiltered + mCounters.mRxDestAddrFiltered + mCounters.mRxDuplicated);
     aMacCounters.SetIfOutUcastPkts(mCounters.mTxUnicast);
     aMacCounters.SetIfOutBroadcastPkts(mCounters.mTxBroadcast);
-    aMacCounters.SetIfOutDiscards(0);
+    aMacCounters.SetIfOutDiscards(mCounters.mTxErrBusyChannel);
 }
 
 void Mac::ResetCounters(void)
