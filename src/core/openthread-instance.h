@@ -35,7 +35,7 @@
 #ifndef OPENTHREADINSTANCE_H_
 #define OPENTHREADINSTANCE_H_
 
-#include <openthread/config.h>
+#include "openthread-core-config.h"
 
 #include "utils/wrap_stdint.h"
 #include "utils/wrap_stdbool.h"
@@ -43,7 +43,6 @@
 #include <openthread/types.h>
 #include <openthread/platform/logging.h>
 
-#include "openthread-core-config.h"
 #include "openthread-single-instance.h"
 #if OPENTHREAD_ENABLE_RAW_LINK_API
 #include "api/link_raw.hpp"
@@ -96,7 +95,7 @@ typedef struct otInstance
 #endif // OPENTHREAD_ENABLE_RAW_LINK_API
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
-    ot::Coap::Coap mApplicationCoap;
+    ot::Coap::ApplicationCoap mApplicationCoap;
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP
 
 #if OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
