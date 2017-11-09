@@ -1134,6 +1134,36 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_BORDER_ROUTER], [test "${enable_border_router}
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_BORDER_ROUTER],[${OPENTHREAD_ENABLE_BORDER_ROUTER}],[Define to 1 if you want to enable Border Router])
 
 #
+# Service
+#
+
+AC_ARG_ENABLE(service,
+    [AS_HELP_STRING([--enable-service],[Enable Service @<:@default=no@:>@.])],
+    [
+        case "${enableval}" in
+
+        no|yes)
+            enable_service=${enableval}
+            ;;
+
+        *)
+            AC_MSG_ERROR([Invalid value ${enable_service} for --enable-service])
+            ;;
+        esac
+    ],
+    [enable_service=no])
+
+if test "$enable_service" = "yes"; then
+    OPENTHREAD_ENABLE_SERVICE=1
+else
+    OPENTHREAD_ENABLE_SERVICE=0
+fi
+
+AC_SUBST(OPENTHREAD_ENABLE_SERVICE)
+AM_CONDITIONAL([OPENTHREAD_ENABLE_SERVICE], [test "${enable_service}" = "yes"])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_SERVICE],[${OPENTHREAD_ENABLE_SERVICE}],[Define to 1 if you want to enable Service])
+
+#
 # Linker Map Output
 #
 
@@ -1163,11 +1193,11 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_LINKER_MAP], [test "${enable_linker_map}" = "y
 
 AC_ARG_WITH(examples,
     [AS_HELP_STRING([--with-examples=TARGET],
-        [Specify the examples from one of: none, posix, cc2538, cc2650, cc2652, da15000, efr32, emsk, gp712, kw41z, nrf52840 @<:@default=none@:>@.])],
+        [Specify the examples from one of: none, posix, cc2538, cc2650, cc2652, da15000, efr32, emsk, gp712, kw41z, nrf52840, samr21 @<:@default=none@:>@.])],
     [
         case "${with_examples}" in
 
-        none|posix|cc2538|cc2650|cc2652|da15000|efr32|emsk|gp712|kw41z|nrf52840)
+        none|posix|cc2538|cc2650|cc2652|da15000|efr32|emsk|gp712|kw41z|nrf52840|samr21)
             ;;
         *)
             AC_MSG_ERROR([Invalid value ${with_examples} for --with-examples])
@@ -1229,6 +1259,12 @@ case ${with_examples} in
         OPENTHREAD_EXAMPLES_NRF52840=1
         AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_NRF52840],[${OPENTHREAD_EXAMPLES_NRF52840}],[Define to 1 if you want to use nrf52840 examples])
         ;;
+
+    samr21)
+        OPENTHREAD_EXAMPLES_SAMR21=1
+        AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_SAMR21],[${OPENTHREAD_EXAMPLES_SAMR21}],[Define to 1 if you want to use samr21 examples])
+        ;;
+
 esac
 
 AC_MSG_CHECKING([whether to enable examples])
@@ -1267,6 +1303,9 @@ AM_CONDITIONAL([OPENTHREAD_EXAMPLES_KW41Z], [test "${OPENTHREAD_EXAMPLES}" = "kw
 
 AC_SUBST(OPENTHREAD_EXAMPLES_NRF52840)
 AM_CONDITIONAL([OPENTHREAD_EXAMPLES_NRF52840], [test "${OPENTHREAD_EXAMPLES}" = "nrf52840"])
+
+AC_SUBST(OPENTHREAD_EXAMPLES_SAMR21)
+AM_CONDITIONAL([OPENTHREAD_EXAMPLES_SAMR21], [test "${OPENTHREAD_EXAMPLES}" = "samr21"])
 
 #
 # Tools
@@ -1415,6 +1454,7 @@ examples/platforms/emsk/Makefile
 examples/platforms/gp712/Makefile
 examples/platforms/kw41z/Makefile
 examples/platforms/nrf52840/Makefile
+examples/platforms/samr21/Makefile
 examples/platforms/posix/Makefile
 examples/platforms/utils/Makefile
 tools/Makefile
@@ -1514,6 +1554,7 @@ AC_MSG_NOTICE([
   OpenThread Application CoAP support       : ${enable_application_coap}
   OpenThread Raw Link-Layer support         : ${enable_raw_link_api}
   OpenThread Border Router support          : ${enable_border_router}
+  OpenThread Service support                : ${enable_service}
   OpenThread examples                       : ${OPENTHREAD_EXAMPLES}
 
 ])

@@ -226,7 +226,6 @@ private:
     void ProcessExtAddress(int argc, char *argv[]);
     void ProcessExtPanId(int argc, char *argv[]);
     void ProcessFactoryReset(int argc, char *argv[]);
-    void ProcessHashMacAddress(int argc, char *argv[]);
     void ProcessIfconfig(int argc, char *argv[]);
     void ProcessIpAddr(int argc, char *argv[]);
     otError ProcessIpAddrAdd(int argc, char *argv[]);
@@ -239,6 +238,7 @@ private:
 #endif
 #if OPENTHREAD_ENABLE_JOINER
     void ProcessJoiner(int argc, char *argv[]);
+    void ProcessJoinerId(int argc, char *argv[]);
 #endif  // OPENTHREAD_ENABLE_JOINER
 #if OPENTHREAD_FTD
     void ProcessJoinerPort(int argc, char *argv[]);
@@ -249,14 +249,17 @@ private:
     void ProcessLeaderPartitionId(int argc, char *argv[]);
     void ProcessLeaderWeight(int argc, char *argv[]);
 #endif
-    void ProcessLinkQuality(int argc, char *argv[]);
     void ProcessMasterKey(int argc, char *argv[]);
     void ProcessMode(int argc, char *argv[]);
 #if OPENTHREAD_FTD
     void ProcessNeighbor(int argc, char *argv[]);
 #endif
-#if OPENTHREAD_ENABLE_BORDER_ROUTER
+#if OPENTHREAD_ENABLE_BORDER_ROUTER || OPENTHREAD_ENABLE_SERVICE
     void ProcessNetworkDataRegister(int argc, char *argv[]);
+#endif
+#if OPENTHREAD_ENABLE_SERVICE
+    void ProcessNetworkDataShow(int argc, char *argv[]);
+    void ProcessService(int argc, char *argv[]);
 #endif
 #if OPENTHREAD_FTD || OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC
     void ProcessNetworkDiagnostic(int argc, char *argv[]);

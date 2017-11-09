@@ -65,17 +65,17 @@ otError otCommissionerStop(otInstance *aInstance)
     return error;
 }
 
-otError otCommissionerAddJoiner(otInstance *aInstance, const otExtAddress *aExtAddress, const char *aPSKd,
+otError otCommissionerAddJoiner(otInstance *aInstance, const otExtAddress *aEui64, const char *aPSKd,
                                 uint32_t aTimeout)
 {
     otError error = OT_ERROR_DISABLED_FEATURE;
 
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
-    error = aInstance->mThreadNetif.GetCommissioner().AddJoiner(static_cast<const Mac::ExtAddress *>(aExtAddress), aPSKd,
+    error = aInstance->mThreadNetif.GetCommissioner().AddJoiner(static_cast<const Mac::ExtAddress *>(aEui64), aPSKd,
                                                                 aTimeout);
 #else  // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
     OT_UNUSED_VARIABLE(aInstance);
-    OT_UNUSED_VARIABLE(aExtAddress);
+    OT_UNUSED_VARIABLE(aEui64);
     OT_UNUSED_VARIABLE(aPSKd);
     OT_UNUSED_VARIABLE(aTimeout);
 #endif // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
@@ -83,15 +83,15 @@ otError otCommissionerAddJoiner(otInstance *aInstance, const otExtAddress *aExtA
     return error;
 }
 
-otError otCommissionerRemoveJoiner(otInstance *aInstance, const otExtAddress *aExtAddress)
+otError otCommissionerRemoveJoiner(otInstance *aInstance, const otExtAddress *aEui64)
 {
     otError error = OT_ERROR_DISABLED_FEATURE;
 
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
-    error = aInstance->mThreadNetif.GetCommissioner().RemoveJoiner(static_cast<const Mac::ExtAddress *>(aExtAddress), 0);
+    error = aInstance->mThreadNetif.GetCommissioner().RemoveJoiner(static_cast<const Mac::ExtAddress *>(aEui64), 0);
 #else  // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
     OT_UNUSED_VARIABLE(aInstance);
-    OT_UNUSED_VARIABLE(aExtAddress);
+    OT_UNUSED_VARIABLE(aEui64);
 #endif // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 
     return error;
@@ -117,8 +117,8 @@ otError otCommissionerAnnounceBegin(otInstance *aInstance, uint32_t aChannelMask
     otError error = OT_ERROR_DISABLED_FEATURE;
 
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
-    error = aInstance->mThreadNetif.GetCommissioner().mAnnounceBegin.SendRequest(aChannelMask, aCount, aPeriod,
-                                                                                 *static_cast<const Ip6::Address *>(aAddress));
+    error = aInstance->mThreadNetif.GetCommissioner().GetAnnounceBeginClient().SendRequest(
+                aChannelMask, aCount, aPeriod, *static_cast<const Ip6::Address *>(aAddress));
 #else  // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
     OT_UNUSED_VARIABLE(aInstance);
     OT_UNUSED_VARIABLE(aChannelMask);
@@ -137,9 +137,9 @@ otError otCommissionerEnergyScan(otInstance *aInstance, uint32_t aChannelMask, u
     otError error = OT_ERROR_DISABLED_FEATURE;
 
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
-    error = aInstance->mThreadNetif.GetCommissioner().mEnergyScan.SendQuery(aChannelMask, aCount, aPeriod, aScanDuration,
-                                                                            *static_cast<const Ip6::Address *>(aAddress),
-                                                                            aCallback, aContext);
+    error = aInstance->mThreadNetif.GetCommissioner().GetEnergyScanClient().SendQuery(
+                aChannelMask, aCount, aPeriod, aScanDuration, *static_cast<const Ip6::Address *>(aAddress),
+                aCallback, aContext);
 #else  // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
     OT_UNUSED_VARIABLE(aInstance);
     OT_UNUSED_VARIABLE(aChannelMask);
@@ -161,7 +161,7 @@ otError otCommissionerPanIdQuery(otInstance *aInstance, uint16_t aPanId, uint32_
     otError error = OT_ERROR_DISABLED_FEATURE;
 
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
-    error = aInstance->mThreadNetif.GetCommissioner().mPanIdQuery.SendQuery(
+    error = aInstance->mThreadNetif.GetCommissioner().GetPanIdQueryClient().SendQuery(
                 aPanId, aChannelMask, *static_cast<const Ip6::Address *>(aAddress), aCallback, aContext);
 #else  // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
     OT_UNUSED_VARIABLE(aInstance);

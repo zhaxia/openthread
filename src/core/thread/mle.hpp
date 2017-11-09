@@ -124,6 +124,16 @@ enum AlocAllocation
 };
 
 /**
+ * Service IDs
+ *
+ */
+enum ServiceID
+{
+    kServiceMinId = 0x00,  ///< Minimal Service ID.
+    kServiceMaxId = 0x0f,  ///< Maximal Service ID.
+};
+
+/**
  * This class implements MLE Header generation and parsing.
  *
  */
@@ -449,16 +459,16 @@ private:
  * This class implements MLE functionality required by the Thread EndDevices, Router, and Leader roles.
  *
  */
-class Mle: public ThreadNetifLocator
+class Mle: public InstanceLocator
 {
 public:
     /**
      * This constructor initializes the MLE object.
      *
-     * @param[in]  aThreadNetif  A reference to the Thread network interface.
+     * @param[in]  aInstance     A reference to the OpenThread instance.
      *
      */
-    explicit Mle(ThreadNetif &aThreadNetif);
+    explicit Mle(otInstance &aInstance);
 
     /**
      * This method enables MLE.
@@ -795,6 +805,20 @@ public:
      */
     otError GetLeaderAloc(Ip6::Address &aAddress) const;
 
+#if OPENTHREAD_ENABLE_SERVICE
+    /**
+     * This method retrieves the Service ALOC for given Service ID.
+     *
+     * @param[in]   aServiceID Service ID to get ALOC for.
+     * @param[out]  aAddress   A reference to the Service ALOC.
+     *
+     * @retval OT_ERROR_NONE      Successfully retrieved the Service ALOC.
+     * @retval OT_ERROR_DETACHED  The Thread interface is not currently attached to a Thread Partition.
+     *
+     */
+    otError GetServiceAloc(uint8_t aServiceId, Ip6::Address &aAddress) const;
+#endif
+
     /**
      * This method adds Leader's ALOC to its Thread interface.
      *
@@ -843,6 +867,26 @@ public:
      *
      */
     static uint8_t GetRouterId(uint16_t aRloc16) { return aRloc16 >> kRouterIdOffset; }
+
+    /**
+     * This method returns the Service ID corresponding to a Service ALOC16.
+     *
+     * @param[in]  aAloc16  The Servicer ALOC16 value.
+     *
+     * @returns The Service ID corresponding to given ALOC16.
+     *
+     */
+    static uint8_t GetServiceIdFromAloc(uint16_t aAloc16) { return static_cast<uint8_t>(aAloc16 - kAloc16ServiceStart); }
+
+    /**
+     * This method returns the Service Aloc corresponding to a Service ID.
+     *
+     * @param[in]  aAloc16  The Servicer ID value.
+     *
+     * @returns The Service ALOC16 corresponding to given ID.
+     *
+     */
+    static uint16_t GetServiceAlocFromId(uint8_t aServiceId) { return static_cast<uint16_t>(aServiceId + kAloc16ServiceStart); }
 
     /**
      * This method returns the RLOC16 of a given Router ID.
@@ -1336,6 +1380,7 @@ protected:
 
     TimerMilli mParentRequestTimer;          ///< The timer for driving the Parent Request process.
     TimerMilli mDelayedResponseTimer;        ///< The timer to delay MLE responses.
+    TimerMilli mChildUpdateRequestTimer;     ///< The timer for sending MLE Child Update Request messages.
     uint32_t mLastPartitionId;               ///< The partition ID of the previous Thread partition
     uint8_t mLastPartitionRouterIdSequence;  ///< The router ID sequence from the previous Thread partition
     uint8_t mLastPartitionIdTimeout;         ///< The time remaining to avoid the previous Thread partition
@@ -1358,6 +1403,8 @@ private:
     void HandleParentRequestTimer(void);
     static void HandleDelayedResponseTimer(Timer &aTimer);
     void HandleDelayedResponseTimer(void);
+    static void HandleChildUpdateRequestTimer(Timer &aTimer);
+    void HandleChildUpdateRequestTimer(void);
     static void HandleUdpReceive(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
     void HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     static void HandleSendChildUpdateRequest(Tasklet &aTasklet);
@@ -1381,6 +1428,14 @@ private:
     bool IsBetterParent(uint16_t aRloc16, uint8_t aLinkQuality, uint8_t aLinkMargin,
                         ConnectivityTlv &aConnectivityTlv);
     void ResetParentCandidate(void);
+
+#if OPENTHREAD_ENABLE_SERVICE
+    /**
+     * This method scans for network data from the leader and updates ip addresses assigned to this
+     * interface to make sure that all Service ALOCs (0xfc10-0xfc1f) are properly set.
+     */
+    void UpdateServiceAlocs(void);
+#endif
 
 #if OPENTHREAD_CONFIG_INFORM_PREVIOUS_PARENT_ON_REATTACH
     otError InformPreviousParent(void);
@@ -1432,6 +1487,10 @@ private:
     uint16_t mPreviousPanId;
 
     Ip6::NetifUnicastAddress mLeaderAloc;
+
+#if OPENTHREAD_ENABLE_SERVICE
+    Ip6::NetifUnicastAddress mServiceAlocs[OPENTHREAD_CONFIG_MAX_SERVER_ALOCS];
+#endif
 
     Ip6::NetifUnicastAddress mLinkLocal64;
     Ip6::NetifUnicastAddress mMeshLocal64;

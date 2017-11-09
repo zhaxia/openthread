@@ -106,6 +106,7 @@ SOURCES_COMMON                      = \
     api/link_raw_api.cpp              \
     api/message_api.cpp               \
     api/netdata_api.cpp               \
+    api/server_api.cpp                \
     api/tasklet_api.cpp               \
     api/thread_api.cpp                \
     api/thread_ftd_api.cpp            \
@@ -143,9 +144,10 @@ SOURCES_COMMON                      = \
     meshcop/joiner.cpp                \
     meshcop/joiner_router.cpp         \
     meshcop/leader.cpp                \
+    meshcop/meshcop.cpp               \
+    meshcop/meshcop_tlvs.cpp          \
     meshcop/panid_query_client.cpp    \
     meshcop/timestamp.cpp             \
-    meshcop/meshcop_tlvs.cpp          \
     net/dhcp6_client.cpp              \
     net/dhcp6_server.cpp              \
     net/dns_client.cpp                \
@@ -241,9 +243,9 @@ HEADERS_COMMON                      = \
     meshcop/joiner_router.hpp         \
     meshcop/leader.hpp                \
     meshcop/meshcop.hpp               \
+    meshcop/meshcop_tlvs.hpp          \
     meshcop/panid_query_client.hpp    \
     meshcop/timestamp.hpp             \
-    meshcop/meshcop_tlvs.hpp          \
     net/dhcp6.hpp                     \
     net/dhcp6_client.hpp              \
     net/dhcp6_server.hpp              \
