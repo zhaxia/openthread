@@ -201,8 +201,17 @@ class otCli:
         self.pexpect.expect('Done')
         return addr64
 
-    def get_hashmacaddr(self):
-        self.send_command('hashmacaddr')
+    def get_eui64(self):
+        self.send_command('eui64')
+        i = self.pexpect.expect('([0-9a-fA-F]{16})')
+        if i == 0:
+            addr64 = self.pexpect.match.groups()[0].decode("utf-8")
+
+        self.pexpect.expect('Done')
+        return addr64
+
+    def get_joiner_id(self):
+        self.send_command('joinerid')
         i = self.pexpect.expect('([0-9a-fA-F]{16})')
         if i == 0:
             addr = self.pexpect.match.groups()[0].decode("utf-8")
@@ -374,6 +383,16 @@ class otCli:
                 break
 
         return addrs
+
+    def add_service(self, enterpriseNumber, serviceData, serverData):
+        cmd = 'service add ' + enterpriseNumber + ' ' + serviceData+ ' '  + serverData
+        self.send_command(cmd)
+        self.pexpect.expect('Done')
+
+    def remove_service(self, enterpriseNumber, serviceData):
+        cmd = 'service remove ' + enterpriseNumber + ' ' + serviceData
+        self.send_command(cmd)
+        self.pexpect.expect('Done')
 
     def __getLinkLocalAddress(self):
         for ip6Addr in self.get_addrs():

@@ -56,16 +56,16 @@ class ThreadNetif;
 
 namespace MeshCoP {
 
-class Commissioner: public ThreadNetifLocator
+class Commissioner: public InstanceLocator
 {
 public:
     /**
      * This constructor initializes the Commissioner object.
      *
-     * @param[in]  aThreadNetif  A reference to the Thread network interface.
+     * @param[in]  aInstance     A reference to the OpenThread instance.
      *
      */
-    Commissioner(ThreadNetif &aThreadNetif);
+    Commissioner(otInstance &aInstance);
 
     /**
      * This method starts the Commissioner service.
@@ -92,27 +92,27 @@ public:
     /**
      * This method adds a Joiner entry.
      *
-     * @param[in]  aExtAddress      A pointer to the Joiner's extended address or NULL for any Joiner.
-     * @param[in]  aPSKd            A pointer to the PSKd.
-     * @param[in]  aTimeout         A time after which a Joiner is automatically removed, in seconds.
+     * @param[in]  aEui64        A pointer to the Joiner's IEEE EUI-64 or NULL for any Joiner.
+     * @param[in]  aPSKd         A pointer to the PSKd.
+     * @param[in]  aTimeout      A time after which a Joiner is automatically removed, in seconds.
      *
      * @retval OT_ERROR_NONE     Successfully added the Joiner.
      * @retval OT_ERROR_NO_BUFS  No buffers available to add the Joiner.
      *
      */
-    otError AddJoiner(const Mac::ExtAddress *aExtAddress, const char *aPSKd, uint32_t aTimeout);
+    otError AddJoiner(const Mac::ExtAddress *aEui64, const char *aPSKd, uint32_t aTimeout);
 
     /**
      * This method removes a Joiner entry.
      *
-     * @param[in]  aExtAddress        A pointer to the Joiner's extended address or NULL for any Joiner.
-     * @param[in]  aDelay             The delay to remove Joiner (in seconds).
+     * @param[in]  aEui64          A pointer to the Joiner's IEEE EUI-64 or NULL for any Joiner.
+     * @param[in]  aDelay          The delay to remove Joiner (in seconds).
      *
      * @retval OT_ERROR_NONE       Successfully added the Joiner.
-     * @retval OT_ERROR_NOT_FOUND  The Joiner specified by @p aExtAddress was not found.
+     * @retval OT_ERROR_NOT_FOUND  The Joiner specified by @p aEui64 was not found.
      *
      */
-    otError RemoveJoiner(const Mac::ExtAddress *aExtAddress, uint32_t aDelay);
+    otError RemoveJoiner(const Mac::ExtAddress *aEui64, uint32_t aDelay);
 
     /**
      * This method sets the Provisioning URL.
@@ -196,9 +196,29 @@ public:
     static otError GeneratePSKc(const char *aPassPhrase, const char *aNetworkName, const uint8_t *aExtPanId,
                                 uint8_t *aPSKc);
 
-    AnnounceBeginClient mAnnounceBegin;
-    EnergyScanClient mEnergyScan;
-    PanIdQueryClient mPanIdQuery;
+    /**
+     * This method returns a reference to the AnnounceBeginClient instance.
+     *
+     * @returns A reference to the AnnounceBeginClient instance.
+     *
+     */
+    AnnounceBeginClient &GetAnnounceBeginClient(void) { return mAnnounceBegin; }
+
+    /**
+     * This method returns a reference to the EnergyScanClient instance.
+     *
+     * @returns A reference to the EnergyScanClient instance.
+     *
+     */
+    EnergyScanClient &GetEnergyScanClient(void) { return mEnergyScan; }
+
+    /**
+     * This method returns a reference to the PanIdQueryClient instance.
+     *
+     * @returns A reference to the PanIdQueryClient instance.
+     *
+     */
+    PanIdQueryClient &GetPanIdQueryClient(void) { return mPanIdQuery; }
 
 private:
     enum
@@ -265,7 +285,7 @@ private:
 
     struct Joiner
     {
-        Mac::ExtAddress mExtAddress;
+        Mac::ExtAddress mJoinerId;
         uint32_t mExpirationTime;
         char mPsk[Dtls::kPskMaxLength + 1];
         bool mValid : 1;
@@ -289,6 +309,10 @@ private:
     Coap::Resource mRelayReceive;
     Coap::Resource mDatasetChanged;
     Coap::Resource mJoinerFinalize;
+
+    AnnounceBeginClient mAnnounceBegin;
+    EnergyScanClient mEnergyScan;
+    PanIdQueryClient mPanIdQuery;
 };
 
 }  // namespace MeshCoP

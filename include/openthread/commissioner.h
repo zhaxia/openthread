@@ -86,37 +86,37 @@ OTAPI otError OTCALL otCommissionerStop(otInstance *aInstance);
 /**
  * This function adds a Joiner entry.
  *
- * @param[in]  aInstance             A pointer to an OpenThread instance.
- * @param[in]  aExtAddress           A pointer to the Joiner's extended address or NULL for any Joiner.
- * @param[in]  aPSKd                 A pointer to the PSKd.
- * @param[in]  aTimeout              A time after which a Joiner is automatically removed, in seconds.
+ * @param[in]  aInstance          A pointer to an OpenThread instance.
+ * @param[in]  aEui64             A pointer to the Joiner's IEEE EUI-64 or NULL for any Joiner.
+ * @param[in]  aPSKd              A pointer to the PSKd.
+ * @param[in]  aTimeout           A time after which a Joiner is automatically removed, in seconds.
  *
  * @retval OT_ERROR_NONE          Successfully added the Joiner.
  * @retval OT_ERROR_NO_BUFS       No buffers available to add the Joiner.
- * @retval OT_ERROR_INVALID_ARGS  @p aExtAddress or @p aPSKd is invalid.
+ * @retval OT_ERROR_INVALID_ARGS  @p aEui64 or @p aPSKd is invalid.
  * @retval OT_ERROR_INVALID_STATE The commissioner is not active.
  *
- * @note Only use this after successfully started the Commissioner role by otCommissionerStart().
+ * @note Only use this after successfully starting the Commissioner role with otCommissionerStart().
  *
  */
-OTAPI otError OTCALL otCommissionerAddJoiner(otInstance *aInstance, const otExtAddress *aExtAddress,
+OTAPI otError OTCALL otCommissionerAddJoiner(otInstance *aInstance, const otExtAddress *aEui64,
                                              const char *aPSKd, uint32_t aTimeout);
 
 /**
  * This function removes a Joiner entry.
  *
- * @param[in]  aInstance             A pointer to an OpenThread instance.
- * @param[in]  aExtAddress           A pointer to the Joiner's extended address or NULL for any Joiner.
+ * @param[in]  aInstance          A pointer to an OpenThread instance.
+ * @param[in]  aEui64             A pointer to the Joiner's IEEE EUI-64 or NULL for any Joiner.
  *
  * @retval OT_ERROR_NONE          Successfully removed the Joiner.
- * @retval OT_ERROR_NOT_FOUND     The Joiner specified by @p aExtAddress was not found.
- * @retval OT_ERROR_INVALID_ARGS  @p aExtAddress is invalid.
+ * @retval OT_ERROR_NOT_FOUND     The Joiner specified by @p aEui64 was not found.
+ * @retval OT_ERROR_INVALID_ARGS  @p aEui64 is invalid.
  * @retval OT_ERROR_INVALID_STATE The commissioner is not active.
  *
- * @note Only use this after successfully started the Commissioner role by otCommissionerStart().
+ * @note Only use this after successfully starting the Commissioner role with otCommissionerStart().
  *
  */
-OTAPI otError OTCALL otCommissionerRemoveJoiner(otInstance *aInstance, const otExtAddress *aExtAddress);
+OTAPI otError OTCALL otCommissionerRemoveJoiner(otInstance *aInstance, const otExtAddress *aEui64);
 
 /**
  * This function sets the Provisioning URL.
@@ -143,7 +143,7 @@ OTAPI otError OTCALL otCommissionerSetProvisioningUrl(otInstance *aInstance, con
  * @retval OT_ERROR_NO_BUFS       Insufficient buffers to generate an Announce Begin message.
  * @retval OT_ERROR_INVALID_STATE The commissioner is not active.
  *
- * @note Only use this after successfully started the Commissioner role by otCommissionerStart().
+ * @note Only use this after successfully starting the Commissioner role with otCommissionerStart().
  *
  */
 OTAPI otError OTCALL otCommissionerAnnounceBegin(otInstance *aInstance, uint32_t aChannelMask, uint8_t aCount,
@@ -178,7 +178,7 @@ typedef void (OTCALL *otCommissionerEnergyReportCallback)(uint32_t aChannelMask,
  * @retval OT_ERROR_NO_BUFS       Insufficient buffers to generate an Energy Scan Query message.
  * @retval OT_ERROR_INVALID_STATE The commissioner is not active.
  *
- * @note Only use this after successfully started the Commissioner role by otCommissionerStart().
+ * @note Only use this after successfully starting the Commissioner role with otCommissionerStart().
  *
  */
 OTAPI otError OTCALL otCommissionerEnergyScan(otInstance *aInstance, uint32_t aChannelMask, uint8_t aCount,
@@ -209,7 +209,7 @@ typedef void (OTCALL *otCommissionerPanIdConflictCallback)(uint16_t aPanId, uint
  * @retval OT_ERROR_NO_BUFS       Insufficient buffers to generate a PAN ID Query message.
  * @retval OT_ERROR_INVALID_STATE The commissioner is not active.
  *
- * @note Only use this after successfully started the Commissioner role by otCommissionerStart().
+ * @note Only use this after successfully starting the Commissioner role with otCommissionerStart().
  *
  */
 OTAPI otError OTCALL otCommissionerPanIdQuery(otInstance *aInstance, uint16_t aPanId, uint32_t aChannelMask,

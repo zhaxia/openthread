@@ -107,8 +107,11 @@ class Node:
     def get_addr64(self):
         return self.interface.get_addr64()
 
-    def get_hashmacaddr(self):
-        return self.interface.get_hashmacaddr()
+    def get_eui64(self):
+        return self.interface.get_eui64()
+
+    def get_joiner_id(self):
+        return self.interface.get_joiner_id()
 
     def get_channel(self):
         return self.interface.get_channel()
@@ -187,6 +190,12 @@ class Node:
 
     def get_addrs(self):
         return self.interface.get_addrs()
+
+    def add_service(self, enterpriseNumber, serviceData, serverData):
+        self.interface.add_service(enterpriseNumber, serviceData, serverData)
+
+    def remove_service(self, enterpriseNumber, serviceData):
+        self.interface.remove_service(enterpriseNumber, serviceData)
 
     def get_ip6_address(self, address_type):
         return self.interface.get_ip6_address(address_type)

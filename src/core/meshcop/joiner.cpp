@@ -58,8 +58,8 @@ using ot::Encoding::BigEndian::HostSwap64;
 namespace ot {
 namespace MeshCoP {
 
-Joiner::Joiner(ThreadNetif &aNetif):
-    ThreadNetifLocator(aNetif),
+Joiner::Joiner(otInstance &aInstance):
+    InstanceLocator(aInstance),
     mState(OT_JOINER_STATE_IDLE),
     mCallback(NULL),
     mContext(NULL),
@@ -69,11 +69,17 @@ Joiner::Joiner(ThreadNetif &aNetif):
     mVendorModel(NULL),
     mVendorSwVersion(NULL),
     mVendorData(NULL),
-    mTimer(aNetif.GetInstance(), &Joiner::HandleTimer, this),
+    mTimer(aInstance, &Joiner::HandleTimer, this),
     mJoinerEntrust(OT_URI_PATH_JOINER_ENTRUST, &Joiner::HandleJoinerEntrust, this)
 {
     memset(mJoinerRouters, 0, sizeof(mJoinerRouters));
-    aNetif.GetCoap().AddResource(mJoinerEntrust);
+    GetNetif().GetCoap().AddResource(mJoinerEntrust);
+}
+
+void Joiner::GetJoinerId(Mac::ExtAddress &aJoinerId) const
+{
+    otPlatRadioGetIeeeEui64(&GetInstance(), aJoinerId.m8);
+    ComputeJoinerId(aJoinerId, aJoinerId);
 }
 
 otError Joiner::Start(const char *aPSKd, const char *aProvisioningUrl,
@@ -82,7 +88,7 @@ otError Joiner::Start(const char *aPSKd, const char *aProvisioningUrl,
 {
     ThreadNetif &netif = GetNetif();
     otError error;
-    Mac::ExtAddress extAddress;
+    Mac::ExtAddress joinerId;
     Crc16 ccitt(Crc16::kCcitt);
     Crc16 ansi(Crc16::kAnsi);
 
@@ -93,14 +99,14 @@ otError Joiner::Start(const char *aPSKd, const char *aProvisioningUrl,
     GetNetif().SetStateChangedFlags(OT_CHANGED_JOINER_STATE);
 
     // use extended address based on factory-assigned IEEE EUI-64
-    netif.GetMac().GetHashMacAddress(&extAddress);
-    netif.GetMac().SetExtAddress(extAddress);
+    GetJoinerId(joinerId);
+    netif.GetMac().SetExtAddress(joinerId);
     netif.GetMle().UpdateLinkLocalAddress();
 
-    for (size_t i = 0; i < sizeof(extAddress); i++)
+    for (size_t i = 0; i < sizeof(joinerId); i++)
     {
-        ccitt.Update(extAddress.m8[i]);
-        ansi.Update(extAddress.m8[i]);
+        ccitt.Update(joinerId.m8[i]);
+        ansi.Update(joinerId.m8[i]);
     }
 
     mCcitt = ccitt.Get();
