@@ -44,9 +44,9 @@
 #include <openthread/platform/misc.h>
 #include <openthread/platform/radio.h>
 
-#include "openthread-instance.h"
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
+#include "common/instance.hpp"
 #include "mac/mac_frame.hpp"
 #include "net/ip6.hpp"
 
@@ -136,6 +136,8 @@ const NcpBase::PropertyHandlerEntry NcpBase::mGetPropertyHandlerTable[] =
     NCP_GET_PROP_HANDLER_ENTRY(THREAD_NETWORK_DATA),
     NCP_GET_PROP_HANDLER_ENTRY(THREAD_STABLE_NETWORK_DATA),
 #endif
+    NCP_GET_PROP_HANDLER_ENTRY(THREAD_ACTIVE_DATASET),
+    NCP_GET_PROP_HANDLER_ENTRY(THREAD_PENDING_DATASET),
     NCP_GET_PROP_HANDLER_ENTRY(IPV6_ADDRESS_TABLE),
     NCP_GET_PROP_HANDLER_ENTRY(IPV6_ICMP_PING_OFFLOAD),
     NCP_GET_PROP_HANDLER_ENTRY(IPV6_LL_ADDR),
@@ -310,6 +312,10 @@ const NcpBase::PropertyHandlerEntry NcpBase::mSetPropertyHandlerTable[] =
     NCP_SET_PROP_HANDLER_ENTRY(THREAD_TMF_PROXY_ENABLED),
     NCP_SET_PROP_HANDLER_ENTRY(THREAD_TMF_PROXY_STREAM),
 #endif
+    NCP_SET_PROP_HANDLER_ENTRY(THREAD_ACTIVE_DATASET),
+    NCP_SET_PROP_HANDLER_ENTRY(THREAD_PENDING_DATASET),
+    NCP_SET_PROP_HANDLER_ENTRY(THREAD_MGMT_ACTIVE_DATASET),
+    NCP_SET_PROP_HANDLER_ENTRY(THREAD_MGMT_PENDING_DATASET),
 #endif // #if OPENTHREAD_FTD
 };
 
@@ -498,7 +504,7 @@ static spinel_status_t ResetReasonToSpinelStatus(otPlatResetReason aReason)
 
 NcpBase *NcpBase::sNcpInstance = NULL;
 
-NcpBase::NcpBase(otInstance *aInstance):
+NcpBase::NcpBase(Instance *aInstance):
     mInstance(aInstance),
     mTxFrameBuffer(mTxBuffer, sizeof(mTxBuffer)),
     mEncoder(mTxFrameBuffer),
