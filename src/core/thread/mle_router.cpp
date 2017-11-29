@@ -39,10 +39,10 @@
 #include <openthread/platform/random.h>
 #include <openthread/platform/settings.h>
 
-#include "openthread-instance.h"
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 #include "common/encoding.hpp"
+#include "common/instance.hpp"
 #include "common/logging.hpp"
 #include "common/settings.hpp"
 #include "mac/mac_frame.hpp"
@@ -56,7 +56,7 @@ using ot::Encoding::BigEndian::HostSwap16;
 namespace ot {
 namespace Mle {
 
-MleRouter::MleRouter(otInstance &aInstance):
+MleRouter::MleRouter(Instance &aInstance):
     Mle(aInstance),
     mAdvertiseTimer(aInstance, &MleRouter::HandleAdvertiseTimer, NULL, this),
     mStateUpdateTimer(aInstance, &MleRouter::HandleStateUpdateTimer, this),
@@ -1935,16 +1935,18 @@ void MleRouter::HandleStateUpdateTimer(void)
 
 #else
 
-            if (age >= TimerMilli::SecToMsec(kMaxNeighborAge) &&
-                age < TimerMilli::SecToMsec(kMaxNeighborAge) + kStateUpdatePeriod)
+            if (age >= TimerMilli::SecToMsec(kMaxNeighborAge))
             {
-                otLogInfoMle(GetInstance(), "Router timeout expired");
-                SendLinkRequest(&router);
-            }
-            else if (age >= TimerMilli::SecToMsec(kMaxNeighborAge) + kMaxLinkRequestTimeout)
-            {
-                RemoveNeighbor(router);
-                continue;
+                if (age < TimerMilli::SecToMsec(kMaxNeighborAge) + kMaxTransmissionCount * kUnicastRetransmissionDelay)
+                {
+                    otLogInfoMle(GetInstance(), "Router timeout expired");
+                    SendLinkRequest(&router);
+                }
+                else
+                {
+                    RemoveNeighbor(router);
+                    continue;
+                }
             }
 
 #endif
@@ -3075,9 +3077,15 @@ otError MleRouter::SendDataResponse(const Ip6::Address &aDestination, const uint
                                     uint16_t aDelay)
 {
     otError error = OT_ERROR_NONE;
-    Message *message;
+    Message *message = NULL;
     Neighbor *neighbor;
     bool stableOnly;
+
+    if (mRetrieveNewNetworkData)
+    {
+        otLogInfoMle(GetInstance(), "Suppressing Data Response - waiting for new network data");
+        ExitNow();
+    }
 
     VerifyOrExit((message = NewMleMessage()) != NULL, error = OT_ERROR_NO_BUFS);
     SuccessOrExit(error = AppendHeader(*message, Header::kCommandDataResponse));
@@ -3740,7 +3748,7 @@ otError MleRouter::GetChildInfo(Child &aChild, otChildInfo &aChildInfo)
 {
     otError error = OT_ERROR_NONE;
 
-    VerifyOrExit(aChild.GetState() == Neighbor::kStateValid, error = OT_ERROR_NOT_FOUND);
+    VerifyOrExit(aChild.IsStateValidOrRestoring(), error = OT_ERROR_NOT_FOUND);
 
     memset(&aChildInfo, 0, sizeof(aChildInfo));
     memcpy(&aChildInfo.mExtAddress, &aChild.GetExtAddress(), sizeof(aChildInfo.mExtAddress));
@@ -3758,6 +3766,10 @@ otError MleRouter::GetChildInfo(Child &aChild, otChildInfo &aChildInfo)
     aChildInfo.mSecureDataRequest = aChild.IsSecureDataRequest();
     aChildInfo.mFullFunction      = aChild.IsFullThreadDevice();
     aChildInfo.mFullNetworkData   = aChild.IsFullNetworkData();
+    aChildInfo.mIsStateRestoring  = aChild.IsStateRestoring();
+
+    aChildInfo.mIp6AddressesLength = Child::kMaxIp6AddressPerChild;
+    aChildInfo.mIp6Addresses       = aChild.GetIp6Addresses();
 
 exit:
     return error;
@@ -4834,7 +4846,7 @@ MleRouter &MleRouter::GetOwner(const Context &aContext)
 #if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
     MleRouter &mle = *static_cast<MleRouter *>(aContext.GetContext());
 #else
-    MleRouter &mle = otGetThreadNetif().GetMle();
+    MleRouter &mle = Instance::Get().GetThreadNetif().GetMle();
     OT_UNUSED_VARIABLE(aContext);
 #endif
     return mle;
