@@ -176,6 +176,26 @@ extern "C" {
 #endif
 
 /**
+ * @brief Include Nest specific configuration modifications
+ *
+ * NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING being defined to 0
+ * allows the Nest system to define the radio ISR handler and allows
+ * the Nordic radio ISR handler to be called as a function from the
+ * Nest ISR handler.
+ *
+ * NRF_DRV_RADIO802154_IRQ_PRIORITY being defined to 5 allows
+ * the radio IRQ priority to be set in accordance with Nest/FreeRTOS
+ * system requirements.
+ *
+ */
+#ifdef NEST_NRF52X_DRIVER_CONFIG
+#undef NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING
+#define NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING 0
+#undef NRF_DRV_RADIO802154_IRQ_PRIORITY
+#define NRF_DRV_RADIO802154_IRQ_PRIORITY 5 // ATOMIC_PRIORITY_LEVEL + 2
+#endif  // NEST_NRF52X_DRIVER_CONFIG
+
+/**
  *@}
  **/
 
