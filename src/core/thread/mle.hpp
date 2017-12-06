@@ -711,6 +711,17 @@ public:
     Router *GetParent(void);
 
     /**
+     * This method returns a pointer to the parent candidate or parent.
+     *
+     * This method is useful when sending IEEE 802.15.4 Data Request frames while attempting to attach to a new parent.
+     *
+     * If attempting to attach to a new parent, this method returns the parent candidate.
+     * If not attempting to attach, this method returns the parent.
+     *
+     */
+    Router *GetParentCandidate(void);
+
+    /**
      * This method indicates whether or not an IPv6 address is an RLOC.
      *
      * @retval TRUE   If @p aAddress is an RLOC.
@@ -1394,6 +1405,17 @@ private:
         kMleHopLimit        = 255,
     };
 
+#if OPENTHREAD_CONFIG_ENABLE_PERIODIC_PARENT_SEARCH
+    enum
+    {
+        // All timer intervals are converted to milliseconds
+        kParentSearchCheckInterval   = (OPENTHREAD_CONFIG_PARENT_SEARCH_CHECK_INTERVAL * 1000u),
+        kParentSearchBackoffInterval = (OPENTHREAD_CONFIG_PARENT_SEARCH_BACKOFF_INTERVAL * 1000u),
+        kParentSearchJitterInterval  = (15 * 1000u),
+        kParentSearchRssThreadhold   = OPENTHREAD_CONFIG_PARENT_SEARCH_RSS_THRESHOLD,
+    };
+#endif
+
     void GenerateNonce(const Mac::ExtAddress &aMacAddr, uint32_t aFrameCounter, uint8_t aSecurityLevel,
                        uint8_t *aNonce);
 
@@ -1441,7 +1463,12 @@ private:
     otError InformPreviousParent(void);
 #endif
 
-    static Mle &GetOwner(const Context &aContext);
+#if OPENTHREAD_CONFIG_ENABLE_PERIODIC_PARENT_SEARCH
+    static void HandleParentSearchTimer(Timer &aTimer);
+    void HandleParentSearchTimer(void);
+    void StartParentSearchTimer(void);
+    void UpdateParentSearchState(void);
+#endif
 
     MessageQueue mDelayedResponses;
 
@@ -1465,6 +1492,7 @@ private:
     LeaderDataTlv mParentLeaderData;
     uint8_t mParentLinkMargin;
     bool mParentIsSingleton;
+    bool mReceivedResponseFromParent;
 
     Router mParentCandidate;
 
@@ -1480,6 +1508,14 @@ private:
 
 #if OPENTHREAD_CONFIG_INFORM_PREVIOUS_PARENT_ON_REATTACH
     uint16_t mPreviousParentRloc;
+#endif
+
+#if OPENTHREAD_CONFIG_ENABLE_PERIODIC_PARENT_SEARCH
+    bool mParentSearchIsInBackoff        : 1;
+    bool mParentSearchBackoffWasCanceled : 1;
+    bool mParentSearchRecentlyDetached   : 1;
+    uint32_t mParentSearchBackoffCancelTime;
+    TimerMilli mParentSearchTimer;
 #endif
 
     uint8_t mAnnounceChannel;

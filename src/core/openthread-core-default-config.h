@@ -116,13 +116,13 @@
 #endif
 
 /**
- * @def OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER
+ * @def OPENTHREAD_CONFIG_DEFAULT_TRANSMIT_POWER
  *
- * The default IEEE 802.15.4 maximum transmit power (dBm)
+ * The default IEEE 802.15.4 transmit power (dBm)
  *
  */
-#ifndef OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER
-#define OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER            0
+#ifndef OPENTHREAD_CONFIG_DEFAULT_TRANSMIT_POWER
+#define OPENTHREAD_CONFIG_DEFAULT_TRANSMIT_POWER                0
 #endif
 
 /**
@@ -537,7 +537,7 @@
  *
  */
 #ifndef OPENTHREAD_CONFIG_LOG_OUTPUT
-#define OPENTHREAD_CONFIG_LOG_OUTPUT    OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
+#define OPENTHREAD_CONFIG_LOG_OUTPUT                            OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
 #endif
 
 /** Log output goes to the bit bucket (disabled) */
@@ -856,7 +856,7 @@
  *
  */
 #ifndef OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
-#define OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER    0
+#define OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER            0
 #endif
 
 /**
@@ -971,6 +971,64 @@
 #endif
 
 /**
+ * @def OPENTHREAD_CONFIG_ENABLE_PERIODIC_PARENT_SEARCH
+ *
+ * Define as 1 to enable periodic parent search feature.
+ *
+ * When this feature is enabled an end-device/child (while staying attached) will periodically search for a possible
+ * better parent and will switch parent if a better one is found.
+ *
+ * The child will periodically check the average RSS value for the current parent, and only if it is below a specific
+ * threshold, a parent search is performed. The `OPENTHREAD_CONFIG_PARENT_SEARCH_CHECK_INTERVAL` specifies the the
+ * check interval (in seconds) and `OPENTHREAD_CONFIG_PARENT_SEARCH_RSS_THRESHOLD` gives the RSS threshold.
+ *
+ * Since the parent search process can be power consuming (child needs to stays in RX mode to collect parent response)
+ * and to limit its impact on battery-powered devices, after a parent search is triggered, the child will not trigger
+ * another one before a specified backoff interval specified by `OPENTHREAD_CONFIG_PARENT_SEARCH_BACKOFF_INTERVAL`
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_ENABLE_PERIODIC_PARENT_SEARCH
+#define OPENTHREAD_CONFIG_ENABLE_PERIODIC_PARENT_SEARCH         0
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_PARENT_SEARCH_CHECK_INTERVAL
+ *
+ * Specifies the interval in seconds for a child to check the trigger condition to perform a parent search.
+ *
+ * Applicable only if periodic parent search feature is enabled (see `OPENTHREAD_CONFIG_ENABLE_PERIODIC_PARENT_SEARCH`).
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_PARENT_SEARCH_CHECK_INTERVAL
+#define OPENTHREAD_CONFIG_PARENT_SEARCH_CHECK_INTERVAL          (9 * 60)
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_PARENT_SEARCH_BACKOFF_INTERVAL
+ *
+ * Specifies the backoff interval in seconds for a child to not perform a parent search after triggering one.
+ *
+ * Applicable only if periodic parent search feature is enabled (see `OPENTHREAD_CONFIG_ENABLE_PERIODIC_PARENT_SEARCH`).
+ *
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_PARENT_SEARCH_BACKOFF_INTERVAL
+#define OPENTHREAD_CONFIG_PARENT_SEARCH_BACKOFF_INTERVAL        (10* 60 * 60)
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_PARENT_SEARCH_RSS_THRESHOLD
+ *
+ * Specifies the RSS threshold used to trigger a parent search.
+ *
+ * Applicable only if periodic parent search feature is enabled (see `OPENTHREAD_CONFIG_ENABLE_PERIODIC_PARENT_SEARCH`).
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_PARENT_SEARCH_RSS_THRESHOLD
+#define OPENTHREAD_CONFIG_PARENT_SEARCH_RSS_THRESHOLD           -65
+#endif
+
+/**
  * @def OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
  *
  * Define as 1 to enable peek/poke functionality on NCP.
@@ -980,6 +1038,24 @@
  */
 #ifndef OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
 #define OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE                  0
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_NCP_SPINEL_RESPONSE_QUEUE_SIZE
+ *
+ * Size of NCP Spinel command response queue.
+ *
+ * NCP guarantees that it can respond up to `OPENTHREAD_CONFIG_NCP_SPINEL_RESPONSE_QUEUE_SIZE` spinel commands at the
+ * same time. The spinel protocol defines a Transaction ID (TID) as part of spinel command frame (the TID can be
+ * a value 0-15 where TID 0 is used for frames which require no response). Spinel protocol can support at most support
+ * 15 simultaneous commands.
+ *
+ * The host driver implementation may further limit the number of simultaneous Spinel command frames (e.g., wpantund
+ * limits this to two). This configuration option can be used to reduce the response queue size.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_NCP_SPINEL_RESPONSE_QUEUE_SIZE
+#define OPENTHREAD_CONFIG_NCP_SPINEL_RESPONSE_QUEUE_SIZE        15
 #endif
 
 /**

@@ -52,7 +52,6 @@ const struct Command Diag::sCommands[] =
     { "power", &ProcessPower },
     { "send", &ProcessSend },
     { "repeat", &ProcessRepeat },
-    { "sleep", &ProcessSleep },
     { "stats", &ProcessStats },
 };
 
@@ -186,7 +185,6 @@ void Diag::TxPacket()
 {
     sTxPacket->mLength = sTxLen;
     sTxPacket->mChannel = sChannel;
-    sTxPacket->mPower = sTxPower;
 
     for (uint8_t i = 0; i < sTxLen; i++)
     {
@@ -305,21 +303,6 @@ exit:
     AppendErrorResult(error, aOutput, aOutputMaxLen);
 }
 
-void Diag::ProcessSleep(int argc, char *argv[], char *aOutput, size_t aOutputMaxLen)
-{
-    otError error = OT_ERROR_NONE;
-
-    VerifyOrExit(otPlatDiagModeGet(), error = OT_ERROR_INVALID_STATE);
-
-    otPlatRadioSleep(sContext);
-    snprintf(aOutput, aOutputMaxLen, "sleeping now...\r\n");
-
-exit:
-    OT_UNUSED_VARIABLE(argc);
-    OT_UNUSED_VARIABLE(argv);
-    AppendErrorResult(error, aOutput, aOutputMaxLen);
-}
-
 void Diag::ProcessStats(int argc, char *argv[], char *aOutput, size_t aOutputMaxLen)
 {
     otError error = OT_ERROR_NONE;
@@ -368,7 +351,7 @@ void Diag::DiagReceiveDone(otInstance *aInstance, otRadioFrame *aFrame, otError 
         // for sensitivity test, only record the rssi and lqi for the first packet
         if (sStats.received_packets == 0)
         {
-            sStats.first_rssi = aFrame->mPower;
+            sStats.first_rssi = aFrame->mRssi;
             sStats.first_lqi = aFrame->mLqi;
         }
 

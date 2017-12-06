@@ -44,6 +44,7 @@
 #include "common/encoding.hpp"
 #include "common/instance.hpp"
 #include "common/logging.hpp"
+#include "common/owner-locator.hpp"
 #include "crypto/aes_ccm.hpp"
 #include "crypto/sha256.hpp"
 #include "mac/mac_frame.hpp"
@@ -155,7 +156,6 @@ Mac::Mac(Instance &aInstance):
     mShortAddress(kShortAddrInvalid),
     mPanId(kPanIdBroadcast),
     mChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL),
-    mMaxTransmitPower(OPENTHREAD_CONFIG_DEFAULT_MAX_TRANSMIT_POWER),
     mSendHead(NULL),
     mSendTail(NULL),
     mReceiveHead(NULL),
@@ -286,7 +286,7 @@ otError Mac::ConvertBeaconToActiveScanResult(Frame *aBeaconFrame, otActiveScanRe
 
     aBeaconFrame->GetSrcPanId(aResult.mPanId);
     aResult.mChannel = aBeaconFrame->GetChannel();
-    aResult.mRssi = aBeaconFrame->GetPower();
+    aResult.mRssi = aBeaconFrame->GetRssi();
     aResult.mLqi = aBeaconFrame->GetLqi();
 
     payloadLength = aBeaconFrame->GetPayloadLength();
@@ -393,7 +393,7 @@ exit:
 
 void Mac::HandleEnergyScanSampleRssi(Tasklet &aTasklet)
 {
-    GetOwner(aTasklet).HandleEnergyScanSampleRssi();
+    aTasklet.GetOwner<Mac>().HandleEnergyScanSampleRssi();
 }
 
 void Mac::HandleEnergyScanSampleRssi(void)
@@ -860,7 +860,7 @@ exit:
 
 void Mac::HandleBeginTransmit(Timer &aTimer)
 {
-    GetOwner(aTimer).HandleBeginTransmit();
+    aTimer.GetOwner<Mac>().HandleBeginTransmit();
 }
 
 void Mac::HandleBeginTransmit(void)
@@ -883,8 +883,6 @@ void Mac::HandleBeginTransmit(void)
 
     if (mCsmaAttempts == 0 && mTransmitAttempts == 0)
     {
-        sendFrame.SetPower(mMaxTransmitPower);
-
         switch (mOperation)
         {
         case kOperationActiveScan:
@@ -921,11 +919,6 @@ void Mac::HandleBeginTransmit(void)
 
         // Security Processing
         ProcessTransmitSecurity(sendFrame);
-
-        if (sendFrame.GetPower() > mMaxTransmitPower)
-        {
-            sendFrame.SetPower(mMaxTransmitPower);
-        }
     }
 
     error = RadioReceive(sendFrame.GetChannel());
@@ -1014,7 +1007,7 @@ void Mac::TransmitDoneTask(otRadioFrame *aFrame, otRadioFrame *aAckFrame, otErro
 
         if (neighbor != NULL)
         {
-            neighbor->GetLinkInfo().AddRss(GetNoiseFloor(), ackFrame->GetPower());
+            neighbor->GetLinkInfo().AddRss(GetNoiseFloor(), ackFrame->GetRssi());
         }
     }
 
@@ -1164,7 +1157,7 @@ exit:
 
 void Mac::HandleMacTimer(Timer &aTimer)
 {
-    GetOwner(aTimer).HandleMacTimer();
+    aTimer.GetOwner<Mac>().HandleMacTimer();
 }
 
 void Mac::HandleMacTimer(void)
@@ -1210,7 +1203,7 @@ exit:
 
 void Mac::HandleReceiveTimer(Timer &aTimer)
 {
-    GetOwner(aTimer).HandleReceiveTimer();
+    aTimer.GetOwner<Mac>().HandleReceiveTimer();
 }
 
 void Mac::HandleReceiveTimer(void)
@@ -1571,8 +1564,39 @@ void Mac::ReceiveDoneTask(Frame *aFrame, otError aError)
     SuccessOrExit(error = aFrame->ValidatePsdu());
 
     aFrame->GetSrcAddr(srcaddr);
+    aFrame->GetDstAddr(dstaddr);
     neighbor = GetNetif().GetMle().GetNeighbor(srcaddr);
 
+    // Destination Address Filtering
+    switch (dstaddr.mLength)
+    {
+    case 0:
+        break;
+
+    case sizeof(ShortAddress):
+        aFrame->GetDstPanId(panid);
+        VerifyOrExit((panid == kShortAddrBroadcast || panid == mPanId) &&
+                     ((mRxOnWhenIdle && dstaddr.mShortAddress == kShortAddrBroadcast) ||
+                      dstaddr.mShortAddress == mShortAddress), error = OT_ERROR_DESTINATION_ADDRESS_FILTERED);
+
+        // Allow  multicasts from neighbor routers if FFD
+        if (neighbor == NULL && dstaddr.mShortAddress == kShortAddrBroadcast &&
+            (GetNetif().GetMle().GetDeviceMode() & Mle::ModeTlv::kModeFFD))
+        {
+            neighbor = GetNetif().GetMle().GetRxOnlyNeighborRouter(srcaddr);
+        }
+
+        break;
+
+    case sizeof(ExtAddress):
+        aFrame->GetDstPanId(panid);
+        VerifyOrExit(panid == mPanId &&
+                     memcmp(&dstaddr.mExtAddress, &mExtAddress, sizeof(dstaddr.mExtAddress)) == 0,
+                     error = OT_ERROR_DESTINATION_ADDRESS_FILTERED);
+        break;
+    }
+
+    // Source Address Filtering
     switch (srcaddr.mLength)
     {
     case 0:
@@ -1614,34 +1638,11 @@ void Mac::ReceiveDoneTask(Frame *aFrame, otError aError)
         // override with the rssi in setting
         if (rssi != OT_MAC_FILTER_FIXED_RSS_DISABLED)
         {
-            aFrame->mPower = rssi;
+            aFrame->mRssi = rssi;
         }
     }
 
 #endif  // OPENTHREAD_ENABLE_MAC_FILTER
-
-    // Destination Address Filtering
-    aFrame->GetDstAddr(dstaddr);
-
-    switch (dstaddr.mLength)
-    {
-    case 0:
-        break;
-
-    case sizeof(ShortAddress):
-        aFrame->GetDstPanId(panid);
-        VerifyOrExit((panid == kShortAddrBroadcast || panid == mPanId) &&
-                     ((mRxOnWhenIdle && dstaddr.mShortAddress == kShortAddrBroadcast) ||
-                      dstaddr.mShortAddress == mShortAddress), error = OT_ERROR_DESTINATION_ADDRESS_FILTERED);
-        break;
-
-    case sizeof(ExtAddress):
-        aFrame->GetDstPanId(panid);
-        VerifyOrExit(panid == mPanId &&
-                     memcmp(&dstaddr.mExtAddress, &mExtAddress, sizeof(dstaddr.mExtAddress)) == 0,
-                     error = OT_ERROR_DESTINATION_ADDRESS_FILTERED);
-        break;
-    }
 
     // Increment counters
     if (dstaddr.mShortAddress == kShortAddrBroadcast)
@@ -1670,7 +1671,7 @@ void Mac::ReceiveDoneTask(Frame *aFrame, otError aError)
 
 #endif  // OPENTHREAD_ENABLE_MAC_FILTER
 
-        neighbor->GetLinkInfo().AddRss(GetNoiseFloor(), aFrame->mPower);
+        neighbor->GetLinkInfo().AddRss(GetNoiseFloor(), aFrame->mRssi);
 
         if (aFrame->GetSecurityEnabled() == true)
         {
@@ -1901,12 +1902,14 @@ bool Mac::RadioSupportsRetries(void)
 void Mac::FillMacCountersTlv(NetworkDiagnostic::MacCountersTlv &aMacCounters) const
 {
     aMacCounters.SetIfInUnknownProtos(mCounters.mRxOther);
-    aMacCounters.SetIfInErrors(mCounters.mRxErrNoFrame + mCounters.mRxErrUnknownNeighbor + mCounters.mRxErrInvalidSrcAddr +
-                               mCounters.mRxErrSec + mCounters.mRxErrFcs + mCounters.mRxErrOther);
+    aMacCounters.SetIfInErrors(mCounters.mRxErrNoFrame + mCounters.mRxErrUnknownNeighbor +
+                               mCounters.mRxErrInvalidSrcAddr + mCounters.mRxErrSec + mCounters.mRxErrFcs +
+                               mCounters.mRxErrOther);
     aMacCounters.SetIfOutErrors(mCounters.mTxErrCca);
     aMacCounters.SetIfInUcastPkts(mCounters.mRxUnicast);
     aMacCounters.SetIfInBroadcastPkts(mCounters.mRxBroadcast);
-    aMacCounters.SetIfInDiscards(mCounters.mRxAddressFiltered + mCounters.mRxDestAddrFiltered + mCounters.mRxDuplicated);
+    aMacCounters.SetIfInDiscards(mCounters.mRxAddressFiltered + mCounters.mRxDestAddrFiltered +
+                                 mCounters.mRxDuplicated);
     aMacCounters.SetIfOutUcastPkts(mCounters.mTxUnicast);
     aMacCounters.SetIfOutBroadcastPkts(mCounters.mTxBroadcast);
     aMacCounters.SetIfOutDiscards(mCounters.mTxErrBusyChannel);
@@ -1942,17 +1945,6 @@ bool Mac::IsBeaconJoinable(void)
     return joinable;
 }
 #endif // OPENTHREAD_CONFIG_ENABLE_BEACON_RSP_WHEN_JOINABLE
-
-Mac &Mac::GetOwner(const Context &aContext)
-{
-#if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
-    Mac &mac = *static_cast<Mac *>(aContext.GetContext());
-#else
-    Mac &mac = Instance::Get().GetThreadNetif().GetMac();
-    OT_UNUSED_VARIABLE(aContext);
-#endif
-    return mac;
-}
 
 const char *Mac::OperationToString(Operation aOperation)
 {

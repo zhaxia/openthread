@@ -216,8 +216,8 @@ const struct Command Interpreter::sCommands[] =
     { "singleton", &Interpreter::ProcessSingleton },
     { "state", &Interpreter::ProcessState },
     { "thread", &Interpreter::ProcessThread },
-    { "txpowermax", &Interpreter::ProcessTxPowerMax },
 #ifndef OTDLL
+    { "txpower", &Interpreter::ProcessTxPower },
     { "udp", &Interpreter::ProcessUdp },
 #endif
     { "version", &Interpreter::ProcessVersion },
@@ -2618,24 +2618,37 @@ exit:
     AppendResult(error);
 }
 
-void Interpreter::ProcessTxPowerMax(int argc, char *argv[])
+#ifndef OTDLL
+void Interpreter::ProcessTxPower(int argc, char *argv[])
 {
     otError error = OT_ERROR_NONE;
-    long value;
 
     if (argc == 0)
     {
-        mServer->OutputFormat("%d dBm\r\n", otLinkGetMaxTransmitPower(mInstance));
+        int8_t power;
+
+        SuccessOrExit(error = otPlatRadioGetTransmitPower(mInstance, &power));
+        mServer->OutputFormat("%d dBm\r\n", power);
     }
     else
     {
+        long value;
+
         SuccessOrExit(error = ParseLong(argv[0], value));
-        otLinkSetMaxTransmitPower(mInstance, static_cast<int8_t>(value));
+        SuccessOrExit(error = otPlatRadioSetTransmitPower(mInstance, static_cast<int8_t>(value)));
     }
 
 exit:
     AppendResult(error);
 }
+
+void Interpreter::ProcessUdp(int argc, char *argv[])
+{
+    otError error;
+    error = mUdp.Process(argc, argv);
+    AppendResult(error);
+}
+#endif
 
 void Interpreter::ProcessVersion(int argc, char *argv[])
 {
@@ -2645,15 +2658,6 @@ void Interpreter::ProcessVersion(int argc, char *argv[])
     OT_UNUSED_VARIABLE(argc);
     OT_UNUSED_VARIABLE(argv);
 }
-
-#ifndef OTDLL
-void Interpreter::ProcessUdp(int argc, char *argv[])
-{
-    otError error;
-    error = mUdp.Process(argc, argv);
-    AppendResult(error);
-}
-#endif
 
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 
@@ -3532,13 +3536,13 @@ void Interpreter::SetUserCommands(const otCliCommand *aCommands, uint8_t aLength
     mUserCommandsLength = aLength;
 }
 
-Interpreter &Interpreter::GetOwner(const Context &aContext)
+Interpreter &Interpreter::GetOwner(OwnerLocator &aOwnerLocator)
 {
 #if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
-    Interpreter &interpreter = *static_cast<Interpreter *>(aContext.GetContext());
+    Interpreter &interpreter = (aOwnerLocator.GetOwner<Interpreter>());
 #else
     Interpreter &interpreter = Uart::sUartServer->GetInterpreter();
-    OT_UNUSED_VARIABLE(aContext);
+    OT_UNUSED_VARIABLE(aOwnerLocator);
 #endif
     return interpreter;
 }
