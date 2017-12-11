@@ -38,7 +38,6 @@
 
 #include <openthread/platform/radio.h>
 
-#include "common/context.hpp"
 #include "common/locator.hpp"
 #include "common/tasklet.hpp"
 #include "common/timer.hpp"
@@ -103,7 +102,7 @@ enum
  * This class implements a MAC receiver client.
  *
  */
-class Receiver: public Context
+class Receiver: public OwnerLocator
 {
     friend class Mac;
 
@@ -131,11 +130,11 @@ public:
      *
      * @param[in]  aReceiveFrameHandler  A pointer to a function that is called on MAC frame reception.
      * @param[in]  aPollTimeoutHandler   A pointer to a function called on data poll timeout (may be set to NULL).
-     * @param[in]  aContext              A pointer to arbitrary context information.
+     * @param[in]  aOwner                A pointer to owner of this object.
      *
      */
-    Receiver(ReceiveFrameHandler aReceiveFrameHandler, DataPollTimeoutHandler aPollTimeoutHandler, void *aContext):
-        Context(aContext),
+    Receiver(ReceiveFrameHandler aReceiveFrameHandler, DataPollTimeoutHandler aPollTimeoutHandler, void *aOwner):
+        OwnerLocator(aOwner),
         mReceiveFrameHandler(aReceiveFrameHandler),
         mPollTimeoutHandler(aPollTimeoutHandler),
         mNext(NULL) {
@@ -159,7 +158,7 @@ private:
  * This class implements a MAC sender client.
  *
  */
-class Sender: public Context
+class Sender: public OwnerLocator
 {
     friend class Mac;
 
@@ -188,11 +187,11 @@ public:
      *
      * @param[in]  aFrameRequestHandler  A pointer to a function that is called when about to send a MAC frame.
      * @param[in]  aSentFrameHandler     A pointer to a function that is called when done sending the frame.
-     * @param[in]  aContext              A pointer to arbitrary context information.
+     * @param[in]  aOwner                A pointer to owner of this object.
      *
      */
-    Sender(FrameRequestHandler aFrameRequestHandler, SentFrameHandler aSentFrameHandler, void *aContext):
-        Context(aContext),
+    Sender(FrameRequestHandler aFrameRequestHandler, SentFrameHandler aSentFrameHandler, void *aOwner):
+        OwnerLocator(aOwner),
         mFrameRequestHandler(aFrameRequestHandler),
         mSentFrameHandler(aSentFrameHandler),
         mNext(NULL) {
@@ -401,22 +400,6 @@ public:
      *
      */
     otError SetChannel(uint8_t aChannel);
-
-    /**
-     * This method returns the maximum transmit power in dBm.
-     *
-     * @returns  The maximum transmit power in dBm.
-     *
-     */
-    int8_t GetMaxTransmitPower(void) const { return mMaxTransmitPower; }
-
-    /**
-     * This method sets the maximum transmit power in dBm.
-     *
-     * @param[in]  aPower  The maximum transmit power in dBm.
-     *
-     */
-    void SetMaxTransmitPower(int8_t aPower) { mMaxTransmitPower = aPower; }
 
     /**
      * This method returns the IEEE 802.15.4 Network Name.
@@ -667,8 +650,6 @@ private:
     otError RadioReceive(uint8_t aChannel);
     otError RadioSleep(void);
 
-    static Mac &GetOwner(const Context &aContext);
-
     static const char *OperationToString(Operation aOperation);
 
     Operation mOperation;
@@ -696,7 +677,6 @@ private:
     ShortAddress mShortAddress;
     PanId mPanId;
     uint8_t mChannel;
-    int8_t mMaxTransmitPower;
 
     otNetworkName mNetworkName;
     otExtendedPanId mExtendedPanId;

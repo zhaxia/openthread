@@ -82,7 +82,7 @@ void NcpBase::LinkRawReceiveDone(otRadioFrame *aFrame, otError aError)
     }
 
     // Append metadata (rssi, etc)
-    SuccessOrExit(mEncoder.WriteInt8(aFrame->mPower));      // TX Power
+    SuccessOrExit(mEncoder.WriteInt8(aFrame->mRssi));       // RSSI
     SuccessOrExit(mEncoder.WriteInt8(-128));                // Noise Floor (Currently unused)
     SuccessOrExit(mEncoder.WriteUint16(flags));             // Flags
 
@@ -128,7 +128,7 @@ void NcpBase::LinkRawTransmitDone(otRadioFrame *aFrame, otRadioFrame *aAckFrame,
             SuccessOrExit(mEncoder.WriteUint16(aAckFrame->mLength));
             SuccessOrExit(mEncoder.WriteData(aAckFrame->mPsdu, aAckFrame->mLength));
 
-            SuccessOrExit(mEncoder.WriteInt8(aAckFrame->mPower));    // RSSI
+            SuccessOrExit(mEncoder.WriteInt8(aAckFrame->mRssi));     // RSSI
             SuccessOrExit(mEncoder.WriteInt8(-128));                 // Noise Floor (Currently unused)
             SuccessOrExit(mEncoder.WriteUint16(0));                  // Flags
 
@@ -191,14 +191,19 @@ exit:
     return;
 }
 
+otError NcpBase::GetPropertyHandler_MAC_SRC_MATCH_ENABLED(void)
+{
+    // TODO: Would be good to add an `otLinkRaw` API to give the the status of source match.
+    return mEncoder.WriteBool(mSrcMatchEnabled);
+}
+
 otError NcpBase::SetPropertyHandler_MAC_SRC_MATCH_ENABLED(void)
 {
-    bool enabled;
     otError error = OT_ERROR_NONE;
 
-    SuccessOrExit(error = mDecoder.ReadBool(enabled));
+    SuccessOrExit(error = mDecoder.ReadBool(mSrcMatchEnabled));
 
-    error = otLinkRawSrcMatchEnable(mInstance, enabled);
+    error = otLinkRawSrcMatchEnable(mInstance, mSrcMatchEnabled);
 
 exit:
     return error;
@@ -356,7 +361,6 @@ otError NcpBase::SetPropertyHandler_STREAM_RAW(uint8_t aHeader)
 
     SuccessOrExit(error = mDecoder.ReadDataWithLen(frameBuffer, frameLen));
     SuccessOrExit(error = mDecoder.ReadUint8(frame->mChannel));
-    SuccessOrExit(error = mDecoder.ReadInt8(frame->mPower));
 
     VerifyOrExit(frameLen <= OT_RADIO_FRAME_MAX_SIZE, error = OT_ERROR_PARSE);
 
@@ -382,7 +386,7 @@ exit:
     }
     else
     {
-        error = SendLastStatus(aHeader, ThreadErrorToSpinelStatus(error));
+        error = WriteLastStatusFrame(aHeader, ThreadErrorToSpinelStatus(error));
     }
 
     return error;

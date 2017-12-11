@@ -52,7 +52,6 @@
 #endif
 
 #include "common/code_utils.hpp"
-#include "common/context.hpp"
 #include "common/instance.hpp"
 
 #ifndef OTDLL
@@ -305,7 +304,10 @@ private:
     void ProcessSingleton(int argc, char *argv[]);
     void ProcessState(int argc, char *argv[]);
     void ProcessThread(int argc, char *argv[]);
-    void ProcessTxPowerMax(int argc, char *argv[]);
+#ifndef OTDLL
+    void ProcessTxPower(int argc, char *argv[]);
+    void ProcessUdp(int argc, char *argv[]);
+#endif
     void ProcessVersion(int argc, char *argv[]);
 #if OPENTHREAD_ENABLE_MAC_FILTER
     void ProcessMacFilter(int argc, char *argv[]);
@@ -319,10 +321,6 @@ private:
 #ifdef OTDLL
     void ProcessInstanceList(int argc, char *argv[]);
     void ProcessInstance(int argc, char *argv[]);
-#endif
-
-#ifndef OTDLL
-    void ProcessUdp(int argc, char *argv[]);
 #endif
 
 #ifndef OTDLL
@@ -374,7 +372,7 @@ private:
     void HandleDnsResponse(const char *aHostname, Ip6::Address &aAddress, uint32_t aTtl, otError aResult);
 #endif
 
-    static Interpreter &GetOwner(const Context &aContext);
+    static Interpreter &GetOwner(OwnerLocator &aOwnerLocator);
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
 
