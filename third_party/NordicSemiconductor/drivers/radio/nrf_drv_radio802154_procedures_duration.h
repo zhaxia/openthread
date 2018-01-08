@@ -39,35 +39,27 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define TX_RAMP_UP_TIME       40  // us
-#define RX_RAMP_UP_TIME       40  // us
-#define RX_RAMP_DOWN_TIME      0  // us
-#define MAX_RAMP_DOWN_TIME     6  // us
+#define PHY_US_PER_SYMBOL     16
+#define PHY_SYMBOLS_PER_OCTET  2
+#define PHY_SHR_DURATION      10
 
-#define PHY_US_PER_SYMBOL     16  // us/sym
-#define PHY_SYMBOLS_PER_OCTET  2  // sym/byte
-#define PHY_SHR_DURATION      10  // sym
+#define A_CCA_DURATION         8
+#define A_TURNAROUND_TIME     12
+#define A_UNIT_BACKOFF_PERIOD 20
 
-#define A_CCA_DURATION         8  // sym
-#define A_TURNAROUND_TIME     12  // sym
-#define A_UNIT_BACKOFF_PERIOD 20  // sym
-
-#define NUM_OCTETS_IN_ACK      6  // bytes
+#define NUM_OCTETS_IN_ACK     6
 
 #define MAC_ACK_WAIT_DURATION (A_UNIT_BACKOFF_PERIOD +                                            \
                                A_TURNAROUND_TIME +                                                \
                                PHY_SHR_DURATION +                                                 \
                                (NUM_OCTETS_IN_ACK * PHY_SYMBOLS_PER_OCTET))
 
-static inline uint16_t nrf_drv_radio802154_tx_duration_get(uint8_t psdu_length,
-                                                           bool    cca,
-                                                           bool    ack_requested)
+static inline uint16_t nrf_drv_radio802154_tx_duration_get(uint8_t psdu_length, bool ack_requested)
 {
-    // ramp down
-    // if CCA: + RX ramp up + CCA + RX ramp down
-    // + TX ramp up + SHR + PHR + PSDU
+    // aTurnaroundTime + CCA + aTurnaroundTime + SHR + PHR + PSDU
     // if ACK: + macAckWaitDuration
-    uint16_t result = PHY_SHR_DURATION + (psdu_length + 1) * PHY_SYMBOLS_PER_OCTET;
+    uint16_t result = A_TURNAROUND_TIME + A_CCA_DURATION + A_TURNAROUND_TIME + PHY_SHR_DURATION;
+    result += (psdu_length + 1) * PHY_SYMBOLS_PER_OCTET;
 
     if (ack_requested)
     {
@@ -76,27 +68,21 @@ static inline uint16_t nrf_drv_radio802154_tx_duration_get(uint8_t psdu_length,
 
     result *= PHY_US_PER_SYMBOL;
 
-    result += MAX_RAMP_DOWN_TIME + TX_RAMP_UP_TIME;
-
-    if (cca)
-    {
-        result += RX_RAMP_UP_TIME + (A_CCA_DURATION * PHY_US_PER_SYMBOL) + RX_RAMP_DOWN_TIME;
-    }
-
     return result;
 }
 
 static inline uint16_t nrf_drv_radio802154_rx_duration_get(uint8_t psdu_length, bool ack_requested)
 {
     // SHR + PHR + PSDU
-    // if ACK: + aTurnaroundTime + ACK frame duration
+    // if ACK: + aTurnaroundTime + ACK frame duration + aTurnaroundTime
     uint16_t result = PHY_SHR_DURATION + (psdu_length + 1) * PHY_SYMBOLS_PER_OCTET;
 
     if (ack_requested)
     {
         result += A_TURNAROUND_TIME +
                   PHY_SHR_DURATION +
-                  (NUM_OCTETS_IN_ACK * PHY_SYMBOLS_PER_OCTET);
+                  (NUM_OCTETS_IN_ACK * PHY_SYMBOLS_PER_OCTET) +
+                  A_TURNAROUND_TIME;
     }
 
     result *= PHY_US_PER_SYMBOL;
@@ -106,8 +92,10 @@ static inline uint16_t nrf_drv_radio802154_rx_duration_get(uint8_t psdu_length, 
 
 static inline uint16_t nrf_drv_radio802154_cca_duration_get(void)
 {
-    // ramp down + rx ramp up + CCA
-    uint16_t result = MAX_RAMP_DOWN_TIME + RX_RAMP_UP_TIME + A_CCA_DURATION * PHY_US_PER_SYMBOL;
+    // aTurnaroundTime + CCA
+    uint16_t result = A_TURNAROUND_TIME + A_CCA_DURATION;
+
+    result *= PHY_US_PER_SYMBOL;
 
     return result;
 }

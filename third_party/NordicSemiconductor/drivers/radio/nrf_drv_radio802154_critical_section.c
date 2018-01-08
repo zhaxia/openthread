@@ -42,7 +42,6 @@
 #include "nrf_drv_radio802154_debug.h"
 #include "nrf_drv_radio802154_fsm.h"
 #include "hal/nrf_radio.h"
-#include "platform/timer/nrf_drv_radio802154_timer.h"
 #include "raal/nrf_raal_api.h"
 
 #include <cmsis/core_cmFunc.h>
@@ -71,7 +70,6 @@ void nrf_drv_radio802154_critical_section_enter(void)
     m_in_critical_section = true;
 #endif // PREVENT_NESTED_CRIT_SECTIONS
 
-    nrf_drv_radio802154_timer_critical_section_enter();
     nrf_raal_critical_section_enter();
 
     state = nrf_drv_radio802154_fsm_state_get();
@@ -115,8 +113,6 @@ void nrf_drv_radio802154_critical_section_exit(void)
     {
         NVIC_EnableIRQ(RADIO_IRQn);
     }
-
-    nrf_drv_radio802154_timer_critical_section_exit();
 
     nrf_drv_radio802154_log(EVENT_TRACE_EXIT, FUNCTION_CRIT_SECT_EXIT);
 }
