@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2018, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,73 +28,65 @@
 
 /**
  * @file
- * @brief
- *  This file defines the top-level functions for the OpenThread diagnostics library.
+ *   This file implements MTD-specific mesh forwarding of IPv6/6LoWPAN messages.
  */
 
-#ifndef OPENTHREAD_DIAG_H_
-#define OPENTHREAD_DIAG_H_
+#if OPENTHREAD_MTD
 
-#include <openthread/types.h>
+#define WPP_NAME "mesh_forwarder_mtd.tmh"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+#include "mesh_forwarder.hpp"
 
-/**
- * @addtogroup api-factory-diagnostics
- *
- * @brief
- *   This module includes functions that control the Thread stack's execution.
- *
- * @{
- *
- */
+namespace ot {
 
-/**
- * Initialize the diagnostics module.
- *
- * @param[in]  aInstance  A pointer to the OpenThread instance.
- *
- */
-void otDiagInit(otInstance *aInstance);
+otError MeshForwarder::SendMessage(Message &aMessage)
+{
+    otError error;
 
-/**
- * This function processes a factory diagnostics command line.
- *
- * @param[in]  aArgCount   The argument counter of diagnostics command line.
- * @param[in]  aArgVector  The argument vector of diagnostics command line.
- *
- * @returns A pointer to the output string.
- *
- */
-const char *otDiagProcessCmd(int aArgCount, char *aArgVector[]);
+    aMessage.SetDirectTransmission();
+    aMessage.SetOffset(0);
+    aMessage.SetDatagramTag(0);
 
-/**
- * This function processes a factory diagnostics command line.
- *
- * @param[in]  aString  A NULL-terminated input string.
- *
- * @returns A pointer to the output string.
- *
- */
-const char *otDiagProcessCmdLine(const char *aString);
+    SuccessOrExit(error = mSendQueue.Enqueue(aMessage));
+    mScheduleTransmissionTask.Post();
 
-/**
- * This function indicates whether or not the factory diagnostics mode is enabled.
- *
- * @returns TRUE if factory diagnostics mode is enabled, FALSE otherwise.
- *
- */
-bool otDiagIsEnabled(void);
+exit:
+    return error;
+}
 
-/**
- * @}
- *
- */
+otError MeshForwarder::EvictIndirectMessage(void)
+{
+    return OT_ERROR_NOT_FOUND;
+}
 
-#ifdef __cplusplus
-}  // extern "C"
-#endif
+otError MeshForwarder::GetIndirectTransmission(void)
+{
+    return OT_ERROR_NOT_FOUND;
+}
 
-#endif  // OPENTHREAD_DIAG_H_
+otError MeshForwarder::RemoveMessageFromSleepyChild(Message &aMessage, Child &aChild)
+{
+    OT_UNUSED_VARIABLE(aMessage);
+    OT_UNUSED_VARIABLE(aChild);
+    return OT_ERROR_NOT_FOUND;
+}
+
+void MeshForwarder::HandleSentFrameToChild(const Mac::Frame &aFrame, otError aError, const Mac::Address &aMacDest)
+{
+    OT_UNUSED_VARIABLE(aFrame);
+    OT_UNUSED_VARIABLE(aError);
+    OT_UNUSED_VARIABLE(aMacDest);
+}
+
+void MeshForwarder::HandleMesh(uint8_t *aFrame, uint8_t aFrameLength, const Mac::Address &aMacSource,
+                               const otThreadLinkInfo &aLinkInfo)
+{
+    OT_UNUSED_VARIABLE(aFrame);
+    OT_UNUSED_VARIABLE(aFrameLength);
+    OT_UNUSED_VARIABLE(aMacSource);
+    OT_UNUSED_VARIABLE(aLinkInfo);
+}
+
+}  // namespace ot
+
+#endif  // OPENTHREAD_MTD

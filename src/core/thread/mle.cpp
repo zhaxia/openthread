@@ -337,8 +337,23 @@ otError Mle::Restore(void)
     if (!IsActiveRouter(networkInfo.mRloc16))
     {
         length = sizeof(parentInfo);
-        SuccessOrExit(error = otPlatSettingsGet(&netif.GetInstance(), Settings::kKeyParentInfo, 0,
-                                                reinterpret_cast<uint8_t *>(&parentInfo), &length));
+
+        error = otPlatSettingsGet(&netif.GetInstance(), Settings::kKeyParentInfo, 0,
+                                  reinterpret_cast<uint8_t *>(&parentInfo), &length);
+
+        if (error != OT_ERROR_NONE)
+        {
+            // If the restored RLOC16 corresponds to an end-device, it
+            // is expected that the `ParentInfo` settings to be valid
+            // as well. The device can still recover from such an invalid
+            // setting by skipping the re-attach ("Child Update Request"
+            // exchange) and going through the full attach process.
+
+            otLogWarnMle(GetInstance(), "Invalid settings - no saved parent info with valid end-device RLOC16 0x%04x",
+                         networkInfo.mRloc16);
+            ExitNow();
+        }
+
         VerifyOrExit(length >= sizeof(parentInfo), error = OT_ERROR_PARSE);
 
         memset(&mParent, 0, sizeof(mParent));
@@ -842,6 +857,7 @@ void Mle::SetLeaderData(uint32_t aPartitionId, uint8_t aWeighting, uint8_t aLead
 {
     if (mLeaderData.GetPartitionId() != aPartitionId)
     {
+        GetNetif().GetMle().HandlePartitionChange();
         mLastPartitionId = mLeaderData.GetPartitionId();
         mLastPartitionRouterIdSequence = GetNetif().GetMle().GetRouterIdSequence();
         mLastPartitionIdTimeout = GetNetif().GetMle().GetNetworkIdTimeout();
@@ -1426,10 +1442,8 @@ void Mle::HandleParentRequestTimer(void)
     // fall through
 
     case kParentRequestChild:
-        mParentRequestState = kParentRequestChild;
-
         if (mParentCandidate.GetState() == Neighbor::kStateParentResponse &&
-            (mRole != OT_DEVICE_ROLE_CHILD || mReceivedResponseFromParent) &&
+            (mRole != OT_DEVICE_ROLE_CHILD || mReceivedResponseFromParent || mParentRequestMode == kAttachBetter) &&
             SendChildIdRequest() == OT_ERROR_NONE)
         {
             mParentRequestState = kChildIdRequest;
@@ -1566,6 +1580,29 @@ void Mle::HandleDelayedResponseTimer(void)
     }
 }
 
+void Mle::RemoveDelayedDataResponseMessage(void)
+{
+    Message *message = mDelayedResponses.GetHead();
+    DelayedResponseHeader delayedResponse;
+
+    while (message != NULL)
+    {
+        delayedResponse.ReadFrom(*message);
+
+        if (message->GetSubType() == Message::kSubTypeMleDataResponse)
+        {
+            mDelayedResponses.Dequeue(*message);
+            message->Free();
+            LogMleMessage("Remove Delayed Data Response", delayedResponse.GetDestination());
+
+            // no more than one multicast MLE Data Response in Delayed Message Queue.
+            break;
+        }
+
+        message = message->GetNext();
+    }
+}
+
 otError Mle::SendParentRequest(void)
 {
     otError error = OT_ERROR_NONE;
@@ -1647,11 +1684,22 @@ otError Mle::SendChildIdRequest(void)
     Message *message = NULL;
     Ip6::Address destination;
 
-    if (mRole == OT_DEVICE_ROLE_CHILD &&
-        mParent.GetExtAddress() == mParentCandidate.GetExtAddress())
+    if (mParent.GetExtAddress() == mParentCandidate.GetExtAddress())
     {
-        otLogInfoMle(GetInstance(), "Already attached to candidate parent");
-        ExitNow(error = OT_ERROR_ALREADY);
+        if (mRole == OT_DEVICE_ROLE_CHILD)
+        {
+            otLogInfoMle(GetInstance(), "Already attached to candidate parent");
+            ExitNow(error = OT_ERROR_ALREADY);
+        }
+        else
+        {
+            // Invalidate stale parent state.
+            //
+            // Parent state is not normally invalidated after becoming a Router/Leader (see #1875).  When trying to
+            // attach to a better partition, invalidating old parent state (especially when in kStateRestored) ensures
+            // that GetNeighbor() returns mParentCandidate when processing the Child ID Response.
+            mParent.SetState(Neighbor::kStateInvalid);
+        }
     }
 
     VerifyOrExit((message = NewMleMessage()) != NULL, error = OT_ERROR_NO_BUFS);
@@ -1777,7 +1825,12 @@ otError Mle::SendChildUpdateRequest(void)
         ExitNow();
     }
 
-    VerifyOrExit(mParent.IsStateValidOrRestoring(), error = OT_ERROR_INVALID_STATE);
+    if (!mParent.IsStateValidOrRestoring())
+    {
+        otLogWarnMle(GetInstance(), "No valid parent when sending Child Update Request");
+        BecomeDetached();
+        ExitNow();
+    }
 
     mChildUpdateRequestTimer.Start(kUnicastRetransmissionDelay);
     mChildUpdateAttempts++;

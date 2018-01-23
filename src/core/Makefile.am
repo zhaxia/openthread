@@ -90,6 +90,7 @@ libopenthread_mtd_a_CPPFLAGS        = \
 SOURCES_COMMON                      = \
     api/coap_api.cpp                  \
     api/commissioner_api.cpp          \
+    api/channel_monitor_api.cpp       \
     api/child_supervision_api.cpp     \
     api/crypto_api.cpp                \
     api/border_router_api.cpp         \
@@ -170,6 +171,8 @@ SOURCES_COMMON                      = \
     thread/link_quality.cpp           \
     thread/lowpan.cpp                 \
     thread/mesh_forwarder.cpp         \
+    thread/mesh_forwarder_ftd.cpp     \
+    thread/mesh_forwarder_mtd.cpp     \
     thread/mle.cpp                    \
     thread/mle_router.cpp             \
     thread/network_data.cpp           \

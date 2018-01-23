@@ -151,6 +151,18 @@ OTAPI otError OTCALL otLinkSendDataRequest(otInstance *aInstance);
 OTAPI bool OTCALL otLinkIsInTransmitState(otInstance *aInstance);
 
 /**
+ * This function enqueues an IEEE 802.15.4 out of band Frame for transmission.
+ *
+ * @param[in] aInstance  A pointer to an OpenThread instance.
+ * @parma[in] aOobFrame  A pointer to the frame to transmit.
+ *
+ * @retval OT_ERROR_NONE           Successfully enqueued an IEEE 802.15.4 Data Request message.
+ * @retval OT_ERROR_ALREADY        An IEEE 802.15.4 out of band frame is already enqueued.
+ *
+ */
+OTAPI otError OTCALL otLinkOutOfBandTransmitRequest(otInstance *aInstance, otRadioFrame *aOobFrame);
+
+/**
  * Get the IEEE 802.15.4 channel.
  *
  * @param[in] aInstance A pointer to an OpenThread instance.
@@ -584,6 +596,18 @@ bool otLinkIsPromiscuous(otInstance *aInstance);
  *
  */
 otError otLinkSetPromiscuous(otInstance *aInstance, bool aPromiscuous);
+
+
+/**
+ * This function returns the current CCA (Clear Channel Assessment) failure rate.
+ *
+ * The rate is maintained over a window of (roughly) last `OPENTHREAD_CONFIG_CCA_FAILURE_RATE_AVERAGING_WINDOW`
+ * frame transmissions.
+ *
+ * @returns The CCA failure rate with maximum value `0xffff` corresponding to 100% failure rate.
+ *
+ */
+uint16_t otLinkGetCcaFailureRate(otInstance *aInstance);
 
 /**
  * @}

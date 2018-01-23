@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2018, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,73 +28,51 @@
 
 /**
  * @file
- * @brief
- *  This file defines the top-level functions for the OpenThread diagnostics library.
+ *   This file implements the OpenThread channel monitor APIs.
  */
 
-#ifndef OPENTHREAD_DIAG_H_
-#define OPENTHREAD_DIAG_H_
+#include "openthread-core-config.h"
+#include "openthread/channel_monitor.h"
 
-#include <openthread/types.h>
+#include "common/instance.hpp"
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+using namespace ot;
 
-/**
- * @addtogroup api-factory-diagnostics
- *
- * @brief
- *   This module includes functions that control the Thread stack's execution.
- *
- * @{
- *
- */
+#if OPENTHREAD_ENABLE_CHANNEL_MONITOR
 
-/**
- * Initialize the diagnostics module.
- *
- * @param[in]  aInstance  A pointer to the OpenThread instance.
- *
- */
-void otDiagInit(otInstance *aInstance);
+uint32_t otChannelMonitorGetSampleInterval(otInstance *aInstance)
+{
+    OT_UNUSED_VARIABLE(aInstance);
 
-/**
- * This function processes a factory diagnostics command line.
- *
- * @param[in]  aArgCount   The argument counter of diagnostics command line.
- * @param[in]  aArgVector  The argument vector of diagnostics command line.
- *
- * @returns A pointer to the output string.
- *
- */
-const char *otDiagProcessCmd(int aArgCount, char *aArgVector[]);
+    return Utils::ChannelMonitor::kSampleInterval;
+}
 
-/**
- * This function processes a factory diagnostics command line.
- *
- * @param[in]  aString  A NULL-terminated input string.
- *
- * @returns A pointer to the output string.
- *
- */
-const char *otDiagProcessCmdLine(const char *aString);
+int8_t otChannelMonitorGetRssiThreshold(otInstance *aInstance)
+{
+    OT_UNUSED_VARIABLE(aInstance);
 
-/**
- * This function indicates whether or not the factory diagnostics mode is enabled.
- *
- * @returns TRUE if factory diagnostics mode is enabled, FALSE otherwise.
- *
- */
-bool otDiagIsEnabled(void);
+    return Utils::ChannelMonitor::kRssiThreshold;
+}
 
-/**
- * @}
- *
- */
+uint32_t otChannelMonitorGetSampleWindow(otInstance *aInstance)
+{
+    OT_UNUSED_VARIABLE(aInstance);
 
-#ifdef __cplusplus
-}  // extern "C"
-#endif
+    return Utils::ChannelMonitor::kSampleWindow;
+}
 
-#endif  // OPENTHREAD_DIAG_H_
+uint32_t otChannelMonitorGetSampleCount(otInstance *aInstance)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
+
+    return instance.GetChannelMonitor().GetSampleCount();
+}
+
+uint16_t otChannelMonitorGetChannelQuality(otInstance *aInstance, uint8_t aChannel)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
+
+    return instance.GetChannelMonitor().GetChannelQuality(aChannel);
+}
+
+#endif  // OPENTHREAD_ENABLE_CHANNEL_MONITOR

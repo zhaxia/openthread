@@ -215,7 +215,8 @@ otError NcpBase::GetPropertyHandler_THREAD_CHILD_TABLE_ADDRESSES(void)
     otError error = OT_ERROR_NONE;
     otChildInfo childInfo;
     uint8_t maxChildren;
-    const otIp6Address *ip6Address;
+    otIp6Address ip6Address;
+    otChildIp6AddressIterator iterator = OT_CHILD_IP6_ADDRESS_ITERATOR_INIT;
 
     maxChildren = otThreadGetMaxAllowedChildren(mInstance);
 
@@ -232,14 +233,11 @@ otError NcpBase::GetPropertyHandler_THREAD_CHILD_TABLE_ADDRESSES(void)
         SuccessOrExit(error = mEncoder.WriteEui64(childInfo.mExtAddress));
         SuccessOrExit(error = mEncoder.WriteUint16(childInfo.mRloc16));
 
-        ip6Address = childInfo.mIp6Addresses;
+        iterator = OT_CHILD_IP6_ADDRESS_ITERATOR_INIT;
 
-        for (uint8_t num = childInfo.mIp6AddressesLength; num > 0; num--, ip6Address++)
+        while (otThreadGetChildNextIp6Address(mInstance, childIndex, &iterator, &ip6Address) == OT_ERROR_NONE)
         {
-            if (!otIp6IsAddressUnspecified(ip6Address))
-            {
-                SuccessOrExit(error = mEncoder.WriteIp6Address(*ip6Address));
-            }
+            SuccessOrExit(error = mEncoder.WriteIp6Address(ip6Address));
         }
 
         SuccessOrExit(error = mEncoder.CloseStruct());
@@ -429,8 +427,6 @@ otError NcpBase::InsertPropertyHandler_THREAD_JOINERS(void)
     const char *aPSKd = NULL;
     uint32_t joinerTimeout = 0;
 
-    VerifyOrExit(mAllowLocalNetworkDataChange == true, error = OT_ERROR_INVALID_STATE);
-
     SuccessOrExit(error = mDecoder.ReadUtf8(aPSKd));
     SuccessOrExit(error = mDecoder.ReadUint32(joinerTimeout));
 
@@ -439,13 +435,11 @@ otError NcpBase::InsertPropertyHandler_THREAD_JOINERS(void)
         eui64 = NULL;
     }
 
-
     error = otCommissionerAddJoiner(mInstance, eui64, aPSKd, joinerTimeout);
 
 exit:
     return error;
 }
-
 #endif // OPENTHREAD_ENABLE_COMMISSIONER
 
 otError NcpBase::SetPropertyHandler_THREAD_LOCAL_LEADER_WEIGHT(void)

@@ -804,6 +804,17 @@
 #endif
 
 /**
+ * @def OPENTHREAD_CONFIG_NCP_SPINEL_ENCRYPTER_EXTRA_DATA_SIZE
+ *
+ *  The size of extra data to be allocated in UART buffer,
+ *  needed by NCP Spinel Encrypter.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_NCP_SPINEL_ENCRYPTER_EXTRA_DATA_SIZE
+#define OPENTHREAD_CONFIG_NCP_SPINEL_ENCRYPTER_EXTRA_DATA_SIZE  0
+#endif
+
+/**
  * @def OPENTHREAD_CONFIG_PLATFORM_ASSERT_MANAGEMENT
  *
  * The assert is managed by platform defined logic when this flag is set.
@@ -913,6 +924,19 @@
 #endif
 
 /**
+ * @def OPENTHREAD_CONFIG_CCA_FAILURE_RATE_AVERAGING_WINDOW
+ *
+ * OpenThread's MAC implementation maintains the average failure rate of CCA (Clear Channel Assessment) operation on
+ * frame transmissions. This value specifies the window (in terms of number of transmissions or samples) over which the
+ * average rate is maintained. Practically, the average value can be considered as the percentage of CCA failures in
+ * (approximately) last AVERAGING_WINDOW frame transmissions.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_CCA_FAILURE_RATE_AVERAGING_WINDOW
+#define OPENTHREAD_CONFIG_CCA_FAILURE_RATE_AVERAGING_WINDOW     512
+#endif
+
+/**
  * @def OPENTHREAD_CONFIG_CHANNEL_MONITOR_SAMPLE_INTERVAL
  *
  * The sample interval in milliseconds used by Channel Monitoring feature.
@@ -928,11 +952,11 @@
 #endif
 
 /**
- * @def OPENTHREAD_CONFIG_CHANNEL_MONITOR_RSS_THRESHOLD
+ * @def OPENTHREAD_CONFIG_CHANNEL_MONITOR_RSSI_THRESHOLD
  *
  * The RSSI threshold in dBm used by Channel Monitoring feature.
  *
- * The RSSI samples are compared with the given threshold. Channel monitoring reports the average rate of RSS samples
+ * The RSSI samples are compared with the given threshold. Channel monitoring reports the average rate of RSSI samples
  * that are above this threshold within an observation window (per channel).
  *
  * It is recommended that this value is set to same value as the CCA threshold used by radio.
@@ -940,8 +964,8 @@
  * Applicable only if Channel Monitoring feature is enabled (i.e., `OPENTHREAD_ENABLE_CHANNEL_MONITOR` is set).
  *
  */
-#ifndef OPENTHREAD_CONFIG_CHANNEL_MONITOR_RSS_THRESHOLD
-#define OPENTHREAD_CONFIG_CHANNEL_MONITOR_RSS_THRESHOLD        -75
+#ifndef OPENTHREAD_CONFIG_CHANNEL_MONITOR_RSSI_THRESHOLD
+#define OPENTHREAD_CONFIG_CHANNEL_MONITOR_RSSI_THRESHOLD        -75
 #endif
 
 /**
@@ -949,14 +973,14 @@
  *
  * The averaging sample window length (in units of channel sample interval) used by Channel Monitoring feature.
  *
- * Channel monitoring will sample all channels every sample interval. It maintains the average rate of RSS samples
- * that are above the RSS threshold within (approximately) this sample window.
+ * Channel monitoring will sample all channels every sample interval. It maintains the average rate of RSSI samples
+ * that are above the RSSI threshold within (approximately) this sample window.
  *
  * Applicable only if Channel Monitoring feature is enabled (i.e., `OPENTHREAD_ENABLE_CHANNEL_MONITOR` is set).
  *
  */
 #ifndef OPENTHREAD_CONFIG_CHANNEL_MONITOR_SAMPLE_WINDOW
-#define OPENTHREAD_CONFIG_CHANNEL_MONITOR_SAMPLE_WINDOW        960
+#define OPENTHREAD_CONFIG_CHANNEL_MONITOR_SAMPLE_WINDOW         960
 #endif
 
 /**
