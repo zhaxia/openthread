@@ -54,18 +54,6 @@ extern "C" {
 #else
 #include <windows.h>
 #endif
-#else
-#ifndef CONTAINING_RECORD
-/*#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Winvalid-offsetof"
-#define CONTAINING_RECORD(address, type, field) \
-    ((type *)((uint8_t*)(address) - offsetof(type, field)))
-#pragma GCC diagnostic pop*/
-#define BASE 0x1
-#define myoffsetof(s,m) (((size_t)&(((s*)BASE)->m))-BASE)
-#define CONTAINING_RECORD(address, type, field) \
-    ((type *)((uint8_t*)(address) - myoffsetof(type, field)))
-#endif /* CONTAINING_RECORD */
 #endif /* _WIN32 */
 
 /**
@@ -412,6 +400,10 @@ struct otExtAddress
     uint8_t m8[OT_EXT_ADDRESS_SIZE];  ///< IEEE 802.15.4 Extended Address bytes
 } OT_TOOL_PACKED_END;
 
+/**
+ * This structure represents the IEEE 802.15.4 Extended Address.
+ *
+ */
 typedef struct otExtAddress otExtAddress;
 
 #define OT_IP6_PREFIX_SIZE         8   ///< Size of an IPv6 prefix (bytes)
@@ -945,9 +937,11 @@ typedef struct
     bool           mFullFunction : 1;      ///< Full Function Device
     bool           mFullNetworkData : 1;   ///< Full Network Data
     bool           mIsStateRestoring : 1;  ///< Is in restoring state
-    uint8_t        mIp6AddressesLength;    ///< Number of entries in IPv6 address array.
-    const otIp6Address *mIp6Addresses;     ///< Array of IPv6 addresses (unused entries contain unspecified address).
 } otChildInfo;
+
+#define OT_CHILD_IP6_ADDRESS_ITERATOR_INIT  0   ///< Initializer for otChildIP6AddressIterator
+
+typedef uint16_t otChildIp6AddressIterator;     ///< Used to iterate through IPv6 addresses of a Thread Child entry.
 
 /**
  * This structure holds diagnostic information for a Thread Router
@@ -1023,7 +1017,7 @@ typedef struct otMacCounters
     uint32_t mRxAddressFiltered;      ///< The number of received packets filtered by address filter (whitelist or blacklist).
     uint32_t mRxDestAddrFiltered;     ///< The number of received packets filtered by destination check.
     uint32_t mRxDuplicated;           ///< The number of received duplicated packets.
-    uint32_t mRxErrNoFrame;           ///< The number of received packets that do not contain contents.
+    uint32_t mRxErrNoFrame;           ///< The number of received packets with no or malformed content.
     uint32_t mRxErrUnknownNeighbor;   ///< The number of received packets from unknown neighbor.
     uint32_t mRxErrInvalidSrcAddr;    ///< The number of received packets whose source address is invalid.
     uint32_t mRxErrSec;               ///< The number of received packets with security error.

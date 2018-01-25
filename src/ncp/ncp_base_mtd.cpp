@@ -35,6 +35,9 @@
 #if OPENTHREAD_ENABLE_BORDER_ROUTER
 #include <openthread/border_router.h>
 #endif
+#if OPENTHREAD_ENABLE_CHANNEL_MONITOR
+#include <openthread/channel_monitor.h>
+#endif
 #include <openthread/diag.h>
 #include <openthread/icmp6.h>
 #if OPENTHREAD_ENABLE_JAM_DETECTION
@@ -1473,6 +1476,53 @@ void NcpBase::HandleJamStateChange(bool aJamState)
 
 #endif // OPENTHREAD_ENABLE_JAM_DETECTION
 
+#if OPENTHREAD_ENABLE_CHANNEL_MONITOR
+
+otError NcpBase::GetPropertyHandler_CHANNEL_MONITOR_SAMPLE_INTERVAL(void)
+{
+    return mEncoder.WriteUint32(otChannelMonitorGetSampleInterval(mInstance));
+}
+
+otError NcpBase::GetPropertyHandler_CHANNEL_MONITOR_RSSI_THRESHOLD(void)
+{
+    return mEncoder.WriteInt8(otChannelMonitorGetRssiThreshold(mInstance));
+}
+
+otError NcpBase::GetPropertyHandler_CHANNEL_MONITOR_SAMPLE_WINDOW(void)
+{
+    return mEncoder.WriteUint32(otChannelMonitorGetSampleWindow(mInstance));
+}
+
+otError NcpBase::GetPropertyHandler_CHANNEL_MONITOR_SAMPLE_COUNT(void)
+{
+    return mEncoder.WriteUint32(otChannelMonitorGetSampleCount(mInstance));
+}
+
+otError NcpBase::GetPropertyHandler_CHANNEL_MONITOR_CHANNEL_QUALITY(void)
+{
+    otError error = OT_ERROR_NONE;
+
+    for (uint8_t channel = OT_RADIO_CHANNEL_MIN; channel <= OT_RADIO_CHANNEL_MAX; channel++)
+    {
+        SuccessOrExit(error = mEncoder.OpenStruct());
+
+        SuccessOrExit(error = mEncoder.WriteUint8(channel));
+        SuccessOrExit(error = mEncoder.WriteUint16(otChannelMonitorGetChannelQuality(mInstance, channel)));
+
+        SuccessOrExit(error = mEncoder.CloseStruct());
+    }
+
+exit:
+    return error;
+}
+
+#endif // OPENTHREAD_ENABLE_CHANNEL_MONITOR
+
+otError NcpBase::GetPropertyHandler_MAC_CCA_FAILURE_RATE(void)
+{
+    return mEncoder.WriteUint16(otLinkGetCcaFailureRate(mInstance));
+}
+
 otError NcpBase::GetPropertyHandler_CNTR_TX_PKT_TOTAL(void)
 {
     return mEncoder.WriteUint32(otLinkGetCounters(mInstance)->mTxTotal);
@@ -1721,6 +1771,61 @@ otError NcpBase::GetPropertyHandler_MSG_BUFFER_COUNTERS(void)
     SuccessOrExit(mEncoder.WriteUint16(bufferInfo.mArpBuffers));
     SuccessOrExit(mEncoder.WriteUint16(bufferInfo.mCoapMessages));
     SuccessOrExit(mEncoder.WriteUint16(bufferInfo.mCoapBuffers));
+
+exit:
+    return error;
+}
+
+otError NcpBase::GetPropertyHandler_CNTR_ALL_MAC_COUNTERS(void)
+{
+    otError error = OT_ERROR_NONE;
+    const otMacCounters *counters = otLinkGetCounters(mInstance);
+
+    if (counters == NULL)
+    {
+        error = mEncoder.OverwriteWithLastStatusError(SPINEL_STATUS_INVALID_COMMAND_FOR_PROP);
+        ExitNow();
+    }
+
+    // Encode Tx related counters
+    SuccessOrExit(error = mEncoder.OpenStruct());
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxTotal));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxUnicast));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxBroadcast));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxAckRequested));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxAcked));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxNoAckRequested));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxData));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxDataPoll));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxBeacon));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxBeaconRequest));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxOther));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxRetry));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxErrCca));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxErrAbort));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mTxErrBusyChannel));
+    SuccessOrExit(error = mEncoder.CloseStruct());
+
+    // Encode Rx related counters
+    SuccessOrExit(error = mEncoder.OpenStruct());
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxTotal));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxUnicast));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxBroadcast));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxData));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxDataPoll));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxBeacon));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxBeaconRequest));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxOther));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxAddressFiltered));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxDestAddrFiltered));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxDuplicated));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxErrNoFrame));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxErrUnknownNeighbor));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxErrInvalidSrcAddr));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxErrSec));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxErrFcs));
+    SuccessOrExit(error = mEncoder.WriteUint32(counters->mRxErrOther));
+    SuccessOrExit(error = mEncoder.CloseStruct());
 
 exit:
     return error;
@@ -2100,15 +2205,14 @@ exit:
 otError NcpBase::SetPropertyHandler_NEST_STREAM_MFG(uint8_t aHeader)
 {
     const char *string = NULL;
-    char *output = NULL;
+    const char *output = NULL;
     otError error = OT_ERROR_NONE;
 
     error = mDecoder.ReadUtf8(string);
 
     VerifyOrExit(error == OT_ERROR_NONE, error = WriteLastStatusFrame(aHeader, ThreadErrorToSpinelStatus(error)));
 
-    // All diagnostics related features are processed within diagnostics module
-    output = otDiagProcessCmdLine(const_cast<char *>(string));
+    output = otDiagProcessCmdLine(string);
 
     // Prepare the response
     SuccessOrExit(error = mEncoder.BeginFrame(aHeader, SPINEL_CMD_PROP_VALUE_IS, SPINEL_PROP_NEST_STREAM_MFG));

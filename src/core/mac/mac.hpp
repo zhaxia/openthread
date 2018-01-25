@@ -44,6 +44,7 @@
 #include "mac/mac_frame.hpp"
 #include "mac/mac_filter.hpp"
 #include "thread/key_manager.hpp"
+#include "thread/link_quality.hpp"
 #include "thread/network_diagnostic_tlvs.hpp"
 #include "thread/topology.hpp"
 
@@ -348,6 +349,18 @@ public:
     otError SendFrameRequest(Sender &aSender);
 
     /**
+     * This method registers a Out of Band frame for MAC Transmission.
+     * An Out of Band frame is one that was generated outside of OpenThread.
+     *
+     * @param[in]  aOobFrame  A pointer to the frame.
+     *
+     * @retval OT_ERROR_NONE     Successfully registered the frame.
+     * @retval OT_ERROR_ALREADY  MAC layer is busy sending a previously registered frame.
+     *
+     */
+    otError SendOutOfBandFrameRequest(otRadioFrame *aOobFrame);
+
+    /**
      * This method generates a random IEEE 802.15.4 Extended Address.
      *
      * @param[out]  aExtAddress  A pointer to where the generated Extended Address is placed.
@@ -611,10 +624,22 @@ public:
      */
     bool RadioSupportsRetries(void);
 
+    /**
+     * This method returns the current CCA (Clear Channel Assessment) failure rate.
+     *
+     * The rate is maintained over a window of (roughly) last `OPENTHREAD_CONFIG_CCA_FAILURE_RATE_AVERAGING_WINDOW`
+     * frame transmissions.
+     *
+     * @returns The CCA failure rate with maximum value `0xffff` corresponding to 100% failure rate.
+     *
+     */
+    uint16_t GetCcaFailureRate(void) const { return mCcaSuccessRateTracker.GetFailureRate(); }
+
 private:
     enum
     {
-        kInvalidRssiValue = 127
+        kInvalidRssiValue = 127,
+        kMaxCcaSampleCount = OPENTHREAD_CONFIG_CCA_FAILURE_RATE_AVERAGING_WINDOW,
     };
 
     enum Operation
@@ -625,6 +650,7 @@ private:
         kOperationTransmitBeacon,
         kOperationTransmitData,
         kOperationWaitingForData,
+        kOperationTransmitOutOfBandFrame,
     };
 
     void GenerateNonce(const ExtAddress &aAddress, uint32_t aFrameCounter, uint8_t aSecurityLevel, uint8_t *aNonce);
@@ -637,6 +663,7 @@ private:
     void SendBeacon(Frame &aFrame);
     void StartBackoff(void);
     otError HandleMacCommand(Frame &aFrame);
+    Frame *GetOperationFrame(void);
 
     static void HandleMacTimer(Timer &aTimer);
     void HandleMacTimer(void);
@@ -668,6 +695,7 @@ private:
     bool mPendingEnergyScan       : 1;
     bool mPendingTransmitBeacon   : 1;
     bool mPendingTransmitData     : 1;
+    bool mPendingTransmitOobFrame : 1;
     bool mPendingWaitingForData   : 1;
     bool mRxOnWhenIdle            : 1;
     bool mBeaconsEnabled          : 1;
@@ -720,9 +748,13 @@ private:
 #endif  // OPENTHREAD_ENABLE_MAC_FILTER
 
     Frame *mTxFrame;
+    Frame *mOobFrame;
 
     otMacCounters mCounters;
     uint32_t mKeyIdMode2FrameCounter;
+
+    SuccessRateTracker mCcaSuccessRateTracker;
+    uint16_t mCcaSampleCount;
 };
 
 /**
