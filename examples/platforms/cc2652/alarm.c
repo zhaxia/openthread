@@ -34,14 +34,16 @@
 
 #include <openthread/config.h>
 
-#include <driverlib/aon_rtc.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <driverlib/aon_rtc.h>
 
 #include <openthread/openthread.h>
 
 #include <openthread/platform/alarm-milli.h>
 #include <openthread/platform/diag.h>
+#include <openthread/platform/platform.h>
+
 
 #include "platform-cc2652.h"
 
@@ -128,3 +130,4 @@ void cc2652AlarmProcess(otInstance *aInstance)
         }
     }
 }
+

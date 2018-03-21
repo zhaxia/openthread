@@ -37,9 +37,8 @@ libopenthread_posix_a_CPPFLAGS            = \
     -D_GNU_SOURCE                           \
     $(NULL)
 
-PLATFORM_SOURCES                          = \
+libopenthread_posix_a_SOURCES             = \
     alarm.c                                 \
-    diag.c                                  \
     misc.c                                  \
     logging.c                               \
     platform.c                              \
@@ -47,23 +46,22 @@ PLATFORM_SOURCES                          = \
     random.c                                \
     uart-posix.c                            \
     flash.c                                 \
-    spi-stubs.c                             \
-    sim/alarm-sim.c                         \
-    sim/platform-sim.c                      \
-    sim/radio-sim.c                         \
     $(NULL)
 
-libopenthread_posix_a_SOURCES             = \
-     $(PLATFORM_SOURCES)                    \
+if OPENTHREAD_ENABLE_DIAG
+libopenthread_posix_a_SOURCES            += \
+    diag.c                                  \
     $(NULL)
+endif
+
+if OPENTHREAD_ENABLE_NCP_SPI
+libopenthread_posix_a_SOURCES            += \
+    spi-stubs.c                             \
+    $(NULL)
+endif
 
 noinst_HEADERS                            = \
     platform-posix.h                        \
-    $(NULL)
-
-PRETTY_FILES                              = \
-    $(PLATFORM_SOURCES)                     \
-    $(noinst_HEADERS)                       \
     $(NULL)
 
 Dash                                      = -

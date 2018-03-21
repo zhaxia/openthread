@@ -44,7 +44,8 @@ namespace ot {
 
 #if !OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
 
-template <typename OwnerType> OwnerType &OwnerLocator::GetOwner(void)
+template <typename OwnerType>
+OwnerType &OwnerLocator::GetOwner(void)
 {
     // This method uses the `Instance` template method `Get<Type>`
     // to get to the given `Type` from the single OpenThread
@@ -61,6 +62,6 @@ template <typename OwnerType> OwnerType &OwnerLocator::GetOwner(void)
 
 #endif
 
-} // namespace ot
+}  // namespace ot
 
-#endif // OWNER_LOCATOR_HPP_
+#endif  // OWNER_LOCATOR_HPP_

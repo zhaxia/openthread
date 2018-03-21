@@ -28,16 +28,16 @@
 
 #include "platform_qorvo.h"
 
-#include <stdio.h>
 #include <unistd.h>
+#include <stdio.h>
 
-#include "radio_qorvo.h"
-#include <stdlib.h>
 #include <openthread/types.h>
 #include <openthread/platform/misc.h>
+#include "radio_qorvo.h"
+#include <stdlib.h>
 
-extern int    gArgumentsCount;
-extern char **gArguments;
+extern int      gArgumentsCount;
+extern char   **gArguments;
 
 extern void platformUartRestore(void);
 

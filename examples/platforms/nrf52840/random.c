@@ -32,15 +32,15 @@
  *
  */
 
-#include <openthread-core-config.h>
 #include <openthread/config.h>
+#include <openthread-core-config.h>
 
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include <utils/code_utils.h>
 #include <openthread/platform/random.h>
+#include <utils/code_utils.h>
 
 #include "platform-nrf5.h"
 
@@ -49,7 +49,7 @@
 #else
 #include <hal/nrf_rng.h>
 
-static uint8_t           sBuffer[RNG_BUFFER_SIZE];
+static uint8_t sBuffer[RNG_BUFFER_SIZE];
 static volatile uint32_t sReadPosition;
 static volatile uint32_t sWritePosition;
 
@@ -125,7 +125,8 @@ static void generatorStop(void)
 
 void RNG_IRQHandler(void)
 {
-    if (nrf_rng_event_get(NRF_RNG_EVENT_VALRDY) && nrf_rng_int_get(NRF_RNG_INT_VALRDY_MASK))
+    if (nrf_rng_event_get(NRF_RNG_EVENT_VALRDY) &&
+        nrf_rng_int_get(NRF_RNG_INT_VALRDY_MASK))
     {
         nrf_rng_event_clear(NRF_RNG_EVENT_VALRDY);
 
@@ -150,11 +151,12 @@ void nrf5RandomInit(void)
     {
         // Wait for the first randomized 4 bytes, to randomize software generator seed.
         retval = sd_rand_application_vector_get((uint8_t *)&seed, sizeof(seed));
-    } while (retval != NRF_SUCCESS && seed == 0);
+    }
+    while (retval != NRF_SUCCESS && seed == 0);
 
-#else  // SOFTDEVICE_PRESENT
+#else // SOFTDEVICE_PRESENT
     memset(sBuffer, 0, sizeof(sBuffer));
-    sReadPosition  = 0;
+    sReadPosition = 0;
     sWritePosition = 0;
 
     NVIC_SetPriority(RNG_IRQn, RNG_IRQ_PRIORITY);
@@ -166,8 +168,7 @@ void nrf5RandomInit(void)
     generatorStart();
 
     // Wait for the first randomized 4 bytes, to randomize software generator seed.
-    while (!bufferIsUint32Ready())
-        ;
+    while (!bufferIsUint32Ready()) ;
 
     seed = bufferGetUint32();
 #endif // SOFTDEVICE_PRESENT
@@ -193,7 +194,7 @@ uint32_t otPlatRandomGet(void)
 
 otError otPlatRandomGetTrue(uint8_t *aOutput, uint16_t aOutputLength)
 {
-    otError  error = OT_ERROR_NONE;
+    otError error = OT_ERROR_NONE;
     uint8_t  copyLength;
     uint16_t index = 0;
 
@@ -203,7 +204,7 @@ otError otPlatRandomGetTrue(uint8_t *aOutput, uint16_t aOutputLength)
     {
 #if SOFTDEVICE_PRESENT
         sd_rand_application_bytes_available_get(&copyLength);
-#else  // SOFTDEVICE_PRESENT
+#else // SOFTDEVICE_PRESENT
         copyLength = (uint8_t)bufferCount();
 #endif // SOFTDEVICE_PRESENT
 
@@ -214,10 +215,11 @@ otError otPlatRandomGetTrue(uint8_t *aOutput, uint16_t aOutputLength)
 
         if (copyLength > 0)
         {
+
 #if SOFTDEVICE_PRESENT
             uint32_t retval = sd_rand_application_vector_get(aOutput + index, copyLength);
             otEXPECT_ACTION(retval == NRF_SUCCESS, error = OT_ERROR_FAILED);
-#else  // SOFTDEVICE_PRESENT
+#else // SOFTDEVICE_PRESENT
 
             for (uint32_t i = 0; i < copyLength; i++)
             {
@@ -229,7 +231,8 @@ otError otPlatRandomGetTrue(uint8_t *aOutput, uint16_t aOutputLength)
 
             index += copyLength;
         }
-    } while (index < aOutputLength);
+    }
+    while (index < aOutputLength);
 
 exit:
     return error;

@@ -35,6 +35,7 @@
 #include <assert.h>
 #include <stdio.h>
 
+
 #include <openthread/types.h>
 #include <openthread/platform/random.h>
 
@@ -51,11 +52,11 @@ void qorvoRandomInit(void)
     error = otPlatRandomGetTrue((uint8_t *)&sState, sizeof(sState));
     assert(error == OT_ERROR_NONE);
 
-#else // __SANITIZE_ADDRESS__
+#else  // __SANITIZE_ADDRESS__
 
     sState = (uint32_t)time(NULL);
 
-#endif // __SANITIZE_ADDRESS__
+#endif  // __SANITIZE_ADDRESS__
 }
 
 uint32_t otPlatRandomGet(void)
@@ -64,10 +65,10 @@ uint32_t otPlatRandomGet(void)
     uint64_t tmpstate;
 
     tmpstate = (uint64_t)33614 * (uint64_t)sState;
-    q        = tmpstate & 0xffffffff;
-    q        = q >> 1;
-    p        = tmpstate >> 32;
-    mlcg     = p + q;
+    q = tmpstate & 0xffffffff;
+    q = q >> 1;
+    p = tmpstate >> 32;
+    mlcg = p + q;
 
     if (mlcg & 0x80000000)
     {
@@ -86,7 +87,7 @@ otError otPlatRandomGetTrue(uint8_t *aOutput, uint16_t aOutputLength)
 
 #if __SANITIZE_ADDRESS__ == 0
 
-    FILE * file = NULL;
+    FILE *file = NULL;
     size_t readLength;
 
     otEXPECT_ACTION(aOutput && aOutputLength, error = OT_ERROR_INVALID_ARGS);
@@ -104,7 +105,7 @@ exit:
         fclose(file);
     }
 
-#else // __SANITIZE_ADDRESS__
+#else  // __SANITIZE_ADDRESS__
 
     /*
      * THE IMPLEMENTATION BELOW IS NOT COMPLIANT WITH THE THREAD SPECIFICATION.
@@ -123,7 +124,7 @@ exit:
 
 exit:
 
-#endif // __SANITIZE_ADDRESS__
+#endif  // __SANITIZE_ADDRESS__
 
     return error;
 }

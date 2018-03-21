@@ -30,7 +30,6 @@
 import time
 import unittest
 
-import config
 import node
 
 LEADER = 1
@@ -39,11 +38,9 @@ ED = 3
 
 class Cert_5_5_2_LeaderReboot(unittest.TestCase):
     def setUp(self):
-        self.simulator = config.create_default_simulator()
-
         self.nodes = {}
         for i in range(1,4):
-            self.nodes[i] = node.Node(i, (i == ED), simulator=self.simulator)
+            self.nodes[i] = node.Node(i, (i == ED))
 
         self.nodes[LEADER].set_panid(0xface)
         self.nodes[LEADER].set_mode('rsdn')
@@ -70,28 +67,27 @@ class Cert_5_5_2_LeaderReboot(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        del self.simulator
 
     def test(self):
         self.nodes[LEADER].start()
-        self.simulator.go(5)
+        self.nodes[LEADER].set_state('leader')
         self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
 
         self.nodes[ROUTER].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ROUTER].get_state(), 'router')
 
         self.nodes[ED].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ED].get_state(), 'child')
 
         self.nodes[LEADER].reset()
         self._setUpLeader()
-        self.simulator.go(140)
+        time.sleep(140)
         self.assertEqual(self.nodes[ROUTER].get_state(), 'leader')
 
         self.nodes[LEADER].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[LEADER].get_state(), 'router')
 
         addrs = self.nodes[ED].get_addrs()

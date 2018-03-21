@@ -30,7 +30,6 @@
 import time
 import unittest
 
-import config
 import node
 
 LEADER = 1
@@ -38,11 +37,9 @@ ROUTER = 2
 
 class Cert_5_8_3_KeyIncrementRollOver(unittest.TestCase):
     def setUp(self):
-        self.simulator = config.create_default_simulator()
-
         self.nodes = {}
         for i in range(1,3):
-            self.nodes[i] = node.Node(i, simulator=self.simulator)
+            self.nodes[i] = node.Node(i)
 
         self.nodes[LEADER].set_panid(0xface)
         self.nodes[LEADER].set_mode('rsdn')
@@ -62,15 +59,14 @@ class Cert_5_8_3_KeyIncrementRollOver(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        del self.simulator
 
     def test(self):
         self.nodes[LEADER].start()
-        self.simulator.go(4)
+        self.nodes[LEADER].set_state('leader')
         self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
 
         self.nodes[ROUTER].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ROUTER].get_state(), 'router')
 
         addrs = self.nodes[ROUTER].get_addrs()

@@ -34,8 +34,6 @@
 
 #include "platform-posix.h"
 
-#if OPENTHREAD_POSIX_VIRTUAL_TIME == 0
-
 #include <assert.h>
 #include <errno.h>
 #include <stddef.h>
@@ -52,12 +50,12 @@
 #include <openthread/tasklet.h>
 #include <openthread/platform/alarm-milli.h>
 
-uint32_t NODE_ID           = 1;
+uint32_t NODE_ID = 1;
 uint32_t WELLKNOWN_NODE_ID = 34;
 
 #ifndef _WIN32
-int    gArgumentsCount = 0;
-char **gArguments      = NULL;
+int     gArgumentsCount = 0;
+char  **gArguments = NULL;
 #endif
 
 void PlatformInit(int argc, char *argv[])
@@ -74,7 +72,7 @@ void PlatformInit(int argc, char *argv[])
     setlogmask(setlogmask(0) & LOG_UPTO(LOG_NOTICE));
 
     gArgumentsCount = argc;
-    gArguments      = argv;
+    gArguments = argv;
 #endif
 
     NODE_ID = (uint32_t)strtol(argv[1], &endptr, 0);
@@ -90,19 +88,14 @@ void PlatformInit(int argc, char *argv[])
     platformRandomInit();
 }
 
-void PlatformDeinit(void)
-{
-    platformRadioDeinit();
-}
-
 void PlatformProcessDrivers(otInstance *aInstance)
 {
-    fd_set         read_fds;
-    fd_set         write_fds;
-    fd_set         error_fds;
-    int            max_fd = -1;
+    fd_set read_fds;
+    fd_set write_fds;
+    fd_set error_fds;
+    int max_fd = -1;
     struct timeval timeout;
-    int            rval;
+    int rval;
 
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);
@@ -127,5 +120,3 @@ void PlatformProcessDrivers(otInstance *aInstance)
     platformRadioProcess(aInstance);
     platformAlarmProcess(aInstance);
 }
-
-#endif // OPENTHREAD_POSIX_VIRTUAL_TIME == 0

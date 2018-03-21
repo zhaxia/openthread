@@ -35,11 +35,9 @@
 #include <openthread/types.h>
 #include <openthread/platform/misc.h>
 
-#include "platform.h"
-
 #ifndef _WIN32
-extern int    gArgumentsCount;
-extern char **gArguments;
+extern int      gArgumentsCount;
+extern char   **gArguments;
 #endif
 
 void otPlatReset(otInstance *aInstance)
@@ -54,7 +52,7 @@ void otPlatReset(otInstance *aInstance)
 
     argv[gArgumentsCount] = NULL;
 
-    PlatformDeinit();
+    platformRadioDeinit();
     platformUartRestore();
 
     alarm(0);
@@ -63,7 +61,7 @@ void otPlatReset(otInstance *aInstance)
     perror("reset failed");
     exit(EXIT_FAILURE);
 #else
-// This function does nothing on the Windows platform.
+    // This function does nothing on the Windows platform.
 #endif // _WIN32
     (void)aInstance;
 }

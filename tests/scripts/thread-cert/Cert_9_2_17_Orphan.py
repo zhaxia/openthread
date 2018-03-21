@@ -30,7 +30,6 @@
 import time
 import unittest
 
-import config
 import node
 
 CHANNEL1 = 11
@@ -44,11 +43,9 @@ ED1 = 3
 
 class Cert_9_2_17_Orphan(unittest.TestCase):
     def setUp(self):
-        self.simulator = config.create_default_simulator()
-
         self.nodes = {}
         for i in range(1,4):
-            self.nodes[i] = node.Node(i, (i == ED1), simulator=self.simulator)
+            self.nodes[i] = node.Node(i, (i == ED1))
 
         self.nodes[LEADER1].set_active_dataset(10, channel=CHANNEL1, panid=PANID_INIT, channel_mask=CHANNEL_MASK)
         self.nodes[LEADER1].set_mode('rsdn')
@@ -72,11 +69,10 @@ class Cert_9_2_17_Orphan(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        del self.simulator
 
     def test(self):
         self.nodes[LEADER1].start()
-        self.simulator.go(5)
+        self.nodes[LEADER1].set_state('leader')
         self.assertEqual(self.nodes[LEADER1].get_state(), 'leader')
 
         self.nodes[LEADER2].start()
@@ -84,13 +80,13 @@ class Cert_9_2_17_Orphan(unittest.TestCase):
         self.assertEqual(self.nodes[LEADER2].get_state(), 'leader')
 
         self.nodes[ED1].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ED1].get_state(), 'child')
 
         self.nodes[LEADER1].stop()
         self.nodes[LEADER2].add_whitelist(self.nodes[ED1].get_addr64())
         self.nodes[ED1].add_whitelist(self.nodes[LEADER2].get_addr64())
-        self.simulator.go(20)
+        time.sleep(20)
 
         self.assertEqual(self.nodes[ED1].get_state(), 'child')
         self.assertEqual(self.nodes[ED1].get_channel(), CHANNEL2)

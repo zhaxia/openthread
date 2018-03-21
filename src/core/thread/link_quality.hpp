@@ -36,8 +36,8 @@
 
 #include "openthread-core-config.h"
 
-#include <openthread/types.h>
 #include <openthread/platform/radio.h>
+#include <openthread/types.h>
 
 namespace ot {
 
@@ -62,7 +62,7 @@ class SuccessRateTracker
 public:
     enum
     {
-        kMaxRateValue = 0xffff, ///< Indicates value corresponding to maximum (failure/success) rate of 100%.
+        kMaxRateValue = 0xffff,    ///< Indicates value corresponding to maximum (failure/success) rate of 100%.
     };
 
     /**
@@ -71,16 +71,13 @@ public:
      * After initialization the tracker starts with success rate 100% (failure rate 0%).
      *
      */
-    SuccessRateTracker(void)
-        : mFailureRate(0)
-    {
-    }
+    SuccessRateTracker(void): mSuccessRate(kMaxRateValue) { }
 
     /**
      * This method resets the tracker to its initialized state, setting success rate to 100%.
      *
      */
-    void Reset(void) { mFailureRate = 0; }
+    void Reset(void) { mSuccessRate = kMaxRateValue; }
 
     /**
      * This method adds a sample (success or failure) to `SuccessRateTracker`.
@@ -97,7 +94,7 @@ public:
      * @retval the average failure rate `[0-kMaxRateValue]` with `kMaxRateValue` corresponding to 100%.
      *
      */
-    uint16_t GetFailureRate(void) const { return mFailureRate; }
+    uint16_t GetFailureRate(void) const { return kMaxRateValue - mSuccessRate; }
 
     /**
      * This method returns the average success rate.
@@ -105,7 +102,7 @@ public:
      * @retval the average success rate as [0-kMaxRateValue] with `kMaxRateValue` corresponding to 100%.
      *
      */
-    uint16_t GetSuccessRate(void) const { return kMaxRateValue - mFailureRate; }
+    uint16_t GetSuccessRate(void) const { return mSuccessRate; }
 
 private:
     enum
@@ -113,7 +110,7 @@ private:
         kDefaultWeight = 64,
     };
 
-    uint16_t mFailureRate;
+    uint16_t mSuccessRate;
 };
 
 /**
@@ -124,10 +121,12 @@ private:
  */
 class RssAverager
 {
+    friend class LinkQualityInfo;
+
 public:
     enum
     {
-        kStringSize = 10, ///< Max chars needed for a string representation of average (@sa ToString()).
+        kStringSize = 10,    ///< Max chars needed for a string representation of average (@sa ToString()).
     };
 
     /**
@@ -204,17 +203,18 @@ private:
 
     enum
     {
-        kPrecisionBitShift = 3, // Precision multiple for RSS average (1 << PrecisionBitShift).
-        kPrecision         = (1 << kPrecisionBitShift),
-        kPrecisionBitMask  = (kPrecision - 1),
+        kPrecisionBitShift      = 3,    // Precision multiple for RSS average (1 << PrecisionBitShift).
+        kPrecision              = (1 << kPrecisionBitShift),
+        kPrecisionBitMask       = (kPrecision - 1),
 
-        kCoeffBitShift = 3, // Coefficient used for exponentially weighted filter (1 << kCoeffBitShift).
+        kCoeffBitShift          = 3,    // Coefficient used for exponentially weighted filter (1 << kCoeffBitShift).
     };
 
     // Member variables fit into two bytes.
 
-    uint16_t mAverage : 11; // The raw average signal strength value (stored as RSS times precision multiple).
-    uint16_t mCount : 5;    // Number of RSS values added to averager so far (limited to 2^kCoeffBitShift-1).
+    uint16_t mAverage     : 11; // The raw average signal strength value (stored as RSS times precision multiple).
+    uint8_t  mCount       : 3;  // Number of RSS values added to averager so far (limited to 2^kCoeffBitShift-1).
+    uint8_t  mLinkQuality : 2;  // Used by friend class LinkQualityInfo to store LinkQuality (0-3) value.
 };
 
 /**
@@ -224,10 +224,11 @@ private:
  */
 class LinkQualityInfo
 {
+
 public:
     enum
     {
-        kInfoStringSize = 50, ///< Max chars needed for the info string representation (@sa ToInfoString())
+        kInfoStringSize = 50,    ///< Max chars needed for the info string representation (@sa ToInfoString())
     };
 
     /**
@@ -306,7 +307,7 @@ public:
      * @returns The current link quality value (value 0-3 as per Thread specification).
      *
      */
-    uint8_t GetLinkQuality(void) const { return mLinkQuality; }
+    uint8_t GetLinkQuality(void) const { return mRssAverager.mLinkQuality; }
 
     /**
      * Returns the most recent RSS value.
@@ -315,60 +316,6 @@ public:
      *
      */
     int8_t GetLastRss(void) const { return mLastRss; }
-
-#if OPENTHREAD_CONFIG_ENABLE_TX_ERROR_RATE_TRACKING
-
-    /**
-     * This method adds a MAC frame transmission status (success/failure) and updates the frame tx error rate.
-     *
-     * @param[in]  aTxStatus   Success/Failure of MAC frame transmission (`true` -> success, `false` -> failure).
-     *
-     */
-    void AddFrameTxStatus(bool aTxStatus)
-    {
-        mFrameErrorRate.AddSample(aTxStatus, OPENTHREAD_CONFIG_FRAME_TX_ERR_RATE_AVERAGING_WINDOW);
-    }
-
-    /**
-     * This method adds a message transmission status (success/failure) and updates the message error rate.
-     *
-     * @param[in]  aTxStatus   Success/Failure of message (`true` -> success, `false` -> message tx failed).
-     *                         A larger (IPv6) message may be fragmented and sent as multiple MAC frames. The message
-     *                         transmission is considered a failure, if any of its fragments fail after all MAC retry
-     *                         attempts.
-     *
-     */
-    void AddMessageTxStatus(bool aTxStatus)
-    {
-        mMessageErrorRate.AddSample(aTxStatus, OPENTHREAD_CONFIG_IPV6_TX_ERR_RATE_AVERAGING_WINDOW);
-    }
-
-    /**
-     * This method returns the MAC frame transmission error rate for the link.
-     *
-     * The rate is maintained over a window of (roughly) last `OPENTHREAD_CONFIG_FRAME_TX_ERR_RATE_AVERAGING_WINDOW`
-     * frame transmissions.
-     *
-     * @returns The error rate with maximum value `0xffff` corresponding to 100% failure rate.
-     *
-     */
-    uint16_t GetFrameErrorRate(void) const { return mFrameErrorRate.GetFailureRate(); }
-
-    /**
-     * This method returns the message error rate for the link.
-     *
-     * The rate is maintained over a window of (roughly) last `OPENTHREAD_CONFIG_IPV6_TX_ERR_RATE_AVERAGING_WINDOW`
-     * (IPv6) messages.
-     *
-     * Note that a larger (IPv6) message can be fragmented and sent as multiple MAC frames. The message transmission is
-     * considered a failure, if any of its fragments fail after all MAC retry attempts.
-     *
-     * @returns The error rate with maximum value `0xffff` corresponding to 100% failure rate.
-     *
-     */
-    uint16_t GetMessageErrorRate(void) const { return mMessageErrorRate.GetFailureRate(); }
-
-#endif // OPENTHREAD_CONFIG_ENABLE_TX_ERROR_RATE_TRACKING
 
     /**
      * This method converts a received signal strength value to a link margin value.
@@ -419,22 +366,22 @@ private:
     {
         // Constants for obtaining link quality from link margin:
 
-        kThreshold3          = 20, ///< Link margin threshold for quality 3 link.
-        kThreshold2          = 10, ///< Link margin threshold for quality 2 link.
-        kThreshold1          = 2,  ///< Link margin threshold for quality 1 link.
-        kHysteresisThreshold = 2,  ///< Link margin hysteresis threshold.
+        kThreshold3             = 20,   // Link margin threshold for quality 3 link.
+        kThreshold2             = 10,   // Link margin threshold for quality 2 link.
+        kThreshold1             = 2,    // Link margin threshold for quality 1 link.
+        kHysteresisThreshold    = 2,    // Link margin hysteresis threshold.
 
         // constants for test:
 
-        kLinkQuality3LinkMargin = 50, ///< link margin for Link Quality 3 (21 - 255)
-        kLinkQuality2LinkMargin = 15, ///< link margin for Link Quality 3 (21 - 255)
-        kLinkQuality1LinkMargin = 5,  ///< link margin for Link Quality 3 (21 - 255)
-        kLinkQuality0LinkMargin = 0,  ///< link margin for Link Quality 3 (21 - 255)
+        kLinkQuality3LinkMargin     = 50, ///< link margin for Link Quality 3 (21 - 255)
+        kLinkQuality2LinkMargin     = 15, ///< link margin for Link Quality 3 (21 - 255)
+        kLinkQuality1LinkMargin     = 5,  ///< link margin for Link Quality 3 (21 - 255)
+        kLinkQuality0LinkMargin     = 0,  ///< link margin for Link Quality 3 (21 - 255)
 
-        kNoLinkQuality = 0xff, // Used to indicate that there is no previous/last link quality.
+        kNoLinkQuality          = 0xff, // Used to indicate that there is no previous/last link quality.
     };
 
-    void SetLinkQuality(uint8_t aLinkQuality) { mLinkQuality = aLinkQuality; }
+    void SetLinkQuality(uint8_t aLinkQuality) { mRssAverager.mLinkQuality = aLinkQuality; }
 
     /* Static private method to calculate the link quality from a given link margin while taking into account the last
      * link quality value and adding the hysteresis value to the thresholds. If there is no previous value for link
@@ -444,18 +391,13 @@ private:
     static uint8_t CalculateLinkQuality(uint8_t aLinkMargin, uint8_t aLastLinkQuality);
 
     RssAverager mRssAverager;
-    uint8_t     mLinkQuality;
     int8_t      mLastRss;
-#if OPENTHREAD_CONFIG_ENABLE_TX_ERROR_RATE_TRACKING
-    SuccessRateTracker mFrameErrorRate;
-    SuccessRateTracker mMessageErrorRate;
-#endif
 };
 
 /**
  * @}
  */
 
-} // namespace ot
+}  // namespace ot
 
 #endif // LINK_QUALITY_HPP_

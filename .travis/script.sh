@@ -35,6 +35,7 @@ die() {
 set -x
 
 [ $BUILD_TARGET != pretty-check ] || {
+    export PATH=/tmp/astyle/build/gcc/bin:$PATH || die
     ./bootstrap || die
     ./configure || die
     make pretty-check || die
@@ -310,7 +311,6 @@ set -x
         --enable-legacy                     \
         --enable-mac-filter                 \
         --enable-service                    \
-        --enable-channel-manager            \
         --enable-channel-monitor            \
         --disable-docs                      \
         --disable-test || die
@@ -344,9 +344,8 @@ set -x
 }
 
 [ $BUILD_TARGET != posix-distcheck ] || {
-    export ASAN_SYMBOLIZER_PATH=`which llvm-symbolizer-5.0` || die
+    export ASAN_SYMBOLIZER_PATH=`which llvm-symbolizer-3.4` || die
     export ASAN_OPTIONS=symbolize=1 || die
-    export DISTCHECK_CONFIGURE_FLAGS= CPPFLAGS=-DOPENTHREAD_POSIX_VIRTUAL_TIME=1 || die
     ./bootstrap || die
     make -f examples/Makefile-posix distcheck || die
 }

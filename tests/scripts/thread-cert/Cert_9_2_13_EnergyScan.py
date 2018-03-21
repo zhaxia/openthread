@@ -30,7 +30,6 @@
 import time
 import unittest
 
-import config
 import node
 
 COMMISSIONER = 1
@@ -40,11 +39,9 @@ ED1 = 4
 
 class Cert_9_2_13_EnergyScan(unittest.TestCase):
     def setUp(self):
-        self.simulator = config.create_default_simulator()
-
         self.nodes = {}
         for i in range(1,5):
-            self.nodes[i] = node.Node(i, (i == ED1), simulator=self.simulator)
+            self.nodes[i] = node.Node(i, (i == ED1))
 
         self.nodes[COMMISSIONER].set_panid(0xface)
         self.nodes[COMMISSIONER].set_mode('rsdn')
@@ -74,25 +71,24 @@ class Cert_9_2_13_EnergyScan(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        del self.simulator
 
     def test(self):
         self.nodes[LEADER].start()
-        self.simulator.go(5)
+        self.nodes[LEADER].set_state('leader')
         self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
 
         self.nodes[COMMISSIONER].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[COMMISSIONER].get_state(), 'router')
         self.nodes[COMMISSIONER].commissioner_start()
-        self.simulator.go(3)
+        time.sleep(3)
 
         self.nodes[ROUTER1].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ROUTER1].get_state(), 'router')
 
         self.nodes[ED1].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ED1].get_state(), 'child')
 
         ipaddrs = self.nodes[ROUTER1].get_addrs()

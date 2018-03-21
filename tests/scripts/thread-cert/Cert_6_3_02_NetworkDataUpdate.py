@@ -30,7 +30,6 @@
 import time
 import unittest
 
-import config
 import node
 
 LEADER = 1
@@ -38,11 +37,9 @@ ED = 2
 
 class Cert_5_6_2_NetworkDataUpdate(unittest.TestCase):
     def setUp(self):
-        self.simulator = config.create_default_simulator()
-
         self.nodes = {}
         for i in range(1,3):
-            self.nodes[i] = node.Node(i, (i == ED), simulator=self.simulator)
+            self.nodes[i] = node.Node(i, (i == ED))
 
         self.nodes[LEADER].set_panid(0xface)
         self.nodes[LEADER].set_mode('rsdn')
@@ -59,20 +56,19 @@ class Cert_5_6_2_NetworkDataUpdate(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        del self.simulator
 
     def test(self):
         self.nodes[LEADER].start()
-        self.simulator.go(5)
+        self.nodes[LEADER].set_state('leader')
         self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
 
         self.nodes[ED].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ED].get_state(), 'child')
 
         self.nodes[LEADER].add_prefix('2001:2:0:1::/64', 'paros')
         self.nodes[LEADER].register_netdata()
-        self.simulator.go(5)
+        time.sleep(5)
 
         addrs = self.nodes[ED].get_addrs()
         self.assertTrue(any('2001:2:0:1' in addr[0:10] for addr in addrs))
@@ -85,11 +81,11 @@ class Cert_5_6_2_NetworkDataUpdate(unittest.TestCase):
 
         self.nodes[LEADER].add_prefix('2001:2:0:2::/64', 'paros')
         self.nodes[LEADER].register_netdata()
-        self.simulator.go(5)
+        time.sleep(5)
 
         self.nodes[LEADER].add_whitelist(self.nodes[ED].get_addr64())
         self.nodes[ED].add_whitelist(self.nodes[LEADER].get_addr64())
-        self.simulator.go(10)
+        time.sleep(10)
 
         addrs = self.nodes[ED].get_addrs()
         self.assertTrue(any('2001:2:0:1' in addr[0:10] for addr in addrs))

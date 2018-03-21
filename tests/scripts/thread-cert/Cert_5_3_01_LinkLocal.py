@@ -39,11 +39,9 @@ DUT_ROUTER1 = 2
 
 class Cert_5_3_1_LinkLocal(unittest.TestCase):
     def setUp(self):
-        self.simulator = config.create_default_simulator()
-
         self.nodes = {}
         for i in range(1,3):
-            self.nodes[i] = node.Node(i, simulator=self.simulator)
+            self.nodes[i] = node.Node(i)
 
         self.nodes[LEADER].set_panid(0xface)
         self.nodes[LEADER].set_mode('rsdn')
@@ -56,16 +54,15 @@ class Cert_5_3_1_LinkLocal(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        del self.simulator
 
     def test(self):
         # 1
         self.nodes[LEADER].start()
-        self.simulator.go(5)
+        self.nodes[LEADER].set_state('leader')
         self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
 
         self.nodes[DUT_ROUTER1].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[DUT_ROUTER1].get_state(), 'router')
 
         # 2 & 3

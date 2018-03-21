@@ -49,7 +49,13 @@ cd /tmp || die
     }
 
     [ $BUILD_TARGET != pretty-check ] || {
-        clang-format --version || die
+        wget http://jaist.dl.sourceforge.net/project/astyle/astyle/astyle%202.05.1/astyle_2.05.1_linux.tar.gz || die
+        tar xzvf astyle_2.05.1_linux.tar.gz || die
+        cd astyle/build/gcc || die
+        LDFLAGS=" " make || die
+        cd ../../..
+        export PATH=/tmp/astyle/build/gcc/bin:$PATH || die
+        astyle --version || die
     }
 
     [ $BUILD_TARGET != scan-build ] || {

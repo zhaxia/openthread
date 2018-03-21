@@ -32,17 +32,18 @@
  *
  */
 
+#include <stdint.h>
 #include "fsl_device_registers.h"
 #include <stddef.h>
 #include <stdint.h>
 
 #include <utils/code_utils.h>
-#include "openthread/platform/uart.h"
 #include "openthread/types.h"
+#include "openthread/platform/uart.h"
 
 #include "fsl_clock.h"
-#include "fsl_lpuart.h"
 #include "fsl_port.h"
+#include "fsl_lpuart.h"
 
 enum
 {
@@ -61,7 +62,7 @@ static bool           sTransmitDone   = false;
 typedef struct RecvBuffer
 {
     // The data buffer
-    uint8_t mBuffer[kReceiveBufferSize];
+    uint8_t  mBuffer[kReceiveBufferSize];
     // The offset of the first item written to the list.
     uint16_t mHead;
     // The offset of the next item to be written to the list.
@@ -86,8 +87,8 @@ otError otPlatUartEnable(void)
     CLOCK_SetLpuartClock(2);
 
     LPUART_GetDefaultConfig(&config);
-    config.enableRx     = 1;
-    config.enableTx     = 1;
+    config.enableRx = 1;
+    config.enableTx = 1;
     config.baudRate_Bps = kBaudRate;
     LPUART_Init(LPUART0, &config, kPlatformClock);
     LPUART_EnableInterrupts(LPUART0, kLPUART_RxDataRegFullInterruptEnable);
@@ -112,7 +113,7 @@ otError otPlatUartSend(const uint8_t *aBuf, uint16_t aBufLength)
 
     sTransmitBuffer = aBuf + 1;
     sTransmitLength = aBufLength - 1;
-    sTransmitDone   = false;
+    sTransmitDone = false;
     LPUART_WriteByte(LPUART0, *aBuf);
     LPUART_ClearStatusFlags(LPUART0, kLPUART_TxDataRegEmptyFlag);
     LPUART_EnableInterrupts(LPUART0, kLPUART_TxDataRegEmptyInterruptEnable);
@@ -125,7 +126,7 @@ static void processTransmit(void)
 {
     if (sTransmitBuffer && sTransmitDone)
     {
-        sTransmitDone   = false;
+        sTransmitDone = false;
         sTransmitBuffer = NULL;
         otPlatUartSendDone();
     }
@@ -164,7 +165,7 @@ static void processReceive(void)
 void LPUART0_IRQHandler(void)
 {
     uint32_t interrupts = LPUART_GetEnabledInterrupts(LPUART0);
-    uint8_t  rx_data;
+    uint8_t rx_data;
 
     /* Check if data was received */
     while (LPUART_GetStatusFlags(LPUART0) & (kLPUART_RxDataRegFullFlag))
@@ -175,7 +176,7 @@ void LPUART0_IRQHandler(void)
         if (sReceive.mHead != (sReceive.mTail + 1) % kReceiveBufferSize)
         {
             sReceive.mBuffer[sReceive.mTail] = rx_data;
-            sReceive.mTail                   = (sReceive.mTail + 1) % kReceiveBufferSize;
+            sReceive.mTail = (sReceive.mTail + 1) % kReceiveBufferSize;
         }
     }
 

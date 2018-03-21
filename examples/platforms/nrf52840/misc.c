@@ -26,9 +26,10 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <openthread-core-config.h>
 #include <openthread/config.h>
+#include <openthread-core-config.h>
 #include <openthread/platform/misc.h>
+#include <openthread/platform/platform.h>
 
 #include <device/nrf.h>
 
@@ -56,9 +57,9 @@ void nrf5MiscInit(void)
     sd_power_reset_reason_get(&sResetReason);
     sd_power_reset_reason_clr(0xFFFFFFFF);
 #else
-    sResetReason         = NRF_POWER->RESETREAS;
+    sResetReason = NRF_POWER->RESETREAS;
     NRF_POWER->RESETREAS = 0xFFFFFFFF;
-#endif // SOFTDEVICE_PRESENT
+#endif // SOFTDEVICE_PRESENT 
 }
 
 void nrf5MiscDeinit(void)
@@ -94,8 +95,10 @@ otPlatResetReason otPlatGetResetReason(otInstance *aInstance)
     {
         reason = OT_PLAT_RESET_REASON_FAULT;
     }
-    else if ((sResetReason & POWER_RESETREAS_OFF_Msk) || (sResetReason & POWER_RESETREAS_LPCOMP_Msk) ||
-             (sResetReason & POWER_RESETREAS_DIF_Msk) || (sResetReason & POWER_RESETREAS_NFC_Msk) ||
+    else if ((sResetReason & POWER_RESETREAS_OFF_Msk)    ||
+             (sResetReason & POWER_RESETREAS_LPCOMP_Msk) ||
+             (sResetReason & POWER_RESETREAS_DIF_Msk)    ||
+             (sResetReason & POWER_RESETREAS_NFC_Msk)    ||
              (sResetReason & POWER_RESETREAS_VBUS_Msk))
     {
         reason = OT_PLAT_RESET_REASON_OTHER;

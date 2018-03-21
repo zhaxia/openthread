@@ -35,14 +35,12 @@ import re
 import ipaddress
 
 import config
-import simulator
 
 class otCli:
-    def __init__(self, nodeid, is_mtd, simulator=None):
+    def __init__(self, nodeid, is_mtd):
         self.nodeid = nodeid
         self.verbose = int(float(os.getenv('VERBOSE', 0)))
         self.node_type = os.getenv('NODE_TYPE', 'sim')
-        self.simulator = simulator
 
         mode = os.environ.get('USE_MTD') is '1' and is_mtd and 'mtd' or 'ftd'
 
@@ -105,10 +103,7 @@ class otCli:
 
     def send_command(self, cmd):
         print("%d: %s" % (self.nodeid, cmd))
-        self.pexpect.send(cmd + '\n')
-
-        if isinstance(self.simulator, simulator.VirtualTime):
-            self.simulator.receive_events()
+        self.pexpect.sendline(cmd)
 
     def get_commands(self):
         self.send_command('?')
@@ -405,21 +400,6 @@ class otCli:
 
         return None
 
-    def get_eidcaches(self):
-        eidcaches = []
-        self.send_command('eidcache')
-
-        while True:
-            i = self.pexpect.expect(['([a-fA-F0-9\:]+) ([a-fA-F0-9]+)\r\n', 'Done'])
-            if i == 0:
-                eid = self.pexpect.match.groups()[0].decode("utf-8")
-                rloc = self.pexpect.match.groups()[1].decode("utf-8")
-                eidcaches.append((eid, rloc))
-            elif i == 1:
-                break
-
-        return eidcaches
-
     def add_service(self, enterpriseNumber, serviceData, serverData):
         cmd = 'service add ' + enterpriseNumber + ' ' + serviceData+ ' '  + serverData
         self.send_command(cmd)
@@ -537,26 +517,12 @@ class otCli:
     def energy_scan(self, mask, count, period, scan_duration, ipaddr):
         cmd = 'commissioner energy ' + str(mask) + ' ' + str(count) + ' ' + str(period) + ' ' + str(scan_duration) + ' ' + ipaddr
         self.send_command(cmd)
-
-        if isinstance(self.simulator, simulator.VirtualTime):
-            self.simulator.go(8)
-            timeout = 1
-        else:
-            timeout = 8
-
-        self.pexpect.expect('Energy:', timeout=timeout)
+        self.pexpect.expect('Energy:', timeout=8)
 
     def panid_query(self, panid, mask, ipaddr):
         cmd = 'commissioner panid ' + str(panid) + ' ' + str(mask) + ' ' + ipaddr
         self.send_command(cmd)
-
-        if isinstance(self.simulator, simulator.VirtualTime):
-            self.simulator.go(8)
-            timeout = 1
-        else:
-            timeout = 8
-
-        self.pexpect.expect('Conflict:', timeout=timeout)
+        self.pexpect.expect('Conflict:', timeout=8)
 
     def scan(self):
         self.send_command('scan')
@@ -572,20 +538,12 @@ class otCli:
 
         return results
 
-    def ping(self, ipaddr, num_responses=1, size=None, timeout=5):
+    def ping(self, ipaddr, num_responses=1, size=None, timeout=5000):
         cmd = 'ping ' + ipaddr
         if size != None:
             cmd += ' ' + str(size)
 
         self.send_command(cmd)
-
-        try:
-            self.pexpect.expect('Done', timeout=0.01)
-        except pexpect.TIMEOUT:
-            pass
-
-        if isinstance(self.simulator, simulator.VirtualTime):
-            self.simulator.go(timeout)
 
         result = True
         try:
@@ -602,10 +560,6 @@ class otCli:
 
     def reset(self):
         self.send_command('reset')
-        try:
-            self.pexpect.expect('Done', timeout=0.01)
-        except pexpect.TIMEOUT:
-            pass
 
     def set_router_selection_jitter(self, jitter):
         cmd = 'routerselectionjitter %d' % jitter

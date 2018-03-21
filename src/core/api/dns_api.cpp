@@ -40,7 +40,8 @@
 using namespace ot;
 
 #if OPENTHREAD_ENABLE_DNS_CLIENT
-otError otDnsClientQuery(otInstance *aInstance, const otDnsQuery *aQuery, otDnsResponseHandler aHandler, void *aContext)
+otError otDnsClientQuery(otInstance *aInstance, const otDnsQuery *aQuery, otDnsResponseHandler aHandler,
+                         void *aContext)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
 

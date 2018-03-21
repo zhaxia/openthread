@@ -86,9 +86,7 @@ OTAPI otError OTCALL otDatasetSetPending(otInstance *aInstance, const otOperatio
  * @retval OT_ERROR_NO_BUFS       Insufficient buffer space to send.
  *
  */
-OTAPI otError OTCALL otDatasetSendMgmtActiveGet(otInstance *        aInstance,
-                                                const uint8_t *     aTlvTypes,
-                                                uint8_t             aLength,
+OTAPI otError OTCALL otDatasetSendMgmtActiveGet(otInstance *aInstance, const uint8_t *aTlvTypes, uint8_t aLength,
                                                 const otIp6Address *aAddress);
 
 /**
@@ -103,10 +101,8 @@ OTAPI otError OTCALL otDatasetSendMgmtActiveGet(otInstance *        aInstance,
  * @retval OT_ERROR_NO_BUFS       Insufficient buffer space to send.
  *
  */
-OTAPI otError OTCALL otDatasetSendMgmtActiveSet(otInstance *                aInstance,
-                                                const otOperationalDataset *aDataset,
-                                                const uint8_t *             aTlvs,
-                                                uint8_t                     aLength);
+OTAPI otError OTCALL otDatasetSendMgmtActiveSet(otInstance *aInstance, const otOperationalDataset *aDataset,
+                                                const uint8_t *aTlvs, uint8_t aLength);
 
 /**
  * This function sends MGMT_PENDING_GET.
@@ -120,9 +116,7 @@ OTAPI otError OTCALL otDatasetSendMgmtActiveSet(otInstance *                aIns
  * @retval OT_ERROR_NO_BUFS       Insufficient buffer space to send.
  *
  */
-OTAPI otError OTCALL otDatasetSendMgmtPendingGet(otInstance *        aInstance,
-                                                 const uint8_t *     aTlvTypes,
-                                                 uint8_t             aLength,
+OTAPI otError OTCALL otDatasetSendMgmtPendingGet(otInstance *aInstance, const uint8_t *aTlvTypes, uint8_t aLength,
                                                  const otIp6Address *aAddress);
 
 /**
@@ -137,10 +131,8 @@ OTAPI otError OTCALL otDatasetSendMgmtPendingGet(otInstance *        aInstance,
  * @retval OT_ERROR_NO_BUFS       Insufficient buffer space to send.
  *
  */
-OTAPI otError OTCALL otDatasetSendMgmtPendingSet(otInstance *                aInstance,
-                                                 const otOperationalDataset *aDataset,
-                                                 const uint8_t *             aTlvs,
-                                                 uint8_t                     aLength);
+OTAPI otError OTCALL otDatasetSendMgmtPendingSet(otInstance *aInstance, const otOperationalDataset *aDataset,
+                                                 const uint8_t *aTlvs, uint8_t aLength);
 
 /**
  * Get minimal delay timer.
@@ -170,7 +162,7 @@ OTAPI otError OTCALL otDatasetSetDelayTimerMinimal(otInstance *aInstance, uint32
  */
 
 #ifdef __cplusplus
-} // extern "C"
+}  // extern "C"
 #endif
 
-#endif // OPENTHREAD_DATASET_FTD_H_
+#endif  // OPENTHREAD_DATASET_FTD_H_

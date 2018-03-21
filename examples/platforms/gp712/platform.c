@@ -49,8 +49,8 @@ void platformUartProcess(void);
 
 otInstance *localInstance = NULL;
 
-int    gArgumentsCount = 0;
-char **gArguments      = NULL;
+int     gArgumentsCount = 0;
+char  **gArguments = NULL;
 
 bool qorvoPlatGotoSleepCheck(void)
 {
@@ -71,9 +71,10 @@ void PlatformInit(int argc, char *argv[])
 
     qorvoPlatInit((qorvoPlatGotoSleepCheckCallback_t)qorvoPlatGotoSleepCheck);
     platformUartInit();
-    // qorvoAlarmInit();
+    //qorvoAlarmInit();
     qorvoRandomInit();
     qorvoRadioInit();
+
 }
 
 void PlatformProcessDrivers(otInstance *aInstance)
@@ -86,6 +87,7 @@ void PlatformProcessDrivers(otInstance *aInstance)
 
     qorvoPlatMainLoop(!otTaskletsArePending(aInstance));
     platformUartProcess();
-    // qorvoRadioProcess();
-    // qorvoAlarmProcess();
+    //qorvoRadioProcess();
+    //qorvoAlarmProcess();
+
 }

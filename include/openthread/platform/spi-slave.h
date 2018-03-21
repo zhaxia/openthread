@@ -78,12 +78,10 @@ extern "C" {
  * @returns  TRUE if after this call returns the platform should invoke the process callback `aProcessCallback`,
  *           FALSE if there is nothing to process and no need to invoke the process callback.
  */
-typedef bool (*otPlatSpiSlaveTransactionCompleteCallback)(void *   aContext,
-                                                          uint8_t *aOutputBuf,
-                                                          uint16_t aOutputBufLen,
-                                                          uint8_t *aInputBuf,
-                                                          uint16_t aInputBufLen,
+typedef bool (*otPlatSpiSlaveTransactionCompleteCallback)(void *aContext, uint8_t *aOutputBuf, uint16_t aOutputBufLen,
+                                                          uint8_t *aInputBuf, uint16_t aInputBufLen,
                                                           uint16_t aTransactionLength);
+
 
 /**
  * Invoked after a transaction complete callback is called and returns `TRUE` to do any further processing required.
@@ -94,6 +92,7 @@ typedef bool (*otPlatSpiSlaveTransactionCompleteCallback)(void *   aContext,
  *
  */
 typedef void (*otPlatSpiSlaveTransactionProcessCallback)(void *aContext);
+
 
 /**
  * Initialize the SPI slave interface.
@@ -113,8 +112,7 @@ typedef void (*otPlatSpiSlaveTransactionProcessCallback)(void *aContext);
  *
  */
 otError otPlatSpiSlaveEnable(otPlatSpiSlaveTransactionCompleteCallback aCompleteCallback,
-                             otPlatSpiSlaveTransactionProcessCallback  aProcessCallback,
-                             void *                                    aContext);
+                             otPlatSpiSlaveTransactionProcessCallback aProcessCallback, void *aContext);
 
 /**
  * Shutdown and disable the SPI slave interface.
@@ -162,11 +160,8 @@ void otPlatSpiSlaveDisable(void);
  * @retval OT_ERROR_INVALID_STATE  otPlatSpiSlaveEnable() hasn't been called.
  *
  */
-otError otPlatSpiSlavePrepareTransaction(uint8_t *aOutputBuf,
-                                         uint16_t aOutputBufLen,
-                                         uint8_t *aInputBuf,
-                                         uint16_t aInputBufLen,
-                                         bool     aRequestTransactionFlag);
+otError otPlatSpiSlavePrepareTransaction(uint8_t *aOutputBuf, uint16_t aOutputBufLen, uint8_t *aInputBuf,
+                                         uint16_t aInputBufLen, bool aRequestTransactionFlag);
 
 /**
  * @}
@@ -174,7 +169,7 @@ otError otPlatSpiSlavePrepareTransaction(uint8_t *aOutputBuf,
  */
 
 #ifdef __cplusplus
-} // extern "C"
+}  // extern "C"
 #endif
 
-#endif // SPI_SLAVE_H_
+#endif  // SPI_SLAVE_H_

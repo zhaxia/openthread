@@ -26,16 +26,15 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <assert.h>
-#include <openthread-core-config.h>
 #include <openthread/config.h>
+#include <openthread-core-config.h>
+#include <assert.h>
 
 #include <openthread/cli.h>
 #include <openthread/diag.h>
 #include <openthread/openthread.h>
+#include <openthread/platform/platform.h>
 #include <openthread/platform/logging.h>
-
-#include "platform.h"
 
 #if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
 void *otPlatCAlloc(size_t aNum, size_t aSize)
@@ -59,8 +58,8 @@ int main(int argc, char *argv[])
     otInstance *sInstance;
 
 #if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
-    size_t   otInstanceBufferLength = 0;
-    uint8_t *otInstanceBuffer       = NULL;
+    size_t otInstanceBufferLength = 0;
+    uint8_t *otInstanceBuffer = NULL;
 #endif
 
     PlatformInit(argc, argv);
@@ -92,9 +91,9 @@ int main(int argc, char *argv[])
         PlatformProcessDrivers(sInstance);
     }
 
-        // otInstanceFinalize(sInstance);
+    // otInstanceFinalize(sInstance);
 #if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
-        // free(otInstanceBuffer);
+    // free(otInstanceBuffer);
 #endif
 
     return 0;

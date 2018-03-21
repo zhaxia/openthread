@@ -78,9 +78,7 @@ void MeshForwarder::HandleSentFrameToChild(const Mac::Frame &aFrame, otError aEr
     OT_UNUSED_VARIABLE(aMacDest);
 }
 
-void MeshForwarder::HandleMesh(uint8_t *               aFrame,
-                               uint8_t                 aFrameLength,
-                               const Mac::Address &    aMacSource,
+void MeshForwarder::HandleMesh(uint8_t *aFrame, uint8_t aFrameLength, const Mac::Address &aMacSource,
                                const otThreadLinkInfo &aLinkInfo)
 {
     OT_UNUSED_VARIABLE(aFrame);
@@ -89,6 +87,6 @@ void MeshForwarder::HandleMesh(uint8_t *               aFrame,
     OT_UNUSED_VARIABLE(aLinkInfo);
 }
 
-} // namespace ot
+}  // namespace ot
 
-#endif // OPENTHREAD_MTD
+#endif  // OPENTHREAD_MTD

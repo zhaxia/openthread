@@ -34,10 +34,7 @@
 
 #include <stdio.h>
 
-#include <openthread/config.h>
 #include <openthread/platform/diag.h>
-
-#if OPENTHREAD_ENABLE_DIAG
 
 /**
  * Diagnostics mode variables.
@@ -47,8 +44,8 @@ static bool sDiagMode = false;
 
 void otPlatDiagProcess(otInstance *aInstance, int argc, char *argv[], char *aOutput, size_t aOutputMaxLen)
 {
-    (void)argc;
-    (void)aInstance;
+    (void) argc;
+    (void) aInstance;
 
     // Add more plarform specific diagnostics features here.
     snprintf(aOutput, aOutputMaxLen, "diag feature '%s' is not supported\r\n", argv[0]);
@@ -66,24 +63,22 @@ bool otPlatDiagModeGet()
 
 void otPlatDiagChannelSet(uint8_t aChannel)
 {
-    (void)aChannel;
+    (void) aChannel;
 }
 
 void otPlatDiagTxPowerSet(int8_t aTxPower)
 {
-    (void)aTxPower;
+    (void) aTxPower;
 }
 
 void otPlatDiagRadioReceived(otInstance *aInstance, otRadioFrame *aFrame, otError aError)
 {
-    (void)aInstance;
-    (void)aFrame;
-    (void)aError;
+    (void) aInstance;
+    (void) aFrame;
+    (void) aError;
 }
 
 void otPlatDiagAlarmCallback(otInstance *aInstance)
 {
-    (void)aInstance;
+    (void) aInstance;
 }
-
-#endif // OPENTHREAD_ENABLE_DIAG

@@ -35,6 +35,7 @@
 #ifndef OPENTHREAD_CHANNEL_MONITOR_H_
 #define OPENTHREAD_CHANNEL_MONITOR_H_
 
+
 #include "openthread/types.h"
 
 #ifdef __cplusplus
@@ -132,7 +133,7 @@ uint16_t otChannelMonitorGetChannelQuality(otInstance *aInstance, uint8_t aChann
  */
 
 #ifdef __cplusplus
-} // extern "C"
+}  // extern "C"
 #endif
 
-#endif // OPENTHREAD_CHANNEL_MONITOR_H_
+#endif  // OPENTHREAD_CHANNEL_MONITOR_H_

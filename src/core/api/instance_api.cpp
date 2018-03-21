@@ -62,6 +62,7 @@ otInstance *otInstanceInitSingle(void)
 }
 #endif // #if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
 
+
 bool otInstanceIsInitialized(otInstance *aInstance)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);

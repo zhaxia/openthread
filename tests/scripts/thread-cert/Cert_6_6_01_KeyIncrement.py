@@ -30,7 +30,6 @@
 import time
 import unittest
 
-import config
 import node
 
 LEADER = 1
@@ -38,11 +37,9 @@ ED = 2
 
 class Cert_6_6_1_KeyIncrement(unittest.TestCase):
     def setUp(self):
-        self.simulator = config.create_default_simulator()
-
         self.nodes = {}
         for i in range(1,3):
-            self.nodes[i] = node.Node(i, (i == ED), simulator=self.simulator)
+            self.nodes[i] = node.Node(i, (i == ED))
 
         self.nodes[LEADER].set_panid(0xface)
         self.nodes[LEADER].set_mode('rsdn')
@@ -60,15 +57,13 @@ class Cert_6_6_1_KeyIncrement(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        del self.simulator
 
     def test(self):
         self.nodes[LEADER].start()
-        self.simulator.go(5)
-        self.assertEqual(self.nodes[LEADER].get_state(), "leader")
+        self.nodes[LEADER].set_state('leader')
 
         self.nodes[ED].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ED].get_state(), "child")
 
         addrs = self.nodes[ED].get_addrs()

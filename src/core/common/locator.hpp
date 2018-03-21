@@ -43,9 +43,8 @@ namespace ot {
 class Instance;
 class ThreadNetif;
 class Notifier;
-namespace Ip6 {
-class Ip6;
-}
+namespace Ip6 { class Ip6; }
+
 
 /**
  * @addtogroup core-locator
@@ -84,11 +83,11 @@ public:
 #endif
 
     /**
-     * This method returns a reference to the Ip6.
-     *
-     * @returns   A reference to the Ip6.
-     *
-     */
+      * This method returns a reference to the Ip6.
+      *
+      * @returns   A reference to the Ip6.
+      *
+      */
     Ip6::Ip6 &GetIp6(void) const;
 
     /**
@@ -137,6 +136,7 @@ private:
 class OwnerLocator
 {
 public:
+
     /**
      * This template method returns a reference to the owner object.
      *
@@ -145,11 +145,10 @@ public:
      * @returns A reference to the owner of this object.
      *
      */
-    template <typename OwnerType> OwnerType &GetOwner(void)
+    template <typename OwnerType>
+    OwnerType &GetOwner(void)
 #if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
-    {
-        return *static_cast<OwnerType *>(mOwner);
-    }
+    { return *static_cast<OwnerType *>(mOwner); }
 #else
     // Implemented in `owner-locator.hpp`
     ;
@@ -181,6 +180,6 @@ private:
  *
  */
 
-} // namespace ot
+}  // namespace ot
 
-#endif // LOCATOR_HPP_
+#endif  // LOCATOR_HPP_

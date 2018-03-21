@@ -45,9 +45,8 @@ libopenthread_cc2652_a_CPPFLAGS                       = \
     $(MBEDTLS_CPPFLAGS)                                 \
     $(NULL)
 
-PLATFORM_SOURCES                                      = \
+libopenthread_cc2652_a_SOURCES                        = \
     alarm.c                                             \
-    diag.c                                              \
     flash.c                                             \
     logging.c                                           \
     misc.c                                              \
@@ -61,21 +60,18 @@ PLATFORM_SOURCES                                      = \
     cxx_helpers.c                                       \
     $(NULL)
 
-libopenthread_cc2652_a_SOURCES                        = \
-    $(PLATFORM_SOURCES)                                 \
-    $(NULL)
-
 libopenthread_cc2652_a_DEPENDENCIES                   =                       \
     $(top_srcdir)/third_party/ti/devices/cc26x2/driverlib/bin/gcc/driverlib.a \
     $(NULL)
 
+if OPENTHREAD_ENABLE_DIAG
+libopenthread_cc2652_a_SOURCES                       += \
+    diag.c                                              \
+    $(NULL)
+endif
+
 noinst_HEADERS                                        = \
     platform-cc2652.h                                   \
-    $(NULL)
-
-PRETTY_FILES                                          = \
-    $(PLATFORM_SOURCES)                                 \
-    $(noinst_HEADERS)                                   \
     $(NULL)
 
 Dash                                                  = -

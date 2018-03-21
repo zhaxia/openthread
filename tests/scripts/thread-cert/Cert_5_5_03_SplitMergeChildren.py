@@ -30,7 +30,6 @@
 import time
 import unittest
 
-import config
 import node
 
 LEADER = 1
@@ -44,11 +43,9 @@ MTDS = [ED1, ED2, ED3]
 
 class Cert_5_5_3_SplitMergeChildren(unittest.TestCase):
     def setUp(self):
-        self.simulator = config.create_default_simulator()
-
         self.nodes = {}
         for i in range(1,7):
-            self.nodes[i] = node.Node(i, (i in MTDS), simulator=self.simulator)
+            self.nodes[i] = node.Node(i, (i in MTDS))
 
         self.nodes[LEADER].set_panid(0xface)
         self.nodes[LEADER].set_mode('rsdn')
@@ -94,31 +91,30 @@ class Cert_5_5_3_SplitMergeChildren(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        del self.simulator
 
     def test(self):
         self.nodes[LEADER].start()
-        self.simulator.go(5)
+        self.nodes[LEADER].set_state('leader')
         self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
 
         self.nodes[ROUTER1].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ROUTER1].get_state(), 'router')
 
         self.nodes[ROUTER2].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ROUTER2].get_state(), 'router')
 
         self.nodes[ED1].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ED1].get_state(), 'child')
 
         self.nodes[ED2].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ED2].get_state(), 'child')
 
         self.nodes[ED3].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ED3].get_state(), 'child')
 
         self.nodes[LEADER].reset()
@@ -127,15 +123,15 @@ class Cert_5_5_3_SplitMergeChildren(unittest.TestCase):
         self.nodes[ED1].add_whitelist(self.nodes[ROUTER1].get_addr64())
         self.nodes[ROUTER1].add_whitelist(self.nodes[ED1].get_addr64())
 
-        self.simulator.go(140)
+        time.sleep(140)
         self.assertEqual(self.nodes[ROUTER1].get_state(), 'leader')
         self.assertEqual(self.nodes[ROUTER2].get_state(), 'leader')
 
         self.nodes[LEADER].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[LEADER].get_state(), 'router')
 
-        self.simulator.go(30)
+        time.sleep(30)
 
         addrs = self.nodes[ED1].get_addrs()
         for addr in addrs:

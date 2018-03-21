@@ -30,7 +30,6 @@
 import time
 import unittest
 
-import config
 import node
 
 LEADER = 1
@@ -42,11 +41,9 @@ MTDS = [SED1, ED1]
 
 class Cert_7_1_1_BorderRouterAsLeader(unittest.TestCase):
     def setUp(self):
-        self.simulator = config.create_default_simulator()
-
         self.nodes = {}
         for i in range(1,5):
-            self.nodes[i] = node.Node(i, (i in MTDS), simulator=self.simulator)
+            self.nodes[i] = node.Node(i, (i in MTDS))
 
         self.nodes[LEADER].set_panid(0xface)
         self.nodes[LEADER].set_mode('rsdn')
@@ -76,11 +73,10 @@ class Cert_7_1_1_BorderRouterAsLeader(unittest.TestCase):
         for node in list(self.nodes.values()):
             node.stop()
         del self.nodes
-        del self.simulator
 
     def test(self):
         self.nodes[LEADER].start()
-        self.simulator.go(5)
+        self.nodes[LEADER].set_state('leader')
         self.assertEqual(self.nodes[LEADER].get_state(), 'leader')
 
         self.nodes[LEADER].add_prefix('2001:2:0:1::/64', 'paros')
@@ -88,15 +84,15 @@ class Cert_7_1_1_BorderRouterAsLeader(unittest.TestCase):
         self.nodes[LEADER].register_netdata()
 
         self.nodes[ROUTER].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ROUTER].get_state(), 'router')
 
         self.nodes[SED1].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[SED1].get_state(), 'child')
 
         self.nodes[ED1].start()
-        self.simulator.go(5)
+        time.sleep(5)
         self.assertEqual(self.nodes[ED1].get_state(), 'child')
 
         addrs = self.nodes[SED1].get_addrs()

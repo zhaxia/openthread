@@ -28,47 +28,38 @@
 
 /**
  * @file
- * @brief
- *   This file defines the platform-specific initializers.
+ *   This file includes definitions for managing MeshCoP Datasets.
+ *
  */
 
-#ifndef PLATFORM_H_
-#define PLATFORM_H_
+#ifndef MESHCOP_DATASET_MANAGER_MTD_HPP_
+#define MESHCOP_DATASET_MANAGER_MTD_HPP_
+
+#include "openthread-core-config.h"
 
 #include <openthread/types.h>
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+namespace ot {
 
-/**
- * This function performs all platform-specific initialization.
- *
- */
-void PlatformInit(int argc, char *argv[]);
+class ThreadNetif;
 
-/**
- * This function performs all platform-specific deinitialization.
- *
- */
-void PlatformDeinit(void);
+namespace MeshCoP {
 
-/**
- * This function performs all platform-specific processing.
- *
- * @param[in]  aInstance  The OpenThread instance structure.
- *
- */
-void PlatformProcessDrivers(otInstance *aInstance);
+class ActiveDataset: public ActiveDatasetBase
+{
+public:
+    ActiveDataset(Instance &aInstance) : ActiveDatasetBase(aInstance) { }
 
-/**
- * This function is called whenever platform drivers needs processing.
- *
- */
-extern void PlatformEventSignalPending(void);
+    otError GenerateLocal(void) { return OT_ERROR_NOT_IMPLEMENTED; }
+};
 
-#ifdef __cplusplus
-} // end of extern "C"
-#endif
+class PendingDataset: public PendingDatasetBase
+{
+public:
+    PendingDataset(Instance &aInstance) : PendingDatasetBase(aInstance) { }
+};
 
-#endif // PLATFORM_H_
+}  // namespace MeshCoP
+}  // namespace ot
+
+#endif  // MESHCOP_DATASET_MANAGER_HPP_

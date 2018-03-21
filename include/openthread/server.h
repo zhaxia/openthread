@@ -60,7 +60,8 @@ extern "C" {
  * @param[inout]  aDataLength  On entry, size of the data buffer pointed to by @p aData.
  *                             On exit, number of copied bytes.
  */
-OTAPI otError OTCALL otServerGetNetDataLocal(otInstance *aInstance, bool aStable, uint8_t *aData, uint8_t *aDataLength);
+OTAPI otError OTCALL otServerGetNetDataLocal(otInstance *aInstance, bool aStable, uint8_t *aData,
+                                             uint8_t *aDataLength);
 
 /**
  * Add a service configuration to the local network data.
@@ -91,10 +92,8 @@ OTAPI otError OTCALL otServerAddService(otInstance *aInstance, const otServiceCo
  * @sa otServerAddService
  * @sa otServerRegister
  */
-OTAPI otError OTCALL otServerRemoveService(otInstance *aInstance,
-                                           uint32_t    aEnterpriseNumber,
-                                           uint8_t *   aServiceData,
-                                           uint8_t     aServiceDataLength);
+OTAPI otError OTCALL otServerRemoveService(otInstance *aInstance, uint32_t aEnterpriseNumber, uint8_t *aServiceData,
+                                           uint8_t aServiceDataLength);
 
 /**
  * This function gets the next service in the local Network Data.
@@ -108,9 +107,8 @@ OTAPI otError OTCALL otServerRemoveService(otInstance *aInstance,
  * @retval OT_ERROR_NOT_FOUND  No subsequent service exists in the Thread Network Data.
  *
  */
-OTAPI otError OTCALL otServerGetNextService(otInstance *           aInstance,
-                                            otNetworkDataIterator *aIterator,
-                                            otServiceConfig *      aConfig);
+OTAPI otError OTCALL otServerGetNextService(otInstance *aInstance, otNetworkDataIterator *aIterator,
+                                            otServiceConfig *aConfig);
 
 /**
  * This function gets the next service in the leader Network Data.
@@ -124,9 +122,8 @@ OTAPI otError OTCALL otServerGetNextService(otInstance *           aInstance,
  * @retval OT_ERROR_NOT_FOUND  No subsequent service exists in the leader Network Data.
  *
  */
-OTAPI otError OTCALL otServerGetNextLeaderService(otInstance *           aInstance,
-                                                  otNetworkDataIterator *aIterator,
-                                                  otServiceConfig *      aConfig);
+OTAPI otError OTCALL otServerGetNextLeaderService(otInstance *aInstance, otNetworkDataIterator *aIterator,
+                                                  otServiceConfig *aConfig);
 
 /**
  * Immediately register the local network data with the Leader.
@@ -146,7 +143,7 @@ OTAPI otError OTCALL otServerRegister(otInstance *aInstance);
  */
 
 #ifdef __cplusplus
-} // extern "C"
+}  // extern "C"
 #endif
 
-#endif // OPENTHREAD_SERVER_H_
+#endif  // OPENTHREAD_SERVER_H_

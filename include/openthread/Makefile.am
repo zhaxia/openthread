@@ -47,7 +47,6 @@ PRETTY_SUBDIRS                          = \
     $(NULL)
 
 openthread_headers                      = \
-    channel_manager.h                     \
     channel_monitor.h                     \
     child_supervision.h                   \
     cli.h                                 \

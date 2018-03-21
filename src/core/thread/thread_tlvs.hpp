@@ -108,8 +108,7 @@ public:
      * @retval OT_ERROR_NOT_FOUND  Could not find the TLV with Type @p aType.
      *
      */
-    static otError GetTlv(const Message &aMessage, Type aType, uint16_t aMaxLength, Tlv &aTlv)
-    {
+    static otError GetTlv(const Message &aMessage, Type aType, uint16_t aMaxLength, Tlv &aTlv) {
         return ot::Tlv::Get(aMessage, static_cast<uint8_t>(aType), aMaxLength, aTlv);
     }
 
@@ -120,18 +119,14 @@ public:
  *
  */
 OT_TOOL_PACKED_BEGIN
-class ThreadTargetTlv : public ThreadTlv
+class ThreadTargetTlv: public ThreadTlv
 {
 public:
     /**
      * This method initializes the TLV.
      *
      */
-    void Init(void)
-    {
-        SetType(kTarget);
-        SetLength(sizeof(*this) - sizeof(ThreadTlv));
-    }
+    void Init(void) { SetType(kTarget); SetLength(sizeof(*this) - sizeof(ThreadTlv)); }
 
     /**
      * This method indicates whether or not the TLV appears to be well-formed.
@@ -167,18 +162,14 @@ private:
  *
  */
 OT_TOOL_PACKED_BEGIN
-class ThreadExtMacAddressTlv : public ThreadTlv
+class ThreadExtMacAddressTlv: public ThreadTlv
 {
 public:
     /**
      * This method initializes the TLV.
      *
      */
-    void Init(void)
-    {
-        SetType(kExtMacAddress);
-        SetLength(sizeof(*this) - sizeof(ThreadTlv));
-    }
+    void Init(void) { SetType(kExtMacAddress); SetLength(sizeof(*this) - sizeof(ThreadTlv)); }
 
     /**
      * This method indicates whether or not the TLV appears to be well-formed.
@@ -214,18 +205,14 @@ private:
  *
  */
 OT_TOOL_PACKED_BEGIN
-class ThreadRloc16Tlv : public ThreadTlv
+class ThreadRloc16Tlv: public ThreadTlv
 {
 public:
     /**
      * This method initializes the TLV.
      *
      */
-    void Init(void)
-    {
-        SetType(kRloc16);
-        SetLength(sizeof(*this) - sizeof(ThreadTlv));
-    }
+    void Init(void) { SetType(kRloc16); SetLength(sizeof(*this) - sizeof(ThreadTlv)); }
 
     /**
      * This method indicates whether or not the TLV appears to be well-formed.
@@ -261,18 +248,14 @@ private:
  *
  */
 OT_TOOL_PACKED_BEGIN
-class ThreadMeshLocalEidTlv : public ThreadTlv
+class ThreadMeshLocalEidTlv: public ThreadTlv
 {
 public:
     /**
      * This method initializes the TLV.
      *
      */
-    void Init(void)
-    {
-        SetType(kMeshLocalEid);
-        SetLength(sizeof(*this) - sizeof(ThreadTlv));
-    }
+    void Init(void) { SetType(kMeshLocalEid); SetLength(sizeof(*this) - sizeof(ThreadTlv)); }
 
     /**
      * This method indicates whether or not the TLV appears to be well-formed.
@@ -305,8 +288,7 @@ public:
      * @param[in]  aExtAddress  A reference to the MAC Extended Address.
      *
      */
-    void SetIid(const Mac::ExtAddress &aExtAddress)
-    {
+    void SetIid(const Mac::ExtAddress &aExtAddress) {
         memcpy(mIid, aExtAddress.m8, sizeof(mIid));
         mIid[0] ^= 0x2;
     }
@@ -320,18 +302,14 @@ private:
  *
  */
 OT_TOOL_PACKED_BEGIN
-class ThreadStatusTlv : public ThreadTlv
+class ThreadStatusTlv: public ThreadTlv
 {
 public:
     /**
      * This method initializes the TLV.
      *
      */
-    void Init(void)
-    {
-        SetType(kStatus);
-        SetLength(sizeof(*this) - sizeof(ThreadTlv));
-    }
+    void Init(void) { SetType(kStatus); SetLength(sizeof(*this) - sizeof(ThreadTlv)); }
 
     /**
      * This method indicates whether or not the TLV appears to be well-formed.
@@ -348,11 +326,11 @@ public:
      */
     enum Status
     {
-        kSuccess               = 0, ///< Success.
-        kNoAddressAvailable    = 1, ///< No address available.
-        kTooFewRouters         = 2, ///< Address Solicit due to too few routers.
-        kHaveChildIdRequest    = 3, ///< Address Solicit due to child ID request.
-        kParentPartitionChange = 4, ///< Address Solicit due to parent partition change
+        kSuccess            = 0,  ///< Success.
+        kNoAddressAvailable = 1,  ///< No address available.
+        kTooFewRouters      = 2,  ///< Address Solicit due to too few routers.
+        kHaveChildIdRequest = 3,  ///< Address Solicit due to child ID request.
+        kParentPartitionChange = 4,  ///< Address Solicit due to parent partition change
     };
 
     /**
@@ -380,18 +358,14 @@ private:
  *
  */
 OT_TOOL_PACKED_BEGIN
-class ThreadLastTransactionTimeTlv : public ThreadTlv
+class ThreadLastTransactionTimeTlv: public ThreadTlv
 {
 public:
     /**
      * This method initializes the TLV.
      *
      */
-    void Init(void)
-    {
-        SetType(kLastTransactionTime);
-        SetLength(sizeof(*this) - sizeof(ThreadTlv));
-    }
+    void Init(void) { SetType(kLastTransactionTime); SetLength(sizeof(*this) - sizeof(ThreadTlv)); }
 
     /**
      * This method indicates whether or not the TLV appears to be well-formed.
@@ -422,22 +396,19 @@ private:
     uint32_t mTime;
 } OT_TOOL_PACKED_END;
 
+
 /**
  * This class implements Router Mask TLV generation and parsing.
  *
  */
-class ThreadRouterMaskTlv : public ThreadTlv
+class ThreadRouterMaskTlv: public ThreadTlv
 {
 public:
     /**
      * This method initializes the TLV.
      *
      */
-    void Init(void)
-    {
-        SetType(kRouterMask);
-        SetLength(sizeof(*this) - sizeof(ThreadTlv));
-    }
+    void Init(void) { SetType(kRouterMask); SetLength(sizeof(*this) - sizeof(ThreadTlv)); }
 
     /**
      * This method indicates whether or not the TLV appears to be well-formed.
@@ -479,8 +450,7 @@ public:
      * @retval FALSE  If the given Router ID is not set in the Assigned Router ID Mask.
      *
      */
-    bool IsAssignedRouterIdSet(uint8_t aRouterId) const
-    {
+    bool IsAssignedRouterIdSet(uint8_t aRouterId) const {
         return (mAssignedRouterIdMask[aRouterId / 8] & (0x80 >> (aRouterId % 8))) != 0;
     }
 
@@ -502,18 +472,14 @@ private:
  *
  */
 OT_TOOL_PACKED_BEGIN
-class ThreadNetworkDataTlv : public ThreadTlv
+class ThreadNetworkDataTlv: public ThreadTlv
 {
 public:
     /**
      * This method initializes the TLV.
      *
      */
-    void Init(void)
-    {
-        SetType(kThreadNetworkData);
-        SetLength(0);
-    }
+    void Init(void) { SetType(kThreadNetworkData); SetLength(0); }
 
     /**
      * This method overrides same method of the base class
@@ -540,6 +506,6 @@ private:
     uint8_t mTlvs[kMaxSize];
 } OT_TOOL_PACKED_END;
 
-} // namespace ot
+}  // namespace ot
 
-#endif // THREAD_TLVS_HPP_
+#endif  // THREAD_TLVS_HPP_
