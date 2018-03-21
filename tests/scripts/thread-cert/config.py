@@ -37,6 +37,7 @@ import mle
 import net_crypto
 import network_data
 import network_layer
+import simulator
 import sniffer
 
 MESH_LOCAL_PREFIX = 'fdde:ad00:beef::/64'
@@ -65,6 +66,12 @@ MAX_NEIGHBOR_AGE = 100
 INFINITE_COST_TIMEOUT = 90
 
 MAX_ADVERTISEMENT_INTERVAL = 32
+MLE_END_DEVICE_TIMEOUT = 100
+
+AQ_TIMEOUT = 3 
+ADDRESS_QUERY_INITIAL_RETRY_DELAY = 15
+
+VIRTUAL_TIME = bool(os.getenv('VIRTUAL_TIME', False))
 
 def create_default_network_data_prefix_sub_tlvs_factories():
     return {
@@ -330,3 +337,9 @@ def create_default_thread_message_factory(master_key=DEFAULT_MASTER_KEY):
 
 def create_default_thread_sniffer(nodeid=SNIFFER_ID):
     return sniffer.Sniffer(nodeid, create_default_thread_message_factory())
+
+
+def create_default_simulator():
+    if VIRTUAL_TIME:
+        return simulator.VirtualTime()
+    return simulator.RealTime()

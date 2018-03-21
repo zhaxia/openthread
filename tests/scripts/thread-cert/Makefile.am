@@ -61,7 +61,8 @@ EXTRA_DIST                                                         = \
     Cert_5_3_08_ChildAddressSet.py                                   \
     Cert_5_3_09_AddressQuery.py                                      \
     Cert_5_3_10_AddressQuery.py                                      \
-    Cert_5_5_01_LeaderReset.py                                       \
+    Cert_5_3_11_AddressQueryTimeoutIntervals.py                      \
+    Cert_5_5_01_LeaderReboot.py                                      \
     Cert_5_5_02_LeaderReboot.py                                      \
     Cert_5_5_03_SplitMergeChildren.py                                \
     Cert_5_5_04_SplitMergeRouters.py                                 \
@@ -133,6 +134,7 @@ EXTRA_DIST                                                         = \
     network_layer.py                                                 \
     node.py                                                          \
     node_cli.py                                                      \
+    simulator.py                                                     \
     sniffer.py                                                       \
     sniffer_transport.py                                             \
     test_coap.py                                                     \
@@ -190,7 +192,8 @@ check_SCRIPTS                                                      = \
     Cert_5_3_08_ChildAddressSet.py                                   \
     Cert_5_3_09_AddressQuery.py                                      \
     Cert_5_3_10_AddressQuery.py                                      \
-    Cert_5_5_01_LeaderReset.py                                       \
+    Cert_5_3_11_AddressQueryTimeoutIntervals.py                      \
+    Cert_5_5_01_LeaderReboot.py                                      \
     Cert_5_5_02_LeaderReboot.py                                      \
     Cert_5_5_03_SplitMergeChildren.py                                \
     Cert_5_5_04_SplitMergeRouters.py                                 \
@@ -267,6 +270,7 @@ XFAIL_NCP_TESTS                                                    = \
     Cert_5_2_05_AddressQuery.py                                      \
     Cert_5_3_08_ChildAddressSet.py                                   \
     Cert_5_3_09_AddressQuery.py                                      \
+    Cert_5_3_10_AddressQuery.py                                      \
     Cert_8_1_01_Commissioning.py                                     \
     Cert_8_1_02_Commissioning.py                                     \
     Cert_8_2_01_JoinerRouter.py                                      \

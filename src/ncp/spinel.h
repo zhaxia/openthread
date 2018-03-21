@@ -418,6 +418,8 @@ enum
     SPINEL_CAP_MAC_RAW                  = (SPINEL_CAP_OPENTHREAD__BEGIN + 1),
     SPINEL_CAP_OOB_STEERING_DATA        = (SPINEL_CAP_OPENTHREAD__BEGIN + 2),
     SPINEL_CAP_CHANNEL_MONITOR          = (SPINEL_CAP_OPENTHREAD__BEGIN + 3),
+    SPINEL_CAP_ERROR_RATE_TRACKING      = (SPINEL_CAP_OPENTHREAD__BEGIN + 4),
+    SPINEL_CAP_CHANNEL_MANAGER          = (SPINEL_CAP_OPENTHREAD__BEGIN + 5),
     SPINEL_CAP_OPENTHREAD__END          = 640,
 
     SPINEL_CAP_THREAD__BEGIN            = 1024,
@@ -1346,6 +1348,32 @@ typedef enum
      */
     SPINEL_PROP_THREAD_CHILD_TABLE_ADDRESSES
                                         = SPINEL_PROP_THREAD_EXT__BEGIN + 33,
+
+    /// Neighbor Table Frame and Message Error Rates
+    /** Format: `A(t(ESSScc))`
+     *  Required capability: `CAP_ERROR_RATE_TRACKING`
+     *
+     * This property provides link quality related info including
+     * frame and (IPv6) message error rates for all neighbors.
+     *
+     * With regards to message error rate, note that a larger (IPv6)
+     * message can be fragmented and sent as multiple MAC frames. The
+     * message transmission is considered a failure, if any of its
+     * fragments fail after all MAC retry attempts.
+     *
+     * Data per item is:
+     *
+     *  `E`: Extended address of the neighbor
+     *  `S`: RLOC16 of the neighbor
+     *  `S`: Frame error rate (0 -> 0%, 0xffff -> 100%)
+     *  `S`: Message error rate (0 -> 0%, 0xffff -> 100%)
+     *  `c`: Average RSSI (in dBm)
+     *  `c`: Last RSSI (in dBm)
+     *
+     */
+    SPINEL_PROP_THREAD_NEIGHBOR_TABLE_ERROR_RATES
+                                        = SPINEL_PROP_THREAD_EXT__BEGIN + 34,
+
     SPINEL_PROP_THREAD_EXT__END         = 0x1600,
 
     SPINEL_PROP_IPV6__BEGIN             = 0x60,
@@ -1392,6 +1420,53 @@ typedef enum
     SPINEL_PROP_STREAM_NET              = SPINEL_PROP_STREAM__BEGIN + 2, ///< [dD]
     SPINEL_PROP_STREAM_NET_INSECURE     = SPINEL_PROP_STREAM__BEGIN + 3, ///< [dD]
     SPINEL_PROP_STREAM__END             = 0x80,
+
+    SPINEL_PROP_OPENTHREAD__BEGIN       = 0x1900,
+
+    /// Channel Manager - Channel Change New Channel
+    /** Format: `C` (read-write)
+     *
+     * Required capability: SPINEL_CAP_CHANNEL_MANAGER
+     *
+     * Setting this property triggers the Channel Manager to start
+     * a channel change process. The network switches to the given
+     * channel after the specified delay (see `CHANNEL_MANAGER_DELAY`).
+     *
+     * A subsequent write to this property will cancel an ongoing
+     * (previously requested) channel change.
+     *
+     */
+    SPINEL_PROP_CHANNEL_MANAGER_NEW_CHANNEL
+                                        = SPINEL_PROP_OPENTHREAD__BEGIN + 0,
+
+    /// Channel Manager - Channel Change Delay
+    /** Format 'S'
+     *  Units: seconds
+     *
+     * Required capability: SPINEL_CAP_CHANNEL_MANAGER
+     *
+     * This property specifies the delay (in seconds) to be used for
+     * a channel change request.
+     *
+     * The delay should preferably be longer than maximum data poll
+     * interval used by all sleepy-end-devices within the Thread
+     * network.
+     *
+     */
+    SPINEL_PROP_CHANNEL_MANAGER_DELAY   = SPINEL_PROP_OPENTHREAD__BEGIN + 1,
+
+    /// Channel Manager Supported Channels
+    /** Format 'A(C)'
+     *
+     * Required capability: SPINEL_CAP_CHANNEL_MANAGER
+     *
+     * This property specifies the list of supported channels.
+     *
+     */
+    SPINEL_PROP_CHANNEL_MANAGER_SUPPORTED_CHANNELS
+                                        = SPINEL_PROP_OPENTHREAD__BEGIN + 2,
+
+    SPINEL_PROP_OPENTHREAD__END         = 0x2000,
 
     /// UART Bitrate
     /** Format: `L`

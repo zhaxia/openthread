@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2018, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,71 +28,59 @@
 
 /**
  * @file
- *   This file includes definitions for managing MeshCoP Datasets.
- *
+ *   This file implements the OpenThread channel manager APIs.
  */
 
-#ifndef MESHCOP_DATASET_MANAGER_FTD_HPP_
-#define MESHCOP_DATASET_MANAGER_FTD_HPP_
-
 #include "openthread-core-config.h"
+#include "openthread/channel_manager.h"
 
-#if OPENTHREAD_FTD
+#include "common/instance.hpp"
+#include "utils/channel_manager.hpp"
 
-#include <openthread/types.h>
+using namespace ot;
 
-#include "coap/coap.hpp"
-#include "meshcop/dataset_manager.hpp"
+#if OPENTHREAD_ENABLE_CHANNEL_MANAGER && OPENTHREAD_FTD
 
-namespace ot {
-
-class ThreadNetif;
-
-namespace MeshCoP {
-
-class ActiveDataset: public ActiveDatasetBase
+otError otChannelManagerRequestChannelChange(otInstance *aInstance, uint8_t aChannel)
 {
-public:
-    explicit ActiveDataset(Instance &aInstance);
+    Instance &instance = *static_cast<Instance *>(aInstance);
 
-    otError GenerateLocal(void);
+    return instance.GetChannelManager().RequestChannelChange(aChannel);
+}
 
-    void StartLeader(void);
-
-    void StopLeader(void);
-
-private:
-    static void HandleSet(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
-                          const otMessageInfo *aMessageInfo);
-    void HandleSet(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
-
-    bool IsTlvInitialized(Tlv::Type aType);
-
-    Coap::Resource mResourceSet;
-};
-
-class PendingDataset: public PendingDatasetBase
+uint8_t otChannelManagerGetRequestedChannel(otInstance *aInstance)
 {
-public:
-    explicit PendingDataset(Instance &aInstance);
+    Instance &instance = *static_cast<Instance *>(aInstance);
 
-    void StartLeader(void);
+    return instance.GetChannelManager().GetRequestedChannel();
+}
 
-    void StopLeader(void);
+uint16_t otChannelManagerGetDelay(otInstance *aInstance)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
 
-    void ApplyActiveDataset(const Timestamp &aTimestamp, Message &aMessage);
+    return instance.GetChannelManager().GetDelay();
+}
 
-private:
-    static void HandleSet(void *aContext, otCoapHeader *aHeader, otMessage *aMessage,
-                          const otMessageInfo *aMessageInfo);
-    void HandleSet(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+otError otChannelManagerSetDelay(otInstance *aInstance, uint16_t aMinDelay)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
 
-    Coap::Resource mResourceSet;
-};
+    return instance.GetChannelManager().SetDelay(aMinDelay);
+}
 
-}  // namespace MeshCoP
-}  // namespace ot
+uint32_t otChannelManagerGetSupportedChannels(otInstance *aInstance)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
 
-#endif  // OPENTHREAD_FTD
+    return instance.GetChannelManager().GetSupportedChannels();
+}
 
-#endif  // MESHCOP_DATASET_MANAGER_HPP_
+void otChannelManagerSetSupportedChannels(otInstance *aInstance, uint32_t aChannelMask)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
+
+    return instance.GetChannelManager().SetSupportedChannels(aChannelMask);
+}
+
+#endif // OPENTHREAD_ENABLE_CHANNEL_MANAGER && OPENTHREAD_FTD

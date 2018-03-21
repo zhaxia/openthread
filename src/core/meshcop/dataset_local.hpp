@@ -44,7 +44,7 @@
 namespace ot {
 namespace MeshCoP {
 
-class DatasetLocal: public InstanceLocator
+class DatasetLocal : public InstanceLocator
 {
 public:
     /**
@@ -72,23 +72,6 @@ public:
     void Clear(void);
 
     /**
-     * This method indicates whether or not the dataset is present in non-volatile memory.
-     *
-     * @retval TRUE   if the dataset is present in non-volatile memory.
-     * @retval FALSE  if the dataset is not present in non-volatile memory.
-     *
-     */
-    bool IsPresent(void) const;
-
-    /**
-     * This method returns a pointer to the Active or Pending Timestamp value.
-     *
-     * @returns  A pointer to the Active or Pending Timestamp value or NULL if the dataset is invalid.
-     *
-     */
-    const Timestamp *GetTimestamp(void) const;
-
-    /**
      * This method retrieves the dataset from non-volatile memory.
      *
      * @param[out]  aDataset  Where to place the dataset.
@@ -97,7 +80,7 @@ public:
      * @retval OT_ERROR_NOT_FOUND  There is no corresponding dataset stored in non-volatile memory.
      *
      */
-    otError Get(Dataset &aDataset);
+    otError Get(Dataset &aDataset) const;
 
     /**
      * This method retrieves the dataset from non-volatile memory.
@@ -150,13 +133,13 @@ public:
 
 private:
     uint16_t GetSettingsKey(void) const;
-    void SetTimestamp(const Dataset &aDataset);
+    void     SetTimestamp(const Dataset &aDataset);
 
-    uint32_t    mUpdateTime;      ///< Local time last updated
-    Tlv::Type   mType;            ///< Active or Pending
+    uint32_t  mUpdateTime; ///< Local time last updated
+    Tlv::Type mType;       ///< Active or Pending
 };
 
-}  // namespace MeshCoP
-}  // namespace ot
+} // namespace MeshCoP
+} // namespace ot
 
-#endif  // MESHCOP_DATASET_LOCAL_HPP_
+#endif // MESHCOP_DATASET_LOCAL_HPP_
