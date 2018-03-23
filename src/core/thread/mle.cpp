@@ -2627,10 +2627,6 @@ otError Mle::HandleLeaderData(const Message &aMessage, const Ip6::MessageInfo &a
         {
             ExitNow(dataRequest = true);
         }
-        else
-        {
-            dataRequest = true;
-        }
     }
     else
     {
@@ -2651,10 +2647,6 @@ otError Mle::HandleLeaderData(const Message &aMessage, const Ip6::MessageInfo &a
             (Tlv::GetOffset(aMessage, Tlv::kPendingDataset, pendingDatasetOffset) != OT_ERROR_NONE))
         {
             ExitNow(dataRequest = true);
-        }
-        else
-        {
-            dataRequest = true;
         }
     }
     else
