@@ -176,6 +176,19 @@ extern "C" {
 #endif
 
 /**
+ * @def NRF_DRV_RADIO802154_CLOCK_IRQ_PRIORITY
+ *
+ * Priority of clock interrupt used in standalone clock driver implementation.
+ *
+ * @note This configuration is only applicable for Clock Abstraction Layer implementation
+ *       in nrf_drv_radio802154_clock_nodrv.c.
+ *
+ */
+#ifndef NRF_DRV_RADIO802154_CLOCK_IRQ_PRIORITY
+#define NRF_DRV_RADIO802154_CLOCK_IRQ_PRIORITY 10
+#endif
+
+/**
  * @brief Include Nest specific configuration modifications
  *
  * NRF_DRV_RADIO802154_INTERNAL_IRQ_HANDLING being defined to 0
