@@ -36,6 +36,7 @@
 #include "common/code_utils.hpp"
 #include "common/logging.hpp"
 #include "common/owner-locator.hpp"
+#include "common/random.hpp"
 
 #if OPENTHREAD_ENABLE_CHANNEL_MONITOR
 
@@ -58,17 +59,29 @@ ChannelMonitor::ChannelMonitor(Instance &aInstance)
     memset(mChannelQuality, 0, sizeof(mChannelQuality));
 }
 
-void ChannelMonitor::Start(void)
+otError ChannelMonitor::Start(void)
 {
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(!IsRunning(), error = OT_ERROR_ALREADY);
     Clear();
     mTimer.Start(kTimerInterval);
     otLogDebgUtil(GetInstance(), "ChannelMonitor: Starting");
+
+exit:
+    return error;
 }
 
-void ChannelMonitor::Stop(void)
+otError ChannelMonitor::Stop(void)
 {
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(IsRunning(), error = OT_ERROR_ALREADY);
     mTimer.Stop();
     otLogDebgUtil(GetInstance(), "ChannelMonitor: Stopping");
+
+exit:
+    return error;
 }
 
 void ChannelMonitor::Clear(void)
@@ -96,7 +109,7 @@ void ChannelMonitor::RestartTimer(void)
     uint16_t interval = kTimerInterval;
     int16_t  jitter;
 
-    jitter = (otPlatRandomGet() % (2 * kMaxJitterInterval)) - kMaxJitterInterval;
+    jitter = static_cast<int16_t>(Random::GetUint16InRange(0, 2 * kMaxJitterInterval)) - kMaxJitterInterval;
 
     if (jitter >= kTimerInterval)
     {

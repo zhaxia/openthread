@@ -123,6 +123,7 @@ SOURCES_COMMON                      = \
     common/locator.cpp                \
     common/notifier.cpp               \
     common/message.cpp                \
+    common/settings.cpp               \
     common/tasklet.cpp                \
     common/timer.cpp                  \
     common/tlvs.cpp                   \
@@ -222,6 +223,7 @@ HEADERS_COMMON                      = \
     common/message.hpp                \
     common/notifier.hpp               \
     common/owner-locator.hpp          \
+    common/random.hpp                 \
     common/settings.hpp               \
     common/new.hpp                    \
     common/tasklet.hpp                \

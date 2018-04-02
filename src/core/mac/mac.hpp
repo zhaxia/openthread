@@ -50,10 +50,6 @@
 
 namespace ot {
 
-namespace Mle {
-class MleRouter;
-}
-
 /**
  * @addtogroup core-mac
  *
@@ -113,6 +109,7 @@ public:
     enum
     {
         kChannelIteratorFirst = 0xff, ///< Value to pass in `GetNextChannel()` to get the first channel in the mask.
+        kInfoStringSize       = 45,   ///< Recommended buffer size to use with `ToString()`.
     };
 
     /**
@@ -222,6 +219,24 @@ public:
      *
      */
     otError GetNextChannel(uint8_t &aChannel) const;
+
+    /**
+     * This method converts the channel mask into a human-readable NULL-terminated string.
+     *
+     * Examples of possible output:
+     *  -  empty mask      ->  "{ }"
+     *  -  all channels    ->  "{ 11-26 }"
+     *  -  single channel  ->  "{ 20 }"
+     *  -  multiple ranges ->  "{ 11, 14-17, 20-22, 24, 25 }"
+     *  -  no range        ->  "{ 14, 21, 26 }"
+     *
+     * @param[out] aBuffer  A pointer to a char buffer to output the string.
+     * @param[in]  aSize    Size of the buffer (number of bytes).
+     *
+     * @returns  A pointer to the @p aBuffer.
+     *
+     */
+    const char *ToString(char *aBuffer, uint16_t aSize) const;
 
 private:
 #if (OT_RADIO_CHANNEL_MIN >= 32) || (OT_RADIO_CHANNEL_MAX >= 32)
@@ -836,6 +851,10 @@ private:
     otError RadioTransmit(Frame *aSendFrame);
     otError RadioReceive(uint8_t aChannel);
     otError RadioSleep(void);
+
+    void LogFrameRxFailure(const Frame *aFrame, otError aError) const;
+    void LogFrameTxFailure(const Frame &aFrame, otError aError) const;
+    void LogBeacon(const char *aActionText, const BeaconPayload &aBeaconPayload) const;
 
     static const char *OperationToString(Operation aOperation);
 

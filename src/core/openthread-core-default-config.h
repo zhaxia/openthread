@@ -764,6 +764,17 @@
 #endif
 
 /**
+ * @def OPENTHREAD_CONFIG_LOG_SRC_DST_IP_ADDRESSES
+ *
+ * If defined as 1 when IPv6 message info is logged in mesh-forwarder, the source and destination IPv6 addresses of
+ * messages are also included.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_LOG_SRC_DST_IP_ADDRESSES
+#define OPENTHREAD_CONFIG_LOG_SRC_DST_IP_ADDRESSES 1
+#endif
+
+/**
  * @def OPENTHREAD_CONFIG_PLAT_LOG_FUNCTION
  *
  * Defines the name of function/macro used for logging inside OpenThread, by default it is set to `otPlatLog()`.
@@ -845,6 +856,16 @@
 #endif
 
 /**
+ * @def OPENTHREAD_CONFIG_NCP_SPINEL_LOG_MAX_SIZE
+ *
+ * The maximum OpenThread log string size (number of chars) supported by NCP using Spinel `StreamWrite`.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_NCP_SPINEL_LOG_MAX_SIZE
+#define OPENTHREAD_CONFIG_NCP_SPINEL_LOG_MAX_SIZE 150
+#endif
+
+/**
  * @def OPENTHREAD_CONFIG_PLATFORM_ASSERT_MANAGEMENT
  *
  * The assert is managed by platform defined logic when this flag is set.
@@ -898,6 +919,16 @@
  */
 #ifndef OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER
 #define OPENTHREAD_CONFIG_ENABLE_PLATFORM_USEC_TIMER 0
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_ENABLE_PLATFORM_EUI64_CUSTOM_SOURCE
+ *
+ * Allows to define custom otPlatRadioGetIeeeEui64 function to retrieve EUI-64.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_ENABLE_PLATFORM_EUI64_CUSTOM_SOURCE
+#define OPENTHREAD_CONFIG_ENABLE_PLATFORM_EUI64_CUSTOM_SOURCE 0
 #endif
 
 /**
