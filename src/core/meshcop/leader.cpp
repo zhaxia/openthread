@@ -178,8 +178,10 @@ void Leader::HandleKeepAlive(void *               aContext,
 
 void Leader::HandleKeepAlive(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
+    NetworkData::Leader &    netdata = GetNetif().GetNetworkDataLeader();
     StateTlv                 state;
     CommissionerSessionIdTlv sessionId;
+    BorderAgentLocatorTlv *  borderAgentLocator;
     StateTlv::State          responseState;
 
     otLogInfoMeshCoP(GetInstance(), "received keep alive");
@@ -190,7 +192,10 @@ void Leader::HandleKeepAlive(Coap::Header &aHeader, Message &aMessage, const Ip6
     SuccessOrExit(Tlv::GetTlv(aMessage, Tlv::kCommissionerSessionId, sizeof(sessionId), sessionId));
     VerifyOrExit(sessionId.IsValid());
 
-    if (sessionId.GetCommissionerSessionId() != mSessionId)
+    borderAgentLocator =
+        static_cast<BorderAgentLocatorTlv *>(netdata.GetCommissioningDataSubTlv(Tlv::kBorderAgentLocator));
+
+    if ((borderAgentLocator == NULL) || (sessionId.GetCommissionerSessionId() != mSessionId))
     {
         responseState = StateTlv::kReject;
     }
@@ -201,6 +206,14 @@ void Leader::HandleKeepAlive(Coap::Header &aHeader, Message &aMessage, const Ip6
     }
     else
     {
+        uint16_t rloc = HostSwap16(aMessageInfo.GetPeerAddr().mFields.m16[7]);
+
+        if (borderAgentLocator->GetBorderAgentLocator() != rloc)
+        {
+            borderAgentLocator->SetBorderAgentLocator(rloc);
+            netdata.IncrementVersion();
+        }
+
         responseState = StateTlv::kAccept;
         mTimer.Start(TimerMilli::SecToMsec(kTimeoutLeaderPetition));
     }

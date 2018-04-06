@@ -41,7 +41,6 @@
 #include "common/code_utils.hpp"
 #include "common/instance.hpp"
 #include "common/logging.hpp"
-#include "common/settings.hpp"
 #include "meshcop/meshcop_tlvs.hpp"
 #include "thread/mle_tlvs.hpp"
 
@@ -138,9 +137,8 @@ void Dataset::Get(otOperationalDataset &aDataset) const
             {
                 if (reinterpret_cast<const ChannelMaskEntry *>(entry)->GetChannelPage() == 0)
                 {
-                    uint8_t i                       = sizeof(ChannelMaskEntry);
-                    aDataset.mChannelMaskPage0      = static_cast<uint32_t>(entry[i] | (entry[i + 1] << 8) |
-                                                                       (entry[i + 2] << 16) | (entry[i + 3] << 24));
+                    const ChannelMask0Tlv *tlv      = static_cast<const ChannelMask0Tlv *>(cur);
+                    aDataset.mChannelMaskPage0      = tlv->GetMask();
                     aDataset.mIsChannelMaskPage0Set = true;
                     break;
                 }
@@ -508,22 +506,6 @@ otError Dataset::AppendMleDatasetTlv(Message &aMessage) const
 
 exit:
     return error;
-}
-
-uint16_t Dataset::GetSettingsKey(void)
-{
-    uint16_t rval;
-
-    if (mType == Tlv::kActiveTimestamp)
-    {
-        rval = static_cast<uint16_t>(Settings::kKeyActiveDataset);
-    }
-    else
-    {
-        rval = static_cast<uint16_t>(Settings::kKeyPendingDataset);
-    }
-
-    return rval;
 }
 
 void Dataset::Remove(uint8_t *aStart, uint8_t aLength)

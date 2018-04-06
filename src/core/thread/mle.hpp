@@ -50,17 +50,6 @@
 
 namespace ot {
 
-class ThreadNetif;
-class KeyManager;
-class MeshForwarder;
-
-namespace Mac {
-class Mac;
-}
-namespace NetworkData {
-class Leader;
-}
-
 /**
  * @addtogroup core-mle MLE
  *
@@ -84,8 +73,6 @@ class Leader;
  */
 
 namespace Mle {
-
-class MleRouter;
 
 /**
  * @addtogroup core-mle-core
@@ -963,6 +950,12 @@ public:
      *
      */
     void RemoveDelayedDataResponseMessage(void);
+
+    /**
+     * This method converts a device role into a human-readable string.
+     *
+     */
+    static const char *RoleToString(otDeviceRole aRole);
 
 protected:
     enum

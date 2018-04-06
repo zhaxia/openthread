@@ -40,7 +40,7 @@ cd /tmp || die
     sudo apt-get update || die
 
     [ $BUILD_TARGET != posix-distcheck -a $BUILD_TARGET != posix-32-bit -a $BUILD_TARGET != posix-mtd -a $BUILD_TARGET != posix-ncp ] || {
-        pip install --upgrade pip || die
+        pip install --user --upgrade pip || die
         pip install --user -r $TRAVIS_BUILD_DIR/tests/scripts/thread-cert/requirements.txt || die
         [ $BUILD_TARGET != posix-ncp ] || {
             # Packages used by ncp tools.
@@ -97,6 +97,28 @@ cd /tmp || die
     [ $BUILD_TARGET != posix -o $CC != clang ] || {
         sudo apt-get install clang || die
     }
+
+    [ $BUILD_TARGET != toranj-test-framework ] || {
+        # packages for wpantund
+        sudo apt-get install dbus || die
+        sudo apt-get install gcc g++ libdbus-1-dev || die
+        sudo apt-get install autoconf-archive || die
+        sudo apt-get install bsdtar || die
+        sudo apt-get install libtool || die
+        sudo apt-get install libglib2.0-dev || die
+        sudo apt-get install libboost-dev || die
+        sudo apt-get install libboost-signals-dev || die
+
+        # clone and build wpantund
+        git clone --depth=1 --branch=master https://github.com/openthread/wpantund.git
+        cd wpantund || die
+        ./bootstrap.sh || die
+        ./configure || die
+        sudo make -j 8 || die
+        sudo make install || die
+        cd .. || die
+    }
+
 }
 
 [ $TRAVIS_OS_NAME != osx ] || {
