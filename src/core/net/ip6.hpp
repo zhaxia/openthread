@@ -118,6 +118,37 @@ public:
     Message *NewMessage(uint16_t aReserved);
 
     /**
+     * This method allocates a new message buffer from the buffer pool.
+     *
+     * @param[in]  aReserved  The number of header bytes to reserve following the IPv6 header.
+     * @param[in]  aPriority  The priority of the message.
+     *
+     * @returns A pointer to the message or NULL if insufficient message buffers are available.
+     *
+     */
+    Message *NewMessage(uint16_t aReserved, uint8_t aPriority);
+
+    /**
+     * This method converts the message priority to IPv6 DSCP value.
+     *
+     * @param[in]  aPriority  The message priority.
+     *
+     * @returns The IPv6 DSCP value.
+     *
+     */
+    uint8_t PriorityToDscp(uint8_t aPriority);
+
+    /**
+     * This method converts the IPv6 DSCP value to message priority.
+     *
+     * @param[in]  aDscp  The IPv6 DSCP value.
+     *
+     * @returns The message priority.
+     *
+     */
+    uint8_t DscpToPriority(uint8_t aDscp);
+
+    /**
      * This constructor initializes the object.
      *
      * @param[in]  aInstance   A reference to the otInstance object.

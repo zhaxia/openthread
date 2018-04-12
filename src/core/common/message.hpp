@@ -111,7 +111,7 @@ struct MessageInfo
     uint8_t mSubType : 4;      ///< Identifies the message sub type.
     bool    mDirectTx : 1;     ///< Used to indicate whether a direct transmission is required.
     bool    mLinkSecurity : 1; ///< Indicates whether or not link security is enabled.
-    uint8_t mPriority : 2;     ///< Identifies the message priority level (lower value is higher priority).
+    uint8_t mPriority : 3;     ///< Identifies the message priority level (lower value is higher priority).
     bool    mInPriorityQ : 1;  ///< Indicates whether the message is queued in normal or priority queue.
     bool    mTxSuccess : 1;    ///< Indicates whether the direct tx of the message was successful.
 };
@@ -224,12 +224,13 @@ public:
 
     enum
     {
-        kPriorityHigh    = 0, ///< High priority level.
-        kPriorityMedium  = 1, ///< Medium priority level.
-        kPriorityLow     = 2, ///< Low priority level.
-        kPriorityVeryLow = 3, ///< Very low priority level.
+        kPriorityReceive = 0, ///< Receive priority level.
+        kPriorityHigh    = 1, ///< High priority level.
+        kPriorityMedium  = 2, ///< Medium priority level.
+        kPriorityLow     = 3, ///< Low priority level.
+        kPriorityVeryLow = 4, ///< Very low priority level.
 
-        kNumPriorities = 4, ///< Number of priority levels.
+        kNumPriorities = 5, ///< Number of priority levels.
     };
 
     /**
@@ -237,6 +238,14 @@ public:
      *
      */
     void Free(void);
+
+    /**
+     * This method returns a pointer to the previous message in the same interface list.
+     *
+     * @returns A pointer to the previous message in the same interface list or NULL if at the end of the list.
+     *
+     */
+    Message *GetPrev(void) const;
 
     /**
      * This method returns a pointer to the next message in the same interface list.
@@ -793,6 +802,16 @@ private:
     Message *&Prev(uint8_t aList) { return mBuffer.mHead.mInfo.mPrev[aList]; }
 
     /**
+     * This method returns a const reference to the `mPrev` pointer for a given list.
+     *
+     * @param[in]  aList  The index to the message list.
+     *
+     * @returns A reference to the mPrev pointer for the specified list.
+     *
+     */
+    Message *const &Prev(uint8_t aList) const { return mBuffer.mHead.mInfo.mPrev[aList]; }
+
+    /**
      * This method returns the number of reserved header bytes.
      *
      * @returns The number of reserved header bytes.
@@ -1011,7 +1030,6 @@ public:
      */
     void GetInfo(uint16_t &aMessageCount, uint16_t &aBufferCount) const;
 
-private:
     /**
      * This method returns the tail of the list (last message in the list)
      *
@@ -1020,6 +1038,7 @@ private:
      */
     Message *GetTail(void) const;
 
+private:
     /**
      * This method adds a message to a list.
      *
@@ -1186,6 +1205,19 @@ public:
     Message *New(uint8_t aType, uint16_t aReserveHeader);
 
     /**
+     * This method is used to obtain a new message.
+     * is assigned to the message.
+     *
+     * @param[in]  aType           The message type.
+     * @param[in]  aReserveHeader  The number of header bytes to reserve.
+     * @param[in]  aPriority       The priority of the message.
+     *
+     * @returns A pointer to the message or NULL if no message buffers are available.
+     *
+     */
+    Message *New(uint8_t aType, uint16_t aReserveHeader, uint8_t aPriority);
+
+    /**
      * This method is used to free a message and return all message buffers to the buffer pool.
      *
      * @param[in]  aMessage  The message to free.
@@ -1229,9 +1261,9 @@ private:
         kDefaultMessagePriority = Message::kPriorityLow,
     };
 
-    Buffer *       NewBuffer(void);
+    Buffer *       NewBuffer(uint8_t aPriority);
     void           FreeBuffers(Buffer *aBuffer);
-    otError        ReclaimBuffers(int aNumBuffers);
+    otError        ReclaimBuffers(int aNumBuffers, uint8_t aPriority);
     PriorityQueue *GetAllMessagesQueue(void) { return &mAllQueue; }
 
 #if OPENTHREAD_CONFIG_PLATFORM_MESSAGE_MANAGEMENT == 0

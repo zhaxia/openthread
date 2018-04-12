@@ -54,8 +54,9 @@ exit:
     return error;
 }
 
-otError MeshForwarder::EvictIndirectMessage(void)
+otError MeshForwarder::EvictIndirectMessage(uint8_t aPriority)
 {
+    OT_UNUSED_VARIABLE(aPriority);
     return OT_ERROR_NOT_FOUND;
 }
 

@@ -62,6 +62,7 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     , mMacSender(&MeshForwarder::HandleFrameRequest, &MeshForwarder::HandleSentFrame, this)
     , mDiscoverTimer(aInstance, &MeshForwarder::HandleDiscoverTimer, this)
     , mReassemblyTimer(aInstance, &MeshForwarder::HandleReassemblyTimer, this)
+    , mFragPriorityTimer(aInstance, &MeshForwarder::HandleFragPriorityTimer, this)
     , mMessageNextOffset(0)
     , mSendMessage(NULL)
     , mSendMessageIsARetransmission(false)
@@ -88,6 +89,8 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
 {
     mFragTag = Random::GetUint16();
     GetNetif().GetMac().RegisterReceiver(mMacReceiver);
+
+    memset(mFragPriorityEntries, 0, sizeof(mFragPriorityEntries));
 
     mIpCounters.mTxSuccess = 0;
     mIpCounters.mRxSuccess = 0;
@@ -1186,7 +1189,8 @@ void MeshForwarder::HandleFragment(uint8_t *               aFrame,
 
     if (fragmentHeader.GetDatagramOffset() == 0)
     {
-        VerifyOrExit((message = GetInstance().GetMessagePool().New(Message::kTypeIp6, 0)) != NULL,
+        VerifyOrExit((message = GetInstance().GetMessagePool().New(Message::kTypeIp6, 0, Message::kPriorityReceive)) !=
+                         NULL,
                      error = OT_ERROR_NO_BUFS);
         message->SetLinkSecurityEnabled(aLinkInfo.mLinkSecurity);
         message->SetPanId(aLinkInfo.mPanId);
@@ -1339,6 +1343,31 @@ void MeshForwarder::HandleReassemblyTimer(void)
     }
 }
 
+void MeshForwarder::HandleFragPriorityTimer(Timer &aTimer)
+{
+    aTimer.GetOwner<MeshForwarder>().HandleFragPriorityTimer();
+}
+
+void MeshForwarder::HandleFragPriorityTimer(void)
+{
+    size_t num = sizeof(mFragPriorityEntries) / sizeof(mFragPriorityEntries[0]);
+    bool   run = false;
+
+    for (size_t i = 0; i < num; i++)
+    {
+        if (mFragPriorityEntries[i].GetLifetime() != 0)
+        {
+            run = true;
+            mFragPriorityEntries[i].SetLifetime(mFragPriorityEntries[i].GetLifetime() - 1);
+        }
+    }
+
+    if (run)
+    {
+        mFragPriorityTimer.Start(kStateUpdatePeriod);
+    }
+}
+
 void MeshForwarder::HandleLowpanHC(uint8_t *               aFrame,
                                    uint8_t                 aFrameLength,
                                    const Mac::Address &    aMacSource,
@@ -1354,7 +1383,8 @@ void MeshForwarder::HandleLowpanHC(uint8_t *               aFrame,
     UpdateRoutes(aFrame, aFrameLength, aMacSource, aMacDest);
 #endif
 
-    VerifyOrExit((message = GetInstance().GetMessagePool().New(Message::kTypeIp6, 0)) != NULL,
+    VerifyOrExit((message = GetInstance().GetMessagePool().New(Message::kTypeIp6, 0, Message::kPriorityReceive)) !=
+                     NULL,
                  error = OT_ERROR_NO_BUFS);
     message->SetLinkSecurityEnabled(aLinkInfo.mLinkSecurity);
     message->SetPanId(aLinkInfo.mPanId);
@@ -1504,6 +1534,10 @@ void MeshForwarder::LogIp6Message(MessageAction       aAction,
 
     switch (aMessage.GetPriority())
     {
+    case Message::kPriorityReceive:
+        priorityText = "receive";
+        break;
+
     case Message::kPriorityHigh:
         priorityText = "high";
         break;

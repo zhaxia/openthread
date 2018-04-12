@@ -233,17 +233,13 @@ void MeshForwarder::UpdateIndirectMessages(void)
     }
 }
 
-otError MeshForwarder::EvictIndirectMessage(void)
+otError MeshForwarder::EvictIndirectMessage(uint8_t aPriority)
 {
-    otError error = OT_ERROR_NOT_FOUND;
+    otError  error   = OT_ERROR_NOT_FOUND;
+    Message *message = mSendQueue.GetTail();
 
-    for (Message *message = mSendQueue.GetHead(); message; message = message->GetNext())
+    if (message->GetPriority() > aPriority)
     {
-        if (!message->IsChildPending())
-        {
-            continue;
-        }
-
         RemoveMessage(*message);
         ExitNow(error = OT_ERROR_NONE);
     }
@@ -868,6 +864,165 @@ exit:
     return error;
 }
 
+FragmentPriority *MeshForwarder::FindFragmentPriority(uint16_t aDatagramTag)
+{
+    size_t num = sizeof(mFragPriorityEntries) / sizeof(mFragPriorityEntries[0]);
+
+    for (size_t i = 0; i < num; i++)
+    {
+        if ((mFragPriorityEntries[i].GetDatagramTag() == aDatagramTag) && (mFragPriorityEntries[i].GetLifetime() != 0))
+        {
+            return &mFragPriorityEntries[i];
+        }
+    }
+
+    return NULL;
+}
+
+otError MeshForwarder::AddFragPriority(uint16_t aDatagramTag, uint16_t aDatagramOffset, uint8_t aPriority)
+{
+    otError           error = OT_ERROR_NONE;
+    FragmentPriority *entry = NULL;
+    size_t            num   = sizeof(mFragPriorityEntries) / sizeof(mFragPriorityEntries[0]);
+
+    VerifyOrExit(FindFragmentPriority(aDatagramTag) == NULL, error = OT_ERROR_ALREADY);
+
+    for (size_t i = 0; i < num; i++)
+    {
+        if (mFragPriorityEntries[i].GetLifetime() == 0)
+        {
+            entry = &mFragPriorityEntries[i];
+            break;
+        }
+    }
+
+    VerifyOrExit(entry != NULL, error = OT_ERROR_NO_BUFS);
+
+    entry->SetDatagramTag(aDatagramTag);
+    entry->SetPriority(aPriority);
+    entry->SetLifetime(kFragmentPriorityLifetime);
+    entry->SetDatagramOffset(aDatagramOffset);
+
+    if (!mFragPriorityTimer.IsRunning())
+    {
+        mFragPriorityTimer.Start(kStateUpdatePeriod);
+    }
+
+exit:
+    return error;
+}
+
+otError MeshForwarder::GetMeshPriority(uint8_t *     aFrame,
+                                       uint8_t       aFrameLength,
+                                       Mac::Address &aMeshSource,
+                                       Mac::Address &aMeshDest,
+                                       uint8_t &     aPriority)
+{
+    otError            error   = OT_ERROR_NONE;
+    ThreadNetif &      netif   = GetNetif();
+    Message *          message = NULL;
+    Ip6::Header        ip6Header;
+    Lowpan::MeshHeader meshHeader;
+    int                headerLength;
+    uint8_t            priority;
+
+    // Check the mesh header
+    VerifyOrExit(meshHeader.Init(aFrame, aFrameLength) == OT_ERROR_NONE, error = OT_ERROR_DROP);
+    VerifyOrExit(meshHeader.IsValid(), error = OT_ERROR_DROP);
+
+    aFrame += meshHeader.GetHeaderLength();
+    aFrameLength -= meshHeader.GetHeaderLength();
+
+    if (aFrameLength >= 1 && Lowpan::Lowpan::IsLowpanHc(aFrame))
+    {
+        VerifyOrExit((message = GetInstance().GetMessagePool().New(Message::kTypeIp6, 0, Message::kPriorityReceive)) !=
+                         NULL,
+                     error = OT_ERROR_NO_BUFS);
+
+        headerLength = netif.GetLowpan().Decompress(*message, aMeshSource, aMeshDest, aFrame, aFrameLength, 0);
+        VerifyOrExit(headerLength > 0, error = OT_ERROR_PARSE);
+
+        aFrameLength -= static_cast<uint8_t>(headerLength);
+
+        SuccessOrExit(error = message->SetLength(message->GetLength() + aFrameLength));
+        SuccessOrExit(error = ip6Header.Init(*message));
+        priority = netif.GetIp6().DscpToPriority(ip6Header.GetDscp());
+    }
+    else if (reinterpret_cast<Lowpan::FragmentHeader *>(aFrame)->IsFragmentHeader())
+    {
+        Lowpan::FragmentHeader fragmentHeader;
+
+        // Check the fragment header
+        VerifyOrExit(fragmentHeader.Init(aFrame, aFrameLength) == OT_ERROR_NONE, error = OT_ERROR_DROP);
+
+        aFrame += fragmentHeader.GetHeaderLength();
+        aFrameLength -= fragmentHeader.GetHeaderLength();
+
+        if (fragmentHeader.GetDatagramOffset() == 0)
+        {
+            VerifyOrExit(
+                (message = GetInstance().GetMessagePool().New(Message::kTypeIp6, 0, Message::kPriorityReceive)) != NULL,
+                error = OT_ERROR_NO_BUFS);
+
+            headerLength = netif.GetLowpan().Decompress(*message, aMeshSource, aMeshDest, aFrame, aFrameLength,
+                                                        fragmentHeader.GetDatagramSize());
+            VerifyOrExit(headerLength > 0, error = OT_ERROR_PARSE);
+
+            aFrameLength -= static_cast<uint8_t>(headerLength);
+            VerifyOrExit(fragmentHeader.GetDatagramSize() >= message->GetOffset() + aFrameLength,
+                         error = OT_ERROR_PARSE);
+
+            SuccessOrExit(error = message->SetLength(fragmentHeader.GetDatagramSize()));
+            SuccessOrExit(error = ip6Header.Init(*message));
+            priority = netif.GetIp6().DscpToPriority(ip6Header.GetDscp());
+
+            message->MoveOffset(aFrameLength);
+            IgnoreReturnValue(AddFragPriority(fragmentHeader.GetDatagramTag(), message->GetOffset(), priority));
+        }
+        else
+        {
+            FragmentPriority *entry = FindFragmentPriority(fragmentHeader.GetDatagramTag());
+
+            if (entry != NULL)
+            {
+                priority = entry->GetPriority();
+                if (entry->GetDatagramOffset() == fragmentHeader.GetDatagramOffset())
+                {
+                    entry->SetDatagramOffset(entry->GetDatagramOffset() + aFrameLength);
+                }
+
+                if (entry->GetDatagramOffset() >= fragmentHeader.GetDatagramSize())
+                {
+                    // Mark the entry as invalid
+                    entry->SetLifetime(0);
+                }
+            }
+            else
+            {
+                priority = kDefaultMsgPriority;
+            }
+        }
+    }
+    else
+    {
+        ExitNow(error = OT_ERROR_PARSE);
+    }
+
+exit:
+
+    if (error == OT_ERROR_NONE)
+    {
+        aPriority = priority;
+    }
+
+    if (message != NULL)
+    {
+        message->Free();
+    }
+
+    return error;
+}
+
 void MeshForwarder::HandleMesh(uint8_t *               aFrame,
                                uint8_t                 aFrameLength,
                                const Mac::Address &    aMacSource,
@@ -911,6 +1066,8 @@ void MeshForwarder::HandleMesh(uint8_t *               aFrame,
     }
     else if (meshHeader.GetHopsLeft() > 0)
     {
+        uint8_t priority = kDefaultMsgPriority;
+
         netif.GetMle().ResolveRoutingLoops(aMacSource.GetShort(), meshDest.GetShort());
 
         SuccessOrExit(error = CheckReachability(aFrame, aFrameLength, meshSource, meshDest));
@@ -918,8 +1075,12 @@ void MeshForwarder::HandleMesh(uint8_t *               aFrame,
         meshHeader.SetHopsLeft(meshHeader.GetHopsLeft() - 1);
         meshHeader.AppendTo(aFrame);
 
-        VerifyOrExit((message = GetInstance().GetMessagePool().New(Message::kType6lowpan, 0)) != NULL,
+        VerifyOrExit(GetMeshPriority(aFrame, aFrameLength, meshSource, meshDest, priority) == OT_ERROR_NONE,
+                     error = OT_ERROR_DROP);
+
+        VerifyOrExit((message = GetInstance().GetMessagePool().New(Message::kType6lowpan, 0, priority)) != NULL,
                      error = OT_ERROR_NO_BUFS);
+
         SuccessOrExit(error = message->SetLength(aFrameLength));
         message->Write(0, aFrameLength, aFrame);
         message->SetLinkSecurityEnabled(aLinkInfo.mLinkSecurity);

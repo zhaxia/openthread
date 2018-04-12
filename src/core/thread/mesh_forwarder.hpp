@@ -66,6 +66,84 @@ enum
  */
 
 /**
+ * This class reprentss an IPv6 fragmentation priority entry
+ *
+ */
+class FragmentPriority
+{
+public:
+    /**
+     * This method returns the fragmentation datagram tag value.
+     *
+     * @returns The fragmentation datagram tag value.
+     *
+     */
+    uint16_t GetDatagramTag() { return mDatagramTag; }
+
+    /**
+     * This method sets the fragmentation datagram tag value.
+     *
+     * @param[in]  aDatagramTag  The fragmentation datagram tag value.
+     *
+     */
+    void SetDatagramTag(uint16_t aDatagramTag) { mDatagramTag = aDatagramTag; }
+
+    /**
+     * This method returns the fragmentation priority value.
+     *
+     * @returns The fragmentation priority value.
+     *
+     */
+    uint8_t GetPriority() { return mPriority; }
+
+    /**
+     * This method sets the fragmentation priotity value.
+     *
+     * @param[in]  aPriority  The fragmentation priority value.
+     *
+     */
+    void SetPriority(uint8_t aPriority) { mPriority = aPriority; }
+
+    /**
+     * This method returns the Fragment Priority entry's remaining lifetime.
+     *
+     * @returns The Fragment Priority entry's remaining lifetime.
+     *
+     */
+    uint8_t GetLifetime() { return mLifetime; }
+
+    /**
+     * This method sets the remaining lifetime of the Fragment Priority entry.
+     *
+     * @param[in]  aLifetime  The remaining lifetime of the Fragment Priority entry.
+     *
+     */
+    void SetLifetime(uint8_t aLifetime) { mLifetime = aLifetime; }
+
+    /**
+     * This method returns the datagram offset of the entire IP packet.
+     *
+     * @returns The datagram offsety of the entire IP packet.
+     *
+     */
+    uint16_t GetDatagramOffset() { return mDatagramOffset; }
+
+    /**
+     * This method sets the datagram offset of the entire IP packet.
+     *
+     * @param[in]  aDatagramOffset  The datagram offset of the entire IP packet.
+     *
+     */
+    void SetDatagramOffset(uint16_t aDatagramOffset) { mDatagramOffset = aDatagramOffset; }
+
+private:
+    uint16_t mDatagramTag;
+    uint16_t mPriority : 2;
+    uint16_t mLifetime : 3;
+    uint16_t mDatagramOffset : 11;
+};
+
+/**
  * This class implements mesh forwarding within Thread.
  *
  */
@@ -175,11 +253,13 @@ public:
     /**
      * This method evicts the first indirect message in the indirect send queue.
      *
+     * @param[in]  aPriority  A reference to the priority.
+     *
      * @retval OT_ERROR_NONE       Successfully evicted an indirect message.
      * @retval OT_ERROR_NOT_FOUND  No indirect messages available to evict.
      *
      */
-    otError EvictIndirectMessage(void);
+    otError EvictIndirectMessage(uint8_t aPriority);
 
     /**
      * This method returns a reference to the send queue.
@@ -235,6 +315,17 @@ private:
     enum
     {
         kStateUpdatePeriod = 1000, ///< State update period in milliseconds.
+    };
+
+    enum
+    {
+        /**
+         * Maximum lifetime of the Fragment Priority entry
+         *
+         */
+        kFragmentPriorityLifetime = OPENTHREAD_CONFIG_6LOWPAN_REASSEMBLY_TIMEOUT,
+        kDefaultMsgPriority       = Message::kPriorityLow, ///< Default priority of the message
+        kNumFragPriority          = 8,                     ///< Number of the Fragmentation Priority entries
     };
 
     enum
@@ -319,9 +410,19 @@ private:
     void           HandleDiscoverTimer(void);
     static void    HandleReassemblyTimer(Timer &aTimer);
     void           HandleReassemblyTimer(void);
+    static void    HandleFragPriorityTimer(Timer &aTimer);
+    void           HandleFragPriorityTimer(void);
     static void    ScheduleTransmissionTask(Tasklet &aTasklet);
     void           ScheduleTransmissionTask(void);
     static void    HandleDataPollTimeout(Mac::Receiver &aReceiver);
+
+    otError           AddFragPriority(uint16_t aDatagramTag, uint16_t aDatagramOffset, uint8_t aPriority);
+    FragmentPriority *FindFragmentPriority(uint16_t aDatagramTag);
+    otError           GetMeshPriority(uint8_t *     aFrame,
+                                      uint8_t       aFrameLength,
+                                      Mac::Address &aMeshSource,
+                                      Mac::Address &aMeshDest,
+                                      uint8_t &     aPriority);
 
     otError GetDestinationRlocByServiceAloc(uint16_t aServiceAloc, uint16_t &aMeshDest);
 
@@ -343,6 +444,7 @@ private:
     Mac::Sender   mMacSender;
     TimerMilli    mDiscoverTimer;
     TimerMilli    mReassemblyTimer;
+    TimerMilli    mFragPriorityTimer;
 
     PriorityQueue mSendQueue;
     MessageQueue  mReassemblyList;
@@ -381,7 +483,8 @@ private:
     uint8_t               mStartChildIndex;
 #endif
 
-    DataPollManager mDataPollManager;
+    FragmentPriority mFragPriorityEntries[kNumFragPriority];
+    DataPollManager  mDataPollManager;
 };
 
 /**

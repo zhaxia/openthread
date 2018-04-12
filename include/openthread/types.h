@@ -475,6 +475,17 @@ typedef struct otMessageInfo
 } otMessageInfo;
 
 /**
+ * This enumeration defines the Openthread message priorities.
+ *
+ */
+typedef enum otMessagePriority {
+    OT_MESSAGE_PRIORITY_HIGH     = 1, ///< High priority level.
+    OT_MESSAGE_PRIORITY_MEDIUM   = 2, ///< Medium priority level.
+    OT_MESSAGE_PRIORITY_LOW      = 3, ///< Low priority level.
+    OT_MESSAGE_PRIORITY_VERY_LOW = 4, ///< Very low priority level.
+} otMessagePriority;
+
+/**
  * This structure points to an OpenThread message buffer.
  */
 typedef struct otMessage
