@@ -31,6 +31,7 @@ include $(abs_top_nlbuild_autotools_dir)/automake/pre.am
 lib_LIBRARIES                       = \
     libopenthread-ftd.a               \
     libopenthread-mtd.a               \
+    libopenthread-radio.a             \
     $(NULL)
 
 CPPFLAGS_COMMON                     = \
@@ -38,6 +39,10 @@ CPPFLAGS_COMMON                     = \
     $(OPENTHREAD_TARGET_DEFINES)      \
     $(NULL)
 
+libopenthread_radio_a_CPPFLAGS      = \
+    $(CPPFLAGS_COMMON)                \
+    -DOPENTHREAD_RADIO=1              \
+    $(NULL)
 
 libopenthread_ftd_a_CPPFLAGS        = \
     $(CPPFLAGS_COMMON)                \
@@ -167,6 +172,7 @@ SOURCES_COMMON                      = \
     net/udp6.cpp                      \
     thread/address_resolver.cpp       \
     thread/announce_begin_server.cpp  \
+    thread/child_table.cpp            \
     thread/data_poll_manager.cpp      \
     thread/energy_scan_server.cpp     \
     thread/key_manager.cpp            \
@@ -197,6 +203,20 @@ SOURCES_COMMON                      = \
     utils/slaac_address.cpp           \
     $(NULL)
 
+libopenthread_radio_a_SOURCES       = \
+    api/instance_api.cpp              \
+    api/link_raw_api.cpp              \
+    api/message_api.cpp               \
+    api/tasklet_api.cpp               \
+    common/instance.cpp               \
+    common/locator.cpp                \
+    common/logging.cpp                \
+    common/message.cpp                \
+    common/tasklet.cpp                \
+    common/timer.cpp                  \
+    mac/mac_frame.cpp                 \
+    thread/link_quality.cpp           \
+    $(NULL)
 
 libopenthread_mtd_a_SOURCES         = \
     $(SOURCES_COMMON)                 \
@@ -272,6 +292,7 @@ HEADERS_COMMON                      = \
     net/udp6.hpp                      \
     thread/address_resolver.hpp       \
     thread/announce_begin_server.hpp  \
+    thread/child_table.hpp            \
     thread/data_poll_manager.hpp      \
     thread/energy_scan_server.hpp     \
     thread/key_manager.hpp            \
