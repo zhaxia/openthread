@@ -416,15 +416,11 @@ otError MleRouter::SetStateRouter(uint16_t aRloc16)
 {
     ThreadNetif &netif = GetNetif();
 
-    if (mRole != OT_DEVICE_ROLE_ROUTER)
-    {
-        GetNotifier().SetFlags(OT_CHANGED_THREAD_ROLE);
-    }
-
     SetRloc16(aRloc16);
-    mRole               = OT_DEVICE_ROLE_ROUTER;
-    mParentRequestState = kParentIdle;
-    mParentRequestTimer.Stop();
+
+    SetRole(OT_DEVICE_ROLE_ROUTER);
+    mAttachState = kAttachStateIdle;
+    mAttachTimer.Stop();
     mChildUpdateRequestTimer.Stop();
     mAdvertiseTimer.Stop();
     ResetAdvertiseInterval();
@@ -455,7 +451,6 @@ otError MleRouter::SetStateRouter(uint16_t aRloc16)
         }
     }
 
-    otLogInfoMle(GetInstance(), "Role -> Router");
     return OT_ERROR_NONE;
 }
 
@@ -463,15 +458,11 @@ otError MleRouter::SetStateLeader(uint16_t aRloc16)
 {
     ThreadNetif &netif = GetNetif();
 
-    if (mRole != OT_DEVICE_ROLE_LEADER)
-    {
-        GetNotifier().SetFlags(OT_CHANGED_THREAD_ROLE);
-    }
-
     SetRloc16(aRloc16);
-    mRole               = OT_DEVICE_ROLE_LEADER;
-    mParentRequestState = kParentIdle;
-    mParentRequestTimer.Stop();
+
+    SetRole(OT_DEVICE_ROLE_LEADER);
+    mAttachState = kAttachStateIdle;
+    mAttachTimer.Stop();
     mChildUpdateRequestTimer.Stop();
     mAdvertiseTimer.Stop();
     ResetAdvertiseInterval();
@@ -502,7 +493,8 @@ otError MleRouter::SetStateLeader(uint16_t aRloc16)
         }
     }
 
-    otLogInfoMle(GetInstance(), "Role -> Leader %d", mLeaderData.GetPartitionId());
+    otLogInfoMle(GetInstance(), "Leader partition id 0x%x", mLeaderData.GetPartitionId());
+
     return OT_ERROR_NONE;
 }
 
@@ -555,7 +547,7 @@ otError MleRouter::SendAdvertisement(void)
     // Without this suppression, a device may send an MLE Advertisement before receiving the MLE Child ID Response.
     // The candidate parent then removes the attaching device because the Source Address TLV includes an RLOC16 that
     // indicates a Router role (i.e. a Child ID equal to zero).
-    VerifyOrExit(mParentRequestState == kParentIdle);
+    VerifyOrExit(mAttachState == kAttachStateIdle);
 
     // Suppress MLE Advertisements when transitioning to the router role.
     //
@@ -707,7 +699,7 @@ otError MleRouter::HandleLinkRequest(const Message &aMessage, const Ip6::Message
 
     VerifyOrExit(mRole == OT_DEVICE_ROLE_ROUTER || mRole == OT_DEVICE_ROLE_LEADER, error = OT_ERROR_INVALID_STATE);
 
-    VerifyOrExit(mParentRequestState == kParentIdle, error = OT_ERROR_INVALID_STATE);
+    VerifyOrExit(mAttachState == kAttachStateIdle, error = OT_ERROR_INVALID_STATE);
 
     aMessageInfo.GetPeerAddr().ToExtAddress(macAddr);
 
@@ -3327,7 +3319,7 @@ Neighbor *MleRouter::GetNeighbor(const Mac::ExtAddress &aAddress)
             }
         }
 
-        if (mParentRequestState != kParentIdle)
+        if (mAttachState != kAttachStateIdle)
         {
             rval = Mle::GetNeighbor(aAddress);
         }
