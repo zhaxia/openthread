@@ -329,3 +329,168 @@ OT_TOOL_WEAK void otPlatUartReceived(const uint8_t *aBuf, uint16_t aBufLength)
     (void)aBuf;
     (void)aBufLength;
 }
+
+
+
+//-------------------------------------------------
+#include <drivers/include/nrfx_gpiote.h>
+#define GPIOTE_IRQN                   GPIOTE_IRQn
+#define GPIOTE_IRQ_PRIORITY           7  // NRFX_GPIOTE_CONFIG_IRQ_PRIORITY
+
+#define SYNC_PIN_EVENT_CHANNEL        NRF_GPIOTE_EVENTS_IN_1  // 
+#define SYNC_PIN_EVENT_MASK           NRF_GPIOTE_INT_IN1_MASK // 1 << 1
+#define SYNC_PIN                      11   // BUTTON1   P0.11 default High level
+#define LED1_PIN                      13   // LED1      P0.13
+
+/**
+ * @brief Function for configuring: SYNC_PIN pin for input, LED1_PIN pin for output,
+ * and configures GPIOTE to give an interrupt on pin change.
+ */
+GpioEventHandler mGpioEventHandler = NULL;
+void * mGpioEventHandlerContext = NULL;
+
+/**
+ * Interrupt handler of GPIOTE peripherial.
+ */
+void GPIOTE_IRQHandler(void)
+{
+    uint32_t input[GPIO_COUNT] = {0};
+
+    if (nrf_gpiote_event_is_set(NRF_GPIOTE_EVENTS_PORT) &&
+        nrf_gpiote_int_is_enabled(NRF_GPIOTE_INT_PORT_MASK))
+    {
+        nrf_gpiote_event_clear(NRF_GPIOTE_EVENTS_PORT);
+        nrf_gpio_ports_read(0, GPIO_COUNT, input);
+        if (!nrf_gpio_pin_read(SYNC_PIN))
+        {
+            if (mGpioEventHandler != NULL)
+            {
+                nrf_gpio_pin_toggle(LED1_PIN);
+                mGpioEventHandler(mGpioEventHandlerContext);
+            }
+        }
+    }
+}
+
+typedef enum {
+    SYNC_PIN_MODE_UNINIT,
+    SYNC_PIN_MODE_MASTER,
+    SYNC_PIN_MODE_SLAVE,
+} SyncPinMode;
+
+SyncPinMode mSyncPinMode = SYNC_PIN_MODE_UNINIT;
+
+void otPlatSyncPinUninit()
+{
+    if (mSyncPinMode == SYNC_PIN_MODE_UNINIT)
+    {
+        return;
+    }
+
+    if (mSyncPinMode == SYNC_PIN_MODE_SLAVE)
+    {
+        nrf_gpio_cfg_sense_set(SYNC_PIN, NRF_GPIO_PIN_NOSENSE);
+
+        NVIC_DisableIRQ(GPIOTE_IRQN);
+        NVIC_ClearPendingIRQ(GPIOTE_IRQN);
+        NVIC_SetPriority(GPIOTE_IRQN, 0);
+
+        nrf_gpiote_int_disable(NRF_GPIOTE_INT_PORT_MASK);
+        nrf_gpiote_event_clear(NRF_GPIOTE_EVENTS_PORT);
+        mGpioEventHandler = NULL;
+    }
+
+    nrf_gpio_cfg_default(SYNC_PIN);
+    mSyncPinMode = SYNC_PIN_MODE_UNINIT;
+}
+
+void otPlatSyncPinSlaveInit(GpioEventHandler aGpioEventHandler, void *aContext)
+{
+    if (mSyncPinMode == SYNC_PIN_MODE_SLAVE)
+    {
+        return;
+    }
+
+    NVIC_SetPriority(GPIOTE_IRQN, GPIOTE_IRQ_PRIORITY);
+    NVIC_ClearPendingIRQ(GPIOTE_IRQN);
+    NVIC_EnableIRQ(GPIOTE_IRQN);
+
+    nrf_gpiote_event_clear(NRF_GPIOTE_EVENTS_PORT);
+    nrf_gpiote_int_enable(NRF_GPIOTE_INT_PORT_MASK);
+
+    nrf_gpio_cfg_input(SYNC_PIN, NRF_GPIO_PIN_PULLUP);
+    nrf_gpiote_event_configure(SYNC_PIN_EVENT_CHANNEL, SYNC_PIN, NRF_GPIOTE_POLARITY_HITOLO);
+    nrf_gpio_cfg_sense_set(SYNC_PIN, NRF_GPIO_PIN_SENSE_LOW);
+
+    mSyncPinMode = SYNC_PIN_MODE_SLAVE;
+    mGpioEventHandler = aGpioEventHandler;
+    mGpioEventHandlerContext = aContext;
+}
+
+void otPlatSyncPinMasterInit()
+{
+    if (mSyncPinMode == SYNC_PIN_MODE_MASTER)
+    {
+        return;
+    }
+
+    otPlatSyncPinUninit();
+
+    nrf_gpio_pin_set(SYNC_PIN);
+    nrf_gpio_cfg_output(SYNC_PIN);
+    mSyncPinMode = SYNC_PIN_MODE_MASTER;
+}
+
+otError otPlatSyncPinToggle()
+{
+    otError error = OT_ERROR_NONE;
+
+    otEXPECT_ACTION(mSyncPinMode == SYNC_PIN_MODE_MASTER, error = OT_ERROR_INVALID_STATE);
+    nrf_gpio_pin_toggle(SYNC_PIN);
+
+exit:
+    return error;
+}
+
+otError otPlatSyncPinSet()
+{
+    otError error = OT_ERROR_NONE;
+
+    otEXPECT_ACTION(mSyncPinMode == SYNC_PIN_MODE_MASTER, error = OT_ERROR_INVALID_STATE);
+    nrf_gpio_pin_set(SYNC_PIN);
+
+exit:
+    return error;
+}
+
+otError otPlatSyncPinClear()
+{
+    otError error = OT_ERROR_NONE;
+
+    otEXPECT_ACTION(mSyncPinMode == SYNC_PIN_MODE_MASTER, error = OT_ERROR_INVALID_STATE);
+    nrf_gpio_pin_clear(SYNC_PIN);
+
+exit:
+    return error;
+}
+
+void otPlatLedPinInit()
+{
+    nrf_gpio_pin_set(LED1_PIN);
+    nrf_gpio_cfg_output(LED1_PIN);
+}
+
+void otPlatLedPinToggle()
+{
+    nrf_gpio_pin_toggle(LED1_PIN);
+}
+
+void otPlatLedPinSet()
+{
+    nrf_gpio_pin_set(LED1_PIN);
+}
+
+void otPlatLedPinClear()
+{
+    nrf_gpio_pin_clear(LED1_PIN);
+}

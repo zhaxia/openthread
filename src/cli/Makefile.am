@@ -138,6 +138,7 @@ SOURCES_COMMON =                      \
     cli_uart.cpp                      \
     cli_coap.cpp                      \
     cli_udp_example.cpp               \
+    cli_perf.cpp                      \
     $(NULL)
 
 libopenthread_cli_ftd_a_SOURCES =     \
@@ -156,6 +157,7 @@ noinst_HEADERS                      = \
     cli_server.hpp                    \
     cli_coap.hpp                      \
     cli_udp_example.hpp               \
+    cli_perf.hpp                      \
     $(NULL)
 
 if OPENTHREAD_BUILD_COVERAGE

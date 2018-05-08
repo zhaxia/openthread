@@ -218,6 +218,7 @@ const struct Command Interpreter::sCommands[] = {
 #ifndef OTDLL
     {"txpower", &Interpreter::ProcessTxPower},
     {"udp", &Interpreter::ProcessUdp},
+    {"perf", &Interpreter::ProcessPerf},
 #endif
     {"version", &Interpreter::ProcessVersion},
 };
@@ -276,6 +277,7 @@ Interpreter::Interpreter(Instance *aInstance)
     , mResolvingInProgress(0)
 #endif
     , mUdp(*this)
+    , mPerf(aInstance)
 #endif
     , mInstance(aInstance)
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
@@ -2703,6 +2705,13 @@ void Interpreter::ProcessUdp(int argc, char *argv[])
     error = mUdp.Process(argc, argv);
     AppendResult(error);
 }
+
+void Interpreter::ProcessPerf(int argc, char *argv[]) {
+    otError error;
+    error = mPerf.Process(argc, argv, *mServer);
+    AppendResult(error);
+}
+
 #endif
 
 void Interpreter::ProcessVersion(int argc, char *argv[])

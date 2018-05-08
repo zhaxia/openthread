@@ -98,6 +98,21 @@ extern void otPlatUartSendDone(void);
  */
 extern void otPlatUartReceived(const uint8_t *aBuf, uint16_t aBufLength);
 
+typedef void (*GpioEventHandler)(void *aContext);
+
+void otPlatSyncPinMasterInit();
+void otPlatSyncPinSlaveInit(GpioEventHandler aGpioEventHandler, void *aContext);
+void otPlatSyncPinUninit();
+
+otError otPlatSyncPinToggle();
+otError otPlatSyncPinSet();
+otError otPlatSyncPinClear();
+
+void otPlatLedPinInit();
+void otPlatLedPinToggle();
+void otPlatLedPinSet();
+void otPlatLedPinClear();
+
 /**
  * @}
  *

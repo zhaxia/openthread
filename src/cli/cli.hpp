@@ -45,6 +45,7 @@
 
 #include "cli/cli_server.hpp"
 #include "cli/cli_udp_example.hpp"
+#include "cli/cli_perf.hpp"
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
 #include <coap/coap_header.hpp>
@@ -96,6 +97,7 @@ class Interpreter
 {
     friend class Coap;
     friend class UdpExample;
+    friend class Perf;
 
 public:
     /**
@@ -172,6 +174,7 @@ public:
      * @param[in]  aLength        @p aUserCommands length.
      */
     void SetUserCommands(const otCliCommand *aCommands, uint8_t aLength);
+    Perf &GetPerf() { return mPerf; }
 
 private:
     enum
@@ -306,6 +309,7 @@ private:
 #ifndef OTDLL
     void ProcessTxPower(int argc, char *argv[]);
     void ProcessUdp(int argc, char *argv[]);
+    void ProcessPerf(int argc, char *argv[]);
 #endif
     void ProcessVersion(int argc, char *argv[]);
 #if OPENTHREAD_ENABLE_MAC_FILTER
@@ -422,7 +426,7 @@ private:
 #endif
 
     UdpExample mUdp;
-
+    Perf       mPerf;
 #endif
 
     Instance *mInstance;

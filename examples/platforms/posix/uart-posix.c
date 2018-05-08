@@ -330,3 +330,20 @@ int otPlatDebugUart_getc(void)
 }
 
 #endif
+
+GpioEventHandler mGpioEventHandler = NULL;
+void * mGpioEventHandlerContext = NULL;
+
+void otPlatSyncPinUninit() {}
+void otPlatSyncPinSlaveInit(GpioEventHandler aGpioEventHandler, void *aContext) {
+    mGpioEventHandler = aGpioEventHandler;
+    mGpioEventHandlerContext = aContext;
+}
+void otPlatSyncPinMasterInit() {}
+otError otPlatSyncPinToggle() { return OT_ERROR_NONE; }
+otError otPlatSyncPinSet() { return OT_ERROR_NONE; }
+otError otPlatSyncPinClear() { return OT_ERROR_NONE; }
+void otPlatLedPinInit() {}
+void otPlatLedPinToggle() {}
+void otPlatLedPinSet() {}
+void otPlatLedPinClear() {}
