@@ -73,6 +73,19 @@ const uint32_t kMaxBackoffSum = kMinBackoff + (kUnitBackoffPeriod * OT_RADIO_SYM
 static_assert(kMinBackoffSum > 0, "The min backoff value should be greater than zero!");
 #endif
 
+uint8_t ChannelMask::GetNumberOfChannels(void) const
+{
+    uint8_t num     = 0;
+    uint8_t channel = kChannelIteratorFirst;
+
+    while (GetNextChannel(channel) == OT_ERROR_NONE)
+    {
+        num++;
+    }
+
+    return num;
+}
+
 otError ChannelMask::GetNextChannel(uint8_t &aChannel) const
 {
     otError error = OT_ERROR_NOT_FOUND;
@@ -168,7 +181,9 @@ Mac::Mac(Instance &aInstance)
     , mReceiveTimer(aInstance, &Mac::HandleReceiveTimer, this)
     , mShortAddress(kShortAddrInvalid)
     , mPanId(kPanIdBroadcast)
-    , mChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL)
+    , mPanChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL)
+    , mRadioChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL)
+    , mRadioChannelAcquisitionId(0)
     , mSendHead(NULL)
     , mSendTail(NULL)
     , mReceiveHead(NULL)
@@ -507,13 +522,64 @@ otError Mac::SetShortAddress(ShortAddress aShortAddress)
     return OT_ERROR_NONE;
 }
 
-otError Mac::SetChannel(uint8_t aChannel)
+otError Mac::SetPanChannel(uint8_t aChannel)
 {
     otError error = OT_ERROR_NONE;
 
     VerifyOrExit(OT_RADIO_CHANNEL_MIN <= aChannel && aChannel <= OT_RADIO_CHANNEL_MAX, error = OT_ERROR_INVALID_ARGS);
 
-    mChannel = aChannel;
+    mPanChannel = aChannel;
+
+    VerifyOrExit(!mRadioChannelAcquisitionId);
+
+    mRadioChannel = mPanChannel;
+
+    UpdateIdleMode();
+
+exit:
+    return error;
+}
+
+otError Mac::SetRadioChannel(uint16_t aAcquisitionId, uint8_t aChannel)
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(OT_RADIO_CHANNEL_MIN <= aChannel && aChannel <= OT_RADIO_CHANNEL_MAX, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(mRadioChannelAcquisitionId && aAcquisitionId == mRadioChannelAcquisitionId,
+                 error = OT_ERROR_INVALID_STATE);
+
+    mRadioChannel = aChannel;
+
+    UpdateIdleMode();
+
+exit:
+    return error;
+}
+
+otError Mac::AcquireRadioChannel(uint16_t *aAcquisitionId)
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(aAcquisitionId != NULL, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(!mRadioChannelAcquisitionId, error = OT_ERROR_INVALID_STATE);
+
+    mRadioChannelAcquisitionId = Random::GetUint16InRange(1, kMaxAcquisitionId);
+
+    *aAcquisitionId = mRadioChannelAcquisitionId;
+
+exit:
+    return error;
+}
+
+otError Mac::ReleaseRadioChannel(void)
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(mRadioChannelAcquisitionId, error = OT_ERROR_INVALID_STATE);
+
+    mRadioChannelAcquisitionId = 0;
+    mRadioChannel              = mPanChannel;
+
     UpdateIdleMode();
 
 exit:
@@ -602,8 +668,8 @@ void Mac::UpdateIdleMode(void)
         // the radio in receive mode.
     }
 
-    otLogDebgMac(GetInstance(), "Idle mode: Radio receiving on channel %d", mChannel);
-    RadioReceive(mChannel);
+    otLogDebgMac(GetInstance(), "Idle mode: Radio receiving on channel %d", mRadioChannel);
+    RadioReceive(mRadioChannel);
 
 exit:
     return;
@@ -680,7 +746,7 @@ void Mac::PerformOperation(void)
     {
         mPendingWaitingForData = false;
         mOperation             = kOperationWaitingForData;
-        RadioReceive(mChannel);
+        RadioReceive(mRadioChannel);
     }
     else if (mPendingTransmitOobFrame)
     {
@@ -959,7 +1025,7 @@ void Mac::StartCsmaBackoff(void)
                 break;
 
             default:
-                RadioReceive(mChannel);
+                RadioReceive(mRadioChannel);
                 break;
             }
         }
@@ -1050,14 +1116,14 @@ void Mac::BeginTransmit(void)
             break;
 
         case kOperationTransmitBeacon:
-            sendFrame.SetChannel(mChannel);
+            sendFrame.SetChannel(mRadioChannel);
             SendBeacon(sendFrame);
             sendFrame.SetSequence(mBeaconSequence++);
             sendFrame.SetMaxTxAttempts(kDirectFrameMacTxAttempts);
             break;
 
         case kOperationTransmitData:
-            sendFrame.SetChannel(mChannel);
+            sendFrame.SetChannel(mRadioChannel);
             SuccessOrExit(error = mSendHead->HandleFrameRequest(sendFrame));
 
             // If the frame is marked as a retransmission, then data sequence number is already set by the `Sender`.
@@ -1892,9 +1958,9 @@ void Mac::HandleReceivedFrame(Frame *aFrame, otError aError)
 
         // We can possibly receive a data frame while either active or
         // energy scan is ongoing. We continue to process the frame only
-        // if the current scan channel matches `mChannel`.
+        // if the current scan channel matches `mPanChannel`.
 
-        VerifyOrExit(mScanChannel == mChannel, mCounters.mRxOther++);
+        VerifyOrExit(mScanChannel == mPanChannel, mCounters.mRxOther++);
         break;
 
     case kOperationWaitingForData:

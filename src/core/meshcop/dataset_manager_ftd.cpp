@@ -162,7 +162,7 @@ otError DatasetManager::Set(Coap::Header &aHeader, Message &aMessage, const Ip6:
                          channel.GetChannel() <= OT_RADIO_CHANNEL_MAX,
                      state = StateTlv::kReject);
 
-        if (channel.GetChannel() != netif.GetMac().GetChannel())
+        if (channel.GetChannel() != netif.GetMac().GetPanChannel())
         {
             doesAffectConnectivity = true;
         }
@@ -300,7 +300,7 @@ otError DatasetManager::Set(Coap::Header &aHeader, Message &aMessage, const Ip6:
             offset += sizeof(Tlv) + data.tlv.GetLength();
         }
 
-        Set(dataset);
+        VerifyOrExit(Set(dataset) == OT_ERROR_NONE, state = StateTlv::kReject);
         netif.GetNetworkDataLeader().IncrementVersion();
         netif.GetNetworkDataLeader().IncrementStableVersion();
     }
@@ -609,7 +609,7 @@ otError ActiveDataset::GenerateLocal(void)
         ChannelTlv tlv;
         tlv.Init();
         tlv.SetChannelPage(0);
-        tlv.SetChannel(netif.GetMac().GetChannel());
+        tlv.SetChannel(netif.GetMac().GetPanChannel());
         dataset.Set(tlv);
     }
 
