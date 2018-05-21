@@ -39,6 +39,7 @@
 
 #include "common/logging.hpp"
 #include "common/new.hpp"
+#include "thread/router_table.hpp"
 
 namespace ot {
 
@@ -71,6 +72,9 @@ Instance::Instance(void)
 #endif
 #if OPENTHREAD_ENABLE_CHANNEL_MANAGER
     , mChannelManager(*this)
+#endif
+#if OPENTHREAD_CONFIG_ENABLE_ANNOUNCE_SENDER
+    , mAnnounceSender(*this)
 #endif
     , mMessagePool(*this)
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
@@ -251,6 +255,11 @@ template <> ChildTable &Instance::Get(void)
     return GetThreadNetif().GetMle().GetChildTable();
 }
 
+template <> RouterTable &Instance::Get(void)
+{
+    return GetThreadNetif().GetMle().GetRouterTable();
+}
+
 template <> Ip6::Netif &Instance::Get(void)
 {
     return GetThreadNetif();
@@ -408,6 +417,13 @@ template <> Utils::ChannelMonitor &Instance::Get(void)
 template <> Utils::ChannelManager &Instance::Get(void)
 {
     return GetChannelManager();
+}
+#endif
+
+#if OPENTHREAD_CONFIG_ENABLE_ANNOUNCE_SENDER
+template <> AnnounceSender &Instance::Get(void)
+{
+    return GetAnnounceSender();
 }
 #endif
 

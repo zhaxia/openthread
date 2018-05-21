@@ -80,10 +80,16 @@ cd ../..
 
 # Build OpenThread posix mode with required configuration
 
+if [ "$BUILD_TARGET" = "toranj-test-framework" ]; then
+    coverage=yes
+else
+    coverage=no
+fi
+
 ./bootstrap || die
 ./configure                             \
     CPPFLAGS='-DOPENTHREAD_PROJECT_CORE_CONFIG_FILE=\"../tests/toranj/openthread-core-toranj-config.h\"' \
-    --enable-coverage                   \
+    --enable-coverage=${coverage}       \
     --enable-ncp-app=all                \
     --with-ncp-bus=uart                 \
     --with-examples=posix               \
@@ -115,10 +121,12 @@ run test-005-discover-scan.py
 run test-006-traffic-router-end-device.py
 run test-007-traffic-router-sleepy.py
 run test-008-permit-join.py
+run test-009-insecure-traffic-join.py
 run test-100-mcu-power-state.py
 
 run test-600-channel-manager-properties.py
 run test-601-channel-manager-channel-change.py
 run test-602-channel-manager-channel-select.py
+run test-603-channel-manager-announce-recovery.py
 
 exit 0

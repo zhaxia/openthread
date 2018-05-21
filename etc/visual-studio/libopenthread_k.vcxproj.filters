@@ -255,6 +255,9 @@
     <ClCompile Include="..\..\src\core\thread\panid_query_server.cpp">
       <Filter>Source Files\thread</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\core\thread\router_table.cpp">
+      <Filter>Source Files\thread</Filter>
+    </ClCompile>
     <ClCompile Include="..\..\src\core\thread\src_match_controller.cpp">
       <Filter>Source Files\thread</Filter>
     </ClCompile>
@@ -328,6 +331,9 @@
       <Filter>Source Files\utils</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\thread\announce_begin_server.cpp">
+      <Filter>Source Files\thread</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\core\thread\announce_sender.cpp">
       <Filter>Source Files\thread</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\core\meshcop\announce_begin_client.cpp">
@@ -506,6 +512,9 @@
     <ClInclude Include="..\..\src\core\thread\panid_query_server.hpp">
       <Filter>Header Files\thread</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\core\thread\router_table.hpp">
+      <Filter>Header Files\thread</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\src\core\thread\src_match_controller.hpp">
       <Filter>Header Files\thread</Filter>
     </ClInclude>
@@ -582,6 +591,9 @@
       <Filter>Header Files\utils</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\meshcop\announce_begin_server.hpp">
+      <Filter>Header Files\thread</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\core\meshcop\announce_sender.hpp">
       <Filter>Header Files\thread</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\core\meshcop\announce_begin_client.hpp">

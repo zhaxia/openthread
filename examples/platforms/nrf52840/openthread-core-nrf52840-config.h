@@ -90,7 +90,9 @@
  * Define to prepend the log level to all log messages
  *
  */
+#ifndef OPENTHREAD_CONFIG_LOG_PREPEND_LEVEL
 #define OPENTHREAD_CONFIG_LOG_PREPEND_LEVEL                     0
+#endif
 
  /**
   * @def OPENTHREAD_CONFIG_ENABLE_SOFTWARE_ACK_TIMEOUT
@@ -141,20 +143,20 @@
 #define SETTINGS_CONFIG_PAGE_NUM                                4
 
 /**
- * @def OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE
+ * @def OPENTHREAD_CONFIG_HEAP_SIZE
  *
- * The size of mbedTLS heap buffer when DTLS is enabled.
+ * The size of heap buffer when DTLS is enabled.
  *
  */
-#define OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE                     (4096 * sizeof(void *))
+#define OPENTHREAD_CONFIG_HEAP_SIZE                             (4096 * sizeof(void *))
 
 /**
- * @def OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE_NO_DTLS
+ * @def OPENTHREAD_CONFIG_HEAP_SIZE_NO_DTLS
  *
- * The size of mbedTLS heap buffer when DTLS is disabled.
+ * The size of heap buffer when DTLS is disabled.
  *
  */
-#define OPENTHREAD_CONFIG_MBEDTLS_HEAP_SIZE_NO_DTLS             2048
+#define OPENTHREAD_CONFIG_HEAP_SIZE_NO_DTLS                     2048
 
 /*
  * Suppress the ARMCC warning on unreachable statement,

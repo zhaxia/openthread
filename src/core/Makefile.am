@@ -171,6 +171,7 @@ SOURCES_COMMON                      = \
     net/udp6.cpp                      \
     thread/address_resolver.cpp       \
     thread/announce_begin_server.cpp  \
+    thread/announce_sender.cpp        \
     thread/child_table.cpp            \
     thread/data_poll_manager.cpp      \
     thread/energy_scan_server.cpp     \
@@ -188,6 +189,7 @@ SOURCES_COMMON                      = \
     thread/network_data_local.cpp     \
     thread/network_diagnostic.cpp     \
     thread/panid_query_server.cpp     \
+    thread/router_table.cpp           \
     thread/src_match_controller.cpp   \
     thread/thread_netif.cpp           \
     thread/tmf_proxy.cpp              \
@@ -291,6 +293,7 @@ HEADERS_COMMON                      = \
     net/udp6.hpp                      \
     thread/address_resolver.hpp       \
     thread/announce_begin_server.hpp  \
+    thread/announce_sender.hpp        \
     thread/child_table.hpp            \
     thread/data_poll_manager.hpp      \
     thread/energy_scan_server.hpp     \
@@ -313,6 +316,7 @@ HEADERS_COMMON                      = \
     thread/panid_query_server.hpp     \
     thread/network_diagnostic.hpp     \
     thread/network_diagnostic_tlvs.hpp \
+    thread/router_table.hpp           \
     thread/src_match_controller.hpp   \
     thread/thread_netif.hpp           \
     thread/thread_tlvs.hpp            \
