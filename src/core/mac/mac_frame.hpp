@@ -859,7 +859,7 @@ public:
      * @returns The RSSI in dBm used for reception.
      *
      */
-    int8_t GetRssi(void) const { return mRssi; }
+    int8_t GetRssi(void) const { return mInfo.mRxInfo.mRssi; }
 
     /**
      * This method sets the RSSI in dBm used for reception.
@@ -867,7 +867,7 @@ public:
      * @param[in]  aRssi  The RSSI in dBm used for reception.
      *
      */
-    void SetRssi(int8_t aRssi) { mRssi = aRssi; }
+    void SetRssi(int8_t aRssi) { mInfo.mRxInfo.mRssi = aRssi; }
 
     /**
      * This method returns the receive Link Quality Indicator.
@@ -875,7 +875,7 @@ public:
      * @returns The receive Link Quality Indicator.
      *
      */
-    uint8_t GetLqi(void) const { return mLqi; }
+    uint8_t GetLqi(void) const { return mInfo.mRxInfo.mLqi; }
 
     /**
      * This method sets the receive Link Quality Indicator.
@@ -883,7 +883,7 @@ public:
      * @param[in]  aLqi  The receive Link Quality Indicator.
      *
      */
-    void SetLqi(uint8_t aLqi) { mLqi = aLqi; }
+    void SetLqi(uint8_t aLqi) { mInfo.mRxInfo.mLqi = aLqi; }
 
     /**
      * This method returns the maximum number of transmit attempts for the frame.
@@ -891,7 +891,7 @@ public:
      * @returns The maximum number of transmit attempts.
      *
      */
-    uint8_t GetMaxTxAttempts(void) const { return mMaxTxAttempts; }
+    uint8_t GetMaxTxAttempts(void) const { return mInfo.mTxInfo.mMaxTxAttempts; }
 
     /**
      * This method set the maximum number of transmit attempts for frame.
@@ -899,24 +899,7 @@ public:
      * @returns The maximum number of transmit attempts.
      *
      */
-    void SetMaxTxAttempts(uint8_t aMaxTxAttempts) { mMaxTxAttempts = aMaxTxAttempts; }
-
-    /**
-     * This method indicates whether or not frame security was enabled and passed security validation.
-     *
-     * @retval TRUE   Frame security was enabled and passed security validation.
-     * @retval FALSE  Frame security was not enabled or did not pass security validation.
-     *
-     */
-    bool GetSecurityValid(void) const { return mSecurityValid; }
-
-    /**
-     * This method sets the security valid attribute.
-     *
-     * @param[in]  aSecurityValid  TRUE if frame security was enabled and passed security validation, FALSE otherwise.
-     *
-     */
-    void SetSecurityValid(bool aSecurityValid) { mSecurityValid = aSecurityValid; }
+    void SetMaxTxAttempts(uint8_t aMaxTxAttempts) { mInfo.mTxInfo.mMaxTxAttempts = aMaxTxAttempts; }
 
     /**
      * This method indicates whether or not the frame is a retransmission.
@@ -925,7 +908,7 @@ public:
      * @retval FALSE  This is a new frame and not a retransmission of an earlier frame.
      *
      */
-    bool IsARetransmission(void) const { return mIsARetx; }
+    bool IsARetransmission(void) const { return mInfo.mTxInfo.mIsARetx; }
 
     /**
      * This method sets the retransmission flag attribute.
@@ -933,7 +916,39 @@ public:
      * @param[in]  aIsARetx  TRUE if frame is a retransmission of an earlier frame, FALSE otherwise.
      *
      */
-    void SetIsARetransmission(bool aIsARetx) { mIsARetx = aIsARetx; }
+    void SetIsARetransmission(bool aIsARetx) { mInfo.mTxInfo.mIsARetx = aIsARetx; }
+
+    /**
+     * This method sets the did Tx attribute.
+     *
+     * @param[in]  aDidTx  TRUE if frame is sent from the radio, FALSE otherwise.
+     *
+     */
+    void SetDidTx(bool aDidTx) { mDidTx = aDidTx; }
+
+    /**
+     * This method sets the CCA enabled attribute.
+     *
+     * @param[in]  aIsCcaEnabled  TRUE if CCA must be enabled for this packet, FALSE otherwise.
+     *
+     */
+    void SetIsCcaEnabled(bool aIsCcaEnabled) { mInfo.mTxInfo.mIsCcaEnabled = aIsCcaEnabled; }
+
+    /**
+     * This method returns the key used for frame encryption and authentication (AES CCM).
+     *
+     * @returns The pointer to the key.
+     *
+     */
+    const uint8_t *GetAesKey(void) const { return mInfo.mTxInfo.mAesKey; }
+
+    /**
+     * This method sets the key used for frame encryption and authentication (AES CCM).
+     *
+     * @param[in]  aAesKey  The pointer to the key.
+     *
+     */
+    void SetAesKey(const uint8_t *aAesKey) { mInfo.mTxInfo.mAesKey = aAesKey; }
 
     /**
      * This method returns the IEEE 802.15.4 PSDU length.

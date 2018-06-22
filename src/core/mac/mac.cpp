@@ -514,7 +514,7 @@ otError Mac::SetPanChannel(uint8_t aChannel)
 
     VerifyOrExit(OT_RADIO_CHANNEL_MIN <= aChannel && aChannel <= OT_RADIO_CHANNEL_MAX, error = OT_ERROR_INVALID_ARGS);
 
-    VerifyOrExit(mPanChannel != aChannel);
+    VerifyOrExit(mPanChannel != aChannel, GetNotifier().SignalIfFirst(OT_CHANGED_THREAD_CHANNEL));
 
     mPanChannel = aChannel;
     mCcaSuccessRateTracker.Reset();
@@ -524,6 +524,8 @@ otError Mac::SetPanChannel(uint8_t aChannel)
     mRadioChannel = mPanChannel;
 
     UpdateIdleMode();
+
+    GetNotifier().Signal(OT_CHANGED_THREAD_CHANNEL);
 
 exit:
     return error;
@@ -577,11 +579,21 @@ exit:
 
 otError Mac::SetNetworkName(const char *aNetworkName)
 {
+    return SetNetworkName(aNetworkName, static_cast<uint8_t>(strnlen(aNetworkName, OT_NETWORK_NAME_MAX_SIZE + 1)));
+}
+
+otError Mac::SetNetworkName(const char *aBuffer, uint8_t aLength)
+{
     otError error = OT_ERROR_NONE;
+    uint8_t len   = static_cast<uint8_t>(strnlen(aBuffer, aLength));
 
-    VerifyOrExit(strlen(aNetworkName) <= OT_NETWORK_NAME_MAX_SIZE, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(len <= OT_NETWORK_NAME_MAX_SIZE, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(memcmp(mNetworkName.m8, aBuffer, len) != 0,
+                 GetNotifier().SignalIfFirst(OT_CHANGED_THREAD_NETWORK_NAME));
 
-    (void)strlcpy(mNetworkName.m8, aNetworkName, sizeof(mNetworkName));
+    memcpy(mNetworkName.m8, aBuffer, len);
+    mNetworkName.m8[len] = 0;
+    GetNotifier().Signal(OT_CHANGED_THREAD_NETWORK_NAME);
 
 exit:
     return error;
@@ -589,15 +601,24 @@ exit:
 
 otError Mac::SetPanId(PanId aPanId)
 {
+    VerifyOrExit(mPanId != aPanId, GetNotifier().SignalIfFirst(OT_CHANGED_THREAD_PANID));
     mPanId = aPanId;
     otPlatRadioSetPanId(&GetInstance(), mPanId);
+    GetNotifier().Signal(OT_CHANGED_THREAD_PANID);
 
+exit:
     return OT_ERROR_NONE;
 }
 
 otError Mac::SetExtendedPanId(const uint8_t *aExtPanId)
 {
+    VerifyOrExit(memcmp(mExtendedPanId.m8, aExtPanId, sizeof(mExtendedPanId)) != 0,
+                 GetNotifier().SignalIfFirst(OT_CHANGED_THREAD_EXT_PANID));
+
     memcpy(mExtendedPanId.m8, aExtPanId, sizeof(mExtendedPanId));
+    GetNotifier().Signal(OT_CHANGED_THREAD_EXT_PANID);
+
+exit:
     return OT_ERROR_NONE;
 }
 
@@ -877,18 +898,36 @@ void Mac::SendBeacon(Frame &aFrame)
     LogBeacon("Sending", *beaconPayload);
 }
 
-void Mac::ProcessTransmitSecurity(Frame &aFrame)
+void Mac::ProcessTransmitAesCcm(Frame &aFrame, const ExtAddress *aExtAddress)
 {
-    KeyManager &      keyManager   = GetNetif().GetKeyManager();
-    uint32_t          frameCounter = 0;
-    uint8_t           securityLevel;
+    uint32_t       frameCounter = 0;
+    uint8_t        securityLevel;
+    uint8_t        nonce[kNonceSize];
+    uint8_t        tagLength;
+    Crypto::AesCcm aesCcm;
+    otError        error;
+
+    aFrame.GetSecurityLevel(securityLevel);
+    aFrame.GetFrameCounter(frameCounter);
+
+    GenerateNonce(*aExtAddress, frameCounter, securityLevel, nonce);
+
+    aesCcm.SetKey(aFrame.GetAesKey(), 16);
+    tagLength = aFrame.GetFooterLength() - Frame::kFcsSize;
+
+    error = aesCcm.Init(aFrame.GetHeaderLength(), aFrame.GetPayloadLength(), tagLength, nonce, sizeof(nonce));
+    assert(error == OT_ERROR_NONE);
+
+    aesCcm.Header(aFrame.GetHeader(), aFrame.GetHeaderLength());
+    aesCcm.Payload(aFrame.GetPayload(), aFrame.GetPayload(), aFrame.GetPayloadLength(), true);
+    aesCcm.Finalize(aFrame.GetFooter(), &tagLength);
+}
+
+void Mac::ProcessTransmitSecurity(Frame &aFrame, bool aProcessAesCcm)
+{
+    KeyManager &      keyManager = GetNetif().GetKeyManager();
     uint8_t           keyIdMode;
-    uint8_t           nonce[kNonceSize];
-    uint8_t           tagLength;
-    Crypto::AesCcm    aesCcm;
-    const uint8_t *   key        = NULL;
     const ExtAddress *extAddress = NULL;
-    otError           error;
 
     if (aFrame.GetSecurityEnabled() == false)
     {
@@ -900,7 +939,7 @@ void Mac::ProcessTransmitSecurity(Frame &aFrame)
     switch (keyIdMode)
     {
     case Frame::kKeyIdMode0:
-        key        = keyManager.GetKek();
+        aFrame.SetAesKey(keyManager.GetKek());
         extAddress = &mExtAddress;
 
         if (!aFrame.IsARetransmission())
@@ -912,7 +951,7 @@ void Mac::ProcessTransmitSecurity(Frame &aFrame)
         break;
 
     case Frame::kKeyIdMode1:
-        key        = keyManager.GetCurrentMacKey();
+        aFrame.SetAesKey(keyManager.GetCurrentMacKey());
         extAddress = &mExtAddress;
 
         // If the frame is marked as a retransmission, the `Mac::Sender` which
@@ -933,7 +972,7 @@ void Mac::ProcessTransmitSecurity(Frame &aFrame)
     case Frame::kKeyIdMode2:
     {
         const uint8_t keySource[] = {0xff, 0xff, 0xff, 0xff};
-        key                       = sMode2Key;
+        aFrame.SetAesKey(sMode2Key);
         mKeyIdMode2FrameCounter++;
         aFrame.SetFrameCounter(mKeyIdMode2FrameCounter);
         aFrame.SetKeySource(keySource);
@@ -947,20 +986,10 @@ void Mac::ProcessTransmitSecurity(Frame &aFrame)
         break;
     }
 
-    aFrame.GetSecurityLevel(securityLevel);
-    aFrame.GetFrameCounter(frameCounter);
-
-    GenerateNonce(*extAddress, frameCounter, securityLevel, nonce);
-
-    aesCcm.SetKey(key, 16);
-    tagLength = aFrame.GetFooterLength() - Frame::kFcsSize;
-
-    error = aesCcm.Init(aFrame.GetHeaderLength(), aFrame.GetPayloadLength(), tagLength, nonce, sizeof(nonce));
-    assert(error == OT_ERROR_NONE);
-
-    aesCcm.Header(aFrame.GetHeader(), aFrame.GetHeaderLength());
-    aesCcm.Payload(aFrame.GetPayload(), aFrame.GetPayload(), aFrame.GetPayloadLength(), true);
-    aesCcm.Finalize(aFrame.GetFooter(), &tagLength);
+    if (aProcessAesCcm)
+    {
+        ProcessTransmitAesCcm(aFrame, extAddress);
+    }
 
 exit:
     return;
@@ -1084,12 +1113,12 @@ void Mac::BeginTransmit(void)
     // Disable CCA for the last attempt
     if (mTransmitAttempts == (sendFrame.GetMaxTxAttempts() - 1))
     {
-        sendFrame.mIsCcaEnabled = false;
+        sendFrame.SetIsCcaEnabled(false);
     }
     else
 #endif
     {
-        sendFrame.mIsCcaEnabled = true;
+        sendFrame.SetIsCcaEnabled(true);
     }
 
     if (mCsmaAttempts == 0 && mTransmitAttempts == 0)
@@ -1135,7 +1164,7 @@ void Mac::BeginTransmit(void)
         if (applyTransmitSecurity)
         {
             // Security Processing
-            ProcessTransmitSecurity(sendFrame);
+            ProcessTransmitSecurity(sendFrame, true);
         }
     }
 
@@ -1147,7 +1176,7 @@ void Mac::BeginTransmit(void)
 
     if (mPcapCallback)
     {
-        sendFrame.mDidTX = true;
+        sendFrame.SetDidTx(true);
         mPcapCallback(&sendFrame, mPcapCallbackContext);
     }
 
@@ -1597,8 +1626,6 @@ otError Mac::ProcessReceiveSecurity(Frame &aFrame, const Address &aSrcAddr, Neig
     const ExtAddress *extAddress;
     Crypto::AesCcm    aesCcm;
 
-    aFrame.SetSecurityValid(false);
-
     if (aFrame.GetSecurityEnabled() == false)
     {
         ExitNow();
@@ -1723,8 +1750,6 @@ otError Mac::ProcessReceiveSecurity(Frame &aFrame, const Address &aSrcAddr, Neig
         }
     }
 
-    aFrame.SetSecurityValid(true);
-
 exit:
     return error;
 }
@@ -1770,11 +1795,9 @@ void Mac::HandleReceivedFrame(Frame *aFrame, otError aError)
     VerifyOrExit(aFrame != NULL, error = OT_ERROR_NO_FRAME_RECEIVED);
     VerifyOrExit(mEnabled, error = OT_ERROR_INVALID_STATE);
 
-    aFrame->SetSecurityValid(false);
-
     if (mPcapCallback)
     {
-        aFrame->mDidTX = false;
+        aFrame->SetDidTx(false);
         mPcapCallback(aFrame, mPcapCallbackContext);
     }
 
@@ -1847,7 +1870,7 @@ void Mac::HandleReceivedFrame(Frame *aFrame, otError aError)
         // override with the rssi in setting
         if (rssi != OT_MAC_FILTER_FIXED_RSS_DISABLED)
         {
-            aFrame->mRssi = rssi;
+            aFrame->SetRssi(rssi);
         }
 
 #endif // OPENTHREAD_ENABLE_MAC_FILTER
@@ -1912,7 +1935,7 @@ void Mac::HandleReceivedFrame(Frame *aFrame, otError aError)
 
 #endif // OPENTHREAD_ENABLE_MAC_FILTER
 
-        neighbor->GetLinkInfo().AddRss(GetNoiseFloor(), aFrame->mRssi);
+        neighbor->GetLinkInfo().AddRss(GetNoiseFloor(), aFrame->GetRssi());
 
         if (aFrame->GetSecurityEnabled() == true)
         {
