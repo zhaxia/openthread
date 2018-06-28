@@ -218,16 +218,21 @@ otError LinkRaw::Transmit(otRadioFrame *aFrame, otLinkRawTransmitDone aCallback)
         mTransmitDoneCallback = aCallback;
 
 #if OPENTHREAD_CONFIG_ENABLE_SOFTWARE_RETRANSMIT
-        OT_UNUSED_VARIABLE(aFrame);
-        mTransmitAttempts = 0;
-        mCsmaAttempts     = 0;
+        if (aFrame->mInfo.mTxInfo.mIsCcaEnabled)
+        {
+            mTransmitAttempts = 0;
+            mCsmaAttempts     = 0;
 
-        // Start the transmission backlog logic
-        StartCsmaBackoff();
-        error = OT_ERROR_NONE;
-#else
-        // Let the hardware do the transmission logic
-        error = otPlatRadioTransmit(&mInstance, aFrame);
+            // Start the transmission backoff logic
+            StartCsmaBackoff();
+            error = OT_ERROR_NONE;
+        }
+        else
+        {
+#endif
+            error = otPlatRadioTransmit(&mInstance, aFrame);
+#if OPENTHREAD_CONFIG_ENABLE_SOFTWARE_RETRANSMIT
+        }
 #endif
     }
 
@@ -260,7 +265,7 @@ void LinkRaw::InvokeTransmitDone(otRadioFrame *aFrame, otRadioFrame *aAckFrame, 
 
     if (aError == OT_ERROR_NO_ACK)
     {
-        if (mTransmitAttempts < aFrame->mMaxTxAttempts)
+        if (mTransmitAttempts < aFrame->mInfo.mTxInfo.mMaxTxAttempts)
         {
             mTransmitAttempts++;
             StartCsmaBackoff();
