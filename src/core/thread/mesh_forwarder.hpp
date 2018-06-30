@@ -340,7 +340,7 @@ private:
                               const Mac::Address &aMacDest,
                               bool                aIsSecure);
 
-#if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_INFO) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
+#if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_NOTE) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
     const char *MessageActionToString(MessageAction aAction, otError aError);
     const char *MessagePriorityToString(const Message &aMessage);
 
@@ -349,6 +349,7 @@ private:
                                  uint16_t &     aChecksum,
                                  uint16_t &     aSourcePort,
                                  uint16_t &     aDestPort);
+#if OPENTHREAD_FTD
     otError DecompressIp6UdpTcpHeader(const Message &     aMessage,
                                       uint16_t            aOffset,
                                       const Mac::Address &aMeshSource,
@@ -363,16 +364,29 @@ private:
                                   otError             aError,
                                   uint16_t &          aOffset,
                                   Mac::Address &      aMeshSource,
-                                  Mac::Address &      aMeshDest);
-
-    void LogIp6SourceDestAddresses(Ip6::Header &aIp6Header, uint16_t aSourcePort, uint16_t aDestPort);
-    void LogMeshIpHeader(const Message &     aMessage,
-                         uint16_t            aOffset,
-                         const Mac::Address &aMeshSource,
-                         const Mac::Address &aMeshDest);
-    void LogMeshMessage(MessageAction aAction, const Message &aMessage, const Mac::Address *aAddress, otError aError);
-    void LogIp6Message(MessageAction aAction, const Message &aMessage, const Mac::Address *aAddress, otError aError);
+                                  Mac::Address &      aMeshDest,
+                                  otLogLevel          aLogLevel);
+    void    LogMeshIpHeader(const Message &     aMessage,
+                            uint16_t            aOffset,
+                            const Mac::Address &aMeshSource,
+                            const Mac::Address &aMeshDest,
+                            otLogLevel          aLogLevel);
+    void    LogMeshMessage(MessageAction       aAction,
+                           const Message &     aMessage,
+                           const Mac::Address *aAddress,
+                           otError             aError,
+                           otLogLevel          aLogLevel);
 #endif
+    void LogIp6SourceDestAddresses(Ip6::Header &aIp6Header,
+                                   uint16_t     aSourcePort,
+                                   uint16_t     aDestPort,
+                                   otLogLevel   aLogLevel);
+    void LogIp6Message(MessageAction       aAction,
+                       const Message &     aMessage,
+                       const Mac::Address *aAddress,
+                       otError             aError,
+                       otLogLevel          aLogLevel);
+#endif // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_NOTE) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
 
     Mac::Receiver mMacReceiver;
     Mac::Sender   mMacSender;
