@@ -196,12 +196,12 @@ void AddressResolver::InvalidateCacheEntry(Cache &aEntry, InvalidationReason aRe
     switch (aEntry.mState)
     {
     case Cache::kStateCached:
-        otLogInfoArp(GetInstance(), "Cache entry removed: %s, 0x%04x - %s", aEntry.mTarget.ToString().AsCString(),
+        otLogNoteArp(GetInstance(), "Cache entry removed: %s, 0x%04x - %s", aEntry.mTarget.ToString().AsCString(),
                      aEntry.mRloc16, ConvertInvalidationReasonToString(aReason));
         break;
 
     case Cache::kStateQuery:
-        otLogInfoArp(GetInstance(), "Cache entry (query mode) removed: %s, timeout:%d, retry:%d - %s",
+        otLogNoteArp(GetInstance(), "Cache entry (query mode) removed: %s, timeout:%d, retry:%d - %s",
                      aEntry.mTarget.ToString().AsCString(), aEntry.mTimeout, aEntry.mRetryTimeout,
                      ConvertInvalidationReasonToString(aReason));
         break;
@@ -241,7 +241,7 @@ void AddressResolver::UpdateCacheEntry(const Ip6::Address &aEid, Mac::ShortAddre
                 GetNetif().GetMeshForwarder().HandleResolved(aEid, OT_ERROR_NONE);
             }
 
-            otLogInfoArp(GetInstance(), "Cache entry updated (snoop): %s, 0x%04x", aEid.ToString().AsCString(),
+            otLogNoteArp(GetInstance(), "Cache entry updated (snoop): %s, 0x%04x", aEid.ToString().AsCString(),
                          aRloc16);
         }
 
@@ -445,7 +445,7 @@ void AddressResolver::HandleAddressNotification(Coap::Header &          aHeader,
             mCache[i].mState               = Cache::kStateCached;
             MarkCacheEntryAsUsed(mCache[i]);
 
-            otLogInfoArp(GetInstance(), "Cache entry updated (notification): %s, 0x%04x, lastTrans:%d",
+            otLogNoteArp(GetInstance(), "Cache entry updated (notification): %s, 0x%04x, lastTrans:%d",
                          targetTlv.GetTarget().ToString().AsCString(), rloc16Tlv.GetRloc16(), lastTransactionTime);
 
             if (netif.GetCoap().SendEmptyAck(aHeader, aMessageInfo) == OT_ERROR_NONE)
@@ -561,7 +561,7 @@ void AddressResolver::HandleAddressError(Coap::Header &aHeader, Message &aMessag
     memcpy(&macAddr, mlIidTlv.GetIid(), sizeof(macAddr));
     macAddr.m8[0] ^= 0x2;
 
-    for (ChildTable::Iterator iter(GetInstance(), ChildTable::kInStateValid); !iter.IsDone(); iter.Advance())
+    for (ChildTable::Iterator iter(GetInstance(), ChildTable::kInStateValid); !iter.IsDone(); iter++)
     {
         Child &child = *iter.GetChild();
 
@@ -634,7 +634,7 @@ void AddressResolver::HandleAddressQuery(Coap::Header &aHeader, Message &aMessag
         ExitNow();
     }
 
-    for (ChildTable::Iterator iter(GetInstance(), ChildTable::kInStateValid); !iter.IsDone(); iter.Advance())
+    for (ChildTable::Iterator iter(GetInstance(), ChildTable::kInStateValid); !iter.IsDone(); iter++)
     {
         Child &child = *iter.GetChild();
 
