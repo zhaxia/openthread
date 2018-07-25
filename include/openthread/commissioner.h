@@ -67,7 +67,8 @@ typedef enum otCommissionerState {
  *
  * @param[in]  aInstance         A pointer to an OpenThread instance.
  *
- * @retval OT_ERROR_NONE     Successfully started the Commissioner role.
+ * @retval OT_ERROR_NONE           Successfully started the Commissioner role.
+ * @retval OT_ERROR_INVALID_STATE  Commissioner is already started.
  *
  */
 OTAPI otError OTCALL otCommissionerStart(otInstance *aInstance);
@@ -77,7 +78,8 @@ OTAPI otError OTCALL otCommissionerStart(otInstance *aInstance);
  *
  * @param[in]  aInstance         A pointer to an OpenThread instance.
  *
- * @retval OT_ERROR_NONE     Successfully stopped the Commissioner role.
+ * @retval OT_ERROR_NONE           Successfully stopped the Commissioner role.
+ * @retval OT_ERROR_INVALID_STATE  Commissioner is already stopped.
  *
  */
 OTAPI otError OTCALL otCommissionerStop(otInstance *aInstance);
@@ -120,6 +122,19 @@ OTAPI otError OTCALL otCommissionerAddJoiner(otInstance *        aInstance,
 OTAPI otError OTCALL otCommissionerRemoveJoiner(otInstance *aInstance, const otExtAddress *aEui64);
 
 /**
+ * This function gets the Provisioning URL.
+ *
+ * @param[in]    aInstance       A pointer to an OpenThread instance.
+ * @param[out]   aLength         A pointer to `uint16_t` to return the length (number of chars) in the URL string.
+ *
+ * Note that the returned URL string buffer is not necessarily null-terminated.
+ *
+ * @returns A pointer to char buffer containing the URL string, or NULL if @p aLength is NULL.
+ *
+ */
+const char *otCommissionerGetProvisioningUrl(otInstance *aInstance, uint16_t *aLength);
+
+/**
  * This function sets the Provisioning URL.
  *
  * @param[in]  aInstance             A pointer to an OpenThread instance.
@@ -136,8 +151,8 @@ OTAPI otError OTCALL otCommissionerSetProvisioningUrl(otInstance *aInstance, con
  *
  * @param[in]  aInstance             A pointer to an OpenThread instance.
  * @param[in]  aChannelMask          The channel mask value.
- * @param[in]  aCount                The number of energy measurements per channel.
- * @param[in]  aPeriod               The time between energy measurements (milliseconds).
+ * @param[in]  aCount                The number of Announcement messages per channel.
+ * @param[in]  aPeriod               The time between two successive MLE Announce transmissions (in milliseconds).
  * @param[in]  aAddress              A pointer to the IPv6 destination.
  *
  * @retval OT_ERROR_NONE          Successfully enqueued the Announce Begin message.
@@ -212,7 +227,7 @@ typedef void(OTCALL *otCommissionerPanIdConflictCallback)(uint16_t aPanId, uint3
  * @param[in]  aPanId                The PAN ID to query.
  * @param[in]  aChannelMask          The channel mask value.
  * @param[in]  aAddress              A pointer to the IPv6 destination.
- * @param[in]  aCallback             A pointer to a function called on receiving an Energy Report message.
+ * @param[in]  aCallback             A pointer to a function called on receiving a PAN ID Conflict message.
  * @param[in]  aContext              A pointer to application-specific context.
  *
  * @retval OT_ERROR_NONE          Successfully enqueued the PAN ID Query message.
@@ -238,6 +253,7 @@ OTAPI otError OTCALL otCommissionerPanIdQuery(otInstance *                      
  *
  * @retval OT_ERROR_NONE          Successfully send the meshcop dataset command.
  * @retval OT_ERROR_NO_BUFS       Insufficient buffer space to send.
+ * @retval OT_ERROR_INVALID_STATE The commissioner is not active.
  *
  */
 OTAPI otError OTCALL otCommissionerSendMgmtGet(otInstance *aInstance, const uint8_t *aTlvs, uint8_t aLength);
@@ -252,6 +268,7 @@ OTAPI otError OTCALL otCommissionerSendMgmtGet(otInstance *aInstance, const uint
  *
  * @retval OT_ERROR_NONE          Successfully send the meshcop dataset command.
  * @retval OT_ERROR_NO_BUFS       Insufficient buffer space to send.
+ * @retval OT_ERROR_INVALID_STATE The commissioner is not active.
  *
  */
 OTAPI otError OTCALL otCommissionerSendMgmtSet(otInstance *                  aInstance,

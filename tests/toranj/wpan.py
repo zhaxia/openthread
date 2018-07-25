@@ -361,16 +361,34 @@ class Node(object):
                             (' -d' if default_route else '') +
                             (' -P {}'.format(priority) if priority is not None else ''))
 
-    def add_route(self, route_prefix, prefix_len_in_bytes=None, priority=None):
+    def add_prefix(self, prefix, prefix_len=None, priority=None, stable=True, on_mesh=False, slaac=False, dhcp=False,
+            configure=False, default_route=False, preferred=False):
+        return self.wpanctl('add-prefix ' + prefix +
+                            (' -l {}'.format(prefix_len) if prefix_len is not None else '') +
+                            (' -P {}'.format(priority) if priority is not None else '') +
+                            (' -s' if stable else '') +
+                            (' -f' if preferred else '') +
+                            (' -a' if slaac else '') +
+                            (' -d' if dhcp else '') +
+                            (' -c' if configure else '') +
+                            (' -r' if default_route else '') +
+                            (' -o' if on_mesh else ''))
+
+    def remove_prefix(self, prefix, prefix_len=None):
+        return self.wpanctl('remove-prefix ' + prefix +
+                            (' -l {}'.format(prefix_len) if prefix_len is not None else ''))
+
+    def add_route(self, route_prefix, prefix_len=None, priority=None, stable=True):
         """route priority [(>0 for high, 0 for medium, <0 for low)]"""
         return self.wpanctl('add-route ' + route_prefix +
-                            (' -l {}'.format(prefix_len_in_bytes) if prefix_len_in_bytes is not None else '') +
-                            (' -p {}'.format(priority) if priority is not None else ''))
+                            (' -l {}'.format(prefix_len) if prefix_len is not None else '') +
+                            (' -p {}'.format(priority) if priority is not None else '') +
+                            ('' if stable else '-n'))
 
-    def remove_route(self, route_prefix, prefix_len_in_bytes=None, priority=None):
+    def remove_route(self, route_prefix, prefix_len=None, priority=None, stable=True):
         """route priority [(>0 for high, 0 for medium, <0 for low)]"""
         return self.wpanctl('remove-route ' + route_prefix +
-                            (' -l {}'.format(prefix_len_in_bytes) if prefix_len_in_bytes is not None else '') +
+                            (' -l {}'.format(prefix_len) if prefix_len is not None else '') +
                             (' -p {}'.format(priority) if priority is not None else ''))
 
     #------------------------------------------------------------------------------------------------------------------
@@ -424,23 +442,67 @@ class Node(object):
 
         return False
 
+    def find_ip6_address_with_prefix(self, prefix):
+        """Find an IPv6 address on node matching a given prefix.
+           `prefix` should be an string containing the prefix.
+           Returns a string containing the IPv6 address matching the prefix or empty string if no address found.
+        """
+        if len(prefix) > 2 and prefix[-1] == ':' and prefix[-2] == ':':
+            prefix = prefix[:-1]
+        all_addrs = parse_list(self.get(WPAN_IP6_ALL_ADDRESSES))
+        matched_addr = [addr for addr in all_addrs if addr.startswith(prefix)]
+        return matched_addr[0] if len(matched_addr) >= 1 else ''
+
+    def add_ip6_address_on_interface(self, address, prefix_len=64):
+        """Adds an IPv6 interface on the network interface.
+           `address` should be string containing the IPv6 address.
+           `prefix_len` is an `int` specifying the prefix length.
+           NOTE: this method uses linux `ip` command.
+        """
+        cmd = 'ip -6 addr add '+ address + '/{} dev '.format(prefix_len) + self.interface_name
+        if self._verbose:
+            _log('$ Node{} \'{}\')'.format(self._index, cmd))
+
+        result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        return result
+
+    def remove_ip6_address_on_interface(self, address, prefix_len=64):
+        """Removes an IPv6 interface on the network interface.
+           `address` should be string containing the IPv6 address.
+           `prefix_len` is an `int` specifying the prefix length.
+           NOTE: this method uses linux `ip` command.
+        """
+        cmd = 'ip -6 addr del '+ address + '/{} dev '.format(prefix_len) + self.interface_name
+        if self._verbose:
+            _log('$ Node{} \'{}\')'.format(self._index, cmd))
+
+        result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+        return result
+
     #------------------------------------------------------------------------------------------------------------------
     # class methods
 
     @classmethod
-    def init_all_nodes(cls, wait_time=15):
+    def init_all_nodes(cls, disable_logs=True, wait_time=15):
         """Issues a `wpanctl.leave` on all `Node` objects and waits for them to be ready"""
         random.seed(12345)
         time.sleep(0.5)
-        start_time = time.time()
         for node in Node._all_nodes:
+            start_time = time.time()
             while True:
                 try:
+                    node._wpantund_process.poll()
+                    if node._wpantund_process.returncode is not None:
+                        print 'Node {} wpantund instance has terminated unexpectedly'.format(node)
+                    if disable_logs:
+                        node.set(WPAN_OT_LOG_LEVEL, '0')
                     node.leave()
                 except subprocess.CalledProcessError as e:
-                    _log(' -> \'{}\' exit code: {}'.format(e.output, e.returncode))
-                    if time.time() - start_time > wait_time:
-                        print 'Took too long to init all nodes ({}>{} sec)'.format(time.time() - start_time, wait_time)
+                    if (node._verbose):
+                        _log(' -> \'{}\' exit code: {}'.format(e.output, e.returncode))
+                    interval = time.time() - start_time
+                    if interval > wait_time:
+                        print 'Took too long to init node {} ({}>{} sec)'.format(node, interval, wait_time)
                         raise
                 except:
                     raise
@@ -458,7 +520,7 @@ class Node(object):
     #------------------------------------------------------------------------------------------------------------------
     # IPv6 message Sender and Receiver class
 
-    class _NodeError(BaseException):
+    class _NodeError(Exception):
         pass
 
     def prepare_tx(self, src, dst, data=40, count=1):
@@ -510,7 +572,7 @@ class Node(object):
         return receiver
 
     def _remove_recver(self, recvr):
-        # Removes a receiver from weak dictionary - called when the receiver is done and its scoket is closed
+        # Removes a receiver from weak dictionary - called when the receiver is done and its socket is closed
         local_port = recvr.local_port
         if local_port in self._recvers:
             del self._recvers[local_port]
@@ -743,14 +805,45 @@ class AsyncReceiver(asyncore.dispatcher):
         self._node._remove_recver(self)
 
 #-----------------------------------------------------------------------------------------------------------------------
+class VerifyError(Exception):
+    pass
+
+_is_in_verify_within = False
 
 def verify(condition):
-    """Verifies that a `condition` is true, otherwise exits"""
+    """Verifies that a `condition` is true, otherwise raises a VerifyError"""
+    global _is_in_verify_within
     if not condition:
         calling_frame = inspect.currentframe().f_back
-        print 'verify() failed at line {} in "{}"'.format(calling_frame.f_lineno, calling_frame.f_code.co_filename)
-        exit(1)
+        error_message = 'verify() failed at line {} in "{}"'.format(calling_frame.f_lineno, calling_frame.f_code.co_filename)
+        if not _is_in_verify_within:
+            print error_message
+        raise VerifyError(error_message)
 
+def verify_within(condition_checker_func, wait_time, delay_time=0.1):
+    """Verifies that a given function `condition_checker_func` passes successfully within a given wait timeout.
+       `wait_time` is maximum time waiting for condition_checker to pass (in seconds).
+       `delay_time` specifies a delay interval added between failed attempts (in seconds).
+    """
+    global _is_in_verify_within
+    start_time = time.time()
+    old_is_in_verify_within = _is_in_verify_within
+    _is_in_verify_within = True
+    while True:
+        try:
+            condition_checker_func()
+        except VerifyError as e:
+            if time.time() - start_time > wait_time:
+                print 'Took too long to pass the condition ({}>{} sec)'.format(time.time() - start_time, wait_time)
+                print e.message
+                raise e
+        except:
+            raise
+        else:
+            break
+        if delay_time != 0:
+            time.sleep(delay_time)
+    _is_in_verify_within = old_is_in_verify_within
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Parsing `wpanctl` output
@@ -877,7 +970,7 @@ class OnMeshPrefix(object):
         self._config     = (data[6] == '1')
         self._dhcp       = (data[7] == '1')
         self._slaac      = (data[8] == '1')
-        self._preffered  = (data[9] == '1')
+        self._preferred  = (data[9] == '1')
         self._priority   = (data[10])
 
     @property
@@ -914,8 +1007,8 @@ class OnMeshPrefix(object):
     def is_slaac(self):
         return self._slaac
 
-    def is_preffered(self):
-        return self._preffered
+    def is_preferred(self):
+        return self._preferred
 
     def __repr__(self):
         return 'OnMeshPrefix({})'.format(self.__dict__)
@@ -926,7 +1019,7 @@ def parse_on_mesh_prefix_result(on_mesh_prefix_list):
 
 #- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 class ChildEntry(object):
-    """ This object encapsulates an child entry"""
+    """ This object encapsulates a child entry"""
 
     def __init__(self, text):
 
@@ -936,14 +1029,14 @@ class ChildEntry(object):
         # `RxOnIdle:no, FFD:no, SecDataReq:yes, FullNetData:yes"`
         #
 
-        # We get rid of the first two chars `\t"' and last char '"', split the rest using whitespace as seperator.
+        # We get rid of the first two chars `\t"' and last char '"', split the rest using whitespace as separator.
         # Then remove any ',' at end of items in the list.
         items = [item[:-1] if item[-1] ==',' else item for item in text[2:-1].split()]
 
         # First item in the extended address
         self._ext_address = items[0]
 
-        # Convert the rest into a dictionary by splitting using ':' as seperator
+        # Convert the rest into a dictionary by splitting using ':' as separator
         dict = {item.split(':')[0] : item.split(':')[1] for item in items[1:]}
 
         self._rloc16     = dict['RLOC16']
@@ -975,3 +1068,54 @@ class ChildEntry(object):
 def parse_child_table_result(child_table_list):
     """ Parses child table list string and returns an array of `ChildEntry` objects"""
     return [ ChildEntry(item) for item in child_table_list.split('\n')[1:-1] ]
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+class NeighborEntry(object):
+    """ This object encapsulates a neighbor entry"""
+
+    def __init__(self, text):
+
+        # Example of expected text:
+        #
+        # `\t"5AC95ED4646D6565, RLOC16:9403, LQIn:3, AveRssi:-20, LastRssi:-20, Age:0, LinkFC:8, MleFC:0, IsChild:yes, '
+        # 'RxOnIdle:no, FFD:no, SecDataReq:yes, FullNetData:yes"'
+        #
+
+        # We get rid of the first two chars `\t"' and last char '"', split the rest using whitespace as separator.
+        # Then remove any ',' at end of items in the list.
+        items = [item[:-1] if item[-1] ==',' else item for item in text[2:-1].split()]
+
+        # First item in the extended address
+        self._ext_address = items[0]
+
+        # Convert the rest into a dictionary by splitting the text using ':' as separator
+        dict = {item.split(':')[0] : item.split(':')[1] for item in items[1:]}
+
+        self._rloc16     = dict['RLOC16']
+        self._is_child   = (dict['IsChild'] == 'yes')
+        self._rx_on_idle = (dict['RxOnIdle'] == 'yes')
+        self._ffd        = (dict['FFD'] == 'yes')
+
+    @property
+    def ext_address(self):
+        return self._ext_address
+
+    @property
+    def rloc16(self):
+        return self._rloc16
+
+    def is_rx_on_when_idle(self):
+        return self._rx_on_idle
+
+    def is_ffd(self):
+        return self._ffd
+
+    def is_child(self):
+        return self._is_child
+
+    def __repr__(self):
+        return 'NeighborEntry({})'.format(self.__dict__)
+
+def parse_neighbor_table_result(neighbor_table_list):
+    """ Parses neighbor table list string and returns an array of `NeighborEntry` objects"""
+    return [ NeighborEntry(item) for item in neighbor_table_list.split('\n')[1:-1] ]

@@ -551,11 +551,6 @@ NcpBase::PropertyHandler NcpBase::FindGetPropertyHandler(spinel_prop_key_t aKey)
         handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_COMMISSIONER_ENABLED>;
         break;
 #endif
-#if OPENTHREAD_ENABLE_TMF_PROXY
-    case SPINEL_PROP_THREAD_TMF_PROXY_ENABLED:
-        handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_TMF_PROXY_ENABLED>;
-        break;
-#endif
 #if OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
     case SPINEL_PROP_THREAD_STEERING_DATA:
         handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_STEERING_DATA>;
@@ -651,6 +646,9 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
         // MTD (or FTD) Properties (Set Handler)
 
 #if OPENTHREAD_MTD || OPENTHREAD_FTD
+    case SPINEL_PROP_PHY_CHAN_SUPPORTED:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_PHY_CHAN_SUPPORTED>;
+        break;
     case SPINEL_PROP_MAC_DATA_POLL_PERIOD:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_MAC_DATA_POLL_PERIOD>;
         break;
@@ -814,12 +812,9 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_STEERING_DATA>;
         break;
 #endif
-#if OPENTHREAD_ENABLE_TMF_PROXY
-    case SPINEL_PROP_THREAD_TMF_PROXY_ENABLED:
-        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_TMF_PROXY_ENABLED>;
-        break;
-    case SPINEL_PROP_THREAD_TMF_PROXY_STREAM:
-        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_TMF_PROXY_STREAM>;
+#if OPENTHREAD_ENABLE_UDP_PROXY
+    case SPINEL_PROP_THREAD_UDP_PROXY_STREAM:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_UDP_PROXY_STREAM>;
         break;
 #endif
     case SPINEL_PROP_THREAD_ACTIVE_DATASET:
@@ -828,11 +823,17 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
     case SPINEL_PROP_THREAD_PENDING_DATASET:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_PENDING_DATASET>;
         break;
-    case SPINEL_PROP_THREAD_MGMT_ACTIVE_DATASET:
-        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_ACTIVE_DATASET>;
+    case SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET>;
         break;
-    case SPINEL_PROP_THREAD_MGMT_PENDING_DATASET:
-        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_PENDING_DATASET>;
+    case SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET>;
+        break;
+    case SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET>;
+        break;
+    case SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET>;
         break;
 #if OPENTHREAD_ENABLE_CHANNEL_MANAGER
     case SPINEL_PROP_CHANNEL_MANAGER_NEW_CHANNEL:

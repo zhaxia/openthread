@@ -42,10 +42,9 @@
 #include "coap/coap_secure.hpp"
 #include "mac/mac.hpp"
 
-#if OPENTHREAD_ENABLE_TMF_PROXY && OPENTHREAD_FTD
-#include "thread/tmf_proxy.hpp"
-#endif // OPENTHREAD_ENABLE_TMF_PROXY && OPENTHREAD_FTD
-
+#if OPENTHREAD_ENABLE_BORDER_AGENT
+#include "meshcop/border_agent.hpp"
+#endif
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
 #include "meshcop/commissioner.hpp"
 #endif // OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
@@ -323,6 +322,15 @@ public:
      */
     AnnounceBeginServer &GetAnnounceBeginServer(void) { return mAnnounceBegin; }
 
+#if OPENTHREAD_ENABLE_BORDER_AGENT
+    /**
+     * This method returns a reference to the border agent object.
+     *
+     * @returns A reference to the border agent object.
+     *
+     */
+    MeshCoP::BorderAgent &GetBorderAgent(void) { return mBorderAgent; }
+#endif
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
     /**
      * This method returns a reference to the commissioner object.
@@ -370,16 +378,6 @@ public:
      */
     Utils::JamDetector &GetJamDetector(void) { return mJamDetector; }
 #endif // OPENTHREAD_ENABLE_JAM_DETECTION
-
-#if OPENTHREAD_ENABLE_TMF_PROXY && OPENTHREAD_FTD
-    /**
-     * This method returns the TMF proxy object.
-     *
-     * @returns Reference to the TMF proxy object.
-     *
-     */
-    TmfProxy &GetTmfProxy(void) { return mTmfProxy; }
-#endif // OPENTHREAD_ENABLE_TMF_PROXY && OPENTHREAD_FTD
 
     /**
      * This method returns a reference to the child supervisor object.
@@ -462,6 +460,9 @@ private:
 #endif // OPENTHREAD_FTD || OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC
     bool mIsUp;
 
+#if OPENTHREAD_ENABLE_BORDER_AGENT
+    MeshCoP::BorderAgent mBorderAgent;
+#endif
 #if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
     MeshCoP::Commissioner mCommissioner;
 #endif // OPENTHREAD_ENABLE_COMMISSIONER
@@ -478,10 +479,6 @@ private:
 #if OPENTHREAD_ENABLE_JAM_DETECTION
     Utils::JamDetector mJamDetector;
 #endif // OPENTHREAD_ENABLE_JAM_DETECTION
-
-#if OPENTHREAD_ENABLE_TMF_PROXY && OPENTHREAD_FTD
-    TmfProxy mTmfProxy;
-#endif // OPENTHREAD_ENABLE_TMF_PROXY && OPENTHREAD_FTD
 
 #if OPENTHREAD_FTD
     MeshCoP::JoinerRouter mJoinerRouter;

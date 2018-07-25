@@ -92,7 +92,7 @@
  *
  */
 #ifndef OPENTHREAD_CONFIG_NUM_MESSAGE_BUFFERS
-#define OPENTHREAD_CONFIG_NUM_MESSAGE_BUFFERS 40
+#define OPENTHREAD_CONFIG_NUM_MESSAGE_BUFFERS 44
 #endif
 
 /**
@@ -126,25 +126,51 @@
 #endif
 
 /**
- * @def OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_DIRECT
+ * @def OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT
  *
- * Maximum number of MAC layer transmit attempts for an outbound direct frame.
- * Per IEEE 802.15.4-2006, default value is set to (macMaxFrameRetries + 1) with macMaxFrameRetries = 3.
+ * The maximum number of backoffs the CSMA-CA algorithm will attempt before declaring a channel access failure.
+ *
+ * Equivalent to macMaxCSMABackoffs in IEEE 802.15.4-2006, default value is 4.
  *
  */
-#ifndef OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_DIRECT
-#define OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_DIRECT 4
+#ifndef OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT
+#define OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT 32
 #endif
 
 /**
- * @def OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_PER_POLL
+ * @def OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_INDIRECT
  *
- * Maximum number of MAC layer transmit attempts for an outbound indirect frame (to a sleepy child) after receiving
- * a data request command (data poll) from the child.
+ * The maximum number of backoffs the CSMA-CA algorithm will attempt before declaring a channel access failure.
+ *
+ * Equivalent to macMaxCSMABackoffs in IEEE 802.15.4-2006, default value is 4.
  *
  */
-#ifndef OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_PER_POLL
-#define OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_PER_POLL 1
+#ifndef OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_INDIRECT
+#define OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_INDIRECT 4
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_DIRECT
+ *
+ * The maximum number of retries allowed after a transmission failure for direct transmissions.
+ *
+ * Equivalent to macMaxFrameRetries, default value is 3.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_DIRECT
+#define OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_DIRECT 3
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT
+ *
+ * The maximum number of retries allowed after a transmission failure for indirect transmissions.
+ *
+ * Equivalent to macMaxFrameRetries, default value is 0.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT
+#define OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT 0
 #endif
 
 /**
@@ -157,6 +183,19 @@
  */
 #ifndef OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_POLLS
 #define OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_POLLS 4
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_TX_NUM_BCAST
+ *
+ * The number of times each IEEE 802.15.4 broadcast frame is transmitted.
+ *
+ * The minimum value is 1. Values larger than 1 may improve broadcast reliability by increasing redundancy, but may also
+ * increase congestion.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_TX_NUM_BCAST
+#define OPENTHREAD_CONFIG_TX_NUM_BCAST 1
 #endif
 
 /**
@@ -1605,13 +1644,13 @@
 #endif
 
 /**
- * @def OPENTHREAD_CONFIG_DISABLE_CCA_ON_LAST_ATTEMPT
+ * @def OPENTHREAD_CONFIG_DISABLE_CSMA_CA_ON_LAST_ATTEMPT
  *
- * Define as 1 to disable CCA on the last transmit attempt
+ * Define as 1 to disable CSMA-CA on the last transmit attempt
  *
  */
-#ifndef OPENTHREAD_CONFIG_DISABLE_CCA_ON_LAST_ATTEMPT
-#define OPENTHREAD_CONFIG_DISABLE_CCA_ON_LAST_ATTEMPT 0
+#ifndef OPENTHREAD_CONFIG_DISABLE_CSMA_CA_ON_LAST_ATTEMPT
+#define OPENTHREAD_CONFIG_DISABLE_CSMA_CA_ON_LAST_ATTEMPT 0
 #endif
 
 /**
@@ -1648,8 +1687,6 @@
  * @def OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
  *
  * Define as 1 to enable the time synchronization service feature.
- *
- * @note If it's enabled, plaforms must support interrupt context and concurrent access AES.
  *
  */
 #ifndef OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
@@ -1692,6 +1729,24 @@
  */
 #ifndef OPENTHREAD_CONFIG_TIME_SYNC_XTAL_THRESHOLD
 #define OPENTHREAD_CONFIG_TIME_SYNC_XTAL_THRESHOLD 300
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_HEADER_IE_SUPPORT
+ *
+ * Define as 1 to support IEEE 802.15.4-2015 Header IE (Information Element) generation and parsing, it must be set
+ * to support following features:
+ *    1. Time synchronization service feature (i.e., OPENTHREAD_CONFIG_ENABLE_TIME_SYNC is set).
+ *
+ * @note If it's enabled, plaforms must support interrupt context and concurrent access AES.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_HEADER_IE_SUPPORT
+#if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+#define OPENTHREAD_CONFIG_HEADER_IE_SUPPORT 1
+#else
+#define OPENTHREAD_CONFIG_HEADER_IE_SUPPORT 0
+#endif
 #endif
 
 #endif // OPENTHREAD_CORE_DEFAULT_CONFIG_H_

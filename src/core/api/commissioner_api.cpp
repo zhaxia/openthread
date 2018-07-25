@@ -46,11 +46,13 @@ otError otCommissionerStart(otInstance *aInstance)
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
-    error = instance.GetThreadNetif().GetCommissioner().Start();
-#else
-    OT_UNUSED_VARIABLE(aInstance);
+#if OPENTHREAD_ENABLE_BORDER_AGENT
+    SuccessOrExit(error = instance.Get<MeshCoP::BorderAgent>().Stop());
 #endif
-
+    SuccessOrExit(error = instance.GetThreadNetif().GetCommissioner().Start());
+exit:
+#endif
+    OT_UNUSED_VARIABLE(aInstance);
     return error;
 }
 
@@ -61,11 +63,13 @@ otError otCommissionerStop(otInstance *aInstance)
 #if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
     Instance &instance = *static_cast<Instance *>(aInstance);
 
-    error = instance.GetThreadNetif().GetCommissioner().Stop();
-#else
-    OT_UNUSED_VARIABLE(aInstance);
+    SuccessOrExit(error = instance.GetThreadNetif().GetCommissioner().Stop());
+#if OPENTHREAD_ENABLE_BORDER_AGENT
+    SuccessOrExit(error = instance.Get<MeshCoP::BorderAgent>().Start());
 #endif
-
+exit:
+#endif
+    OT_UNUSED_VARIABLE(aInstance);
     return error;
 }
 
@@ -118,6 +122,25 @@ otError otCommissionerSetProvisioningUrl(otInstance *aInstance, const char *aPro
 #endif
 
     return error;
+}
+
+const char *otCommissionerGetProvisioningUrl(otInstance *aInstance, uint16_t *aLength)
+{
+    const char *url = NULL;
+
+#if OPENTHREAD_FTD && OPENTHREAD_ENABLE_COMMISSIONER
+    Instance &instance = *static_cast<Instance *>(aInstance);
+
+    if (aLength != NULL)
+    {
+        url = instance.GetThreadNetif().GetCommissioner().GetProvisioningUrl(*aLength);
+    }
+#else
+    OT_UNUSED_VARIABLE(aInstance);
+    OT_UNUSED_VARIABLE(aLength);
+#endif
+
+    return url;
 }
 
 otError otCommissionerAnnounceBegin(otInstance *        aInstance,
