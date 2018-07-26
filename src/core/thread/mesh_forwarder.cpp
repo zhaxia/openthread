@@ -65,7 +65,8 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
     , mMessageNextOffset(0)
     , mSendMessage(NULL)
     , mSendMessageIsARetransmission(false)
-    , mSendMessageMaxMacTxAttempts(Mac::kDirectFrameMacTxAttempts)
+    , mSendMessageMaxCsmaBackoffs(Mac::kMaxCsmaBackoffsDirect)
+    , mSendMessageMaxFrameRetries(Mac::kMaxFrameRetriesDirect)
     , mMeshSource()
     , mMeshDest()
     , mAddMeshHeader(false)
@@ -184,7 +185,8 @@ void MeshForwarder::ScheduleTransmissionTask(void)
             mSendMessage->SetTxSuccess(true);
         }
 
-        mSendMessageMaxMacTxAttempts = Mac::kDirectFrameMacTxAttempts;
+        mSendMessageMaxCsmaBackoffs = Mac::kMaxCsmaBackoffsDirect;
+        mSendMessageMaxFrameRetries = Mac::kMaxFrameRetriesDirect;
         GetNetif().GetMac().SendFrameRequest(mMacSender);
         ExitNow();
     }
@@ -469,7 +471,8 @@ otError MeshForwarder::HandleFrameRequest(Mac::Frame &aFrame)
     {
         SendEmptyFrame(aFrame, false);
         aFrame.SetIsARetransmission(false);
-        aFrame.SetMaxTxAttempts(Mac::kDirectFrameMacTxAttempts);
+        aFrame.SetMaxCsmaBackoffs(Mac::kMaxCsmaBackoffsDirect);
+        aFrame.SetMaxFrameRetries(Mac::kMaxFrameRetriesDirect);
         ExitNow();
     }
 
@@ -534,7 +537,8 @@ otError MeshForwarder::HandleFrameRequest(Mac::Frame &aFrame)
     assert(error == OT_ERROR_NONE);
 
     aFrame.SetIsARetransmission(mSendMessageIsARetransmission);
-    aFrame.SetMaxTxAttempts(mSendMessageMaxMacTxAttempts);
+    aFrame.SetMaxCsmaBackoffs(mSendMessageMaxCsmaBackoffs);
+    aFrame.SetMaxFrameRetries(mSendMessageMaxFrameRetries);
 
 #if OPENTHREAD_FTD
 
@@ -703,7 +707,7 @@ otError MeshForwarder::SendFragment(Message &aMessage, Mac::Frame &aFrame)
 
     if (dstpan == netif.GetMac().GetPanId())
     {
-#if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+#if OPENTHREAD_CONFIG_HEADER_IE_SUPPORT
         // Handle a special case in IEEE 802.15.4-2015, when Pan ID Compression is 0, but Src Pan ID is not present:
         //  Dest Address:       Extended
         //  Src Address:        Extended
@@ -951,11 +955,6 @@ void MeshForwarder::HandleSentFrame(Mac::Frame &aFrame, otError aError)
 
     VerifyOrExit(mEnabled);
 
-    if (mSendMessage != NULL)
-    {
-        mSendMessage->SetOffset(mMessageNextOffset);
-    }
-
     aFrame.GetDstAddr(macDest);
 
     if ((neighbor = netif.GetMle().GetNeighbor(macDest)) != NULL)
@@ -999,7 +998,7 @@ void MeshForwarder::HandleSentFrame(Mac::Frame &aFrame, otError aError)
 
     if (mSendMessage->GetDirectTransmission())
     {
-        if (aError == OT_ERROR_NO_ACK)
+        if (aError != OT_ERROR_NONE)
         {
             // If the transmission of any fragment frame fails,
             // the overall message transmission is considered

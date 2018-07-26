@@ -385,8 +385,9 @@ otError MeshForwarder::GetIndirectTransmission(void)
             continue;
         }
 
-        mSendMessage                 = child.GetIndirectMessage();
-        mSendMessageMaxMacTxAttempts = Mac::kIndirectFrameMacTxAttempts;
+        mSendMessage                = child.GetIndirectMessage();
+        mSendMessageMaxCsmaBackoffs = Mac::kMaxCsmaBackoffsIndirect;
+        mSendMessageMaxFrameRetries = Mac::kMaxFrameRetriesIndirect;
 
         if (mSendMessage == NULL)
         {

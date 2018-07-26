@@ -71,7 +71,6 @@ enum
 {
     kMinBE             = 3,  ///< macMinBE (IEEE 802.15.4-2006).
     kMaxBE             = 5,  ///< macMaxBE (IEEE 802.15.4-2006).
-    kMaxCSMABackoffs   = 4,  ///< macMaxCSMABackoffs (IEEE 802.15.4-2006).
     kUnitBackoffPeriod = 20, ///< Number of symbols (IEEE 802.15.4-2006).
 
     kMinBackoff = 1, ///< Minimum backoff (milliseconds).
@@ -84,18 +83,17 @@ enum
     kScanChannelsAll     = OT_CHANNEL_ALL, ///< All channels.
     kScanDurationDefault = 300,            ///< Default interval between channels (milliseconds).
 
-    /**
-     * Maximum number of MAC layer tx attempts for an outbound direct frame.
-     *
-     */
-    kDirectFrameMacTxAttempts = OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_DIRECT,
+    kMaxCsmaBackoffsDirect =
+        OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT, ///< macMaxCsmaBackoffs for direct transmissions
+    kMaxCsmaBackoffsIndirect =
+        OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_INDIRECT, ///< macMaxCsmaBackoffs for indirect transmissions
 
-    /**
-     * Maximum number of MAC layer tx attempts for an outbound indirect frame (for a sleepy child) after receiving
-     * a data request command (data poll) from the child.
-     *
-     */
-    kIndirectFrameMacTxAttempts = OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_PER_POLL,
+    kMaxFrameRetriesDirect =
+        OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_DIRECT, ///< macMaxFrameRetries for direct transmissions
+    kMaxFrameRetriesIndirect =
+        OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT, ///< macMaxFrameRetries for indirect transmissions
+
+    kTxNumBcast = OPENTHREAD_CONFIG_TX_NUM_BCAST ///< Number of times each broadcast frame is transmitted
 };
 
 /**
@@ -598,7 +596,8 @@ public:
      *
      * @param[in]  aChannel  The IEEE 802.15.4 PAN Channel.
      *
-     * @retval OT_ERROR_NONE  Successfully set the IEEE 802.15.4 PAN Channel.
+     * @retval OT_ERROR_NONE           Successfully set the IEEE 802.15.4 PAN Channel.
+     * @retval OT_ERROR_INVALID_ARGS   The @p aChannel is not in the supported channel mask.
      *
      */
     otError SetPanChannel(uint8_t aChannel);
@@ -617,7 +616,9 @@ public:
      *
      * @param[in]  aChannel  The IEEE 802.15.4 Radio Channel.
      *
-     * @retval OT_ERROR_NONE  Successfully set the IEEE 802.15.4 Radio Channel.
+     * @retval OT_ERROR_NONE           Successfully set the IEEE 802.15.4 Radio Channel.
+     * @retval OT_ERROR_INVALID_ARGS   The @p aChannel is not in the supported channel mask.
+     * @retval OT_ERROR_INVALID_STATE  The acquisition ID is incorrect.
      *
      */
     otError SetRadioChannel(uint16_t aAcquisitionId, uint8_t aChannel);
@@ -642,6 +643,22 @@ public:
      *
      */
     otError ReleaseRadioChannel(void);
+
+    /**
+     * This method returns the supported channel mask.
+     *
+     * @returns The supported channel mask.
+     *
+     */
+    const ChannelMask &GetSupportedChannelMask(void) const { return mSupportedChannelMask; }
+
+    /**
+     * This method sets the supported channel mask
+     *
+     * @param[in] aMask   The supported channel mask.
+     *
+     */
+    void SetSupportedChannelMask(const ChannelMask &aMask);
 
     /**
      * This method returns the IEEE 802.15.4 Network Name.
@@ -1024,6 +1041,7 @@ private:
     uint8_t      mPanChannel;
     uint8_t      mRadioChannel;
     uint16_t     mRadioChannelAcquisitionId;
+    ChannelMask  mSupportedChannelMask;
 
     otNetworkName   mNetworkName;
     otExtendedPanId mExtendedPanId;
@@ -1033,8 +1051,9 @@ private:
 
     uint8_t mBeaconSequence;
     uint8_t mDataSequence;
-    uint8_t mCsmaAttempts;
-    uint8_t mTransmitAttempts;
+    uint8_t mCsmaBackoffs;
+    uint8_t mTransmitRetries;
+    uint8_t mBroadcastTransmitCount;
 
     ChannelMask mScanChannelMask;
     uint16_t    mScanDuration;

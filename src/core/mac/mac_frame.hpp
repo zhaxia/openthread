@@ -989,20 +989,48 @@ public:
     void SetLqi(uint8_t aLqi) { mInfo.mRxInfo.mLqi = aLqi; }
 
     /**
-     * This method returns the maximum number of transmit attempts for the frame.
+     * This method returns the maximum number of backoffs the CSMA-CA algorithm will attempt before declaring a channel
+     * access failure.
      *
-     * @returns The maximum number of transmit attempts.
+     * Equivalent to macMaxCSMABackoffs in IEEE 802.15.4-2006.
+     *
+     * @returns The maximum number of backoffs the CSMA-CA algorithm will attempt before declaring a channel access
+     *          failure.
      *
      */
-    uint8_t GetMaxTxAttempts(void) const { return mInfo.mTxInfo.mMaxTxAttempts; }
+    uint8_t GetMaxCsmaBackoffs(void) const { return mInfo.mTxInfo.mMaxCsmaBackoffs; }
 
     /**
-     * This method set the maximum number of transmit attempts for frame.
+     * This method sets the maximum number of backoffs the CSMA-CA algorithm will attempt before declaring a channel
+     * access failure.
      *
-     * @returns The maximum number of transmit attempts.
+     * Equivalent to macMaxCSMABackoffs in IEEE 802.15.4-2006.
+     *
+     * @param[in]  aMaxCsmaBackoffs  The maximum number of backoffs the CSMA-CA algorithm will attempt before declaring
+     *                               a channel access failure.
      *
      */
-    void SetMaxTxAttempts(uint8_t aMaxTxAttempts) { mInfo.mTxInfo.mMaxTxAttempts = aMaxTxAttempts; }
+    void SetMaxCsmaBackoffs(uint8_t aMaxCsmaBackoffs) { mInfo.mTxInfo.mMaxCsmaBackoffs = aMaxCsmaBackoffs; }
+
+    /**
+     * This method returns the maximum number of retries allowed after a transmission failure.
+     *
+     * Equivalent to macMaxFrameRetries in IEEE 802.15.4-2006.
+     *
+     * @returns The maximum number of retries allowed after a transmission failure.
+     *
+     */
+    uint8_t GetMaxFrameRetries(void) const { return mInfo.mTxInfo.mMaxFrameRetries; }
+
+    /**
+     * This method sets the maximum number of retries allowed after a transmission failure.
+     *
+     * Equivalent to macMaxFrameRetries in IEEE 802.15.4-2006.
+     *
+     * @param[in]  aMaxFrameRetries  The maximum number of retries allowed after a transmission failure.
+     *
+     */
+    void SetMaxFrameRetries(uint8_t aMaxFrameRetries) { mInfo.mTxInfo.mMaxFrameRetries = aMaxFrameRetries; }
 
     /**
      * This method indicates whether or not the frame is a retransmission.
@@ -1030,12 +1058,12 @@ public:
     void SetDidTx(bool aDidTx) { mDidTx = aDidTx; }
 
     /**
-     * This method sets the CCA enabled attribute.
+     * This method sets the CSMA-CA enabled attribute.
      *
-     * @param[in]  aIsCcaEnabled  TRUE if CCA must be enabled for this packet, FALSE otherwise.
+     * @param[in]  aCsmaCaEnabled  TRUE if CSMA-CA must be enabled for this packet, FALSE otherwise.
      *
      */
-    void SetIsCcaEnabled(bool aIsCcaEnabled) { mInfo.mTxInfo.mIsCcaEnabled = aIsCcaEnabled; }
+    void SetCsmaCaEnabled(bool aCsmaCaEnabled) { mInfo.mTxInfo.mCsmaCaEnabled = aCsmaCaEnabled; }
 
     /**
      * This method returns the key used for frame encryption and authentication (AES CCM).
@@ -1183,6 +1211,16 @@ public:
     uint64_t GetTimestamp(void) const { return mIeInfo->mTimestamp; }
 
     /**
+     * This method returns a pointer to the vendor specific Time IE.
+     *
+     * @returns A pointer to the Time IE, NULL if not found.
+     *
+     */
+    uint8_t *GetTimeIe(void) const;
+#endif // OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+
+#if OPENTHREAD_CONFIG_HEADER_IE_SUPPORT
+    /**
      * This method appends Header IEs to MAC header.
      *
      * @param[in]   aIeList  The pointer to the Header IEs array.
@@ -1203,16 +1241,7 @@ public:
      *
      */
     uint8_t *GetHeaderIe(uint8_t aIeId) const;
-
-    /**
-     * This method returns a pointer to the vendor specific Time IE.
-     *
-     * @returns A pointer to the Time IE, NULL if not found.
-     *
-     */
-    uint8_t *GetTimeIe(void) const;
-
-#endif // OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+#endif // OPENTHREAD_CONFIG_HEADER_IE_SUPPORT
 
     /**
      * This method returns information about the frame object as an `InfoString` object.
@@ -1237,7 +1266,7 @@ private:
     uint8_t  FindSecurityHeaderIndex(void) const;
     uint8_t  SkipSecurityHeaderIndex(void) const;
     uint8_t  FindPayloadIndex(void) const;
-#if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+#if OPENTHREAD_CONFIG_HEADER_IE_SUPPORT
     uint8_t FindHeaderIeIndex(void) const;
 #endif
 

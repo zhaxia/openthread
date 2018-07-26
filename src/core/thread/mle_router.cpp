@@ -298,7 +298,7 @@ otError MleRouter::SetStateRouter(uint16_t aRloc16)
     SetAttachState(kAttachStateIdle);
     mAttachCounter = 0;
     mAttachTimer.Stop();
-    mChildUpdateRequestTimer.Stop();
+    mMessageTransmissionTimer.Stop();
     mAdvertiseTimer.Stop();
     ResetAdvertiseInterval();
 
@@ -333,7 +333,7 @@ otError MleRouter::SetStateLeader(uint16_t aRloc16)
     SetAttachState(kAttachStateIdle);
     mAttachCounter = 0;
     mAttachTimer.Stop();
-    mChildUpdateRequestTimer.Stop();
+    mMessageTransmissionTimer.Stop();
     mAdvertiseTimer.Stop();
     ResetAdvertiseInterval();
     AddLeaderAloc();
@@ -373,14 +373,17 @@ bool MleRouter::HandleAdvertiseTimer(TrickleTimer &aTimer)
 
 bool MleRouter::HandleAdvertiseTimer(void)
 {
+    bool continueTrickle = true;
+
     if (!IsFullThreadDevice())
     {
-        return false;
+        ExitNow(continueTrickle = false);
     }
 
     SendAdvertisement();
 
-    return true;
+exit:
+    return continueTrickle;
 }
 
 void MleRouter::StopAdvertiseTimer(void)
@@ -1006,20 +1009,28 @@ exit:
 
 uint8_t MleRouter::LinkQualityToCost(uint8_t aLinkQuality)
 {
+    uint8_t rval;
+
     switch (aLinkQuality)
     {
     case 1:
-        return kLinkQuality1LinkCost;
+        rval = kLinkQuality1LinkCost;
+        break;
 
     case 2:
-        return kLinkQuality2LinkCost;
+        rval = kLinkQuality2LinkCost;
+        break;
 
     case 3:
-        return kLinkQuality3LinkCost;
+        rval = kLinkQuality3LinkCost;
+        break;
 
     default:
-        return kLinkQuality0LinkCost;
+        rval = kLinkQuality0LinkCost;
+        break;
     }
+
+    return rval;
 }
 
 uint8_t MleRouter::GetLinkCost(uint8_t aRouterId)
@@ -1412,6 +1423,7 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
     uint8_t    cost;
     uint8_t    linkQuality;
     bool       update;
+    bool       changed = false;
 
     neighbor = mRouterTable.GetRouter(aRouterId);
     VerifyOrExit(neighbor != NULL);
@@ -1483,6 +1495,7 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
 
                             router->SetNextHop(aRouterId);
                             router->SetCost(cost);
+                            changed = true;
                         }
                         else if (nextHop == neighbor)
                         {
@@ -1494,6 +1507,7 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
                             router->SetNextHop(kInvalidRouterId);
                             router->SetCost(0);
                             router->SetLastHeard(TimerMilli::GetNow());
+                            changed = true;
                         }
                     }
                 }
@@ -1506,6 +1520,7 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
                     {
                         router->SetNextHop(aRouterId);
                         router->SetCost(cost);
+                        changed = true;
                     }
                 }
 
@@ -1514,17 +1529,21 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
 
             routeCount++;
         }
+
+        changed |= update;
+
     } while (update);
 
 #if (OPENTHREAD_CONFIG_LOG_MLE && (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_INFO))
 
+    VerifyOrExit(changed);
     otLogInfoMle(GetInstance(), "Route table updated");
 
     for (RouterTable::Iterator iter(GetInstance()); !iter.IsDone(); iter++)
     {
         Router &router = *iter.GetRouter();
 
-        otLogInfoMle(GetInstance(), "%x -> %x, cost:%d %d, lqin:%d, lqout:%d", router.GetRloc16(),
+        otLogInfoMle(GetInstance(), "\t%04x -> %04x, cost:%d %d, lqin:%d, lqout:%d", router.GetRloc16(),
                      GetRloc16(router.GetNextHop()), router.GetCost(), mRouterTable.GetLinkCost(router),
                      router.GetLinkInfo().GetLinkQuality(), router.GetLinkQualityOut());
     }
@@ -1628,6 +1647,10 @@ otError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::Messa
             child->SetTimeSyncEnabled(false);
         }
 #endif
+    }
+    else if ((TimerMilli::GetNow() - child->GetLastHeard()) < kParentRequestRouterTimeout)
+    {
+        ExitNow(error = OT_ERROR_DUPLICATED);
     }
 
     if (!child->IsStateValidOrRestoring())
@@ -3687,10 +3710,12 @@ otError MleRouter::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, I
 {
     ThreadNetif &    netif = GetNetif();
     Ip6::MessageInfo messageInfo;
+    otError          error = OT_ERROR_NONE;
 
     if (mRole == OT_DEVICE_ROLE_CHILD)
     {
-        return Mle::CheckReachability(aMeshSource, aMeshDest, aIp6Header);
+        error = Mle::CheckReachability(aMeshSource, aMeshDest, aIp6Header);
+        ExitNow();
     }
 
     if (aMeshDest == netif.GetMac().GetShortAddress())
@@ -3699,12 +3724,12 @@ otError MleRouter::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, I
         if (netif.IsUnicastAddress(aIp6Header.GetDestination()))
         {
             // IPv6 destination is this device
-            return OT_ERROR_NONE;
+            ExitNow();
         }
         else if (GetNeighbor(aIp6Header.GetDestination()) != NULL)
         {
             // IPv6 destination is an RFD child
-            return OT_ERROR_NONE;
+            ExitNow();
         }
     }
     else if (GetRouterId(aMeshDest) == mRouterId)
@@ -3712,13 +3737,13 @@ otError MleRouter::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, I
         // mesh destination is a child of this device
         if (GetChildTable().FindChild(aMeshDest, ChildTable::kInStateValidOrRestoring))
         {
-            return OT_ERROR_NONE;
+            ExitNow();
         }
     }
     else if (GetNextHop(aMeshDest) != Mac::kShortAddrInvalid)
     {
         // forwarding to another router and route is known
-        return OT_ERROR_NONE;
+        ExitNow();
     }
 
     messageInfo.GetPeerAddr()                = GetMeshLocal16();
@@ -3728,7 +3753,10 @@ otError MleRouter::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, I
     netif.GetIp6().GetIcmp().SendError(Ip6::IcmpHeader::kTypeDstUnreach, Ip6::IcmpHeader::kCodeDstUnreachNoRoute,
                                        messageInfo, aIp6Header);
 
-    return OT_ERROR_DROP;
+    error = OT_ERROR_DROP;
+
+exit:
+    return error;
 }
 
 otError MleRouter::SendAddressSolicit(ThreadStatusTlv::Status aStatus)

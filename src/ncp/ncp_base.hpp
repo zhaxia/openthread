@@ -290,15 +290,22 @@ protected:
 
 #if OPENTHREAD_FTD
     otError EncodeChildInfo(const otChildInfo &aChildInfo);
-    otError DecodeOperationalDataset(otOperationalDataset &aDataset, const uint8_t **aTlvs, uint8_t *aTlvsLength);
+    otError DecodeOperationalDataset(otOperationalDataset &aDataset,
+                                     const uint8_t **      aTlvs             = NULL,
+                                     uint8_t *             aTlvsLength       = NULL,
+                                     const otIp6Address ** aDestIpAddress    = NULL,
+                                     bool                  aAllowEmptyValues = false);
 #endif
 
+#if OPENTHREAD_ENABLE_UDP_PROXY
+    static void HandleUdpProxyStream(otMessage *   aMessage,
+                                     uint16_t      aPeerPort,
+                                     otIp6Address *aPeerAddr,
+                                     uint16_t      aSockPort,
+                                     void *        aContext);
+    void        HandleUdpProxyStream(otMessage *aMessage, uint16_t aPeerPort, otIp6Address &aPeerAddr, uint16_t aPort);
+#endif // OPENTHREAD_ENABLE_UDP_PROXY
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
-
-#if OPENTHREAD_FTD && OPENTHREAD_ENABLE_TMF_PROXY
-    static void HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort, void *aContext);
-    void        HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort);
-#endif // OPENTHREAD_FTD && OPENTHREAD_ENABLE_TMF_PROXY
 
     otError CommandHandler_NOOP(uint8_t aHeader);
     otError CommandHandler_RESET(uint8_t aHeader);
@@ -471,8 +478,7 @@ protected:
     };
 
     spinel_status_t mLastStatus;
-    uint32_t        mSupportedChannelMask;
-    uint32_t        mChannelMask;
+    uint32_t        mScanChannelMask;
     uint16_t        mScanPeriod;
     bool            mDiscoveryScanJoinerFlag;
     bool            mDiscoveryScanEnableFiltering;

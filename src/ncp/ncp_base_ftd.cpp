@@ -44,10 +44,6 @@
 #include <openthread/thread_ftd.h>
 #include <openthread/platform/misc.h>
 
-#if OPENTHREAD_ENABLE_TMF_PROXY
-#include <openthread/tmf_proxy.h>
-#endif
-
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 #include "common/instance.hpp"
@@ -548,108 +544,11 @@ exit:
     return error;
 }
 
-#if OPENTHREAD_ENABLE_TMF_PROXY
-template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_TMF_PROXY_ENABLED>(void)
-{
-    return mEncoder.WriteBool(otTmfProxyIsEnabled(mInstance));
-}
-
-template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_TMF_PROXY_STREAM>(void)
-{
-    const uint8_t *framePtr = NULL;
-    uint16_t       frameLen = 0;
-    uint16_t       locator;
-    uint16_t       port;
-    otMessage *    message;
-    otError        error = OT_ERROR_NONE;
-
-    // THREAD_TMF_PROXY_STREAM requires layer 2 security.
-    message = otIp6NewMessage(mInstance, true);
-    VerifyOrExit(message != NULL, error = OT_ERROR_NO_BUFS);
-
-    SuccessOrExit(error = mDecoder.ReadDataWithLen(framePtr, frameLen));
-    SuccessOrExit(error = mDecoder.ReadUint16(locator));
-    SuccessOrExit(error = mDecoder.ReadUint16(port));
-
-    SuccessOrExit(error = otMessageAppend(message, framePtr, static_cast<uint16_t>(frameLen)));
-
-    error = otTmfProxySend(mInstance, message, locator, port);
-
-    // `otTmfProxySend()` takes ownership of `message` (in both success
-    // or failure cases). `message` is set to NULL so it is not freed at
-    // exit.
-    message = NULL;
-
-exit:
-    if (message != NULL)
-    {
-        otMessageFree(message);
-    }
-
-    return error;
-}
-
-template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_TMF_PROXY_ENABLED>(void)
-{
-    bool    enabled;
-    otError error = OT_ERROR_NONE;
-
-    SuccessOrExit(error = mDecoder.ReadBool(enabled));
-
-    if (enabled)
-    {
-        error = otTmfProxyStart(mInstance, &NcpBase::HandleTmfProxyStream, this);
-    }
-    else
-    {
-        error = otTmfProxyStop(mInstance);
-    }
-
-exit:
-    return error;
-}
-
-void NcpBase::HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort, void *aContext)
-{
-    static_cast<NcpBase *>(aContext)->HandleTmfProxyStream(aMessage, aLocator, aPort);
-}
-
-void NcpBase::HandleTmfProxyStream(otMessage *aMessage, uint16_t aLocator, uint16_t aPort)
-{
-    otError  error  = OT_ERROR_NONE;
-    uint16_t length = otMessageGetLength(aMessage);
-    uint8_t  header = SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0;
-
-    SuccessOrExit(error = mEncoder.BeginFrame(header, SPINEL_CMD_PROP_VALUE_IS, SPINEL_PROP_THREAD_TMF_PROXY_STREAM));
-    SuccessOrExit(error = mEncoder.WriteUint16(length));
-    SuccessOrExit(error = mEncoder.WriteMessage(aMessage));
-
-    SuccessOrExit(error = mEncoder.WriteUint16(aLocator));
-    SuccessOrExit(error = mEncoder.WriteUint16(aPort));
-    SuccessOrExit(error = mEncoder.EndFrame());
-
-    // The `aMessage` is owned by the outbound frame and NCP buffer
-    // after frame was finished/ended successfully. It will be freed
-    // when the frame is successfully sent and removed.
-
-    aMessage = NULL;
-
-exit:
-
-    if (aMessage != NULL)
-    {
-        otMessageFree(aMessage);
-    }
-
-    if (error != OT_ERROR_NONE)
-    {
-        mChangedPropsSet.AddLastStatus(SPINEL_STATUS_DROPPED);
-        mUpdateChangedPropsTask.Post();
-    }
-}
-#endif // OPENTHREAD_ENABLE_TMF_PROXY
-
-otError NcpBase::DecodeOperationalDataset(otOperationalDataset &aDataset, const uint8_t **aTlvs, uint8_t *aTlvsLength)
+otError NcpBase::DecodeOperationalDataset(otOperationalDataset &aDataset,
+                                          const uint8_t **      aTlvs,
+                                          uint8_t *             aTlvsLength,
+                                          const otIp6Address ** aDestIpAddress,
+                                          bool                  aAllowEmptyValue)
 {
     otError error = OT_ERROR_NONE;
 
@@ -665,6 +564,11 @@ otError NcpBase::DecodeOperationalDataset(otOperationalDataset &aDataset, const 
         *aTlvsLength = 0;
     }
 
+    if (aDestIpAddress != NULL)
+    {
+        *aDestIpAddress = NULL;
+    }
+
     while (!mDecoder.IsAllReadInStruct())
     {
         unsigned int propKey;
@@ -675,140 +579,203 @@ otError NcpBase::DecodeOperationalDataset(otOperationalDataset &aDataset, const 
         switch (static_cast<spinel_prop_key_t>(propKey))
         {
         case SPINEL_PROP_DATASET_ACTIVE_TIMESTAMP:
-            SuccessOrExit(error = mDecoder.ReadUint64(aDataset.mActiveTimestamp));
-            aDataset.mIsActiveTimestampSet = true;
+
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                SuccessOrExit(error = mDecoder.ReadUint64(aDataset.mActiveTimestamp));
+            }
+
+            aDataset.mComponents.mIsActiveTimestampPresent = true;
             break;
 
         case SPINEL_PROP_DATASET_PENDING_TIMESTAMP:
-            SuccessOrExit(error = mDecoder.ReadUint64(aDataset.mPendingTimestamp));
-            aDataset.mIsPendingTimestampSet = true;
+
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                SuccessOrExit(error = mDecoder.ReadUint64(aDataset.mPendingTimestamp));
+            }
+
+            aDataset.mComponents.mIsPendingTimestampPresent = true;
             break;
 
         case SPINEL_PROP_NET_MASTER_KEY:
-        {
-            const uint8_t *key;
-            uint16_t       len;
 
-            SuccessOrExit(error = mDecoder.ReadData(key, len));
-            VerifyOrExit(len == OT_MASTER_KEY_SIZE, error = OT_ERROR_INVALID_ARGS);
-            memcpy(aDataset.mMasterKey.m8, key, len);
-            aDataset.mIsMasterKeySet = true;
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                const uint8_t *key;
+                uint16_t       len;
+
+                SuccessOrExit(error = mDecoder.ReadData(key, len));
+                VerifyOrExit(len == OT_MASTER_KEY_SIZE, error = OT_ERROR_INVALID_ARGS);
+                memcpy(aDataset.mMasterKey.m8, key, len);
+            }
+
+            aDataset.mComponents.mIsMasterKeyPresent = true;
             break;
-        }
 
         case SPINEL_PROP_NET_NETWORK_NAME:
-        {
-            const char *name;
-            size_t      len;
 
-            SuccessOrExit(error = mDecoder.ReadUtf8(name));
-            len = strlen(name);
-            VerifyOrExit(len <= OT_NETWORK_NAME_MAX_SIZE, error = OT_ERROR_INVALID_ARGS);
-            memcpy(aDataset.mNetworkName.m8, name, len + 1);
-            aDataset.mIsNetworkNameSet = true;
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                const char *name;
+                size_t      len;
+
+                SuccessOrExit(error = mDecoder.ReadUtf8(name));
+                len = strlen(name);
+                VerifyOrExit(len <= OT_NETWORK_NAME_MAX_SIZE, error = OT_ERROR_INVALID_ARGS);
+                memcpy(aDataset.mNetworkName.m8, name, len + 1);
+            }
+
+            aDataset.mComponents.mIsNetworkNamePresent = true;
             break;
-        }
 
         case SPINEL_PROP_NET_XPANID:
-        {
-            const uint8_t *xpanid;
-            uint16_t       len;
 
-            SuccessOrExit(error = mDecoder.ReadData(xpanid, len));
-            VerifyOrExit(len == OT_EXT_PAN_ID_SIZE, error = OT_ERROR_INVALID_ARGS);
-            memcpy(aDataset.mExtendedPanId.m8, xpanid, len);
-            aDataset.mIsExtendedPanIdSet = true;
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                const uint8_t *xpanid;
+                uint16_t       len;
+
+                SuccessOrExit(error = mDecoder.ReadData(xpanid, len));
+                VerifyOrExit(len == OT_EXT_PAN_ID_SIZE, error = OT_ERROR_INVALID_ARGS);
+                memcpy(aDataset.mExtendedPanId.m8, xpanid, len);
+            }
+
+            aDataset.mComponents.mIsExtendedPanIdPresent = true;
             break;
-        }
 
         case SPINEL_PROP_IPV6_ML_PREFIX:
-        {
-            const otIp6Address *addr;
-            uint8_t             prefixLen;
 
-            SuccessOrExit(error = mDecoder.ReadIp6Address(addr));
-            SuccessOrExit(error = mDecoder.ReadUint8(prefixLen));
-            VerifyOrExit(prefixLen == 64, error = OT_ERROR_INVALID_ARGS);
-            memcpy(aDataset.mMeshLocalPrefix.m8, addr, OT_MESH_LOCAL_PREFIX_SIZE);
-            aDataset.mIsMeshLocalPrefixSet = true;
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                const otIp6Address *addr;
+                uint8_t             prefixLen;
+
+                SuccessOrExit(error = mDecoder.ReadIp6Address(addr));
+                SuccessOrExit(error = mDecoder.ReadUint8(prefixLen));
+                VerifyOrExit(prefixLen == 64, error = OT_ERROR_INVALID_ARGS);
+                memcpy(aDataset.mMeshLocalPrefix.m8, addr, OT_MESH_LOCAL_PREFIX_SIZE);
+            }
+
+            aDataset.mComponents.mIsMeshLocalPrefixPresent = true;
             break;
-        }
 
         case SPINEL_PROP_DATASET_DELAY_TIMER:
-            SuccessOrExit(error = mDecoder.ReadUint32(aDataset.mDelay));
-            aDataset.mIsDelaySet = true;
+
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                SuccessOrExit(error = mDecoder.ReadUint32(aDataset.mDelay));
+            }
+
+            aDataset.mComponents.mIsDelayPresent = true;
             break;
 
         case SPINEL_PROP_MAC_15_4_PANID:
-            SuccessOrExit(error = mDecoder.ReadUint16(aDataset.mPanId));
-            aDataset.mIsPanIdSet = true;
+
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                SuccessOrExit(error = mDecoder.ReadUint16(aDataset.mPanId));
+            }
+
+            aDataset.mComponents.mIsPanIdPresent = true;
             break;
 
         case SPINEL_PROP_PHY_CHAN:
-        {
-            uint8_t channel;
 
-            SuccessOrExit(error = mDecoder.ReadUint8(channel));
-            aDataset.mChannel      = channel;
-            aDataset.mIsChannelSet = true;
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                uint8_t channel;
+
+                SuccessOrExit(error = mDecoder.ReadUint8(channel));
+                aDataset.mChannel = channel;
+            }
+
+            aDataset.mComponents.mIsChannelPresent = true;
             break;
-        }
 
         case SPINEL_PROP_NET_PSKC:
-        {
-            const uint8_t *psk;
-            uint16_t       len;
 
-            SuccessOrExit(error = mDecoder.ReadData(psk, len));
-            VerifyOrExit(len == OT_PSKC_MAX_SIZE, error = OT_ERROR_INVALID_ARGS);
-            memcpy(aDataset.mPSKc.m8, psk, OT_PSKC_MAX_SIZE);
-            aDataset.mIsPSKcSet = true;
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                const uint8_t *psk;
+                uint16_t       len;
+
+                SuccessOrExit(error = mDecoder.ReadData(psk, len));
+                VerifyOrExit(len == OT_PSKC_MAX_SIZE, error = OT_ERROR_INVALID_ARGS);
+                memcpy(aDataset.mPSKc.m8, psk, OT_PSKC_MAX_SIZE);
+            }
+
+            aDataset.mComponents.mIsPSKcPresent = true;
             break;
-        }
 
         case SPINEL_PROP_DATASET_SECURITY_POLICY:
-            SuccessOrExit(error = mDecoder.ReadUint16(aDataset.mSecurityPolicy.mRotationTime));
-            SuccessOrExit(error = mDecoder.ReadUint8(aDataset.mSecurityPolicy.mFlags));
-            aDataset.mIsSecurityPolicySet = true;
+
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                SuccessOrExit(error = mDecoder.ReadUint16(aDataset.mSecurityPolicy.mRotationTime));
+                SuccessOrExit(error = mDecoder.ReadUint8(aDataset.mSecurityPolicy.mFlags));
+            }
+
+            aDataset.mComponents.mIsSecurityPolicyPresent = true;
             break;
 
         case SPINEL_PROP_PHY_CHAN_SUPPORTED:
-        {
-            uint8_t channel;
 
-            aDataset.mChannelMaskPage0 = 0;
-
-            while (!mDecoder.IsAllReadInStruct())
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
             {
-                SuccessOrExit(error = mDecoder.ReadUint8(channel));
-                VerifyOrExit(channel <= 31, error = OT_ERROR_INVALID_ARGS);
-                aDataset.mChannelMaskPage0 |= (1U << channel);
+                uint8_t channel;
+
+                aDataset.mChannelMaskPage0 = 0;
+
+                while (!mDecoder.IsAllReadInStruct())
+                {
+                    SuccessOrExit(error = mDecoder.ReadUint8(channel));
+                    VerifyOrExit(channel <= 31, error = OT_ERROR_INVALID_ARGS);
+                    aDataset.mChannelMaskPage0 |= (1U << channel);
+                }
             }
 
-            aDataset.mIsChannelMaskPage0Set = true;
+            aDataset.mComponents.mIsChannelMaskPage0Present = true;
             break;
-        }
 
         case SPINEL_PROP_DATASET_RAW_TLVS:
-        {
-            const uint8_t *tlvs;
-            uint16_t       len;
 
-            SuccessOrExit(error = mDecoder.ReadData(tlvs, len));
-            VerifyOrExit(len <= 255, error = OT_ERROR_INVALID_ARGS);
-
-            if (aTlvs != NULL)
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
             {
-                *aTlvs = tlvs;
-            }
+                const uint8_t *tlvs;
+                uint16_t       len;
 
-            if (aTlvsLength != NULL)
-            {
-                *aTlvsLength = static_cast<uint8_t>(len);
+                SuccessOrExit(error = mDecoder.ReadData(tlvs, len));
+                VerifyOrExit(len <= 255, error = OT_ERROR_INVALID_ARGS);
+
+                if (aTlvs != NULL)
+                {
+                    *aTlvs = tlvs;
+                }
+
+                if (aTlvsLength != NULL)
+                {
+                    *aTlvsLength = static_cast<uint8_t>(len);
+                }
             }
 
             break;
-        }
+
+        case SPINEL_PROP_DATASET_DEST_ADDRESS:
+
+            if (!aAllowEmptyValue || !mDecoder.IsAllReadInStruct())
+            {
+                const otIp6Address *addr;
+
+                SuccessOrExit(error = mDecoder.ReadIp6Address(addr));
+
+                if (aDestIpAddress != NULL)
+                {
+                    *aDestIpAddress = addr;
+                }
+            }
+
+            break;
 
         default:
             break;
@@ -826,7 +793,7 @@ template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_ACTIVE_DATASET
     otError              error = OT_ERROR_NONE;
     otOperationalDataset dataset;
 
-    SuccessOrExit(error = DecodeOperationalDataset(dataset, NULL, NULL));
+    SuccessOrExit(error = DecodeOperationalDataset(dataset));
     error = otDatasetSetActive(mInstance, &dataset);
 
 exit:
@@ -838,14 +805,14 @@ template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_PENDING_DATASE
     otError              error = OT_ERROR_NONE;
     otOperationalDataset dataset;
 
-    SuccessOrExit(error = DecodeOperationalDataset(dataset, NULL, NULL));
+    SuccessOrExit(error = DecodeOperationalDataset(dataset));
     error = otDatasetSetPending(mInstance, &dataset);
 
 exit:
     return error;
 }
 
-template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_ACTIVE_DATASET>(void)
+template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_SET_ACTIVE_DATASET>(void)
 {
     otError              error = OT_ERROR_NONE;
     otOperationalDataset dataset;
@@ -859,7 +826,7 @@ exit:
     return error;
 }
 
-template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_PENDING_DATASET>(void)
+template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_SET_PENDING_DATASET>(void)
 {
     otError              error = OT_ERROR_NONE;
     otOperationalDataset dataset;
@@ -868,6 +835,36 @@ template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_PENDING_D
 
     SuccessOrExit(error = DecodeOperationalDataset(dataset, &extraTlvs, &extraTlvsLength));
     error = otDatasetSendMgmtPendingSet(mInstance, &dataset, extraTlvs, extraTlvsLength);
+
+exit:
+    return error;
+}
+
+template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_GET_ACTIVE_DATASET>(void)
+{
+    otError              error = OT_ERROR_NONE;
+    otOperationalDataset dataset;
+    const uint8_t *      extraTlvs;
+    uint8_t              extraTlvsLength;
+    const otIp6Address * destIpAddress;
+
+    SuccessOrExit(error = DecodeOperationalDataset(dataset, &extraTlvs, &extraTlvsLength, &destIpAddress, true));
+    error = otDatasetSendMgmtActiveGet(mInstance, &dataset.mComponents, extraTlvs, extraTlvsLength, destIpAddress);
+
+exit:
+    return error;
+}
+
+template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_MGMT_GET_PENDING_DATASET>(void)
+{
+    otError              error = OT_ERROR_NONE;
+    otOperationalDataset dataset;
+    const uint8_t *      extraTlvs;
+    uint8_t              extraTlvsLength;
+    const otIp6Address * destIpAddress;
+
+    SuccessOrExit(error = DecodeOperationalDataset(dataset, &extraTlvs, &extraTlvsLength, &destIpAddress, true));
+    error = otDatasetSendMgmtPendingGet(mInstance, &dataset.mComponents, extraTlvs, extraTlvsLength, destIpAddress);
 
 exit:
     return error;
