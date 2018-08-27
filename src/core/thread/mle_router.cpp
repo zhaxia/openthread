@@ -2074,7 +2074,7 @@ otError MleRouter::HandleChildIdRequest(const Message &         aMessage,
     VerifyOrExit(IsRouterRoleEnabled(), error = OT_ERROR_INVALID_STATE);
 
     // only process message when operating as a child, router, or leader
-    VerifyOrExit(mRole >= OT_DEVICE_ROLE_CHILD, error = OT_ERROR_INVALID_STATE);
+    VerifyOrExit(IsAttached(), error = OT_ERROR_INVALID_STATE);
 
     // Find Child
     aMessageInfo.GetPeerAddr().ToExtAddress(macAddr);
@@ -2640,7 +2640,7 @@ otError MleRouter::HandleDiscoveryRequest(const Message &aMessage, const Ip6::Me
         case MeshCoP::Tlv::kExtendedPanId:
             aMessage.Read(offset, sizeof(extPanId), &extPanId);
             VerifyOrExit(extPanId.IsValid(), error = OT_ERROR_PARSE);
-            VerifyOrExit(memcmp(netif.GetMac().GetExtendedPanId(), extPanId.GetExtendedPanId(), OT_EXT_PAN_ID_SIZE));
+            VerifyOrExit(memcmp(&netif.GetMac().GetExtendedPanId(), &extPanId.GetExtendedPanId(), OT_EXT_PAN_ID_SIZE));
 
             break;
 
@@ -3504,6 +3504,7 @@ void MleRouter::RestoreChildren(void)
         memset(child, 0, sizeof(*child));
 
         child->SetExtAddress(*static_cast<const Mac::ExtAddress *>(&childInfo.mExtAddress));
+        child->GetLinkInfo().Clear();
         child->SetRloc16(childInfo.mRloc16);
         child->SetTimeout(childInfo.mTimeout);
         child->SetDeviceMode(childInfo.mMode);

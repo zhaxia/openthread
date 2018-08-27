@@ -45,6 +45,7 @@ WPAN_NAME                                      = 'Network:Name'
 WPAN_PANID                                     = 'Network:PANID'
 WPAN_XPANID                                    = 'Network:XPANID'
 WPAN_KEY                                       = 'Network:Key'
+WPAN_KEY_INDEX                                 = 'Network:KeyIndex'
 WPAN_CHANNEL                                   = 'NCP:Channel'
 WPAN_HW_ADDRESS                                = 'NCP:HardwareAddress'
 WPAN_EXT_ADDRESS                               = 'NCP:ExtendedAddress'
@@ -77,8 +78,13 @@ WPAN_THREAD_CHILD_TABLE_ASVALMAP               = "Thread:ChildTable:AsValMap"
 WPAN_THREAD_CHILD_TABLE_ADDRESSES              = "Thread:ChildTable:Addresses"
 WPAN_THREAD_NEIGHBOR_TABLE                     = "Thread:NeighborTable"
 WPAN_THREAD_NEIGHBOR_TABLE_ASVALMAP            = "Thread:NeighborTable:AsValMap"
+WPAN_THREAD_NEIGHBOR_TABLE_ERR_RATES           = "Thread:NeighborTable:ErrorRates"
+WPAN_THREAD_NEIGHBOR_TABLE_ERR_RATES_AVVALMAP  = "Thread:NeighborTable:ErrorRates:AsValMap"
 WPAN_THREAD_ROUTER_TABLE                       = "Thread:RouterTable"
 WPAN_THREAD_ROUTER_TABLE_ASVALMAP              = "Thread:RouterTable:AsValMap"
+WPAN_THREAD_CHILD_TIMEOUT                      = "Thread:ChildTimeout"
+WPAN_THREAD_PARENT                             = "Thread:Parent"
+WPAN_THREAD_PARENT_ASVALMAP                    = "Thread:Parent:AsValMap"
 WPAN_THREAD_NETWORK_DATA_VERSION               = "Thread:NetworkDataVersion"
 WPAN_THREAD_STABLE_NETWORK_DATA                = "Thread:StableNetworkData"
 WPAN_THREAD_STABLE_NETWORK_DATA_VERSION        = "Thread:StableNetworkDataVersion"
@@ -89,10 +95,14 @@ WPAN_THREAD_OFF_MESH_ROUTES                    = "Thread:OffMeshRoutes"
 WPAN_THREAD_ON_MESH_PREFIXES                   = "Thread:OnMeshPrefixes"
 WPAN_THREAD_ROUTER_ROLE_ENABLED                = "Thread:RouterRole:Enabled"
 WPAN_THREAD_CONFIG_FILTER_RLOC_ADDRESSES       = "Thread:Config:FilterRLOCAddresses"
+WPAN_THREAD_ROUTER_UPGRADE_THRESHOLD           = "Thread:RouterUpgradeThreshold"
+WPAN_THREAD_ROUTER_DOWNGRADE_THRESHOLD         = "Thread:RouterDowngradeThreshold"
 WPAN_THREAD_ACTIVE_DATASET                     = "Thread:ActiveDataset"
 WPAN_THREAD_ACTIVE_DATASET_ASVALMAP            = "Thread:ActiveDataset:AsValMap"
 WPAN_THREAD_PENDING_DATASET                    = "Thread:PendingDataset"
 WPAN_THREAD_PENDING_DATASET_ASVALMAP           = "Thread:PendingDataset:AsValMap"
+WPAN_THREAD_ADDRESS_CACHE_TABLE                = "Thread:AddressCacheTable"
+WPAN_THREAD_ADDRESS_CACHE_TABLE_ASVALMAP       = "Thread:AddressCacheTable:AsValMap"
 
 WPAN_OT_LOG_LEVEL                              = "OpenThread:LogLevel"
 WPAN_OT_STEERING_DATA_ADDRESS                  = "OpenThread:SteeringData:Address"
@@ -111,6 +121,9 @@ WPAN_MAC_WHITELIST_ENTRIES_ASVALMAP            = "MAC:Whitelist:Entries:AsValMap
 WPAN_MAC_BLACKLIST_ENABLED                     = "MAC:Blacklist:Enabled"
 WPAN_MAC_BLACKLIST_ENTRIES                     = "MAC:Blacklist:Entries"
 WPAN_MAC_BLACKLIST_ENTRIES_ASVALMAP            = "MAC:Blacklist:Entries:AsValMap"
+
+WPAN_CHILD_SUPERVISION_INTERVAL                = "ChildSupervision:Interval"
+WPAN_CHILD_SUPERVISION_CHECK_TIMEOUT           = "ChildSupervision:CheckTimeout"
 
 WPAN_JAM_DETECTION_STATUS                      = "JamDetection:Status"
 WPAN_JAM_DETECTION_ENABLE                      = "JamDetection:Enable"
@@ -243,8 +256,10 @@ class Node(object):
         Node._all_nodes.add(self)
 
     def __del__(self):
-        self._wpantund_process.terminate()
-        self._tund_log_file.close()
+        self._wpantund_process.poll()
+        if self._wpantund_process.returncode is None:
+            self._wpantund_process.terminate()
+            self._wpantund_process.wait()
 
     def __repr__(self):
         return 'Node (index={}, interface_name={})'.format(self._index, self._interface_name)
@@ -313,17 +328,28 @@ class Node(object):
     def leave(self):
         return self.wpanctl('leave')
 
-    def form(self, name, channel=None, node_type=None):
+    def form(self, name, channel=None, channel_mask=None, panid=None, xpanid=None, key=None, key_index=None,
+            node_type=None, mesh_local_prefix=None, legacy_prefix=None):
         return self.wpanctl('form \"' + name + '\"' +
                             (' -c {}'.format(channel) if channel is not None else '') +
-                            (' -T {}'.format(node_type) if node_type is not None else ''))
+                            (' -m {}'.format(channel_mask) if channel_mask is not None else '') +
+                            (' -p {}'.format(panid) if panid is not None else '') +
+                            (' -x {}'.format(xpanid) if xpanid is not None else '') +
+                            (' -k {}'.format(key) if key is not None else '') +
+                            (' -i {}'.format(key_index) if key_index is not None else '') +
+                            (' -T {}'.format(node_type) if node_type is not None else '') +
+                            (' -M {}'.format(mesh_local_prefix) if mesh_local_prefix is not None else '') +
+                            (' -L {}'.format(legacy_prefix) if legacy_prefix is not None else ''))
 
-    def join(self, name, channel=None, node_type=None, panid=None, xpanid=None):
+
+    def join(self, name, channel=None, node_type=None, panid=None, xpanid=None, key=None):
         return self.wpanctl('join \"' + name + '\"' +
                             (' -c {}'.format(channel) if channel is not None else '') +
                             (' -T {}'.format(node_type) if node_type is not None else '') +
                             (' -p {}'.format(panid) if panid is not None else '') +
-                            (' -x {}'.format(xpanid) if xpanid is not None else ''))
+                            (' -x {}'.format(xpanid) if xpanid is not None else '') +
+                            (' -k {}'.format(key) if key is not None else '') +
+                            (' -n'))
 
     def active_scan(self, channel=None):
         return self.wpanctl('scan' +
@@ -403,22 +429,23 @@ class Node(object):
         if not node.is_associated():
             return "{} is not associated".format(node)
 
-        name = node.get(WPAN_NAME)
-        panid = node.get(WPAN_PANID)
-        xpanid = node.get(WPAN_XPANID)
-        channel = node.get(WPAN_CHANNEL)
-
-        if should_set_key:
-            netkey = node.get(WPAN_KEY)
-            self.set(WPAN_KEY, netkey[1:-1], binary_data=True)
-
-        return self.join(name[1:-1], channel=channel, node_type=node_type, panid=panid, xpanid=xpanid)
+        return self.join(
+            node.get(WPAN_NAME)[1:-1],
+            channel=node.get(WPAN_CHANNEL),
+            node_type=node_type,
+            panid=node.get(WPAN_PANID),
+            xpanid=node.get(WPAN_XPANID),
+            key=node.get(WPAN_KEY)[1:-1] if should_set_key else None)
 
     def whitelist_node(self, node):
         """Adds a given node (of type `Node`) to the whitelist of `self` and enables whitelisting on `self`"""
 
         self.add(WPAN_MAC_WHITELIST_ENTRIES, node.get(WPAN_EXT_ADDRESS)[1:-1])
         self.set(WPAN_MAC_WHITELIST_ENABLED, '1')
+
+    def un_whitelist_node(self, node):
+        """Removes a given node (of node `Node) from the whitelist"""
+        self.remove(WPAN_MAC_WHITELIST_ENTRIES, node.get(WPAN_EXT_ADDRESS)[1:-1])
 
     def is_in_scan_result(self, scan_result):
         """Checks if node is in the scan results
@@ -509,6 +536,13 @@ class Node(object):
                 else:
                     break
                 time.sleep(0.4)
+
+    @classmethod
+    def finalize_all_nodes(cls):
+        """Finalizes all previously created `Node` instances (stops the wpantund process)"""
+        for node in Node._all_nodes:
+            node._wpantund_process.terminate()
+            node._wpantund_process.wait()
 
     @classmethod
     def set_time_speedup_factor(cls, factor):
@@ -1119,3 +1153,104 @@ class NeighborEntry(object):
 def parse_neighbor_table_result(neighbor_table_list):
     """ Parses neighbor table list string and returns an array of `NeighborEntry` objects"""
     return [ NeighborEntry(item) for item in neighbor_table_list.split('\n')[1:-1] ]
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+class RouterTableEntry(object):
+    """ This object encapsulates a router table entry"""
+
+    def __init__(self, text):
+
+        # Example of expected text:
+        #
+        # `\t"8A970B3251810826, RLOC16:4000, RouterId:16, NextHop:43, PathCost:1, LQIn:3, LQOut:3, Age:3, LinkEst:yes"`
+        #
+
+        # We get rid of the first two chars `\t"' and last char '"', split the rest using whitespace as separator.
+        # Then remove any ',' at end of items in the list.
+        items = [item[:-1] if item[-1] ==',' else item for item in text[2:-1].split()]
+
+        # First item in the extended address
+        self._ext_address = items[0]
+
+        # Convert the rest into a dictionary by splitting the text using ':' as separator
+        dict = {item.split(':')[0] : item.split(':')[1] for item in items[1:]}
+
+        self._rloc16    = int(dict['RLOC16'], 16)
+        self._router_id = int(dict['RouterId'], 0)
+        self._next_hop  = int(dict['NextHop'], 0)
+        self._path_cost = int(dict['PathCost'], 0)
+        self._age       = int(dict['Age'], 0)
+        self._le        = (dict['LinkEst'] == 'yes')
+
+    @property
+    def ext_address(self):
+        return self._ext_address
+
+    @property
+    def rloc16(self):
+        return self._rloc16
+
+    @property
+    def router_id(self):
+        return self._router_id
+
+    @property
+    def next_hop(self):
+        return self._next_hop
+
+    @property
+    def path_cost(self):
+        return self._path_cost
+
+    def is_link_established(self):
+        return self._le
+
+    def __repr__(self):
+        return 'RouterTableEntry({})'.format(self.__dict__)
+
+def parse_router_table_result(router_table_list):
+    """ Parses router table list string and returns an array of `RouterTableEntry` objects"""
+    return [ RouterTableEntry(item) for item in router_table_list.split('\n')[1:-1] ]
+
+#- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+class AddressCacheEntry(object):
+    """ This object encapsulates an address cache entry"""
+
+    def __init__(self, text):
+
+        # Example of expected text:
+        #
+        # '\t"fd00:1234::d427:a1d9:6204:dbae -> 0x9c00, age:0"'
+        #
+
+        # We get rid of the first two chars `\t"' and last char '"', split the rest using whitespace as separator.
+        # Then remove any ',' at end of items in the list.
+        items = [item[:-1] if item[-1] ==',' else item for item in text[2:-1].split()]
+
+        # First item in the extended address
+        self._address = items[0]
+        self._rloc16    = int(items[2], 16)
+
+        # Convert the rest into a dictionary by splitting the text using ':' as separator
+        dict = {item.split(':')[0] : item.split(':')[1] for item in items[3:]}
+
+        self._age       = int(dict['age'], 0)
+
+    @property
+    def address(self):
+        return self._address
+
+    @property
+    def rloc16(self):
+        return self._rloc16
+
+    @property
+    def age(self):
+        return self._age
+
+    def __repr__(self):
+        return 'AddressCacheEntry({})'.format(self.__dict__)
+
+def parse_address_cache_table_result(addr_cache_table_list):
+    """ Parses address cache table list string and returns an array of `AddressCacheEntry` objects"""
+    return [ AddressCacheEntry(item) for item in addr_cache_table_list.split('\n')[1:-1] ]

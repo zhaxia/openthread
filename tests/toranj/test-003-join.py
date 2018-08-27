@@ -40,6 +40,9 @@ print 'Starting \'{}\''.format(test_name)
 #-----------------------------------------------------------------------------------------------------------------------
 # Creating `wpan.Nodes` instances
 
+speedup = 4
+wpan.Node.set_time_speedup_factor(speedup)
+
 node1 = wpan.Node()
 node2 = wpan.Node()
 
@@ -98,6 +101,8 @@ verify(node2.get(wpan.WPAN_STATE) == wpan.STATE_ASSOCIATED)
 
 #-----------------------------------------------------------------------------------------------------------------------
 # Test finished
+
+wpan.Node.finalize_all_nodes()
 
 print '\'{}\' passed.'.format(test_name)
 
