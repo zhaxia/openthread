@@ -161,6 +161,21 @@ public:
     otError SetTransmitPower(int8_t aPower);
 
     /**
+     * This method returns the radio capabilities.
+     *
+     * @returns The radio capability bit vector.
+     *
+     */
+    otRadioCaps GetRadioCaps(void) const { return mRadioCaps; }
+
+    /**
+     * This method gets the most recent RSSI measurement.
+     *
+     * @returns The RSSI in dBm when it is valid.  127 when RSSI is invalid.
+     */
+    int8_t GetRssi(void);
+
+    /**
      * This method returns the radio receive sensitivity value.
      *
      * @returns The radio receive sensitivity value in dBm.
@@ -170,7 +185,7 @@ public:
      * @retval  OT_ERROR_RESPONSE_TIMEOUT   Failed due to no response received from the transceiver.
      *
      */
-    uint8_t GetReceiveSensitivity(void) const { return mRxSensitivity; }
+    int8_t GetReceiveSensitivity(void) const { return mRxSensitivity; }
 
     /**
      * This method returns a reference to the transmit buffer.
@@ -271,6 +286,19 @@ public:
     otError ClearSrcMatchExtEntries(void);
 
     /**
+     * This method begins the energy scan sequence on the radio.
+     *
+     * @param[in]  aScanChannel     The channel to perform the energy scan on.
+     * @param[in]  aScanDuration    The duration, in milliseconds, for the channel to be scanned.
+     *
+     * @retval  OT_ERROR_NONE               Succeeded.
+     * @retval  OT_ERROR_BUSY               Failed due to another operation is on going.
+     * @retval  OT_ERROR_RESPONSE_TIMEOUT   Failed due to no response received from the transceiver.
+     *
+     */
+    otError EnergyScan(uint8_t aScanChannel, uint16_t aScanDuration);
+
+    /**
      * This method switches the radio state from Receive to Transmit.
      *
      * @param[in] aFrame     A reference to the transmitted frame.
@@ -353,6 +381,56 @@ public:
      */
     void Process(const fd_set &aReadFdSet, const fd_set &aWriteFdSet);
 
+#if OPENTHREAD_POSIX_VIRTUAL_TIME
+    /**
+     * This method performs radio spinel processing in simulation mode.
+     *
+     * @param[in]   aEvent  A reference to the current received simulation event.
+     *
+     */
+    void Process(const struct Event &aEvent);
+
+    /**
+     * This method updates the @p aTimeout for processing radio spinel in simulation mode.
+     *
+     * @param[out]   aTimeout    A reference to the current timeout.
+     *
+     */
+    void Update(struct timeval &aTimeout);
+#endif
+
+#if OPENTHREAD_ENABLE_DIAG
+    /**
+     * This method enables/disables the factory diagnostics mode.
+     *
+     * @param[in]  aMode  TRUE to enable diagnostics mode, FALSE otherwise.
+     *
+     */
+    void SetDiagEnabled(bool aMode) { mDiagMode = aMode; }
+
+    /**
+     * This method indicates whether or not factory diagnostics mode is enabled.
+     *
+     * @returns TRUE if factory diagnostics mode is enabled, FALSE otherwise.
+     *
+     */
+    bool IsDiagEnabled(void) const { return mDiagMode; }
+
+    /**
+     * This method processes platform diagnostics commands.
+     *
+     * @param[in]   aString         A NULL-terminated input string.
+     * @param[out]  aOutput         The diagnostics execution result.
+     * @param[in]   aOutputMaxLen   The output buffer size.
+     *
+     * @retval  OT_ERROR_NONE               Succeeded.
+     * @retval  OT_ERROR_BUSY               Failed due to another operation is on going.
+     * @retval  OT_ERROR_RESPONSE_TIMEOUT   Failed due to no response received from the transceiver.
+     *
+     */
+    otError PlatDiagProcess(const char *aString, char *aOutput, size_t aOutputMaxLen);
+#endif
+
 private:
     enum
     {
@@ -360,6 +438,7 @@ private:
         kMaxWaitTime    = 2000, ///< Max time to wait for response in milliseconds.
     };
 
+    void    DecodeHdlc(const uint8_t *aData, uint16_t aLength);
     void    ReadAll(void);
     otError WriteAll(const uint8_t *aBuffer, uint16_t aLength);
     void    ProcessFrameQueue(void);
@@ -494,6 +573,7 @@ private:
     otExtAddress mExtendedAddress;
     uint16_t     mShortAddress;
     uint16_t     mPanid;
+    otRadioCaps  mRadioCaps;
     uint8_t      mChannel;
     int8_t       mRxSensitivity;
     uint8_t      mTxState;
@@ -505,6 +585,12 @@ private:
     bool         mIsDecoding : 1;     ///< Decoding hdlc frames.
     bool         mIsPromiscuous : 1;  ///< Promiscuous mode.
     bool         mIsReady : 1;        ///< NCP ready.
+
+#if OPENTHREAD_ENABLE_DIAG
+    bool   mDiagMode;
+    char * mDiagOutput;
+    size_t mDiagOutputMaxLen;
+#endif
 };
 
 } // namespace ot

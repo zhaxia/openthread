@@ -32,7 +32,11 @@
 #define MBEDTLS_SHA256_ALT
 #endif // DISABLE_CC310
 
+#define MBEDTLS_ECDH_C
+#define MBEDTLS_ECDSA_C
+
 #if defined(__ICCARM__)
     _Pragma("diag_suppress=Pe549")
     _Pragma("diag_suppress=Pa082")
+    _Pragma("diag_suppress=Pa084")
 #endif

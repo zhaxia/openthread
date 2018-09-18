@@ -1776,4 +1776,78 @@
 #define OPENTHREAD_CONFIG_POSIX_SETTINGS_PATH "tmp"
 #endif
 
+/**
+ * @def OPENTHREAD_CONFIG_FAILED_CHILD_TRANSMISSIONS
+ *
+ * This setting configures the number of consecutive MCPS.DATA-Confirms having Status NO_ACK
+ * that cause a Child-to-Parent link to be considered broken.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_FAILED_CHILD_TRANSMISSIONS
+#define OPENTHREAD_CONFIG_FAILED_CHILD_TRANSMISSIONS 4
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_MINIMUM_POLL_PERIOD
+ *
+ * This setting configures the minimum poll period in milliseconds.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MINIMUM_POLL_PERIOD
+#define OPENTHREAD_CONFIG_MINIMUM_POLL_PERIOD 10
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_RETX_POLL_PERIOD
+ *
+ * This setting configures the retx poll period in milliseconds.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_RETX_POLL_PERIOD
+#define OPENTHREAD_CONFIG_RETX_POLL_PERIOD 1000
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_DEFAULT_SED_BUFFER_SIZE
+ *
+ * This setting configures the default buffer size for IPv6 datagram destined for an attached SED.
+ * A Thread Router MUST be able to buffer at least one 1280-octet IPv6 datagram for an attached SED according to
+ * the Thread Conformance Specification.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_DEFAULT_SED_BUFFER_SIZE
+#define OPENTHREAD_CONFIG_DEFAULT_SED_BUFFER_SIZE 1280
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_DEFAULT_SED_DATAGRAM_COUNT
+ *
+ * This setting configures the default datagram count of 106-octet IPv6 datagram per attached SED.
+ * A Thread Router MUST be able to buffer at least one 106-octet IPv6 datagram per attached SED according to
+ * the Thread Conformance Specification.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_DEFAULT_SED_DATAGRAM_COUNT
+#define OPENTHREAD_CONFIG_DEFAULT_SED_DATAGRAM_COUNT 1
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_IPV6_DEFAULT_HOP_LIMIT
+ *
+ * This setting configures the default hop limit of IPv6.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_IPV6_DEFAULT_HOP_LIMIT
+#define OPENTHREAD_CONFIG_IPV6_DEFAULT_HOP_LIMIT 64
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_IPV6_DEFAULT_MAX_DATAGRAM
+ *
+ * This setting configures the max datagram length of IPv6.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_IPV6_DEFAULT_MAX_DATAGRAM
+#define OPENTHREAD_CONFIG_IPV6_DEFAULT_MAX_DATAGRAM 1280
+#endif
 #endif // OPENTHREAD_CORE_DEFAULT_CONFIG_H_

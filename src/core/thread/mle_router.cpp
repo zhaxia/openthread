@@ -4292,8 +4292,8 @@ void MleRouter::FillConnectivityTlv(ConnectivityTlv &aTlv)
 
     aTlv.SetLeaderCost((cost < kMaxRouteCost) ? cost : static_cast<uint8_t>(kMaxRouteCost));
     aTlv.SetIdSequence(mRouterTable.GetRouterIdSequence());
-    aTlv.SetSedBufferSize(1280);
-    aTlv.SetSedDatagramCount(1);
+    aTlv.SetSedBufferSize(OPENTHREAD_CONFIG_DEFAULT_SED_BUFFER_SIZE);
+    aTlv.SetSedDatagramCount(OPENTHREAD_CONFIG_DEFAULT_SED_DATAGRAM_COUNT);
 }
 
 otError MleRouter::AppendConnectivity(Message &aMessage)
@@ -4568,11 +4568,6 @@ bool MleRouter::HasSmallNumberOfChildren(void)
 
 exit:
     return false;
-}
-
-int8_t MleRouter::GetAssignParentPriority(void) const
-{
-    return mParentPriority;
 }
 
 otError MleRouter::SetAssignParentPriority(int8_t aParentPriority)

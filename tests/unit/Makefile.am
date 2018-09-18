@@ -127,12 +127,6 @@ check_PROGRAMS                                                      = \
 XFAIL_TESTS                                                         = \
     $(NULL)
 
-if OPENTHREAD_ENABLE_DIAG
-check_PROGRAMS                                                     += \
-    test-diag                                                         \
-    $(NULL)
-endif # OPENTHREAD_ENABLE_DIAG
-
 if OPENTHREAD_ENABLE_NCP
 check_PROGRAMS                                                     += \
     test-ncp-buffer                                                   \
@@ -157,6 +151,7 @@ TESTS                                                               = \
 # made available to all programs and scripts in TESTS.
 
 TESTS_ENVIRONMENT                                                   = \
+    top_srcdir='$(top_srcdir)'                                        \
     $(NULL)
 
 # Source, compiler, and linker options for test programs.
@@ -227,25 +222,11 @@ test_timer_SOURCES           = test_platform.cpp test_timer.cpp
 test_toolchain_LDADD         = $(COMMON_LDADD)
 test_toolchain_SOURCES       = test_platform.cpp test_toolchain.cpp test_toolchain_c.c
 
-if OPENTHREAD_ENABLE_DIAG
-test_diag_LDADD              = $(top_builddir)/src/diag/libopenthread-diag.a
-test_diag_SOURCES            = test_diag.cpp
-if OPENTHREAD_ENABLE_POSIX_APP
-test_diag_LDADD             += $(top_builddir)/src/posix/platform/libopenthread-posix.a \
-                               -lutil                                                   \
-                               $(NULL)
-endif
-if OPENTHREAD_EXAMPLES_POSIX
-test_diag_LDADD             += $(top_builddir)/examples/platforms/posix/libopenthread-posix.a
-endif
-endif
-
 PRETTY_FILES                                                        = \
     $(test_address_sanitizer_SOURCES)                                 \
     $(test_aes_SOURCES)                                               \
     $(test_child_SOURCES)                                             \
     $(test_child_table_SOURCES)                                       \
-    $(test_diag_SOURCES)                                              \
     $(test_heap_SOURCES)                                              \
     $(test_hmac_sha256_SOURCES)                                       \
     $(test_link_quality_SOURCES)                                      \

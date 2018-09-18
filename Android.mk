@@ -168,6 +168,7 @@ LOCAL_SRC_FILES                                          := \
     src/core/utils/missing_strlcpy.c                        \
     src/core/utils/missing_strlcat.c                        \
     src/core/utils/missing_strnlen.c                        \
+    src/core/utils/parse_cmdline.cpp                        \
     src/core/utils/slaac_address.cpp                        \
     src/diag/diag_process.cpp                               \
     src/diag/openthread-diag.cpp                            \
@@ -177,7 +178,6 @@ LOCAL_SRC_FILES                                          := \
     src/ncp/spinel_decoder.cpp                              \
     src/ncp/spinel_encoder.cpp                              \
     src/posix/platform/alarm.c                              \
-    src/posix/platform/diag.c                               \
     src/posix/platform/misc.c                               \
     src/posix/platform/logging.c                            \
     src/posix/platform/random.c                             \
