@@ -19,9 +19,9 @@ Alternatively, platform developers may follow the instructions below to add a ne
 
 1. Copy "OpenThread.png" to `C:\GRL\Thread1.1\Web\images`.
 
-2. Copy "deviceInputFields.xml" to `\GRL\Thread1.1\Web\data`.
+2. Copy "deviceInputFields.xml" to `C:\GRL\Thread1.1\Web\data`.
 
-3. Copy "OpenThread.py" to `\GRL\Thread1.1\Thread_Harness\THCI`.
+3. Copy "OpenThread.py" to `C:GRL\Thread1.1\Thread_Harness\THCI`.
 
 4. Connect the DUT (Device Under Test), a sniffer, and CC2538DK (or other hardware running OpenThread, as the reference device)
    to the Host PC.
@@ -35,11 +35,11 @@ Alternatively, platform developers may follow the instructions below to add a ne
 
 ## OpenThread WpanCtl Environment Setup ##
 
-1. Copy "OpenThread.png" to `\GRL\Thread1.1\Web\images`.
+1. Copy "OpenThread_WpanCtl.png" to `C:\GRL\Thread1.1\Web\images`.
 
-2. Copy "deviceInputFields.xml" to `\GRL\Thread1.1\Web\data`.
+2. Copy "deviceInputFields.xml" to `C:\GRL\Thread1.1\Web\data`.
 
-3. Copy "OpenThread_WpanCtl.py" to `\GRL\Thread1.1\Thread_Harness\THCI`.
+3. Copy "OpenThread_WpanCtl.py" to `C:\GRL\Thread1.1\Thread_Harness\THCI`.
 
 4. Connect the NCP board (nRF52840) to the Raspberry Pi's USB port and verify that the `wpanctl` command works.
 
@@ -49,7 +49,7 @@ Alternatively, platform developers may follow the instructions below to add a ne
 6. Connect the DUT (with Step 5's adapter), sniffer, and other golden devices (as reference devices) to the Host PC.
 
 7. Get the DUT serial port hardware identifier and add a new platform group named OpenThread_WpanCtl in
-   `\GRL\Thread1.1\Config\Configuration.ini`. See https://openthread.io/certification/automation-setup#acting_as_a_new_reference_platform
+   `C:\GRL\Thread1.1\Config\Configuration.ini`. See https://openthread.io/certification/automation-setup#acting_as_a_new_reference_platform
    for more information.
 
 8. Launch the Thread Test Harness Software, modify the default configuration if needed, and select **Start**.
@@ -57,3 +57,27 @@ Alternatively, platform developers may follow the instructions below to add a ne
 9. Drag the "OpenThread_WpanCtl: Wpantund + NCP" reference device to the **Test Bed** section with the desired number.
 
 10. Select one or more test cases to execute.
+
+
+The above is for the serial connection mode between the DUT and the Host PC. The ssh connection mode is
+also supported for OpenThread WpanCtl, but it can not be auto-discovered and only can be used via ‘Drag and Add’ way
+in the ‘Configure Test Bed’ Page of Test Harness. The configuration is as following:
+
+1. Make Raspberry Pi and Host PC in the same LAN.
+
+2. Login Raspberry Pi, sudo raspi-config, then -> interfacing options -> enable ssh.
+
+3. Install python paramiko package to `C:\GRL\Pyton2.7`
+
+4. Copy "OpenThread_WpanCtl.png" to `C:\GRL\Thread1.1\Web\images`.
+
+5. Copy "deviceInputFields.xml" to `C:\GRL\Thread1.1\Web\data`.
+
+6. Copy "OpenThread_WpanCtl.py" to `C:\GRL\Thread1.1\Thread_Harness\THCI`.
+
+7. Launch the Thread Test Harness Software, modify the default configuration if needed, and select **Start**.
+
+8. Drag the "OpenThread_WpanCtl: Wpantund + NCP (SSH)" reference device to the **Test Bed** section with the desired number.
+   Then fill in the Raspberry Pi IPv4 address and port and click `connect` icon button to get the NCP version.
+
+9. Select one or more test cases to execute.

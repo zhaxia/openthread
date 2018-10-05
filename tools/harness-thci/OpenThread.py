@@ -287,7 +287,7 @@ class OpenThread(IThci):
            mode: thread device mode
            r: rx-on-when-idle
            s: secure IEEE 802.15.4 data request
-           d: full function device
+           d: full thread device
            n: full network data
 
         Returns:
@@ -1829,8 +1829,7 @@ class OpenThread(IThci):
             filterByPrefix: a given expected global IPv6 prefix to be matched
 
         Returns:
-            a global IPv6 address that matches with filterByPrefix
-            or None if no matched GUA
+            a global IPv6 address
         """
         print '%s call getGUA' % self.port
         print filterByPrefix
@@ -1847,7 +1846,7 @@ class OpenThread(IThci):
                     if fullIp.startswith(filterByPrefix):
                         return fullIp
                 print 'no global address matched'
-                return None
+                return str(globalAddrs[0])
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger("getGUA() Error: " + str(e))
 

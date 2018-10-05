@@ -107,6 +107,7 @@ SOURCES_COMMON                      = \
     api/channel_monitor_api.cpp       \
     api/child_supervision_api.cpp     \
     api/coap_api.cpp                  \
+    api/coap_secure_api.cpp           \
     api/commissioner_api.cpp          \
     api/crypto_api.cpp                \
     api/dataset_api.cpp               \
@@ -149,6 +150,7 @@ SOURCES_COMMON                      = \
     crypto/mbedtls.cpp                \
     crypto/pbkdf2_cmac.cpp            \
     crypto/sha256.cpp                 \
+    mac/link_raw.cpp                  \
     mac/mac.cpp                       \
     mac/mac_filter.cpp                \
     mac/mac_frame.cpp                 \
@@ -229,6 +231,7 @@ libopenthread_radio_a_SOURCES       = \
     common/string.cpp                 \
     common/tasklet.cpp                \
     common/timer.cpp                  \
+    mac/link_raw.cpp                  \
     mac/mac_frame.cpp                 \
     thread/link_quality.cpp           \
     utils/missing_strlcat.c           \
@@ -249,7 +252,6 @@ HEADERS_COMMON                      = \
     openthread-core-config-check.h    \
     openthread-core-config.h          \
     openthread-core-default-config.h  \
-    api/link_raw.hpp                  \
     coap/coap.hpp                     \
     coap/coap_header.hpp              \
     coap/coap_secure.hpp              \
@@ -277,6 +279,7 @@ HEADERS_COMMON                      = \
     crypto/mbedtls.hpp                \
     crypto/pbkdf2_cmac.h              \
     crypto/sha256.hpp                 \
+    mac/link_raw.hpp                  \
     mac/mac.hpp                       \
     mac/mac_filter.hpp                \
     mac/mac_frame.hpp                 \

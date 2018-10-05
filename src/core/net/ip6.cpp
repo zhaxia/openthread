@@ -67,10 +67,10 @@ Ip6::Ip6(Instance &aInstance)
 {
 }
 
-Message *Ip6::NewMessage(uint16_t aReserved)
+Message *Ip6::NewMessage(uint16_t aReserved, uint8_t aPriority)
 {
-    return GetInstance().GetMessagePool().New(Message::kTypeIp6,
-                                              sizeof(Header) + sizeof(HopByHopHeader) + sizeof(OptionMpl) + aReserved);
+    return GetInstance().GetMessagePool().New(
+        Message::kTypeIp6, sizeof(Header) + sizeof(HopByHopHeader) + sizeof(OptionMpl) + aReserved, aPriority);
 }
 
 uint16_t Ip6::UpdateChecksum(uint16_t aChecksum, const Address &aAddress)
@@ -138,7 +138,7 @@ otError Ip6::AddTunneledMplOption(Message &aMessage, Header &aHeader, MessageInf
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(0x00fc);
 
     tunnelHeader.Init();
-    tunnelHeader.SetHopLimit(kDefaultHopLimit);
+    tunnelHeader.SetHopLimit(static_cast<uint8_t>(kDefaultHopLimit));
     tunnelHeader.SetPayloadLength(aHeader.GetPayloadLength() + sizeof(tunnelHeader));
     tunnelHeader.SetDestination(messageInfo.GetPeerAddr());
     tunnelHeader.SetNextHeader(kProtoIp6);
@@ -361,7 +361,7 @@ otError Ip6::SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, IpProto 
     header.Init();
     header.SetPayloadLength(payloadLength);
     header.SetNextHeader(aIpProto);
-    header.SetHopLimit(aMessageInfo.mHopLimit);
+    header.SetHopLimit(aMessageInfo.mHopLimit ? aMessageInfo.mHopLimit : static_cast<uint8_t>(kDefaultHopLimit));
 
     if (aMessageInfo.GetSockAddr().IsUnspecified() || aMessageInfo.GetSockAddr().IsMulticast())
     {

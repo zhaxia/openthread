@@ -144,6 +144,7 @@ libopenthread_cli_ftd_a_CPPFLAGS =    \
 SOURCES_COMMON =                      \
     cli.cpp                           \
     cli_coap.cpp                      \
+    cli_coap_secure.cpp               \
     cli_console.cpp                   \
     cli_dataset.cpp                   \
     cli_uart.cpp                      \
@@ -161,11 +162,13 @@ libopenthread_cli_mtd_a_SOURCES =     \
 noinst_HEADERS                      = \
     cli.hpp                           \
     cli_coap.hpp                      \
+    cli_coap_secure.hpp               \
     cli_console.hpp                   \
     cli_dataset.hpp                   \
     cli_server.hpp                    \
     cli_uart.hpp                      \
     cli_udp_example.hpp               \
+    x509_cert_key.hpp                 \
     $(NULL)
 
 if OPENTHREAD_BUILD_COVERAGE

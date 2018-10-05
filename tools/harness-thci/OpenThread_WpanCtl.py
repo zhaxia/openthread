@@ -39,6 +39,7 @@ import logging
 from Queue import Queue
 
 import serial
+import paramiko
 from IThci import IThci
 from GRLLibs.UtilityModules.Test import Thread_Device_Role, Device_Data_Requirement, MacType
 from GRLLibs.UtilityModules.enums import PlatformDiagnosticPacket_Direction, PlatformDiagnosticPacket_Type
@@ -60,6 +61,10 @@ class OpenThread_WpanCtl(IThci):
     LOWEST_POSSIBLE_PARTATION_ID = 0x1
     LINK_QUALITY_CHANGE_TIME = 100
 
+    # Used for reference firmware version control for Test Harness.
+    # This variable will be updated to match the OpenThread reference firmware officially released.
+    firmwarePrefix = "OPENTHREAD/"
+
     def __init__(self, **kwargs):
         """initialize the serial port and default network parameters
         Args:
@@ -69,13 +74,19 @@ class OpenThread_WpanCtl(IThci):
         try:
             self.UIStatusMsg = ''
             self.mac = kwargs.get('EUI')
-            self.port = kwargs.get('SerialPort')
             self.handle = None
             self.AutoDUTEnable = False
             self._is_net = False                  # whether device is through ser2net
             self.logStatus = {'stop':'stop', 'running':'running', 'pauseReq':'pauseReq', 'paused':'paused'}
             self.joinStatus = {'notstart':'idle', 'ongoing':'discover', 'succeed':'joined', 'failed':'failed'}
             self.logThreadStatus = self.logStatus['stop']
+            self.connectType = (kwargs.get('Param5')).strip().lower() if kwargs.get('Param5') is not None else 'usb'
+            if self.connectType == 'ip':
+                self.dutIpv4 = kwargs.get('TelnetIP')
+                self.dutPort = kwargs.get('TelnetPort')
+                self.port = self.dutIpv4 + ':' + self.dutPort
+            else:
+                self.port = kwargs.get('SerialPort')
             self.intialize()
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger('initialize() Error: ' + str(e))
@@ -119,9 +130,6 @@ class OpenThread_WpanCtl(IThci):
         if self._is_net:
             return self.handle.recv(size)
         else:
-            #read_data =  self.handle.read(size)
-            #print "read_data : %s" % read_data
-            #return read_data
             return self.handle.read(size)
 
     def _write(self, data):
@@ -192,14 +200,20 @@ class OpenThread_WpanCtl(IThci):
             while self.logThreadStatus != self.logStatus['paused'] and self.logThreadStatus != self.logStatus['stop']:
                 pass
 
+        ssh_stdin = None
+        ssh_stdout = None
+        ssh_stderr = None
         try:
             # command retransmit times
             retry_times = 3
             while retry_times > 0:
                 retry_times -= 1
                 try:
-                    self._sendline(cmd)
-                    self._expect(cmd)
+                    if self._is_net:
+                        ssh_stdin, ssh_stdout, ssh_stderr = self.handle.exec_command(cmd)
+                    else:
+                        self._sendline(cmd)
+                        self._expect(cmd)
                 except Exception as e:
                     logging.exception('%s: failed to send command[%s]: %s', self.port, cmd, str(e))
                     if retry_times == 0:
@@ -210,28 +224,53 @@ class OpenThread_WpanCtl(IThci):
             line = None
             response = []
             retry_times = 10
-            while retry_times > 0:
-                line = self._readline()
-                print "read line: %s" % line
-                logging.info('%s: the read line is[%s]', self.port, line)
-                if line:
-                    response.append(line)
-                    print "response: %s" % response
-                    if re.match(WPAN_CARRIER_PROMPT, line):
-                        break
-                    elif re.search(r'Not\s+Found|failed\s+with\s+error', line, re.M|re.I):
-                        print "Command failed"
-                        return 'Fail'
+            stdout_lines = []
+            stderr_lines = []
+            if self._is_net:
+                stdout_lines = ssh_stdout.readlines()
+                stderr_lines = ssh_stderr.readlines()
+                if stderr_lines:
+                    for stderr_line in stderr_lines:
+                        if re.search(r'Not\s+Found|failed\s+with\s+error', stderr_line.strip(), re.M | re.I):
+                            print "Command failed:" + stderr_line
+                            return 'Fail'
+                        print "Got line: " + stderr_line
+                        logging.info('%s: the read line is[%s]', self.port, stderr_line)
+                        response.append(str(stderr_line.strip()))
+                elif stdout_lines:
+                    for stdout_line in stdout_lines:
+                        logging.info('%s: the read line is[%s]', self.port, stdout_line)
+                        if re.search(r'Not\s+Found|failed\s+with\s+error', stdout_line.strip(), re.M | re.I):
+                            print "Command failed"
+                            return 'Fail'
+                        print "Got line: " + stdout_line
+                        logging.info('%s: send command[%s] done!', self.port, cmd)
+                        response.append(str(stdout_line.strip()))
+                response.append(WPAN_CARRIER_PROMPT)
+                return response
+            else:
+                while retry_times > 0:
+                    line = self._readline()
+                    print "read line: %s" % line
+                    logging.info('%s: the read line is[%s]', self.port, line)
+                    if line:
+                        response.append(line)
+                        print "response: %s" % response
+                        if re.match(WPAN_CARRIER_PROMPT, line):
+                            break
+                        elif re.search(r'Not\s+Found|failed\s+with\s+error', line, re.M | re.I):
+                            print "Command failed"
+                            return 'Fail'
+                        else:
+                            retry_times -= 1
+                            time.sleep(0.2)
                     else:
                         retry_times -= 1
-                        time.sleep(0.1)
-                else:
-                    retry_times -= 1
-                    time.sleep(1)
-            if not re.match(WPAN_CARRIER_PROMPT, line):
-                raise Exception('%s: failed to find end of response' % self.port)
-            logging.info('%s: send command[%s] done!', self.port, cmd)
-            return response
+                        time.sleep(1)
+                if not re.match(WPAN_CARRIER_PROMPT, line):
+                    raise Exception('%s: failed to find end of response' % self.port)
+                logging.info('%s: send command[%s] done!', self.port, cmd)
+                return response
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger('sendCommand() Error: ' + str(e))
             raise
@@ -333,7 +372,7 @@ class OpenThread_WpanCtl(IThci):
            mode: thread device mode. 15=rsdn, 13=rsn, 4=s
            r: rx-on-when-idle
            s: secure IEEE 802.15.4 data request
-           d: full function device
+           d: full thread device
            n: full network data
 
         Returns:
@@ -380,7 +419,7 @@ class OpenThread_WpanCtl(IThci):
         """
         print 'call __setRouterDowngradeThreshold'
         try:
-            cmd = WPANCTL_CMD + 'setprop Thread:RouterDowngradeThreshold %s %s' % str(iThreshold)
+            cmd = WPANCTL_CMD + 'setprop Thread:RouterDowngradeThreshold %s' % str(iThreshold)
             return self.__sendCommand(cmd)[0] != 'Fail'
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger('setRouterDowngradeThreshold() Error: ' + str(e))
@@ -564,7 +603,7 @@ class OpenThread_WpanCtl(IThci):
     def __convertIp6PrefixStringToIp6Address(self, strIp6Prefix):
         """convert IPv6 prefix string to IPv6 dotted-quad format
            for example:
-           2001000000000000 -> 2001::
+           2001000000000000 -> 2001:0000:0000:0000::
 
         Args:
             strIp6Prefix: IPv6 address string
@@ -572,7 +611,14 @@ class OpenThread_WpanCtl(IThci):
         Returns:
             IPv6 address dotted-quad format
         """
-        return strIp6Prefix[0:4] + '::'
+        prefix1 = strIp6Prefix.rstrip('L')
+        prefix2 = prefix1.lstrip("0x")
+        hexPrefix = str(prefix2).ljust(16, '0')
+        hexIter = iter(hexPrefix)
+        finalMac = ':'.join(a + b + c + d for a, b, c, d in zip(hexIter, hexIter, hexIter, hexIter))
+        prefix = str(finalMac)
+        strIp6Prefix = prefix[:20]
+        return strIp6Prefix + '::'
 
     def __convertLongToString(self, iValue):
         """convert a long hex integer to string
@@ -698,8 +744,8 @@ class OpenThread_WpanCtl(IThci):
         return self.__sendCommand(WPANCTL_CMD + 'getprop -v Commissioner:SessionId')[0]
 
     def _connect(self):
-        print 'My port is %s' % self.port
-        if self.port.startswith('COM'):
+        if self.connectType == 'usb':
+            print 'My port is %s' % self.port
             self.handle = serial.Serial(self.port, 115200, timeout=0.1)
             input_data = self.handle.read(self.handle.inWaiting())
             if not input_data:
@@ -717,11 +763,16 @@ class OpenThread_WpanCtl(IThci):
             time.sleep(3)
             self._is_net = False
 
-        elif ':' in self.port:
-            host, port = self.port.split(':')
-            self.handle = socket.create_connection((host, port))
-            self.handle.setblocking(0)
-            self._is_net = True
+        elif self.connectType == 'ip':
+            print "My IP: %s Port: %s" % (self.dutIpv4, self.dutPort)
+            try:
+                self.handle = paramiko.SSHClient()
+                self.handle.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+                self.handle.connect(self.dutIpv4, port=self.dutPort, username=WPAN_CARRIER_USER, password=WPAN_CARRIER_PASSWD)
+                self.handle.exec_command("stty cols 128")
+                self._is_net = True
+            except Exception as e:
+                ModuleHelper.WriteIntoDebugLogger('connect to ssh Error: ' + str(e))
         else:
             raise Exception('Unknown port schema')
         self.UIStatusMsg = self.getVersionNumber()
@@ -741,10 +792,16 @@ class OpenThread_WpanCtl(IThci):
         print '%s call intialize' % self.port
         try:
             # init serial port
+            self.deviceConnected = False
             self._connect()
             self.__sendCommand(WPANCTL_CMD + 'leave')
             self.__sendCommand(WPANCTL_CMD + 'dataset erase')
-            self.deviceConnected = True
+
+            if self.firmwarePrefix in self.UIStatusMsg:
+                self.deviceConnected = True
+            else:
+                self.UIStatusMsg = "Firmware Not Matching Expecting " + self.firmwarePrefix + " Now is " + self.UIStatusMsg
+                ModuleHelper.WriteIntoDebugLogger("Err: OpenThread device Firmware not matching..")
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger('intialize() Error: ' + str(e))
             self.deviceConnected = False
@@ -1306,11 +1363,15 @@ class OpenThread_WpanCtl(IThci):
         """factory reset"""
         print '%s call reset' % self.port
         try:
-            self._sendline(WPANCTL_CMD + 'leave')
+            if self._is_net:
+                self.__sendCommand(WPANCTL_CMD + 'leave')
+            else:
+                self._sendline(WPANCTL_CMD + 'leave')
+
             self.__sendCommand(WPANCTL_CMD + 'dataset erase')
             time.sleep(2)
-            self._read()
-
+            if not self._is_net:
+                self._read()
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger('reset() Error: ' + str(e))
 
@@ -1534,7 +1595,7 @@ class OpenThread_WpanCtl(IThci):
             parameter = ''
 
             if P_slaac_preferred == 1:
-                parameter += ' -a'
+                parameter += ' -a -f'
 
             if P_stable == 1:
                 parameter += ' -s'
@@ -1801,8 +1862,7 @@ class OpenThread_WpanCtl(IThci):
             filterByPrefix: a given expected global IPv6 prefix to be matched
 
         Returns:
-            a global IPv6 address that matches with filterByPrefix
-            or None if no matched GUA
+            a global IPv6 address
         """
         print '%s call getGUA' % self.port
         print filterByPrefix
@@ -1816,13 +1876,14 @@ class OpenThread_WpanCtl(IThci):
             else:
                 for line in globalAddrs:
                     line = self.__padIp6Addr(line)
-                    print line
+                    print "Padded IPv6 Address:" + line
                     if line.startswith(filterByPrefix):
                         return line
                 print 'no global address matched'
-                return None
+                return str(globalAddrs[0])
         except Exception, e:
             ModuleHelper.WriteIntoDebugLogger('getGUA() Error: ' + str(e))
+            return e
 
     def getShortAddress(self):
         """get Rloc16 short address of Thread device"""

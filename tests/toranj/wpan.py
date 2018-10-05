@@ -28,6 +28,7 @@
 #
 
 import sys
+import os
 import time
 import re
 import random
@@ -207,10 +208,18 @@ class Node(object):
     _VERBOSE = False        # defines the default verbosity setting (can be changed per `Node`)
     _SPEED_UP_FACTOR = 1    # defines the default time speed up factor
 
-    # path to `wpantund`, `wpanctl` and `ot-ncp-ftd` code
+    # path to `wpantund`, `wpanctl`, `ot-ncp-ftd`,`ot-ncp` and `ot-ncp-radio`
     _WPANTUND = '/usr/local/sbin/wpantund'
     _WPANCTL  = '/usr/local/bin/wpanctl'
     _OT_NCP_FTD = '../../examples/apps/ncp/ot-ncp-ftd'
+
+    _OT_NCP_FTD_POSIX_APP = '../../src/posix/ot-ncp'
+    _OT_NCP_RADIO = '../../examples/apps/ncp/ot-ncp-radio'
+
+    # Environment variable used to determine how to run OpenThread
+    # If set to 1, then posix-app (`ot-ncp`) is used along with a posix RCP `ot-ncp-radio`.
+    # Otherwise, the posix NCP `ot-ncp-ftd` is used
+    _POSIX_APP_ENV_VAR = 'TORANJ_POSIX_APP_RCP_MODEL'
 
     _TUND_LOG_TO_FILE = True            # determines if the wpantund logs are saved in file or sent to stdout
     _TUND_LOG_FNAME = 'wpantund-logs'   # name of wpantund log file (if # name of wpantund _TUND_LOG_TO_FILE is True)
@@ -232,7 +241,18 @@ class Node(object):
         self._interface_name = self._INTFC_NAME_PREFIX + str(index)
         self._verbose = verbose
 
-        ncp_socket_path = 'system:{} {} {}'.format(self._OT_NCP_FTD, index, self._SPEED_UP_FACTOR)
+        # Check if env variable `TORANJ_POSIX_APP_RCP_MODEL` is defined
+        # and use it to determine if to use operate in "posix-ncp-app".
+        if self._POSIX_APP_ENV_VAR in os.environ:
+            use_posix_app_with_rcp = (os.environ[self._POSIX_APP_ENV_VAR] in ['1', 'yes'])
+        else:
+            use_posix_app_with_rcp = False
+
+        if use_posix_app_with_rcp:
+            ncp_socket_path = 'system:{} -s {} {} {}'.format(self._OT_NCP_FTD_POSIX_APP, self._SPEED_UP_FACTOR,
+                self._OT_NCP_RADIO, index)
+        else:
+            ncp_socket_path = 'system:{} {} {}'.format(self._OT_NCP_FTD, index, self._SPEED_UP_FACTOR)
 
         cmd = self._WPANTUND + \
                ' -o Config:NCP:SocketPath \"{}\"'.format(ncp_socket_path) + \
@@ -1015,10 +1035,11 @@ class OnMeshPrefix(object):
         # Example of expected text:
         #
         # '\t"fd00:abba:cafe::       prefix_len:64   origin:user     stable:yes flags:0x31'
-        # ' [on-mesh:1 def-route:0 config:0 dhcp:0 slaac:1 pref:1 prio:med]"'
+        # ' [on-mesh:1 def-route:0 config:0 dhcp:0 slaac:1 pref:1 prio:med] rloc:0x0000"'
 
-        m = re.match('\t"([0-9a-fA-F:]+)\s*prefix_len:(\d+)\s+origin:(\w*)\s+stable:(\w*).*' +
-                    '\[on-mesh:(\d)\s+def-route:(\d)\s+config:(\d)\s+dhcp:(\d)\s+slaac:(\d)\s+pref:(\d)\s+prio:(\w*)\]',
+        m = re.match('\t"([0-9a-fA-F:]+)\s*prefix_len:(\d+)\s+origin:(\w*)\s+stable:(\w*).* \[' +
+                    'on-mesh:(\d)\s+def-route:(\d)\s+config:(\d)\s+dhcp:(\d)\s+slaac:(\d)\s+pref:(\d)\s+prio:(\w*)\]' +
+                    '\s+rloc:(0x[0-9a-fA-F]+)',
                      text)
         verify(m is not None)
         data = m.groups()
@@ -1034,6 +1055,7 @@ class OnMeshPrefix(object):
         self._slaac      = (data[8] == '1')
         self._preferred  = (data[9] == '1')
         self._priority   = (data[10])
+        self._rloc16     = (data[11])
 
     @property
     def prefix(self):
@@ -1072,6 +1094,9 @@ class OnMeshPrefix(object):
     def is_preferred(self):
         return self._preferred
 
+    def rloc16(self):
+        return self._rloc16
+
     def __repr__(self):
         return 'OnMeshPrefix({})'.format(self.__dict__)
 
@@ -1088,7 +1113,7 @@ class ChildEntry(object):
         # Example of expected text:
         #
         # `\t"E24C5F67F4B8CBB9, RLOC16:d402, NetDataVer:175, LQIn:3, AveRssi:-20, LastRssi:-20, Timeout:120, Age:0, `
-        # `RxOnIdle:no, FFD:no, SecDataReq:yes, FullNetData:yes"`
+        # `RxOnIdle:no, FTD:no, SecDataReq:yes, FullNetData:yes"`
         #
 
         # We get rid of the first two chars `\t"' and last char '"', split the rest using whitespace as separator.
@@ -1104,7 +1129,7 @@ class ChildEntry(object):
         self._rloc16     = dict['RLOC16']
         self._timeout    = dict['Timeout']
         self._rx_on_idle = (dict['RxOnIdle'] == 'yes')
-        self._ffd        = (dict['FFD'] == 'yes')
+        self._ftd        = (dict['FTD'] == 'yes')
 
     @property
     def ext_address(self):
@@ -1121,8 +1146,8 @@ class ChildEntry(object):
     def is_rx_on_when_idle(self):
         return self._rx_on_idle
 
-    def is_ffd(self):
-        return self._ffd
+    def is_ftd(self):
+        return self._ftd
 
     def __repr__(self):
         return 'ChildEntry({})'.format(self.__dict__)
@@ -1140,7 +1165,7 @@ class NeighborEntry(object):
         # Example of expected text:
         #
         # `\t"5AC95ED4646D6565, RLOC16:9403, LQIn:3, AveRssi:-20, LastRssi:-20, Age:0, LinkFC:8, MleFC:0, IsChild:yes, '
-        # 'RxOnIdle:no, FFD:no, SecDataReq:yes, FullNetData:yes"'
+        # 'RxOnIdle:no, FTD:no, SecDataReq:yes, FullNetData:yes"'
         #
 
         # We get rid of the first two chars `\t"' and last char '"', split the rest using whitespace as separator.
@@ -1156,7 +1181,7 @@ class NeighborEntry(object):
         self._rloc16     = dict['RLOC16']
         self._is_child   = (dict['IsChild'] == 'yes')
         self._rx_on_idle = (dict['RxOnIdle'] == 'yes')
-        self._ffd        = (dict['FFD'] == 'yes')
+        self._ftd        = (dict['FTD'] == 'yes')
 
     @property
     def ext_address(self):
@@ -1169,8 +1194,8 @@ class NeighborEntry(object):
     def is_rx_on_when_idle(self):
         return self._rx_on_idle
 
-    def is_ffd(self):
-        return self._ffd
+    def is_ftd(self):
+        return self._ftd
 
     def is_child(self):
         return self._is_child

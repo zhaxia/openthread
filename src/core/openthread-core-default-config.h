@@ -1067,8 +1067,12 @@
  *
  */
 #ifndef OPENTHREAD_CONFIG_HEAP_SIZE
+#if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
+#define OPENTHREAD_CONFIG_HEAP_SIZE (3072 * sizeof(void *))
+#else
 #define OPENTHREAD_CONFIG_HEAP_SIZE (1536 * sizeof(void *))
-#endif
+#endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
+#endif // OPENTHREAD_CONFIG_HEAP_SIZE
 
 /**
  * @def OPENTHREAD_CONFIG_HEAP_SIZE_NO_DTLS
@@ -1078,6 +1082,16 @@
  */
 #ifndef OPENTHREAD_CONFIG_HEAP_SIZE_NO_DTLS
 #define OPENTHREAD_CONFIG_HEAP_SIZE_NO_DTLS 384
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_DTLS_APPLICATION_DATA_MAX_LENGTH
+ *
+ * The size of dtls application data when the CoAP Secure API is enabled.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_DTLS_APPLICATION_DATA_MAX_LENGTH
+#define OPENTHREAD_CONFIG_DTLS_APPLICATION_DATA_MAX_LENGTH 1400
 #endif
 
 /**
@@ -1744,7 +1758,7 @@
  * to support following features:
  *    1. Time synchronization service feature (i.e., OPENTHREAD_CONFIG_ENABLE_TIME_SYNC is set).
  *
- * @note If it's enabled, plaforms must support interrupt context and concurrent access AES.
+ * @note If it's enabled, platform must support interrupt context and concurrent access AES.
  *
  */
 #ifndef OPENTHREAD_CONFIG_HEADER_IE_SUPPORT

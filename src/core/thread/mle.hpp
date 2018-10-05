@@ -658,7 +658,7 @@ public:
      * @returns TRUE if a Full Thread Device, FALSE otherwise.
      *
      */
-    bool IsFullThreadDevice(void) const { return (mDeviceMode & ModeTlv::kModeFFD) != 0; }
+    bool IsFullThreadDevice(void) const { return (mDeviceMode & ModeTlv::kModeFullThreadDevice) != 0; }
 
     /**
      * This method indicates whether or not the device uses secure IEEE 802.15.4 Data Request messages.
@@ -684,8 +684,8 @@ public:
      */
     bool IsMinimalEndDevice(void) const
     {
-        return (mDeviceMode & (ModeTlv::kModeFFD | ModeTlv::kModeRxOnWhenIdle)) !=
-               (ModeTlv::kModeFFD | ModeTlv::kModeRxOnWhenIdle);
+        return (mDeviceMode & (ModeTlv::kModeFullThreadDevice | ModeTlv::kModeRxOnWhenIdle)) !=
+               (ModeTlv::kModeFullThreadDevice | ModeTlv::kModeRxOnWhenIdle);
     }
 
     /**
@@ -1056,6 +1056,15 @@ public:
      *
      */
     void ResetCounters(void) { memset(&mCounters, 0, sizeof(mCounters)); }
+
+    /**
+     * This function registers the client callback that is called when processing an MLE Parent Response message.
+     *
+     * @param[in]  aCallback A pointer to a function that is called to deliver MLE Parent Response data.
+     * @param[in]  aContext  A pointer to application-specific context.
+     *
+     */
+    void RegisterParentResponseStatsCallback(otThreadParentResponseCallback aCallback, void *aContext);
 
 protected:
     /**
@@ -1569,6 +1578,14 @@ protected:
      */
     void InformPreviousChannel(void);
 
+    /**
+     * This method indicates whether or not in announce attach process.
+     *
+     * @retval true if attaching/attached on the announced parameters, false otherwise.
+     *
+     */
+    bool IsAnnounceAttach(void) const { return mAlternatePanId != Mac::kPanIdBroadcast; }
+
 #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_NOTE) && (OPENTHREAD_CONFIG_LOG_MLE == 1)
     /**
      * This method converts an `AttachMode` enumeration value into a human-readable string.
@@ -1786,6 +1803,9 @@ private:
     Ip6::NetifMulticastAddress mRealmLocalAllThreadNodes;
 
     Notifier::Callback mNotifierCallback;
+
+    otThreadParentResponseCallback mParentResponseCb;
+    void *                         mParentResponseCbContext;
 };
 
 } // namespace Mle
