@@ -34,7 +34,7 @@ die() {
 
 cleanup() {
     # Clear logs and flash files
-    sudo rm tmp/*.flash > /dev/null 2>&1
+    sudo rm tmp/*.flash tmp/*.data tmp/*.swap > /dev/null 2>&1
     sudo rm *.log > /dev/null 2>&1
 
     # Clear any wpantund instances
@@ -190,6 +190,8 @@ run test-022-multicast-ip6-address.py
 run test-023-multicast-traffic.py
 run test-024-partition-merge.py
 run test-025-network-data-timeout.py
+run test-026-slaac-address.py
+run test-027-child-mode-change.py
 run test-100-mcu-power-state.py
 run test-600-channel-manager-properties.py
 run test-601-channel-manager-channel-change.py
