@@ -121,6 +121,7 @@ SOURCES_COMMON                      = \
     api/joiner_api.cpp                \
     api/link_api.cpp                  \
     api/link_raw_api.cpp              \
+    api/logging_api.cpp               \
     api/message_api.cpp               \
     api/netdata_api.cpp               \
     api/network_time_api.cpp          \
@@ -219,9 +220,14 @@ SOURCES_COMMON                      = \
     utils/slaac_address.cpp           \
     $(NULL)
 
+EXTRA_DIST                          = \
+    common/extension_example.cpp      \
+    $(NULL)
+
 libopenthread_radio_a_SOURCES       = \
     api/instance_api.cpp              \
     api/link_raw_api.cpp              \
+    api/logging_api.cpp               \
     api/message_api.cpp               \
     api/tasklet_api.cpp               \
     common/instance.cpp               \
@@ -248,6 +254,28 @@ libopenthread_ftd_a_SOURCES         = \
     $(SOURCES_COMMON)                 \
     $(NULL)
 
+if OPENTHREAD_ENABLE_VENDOR_EXTENSION
+
+.INTERMEDIATE: vendor_extension_temp.cpp
+vendor_extension_temp.cpp: ${OPENTHREAD_VENDOR_EXTENSION_SOURCE}
+	$(AM_V_GEN)cp $< $@
+
+# "nodist_" prefix tells automake not to include in 'make dist'
+
+nodist_libopenthread_ftd_a_SOURCES =   \
+    vendor_extension_temp.cpp          \
+    $(NULL)
+
+nodist_libopenthread_mtd_a_SOURCES =   \
+    vendor_extension_temp.cpp          \
+    $(NULL)
+
+nodist_libopenthread_radio_a_SOURCES = \
+    vendor_extension_temp.cpp          \
+    $(NULL)
+
+endif # OPENTHREAD_ENABLE_VENDOR_EXTENSION
+
 HEADERS_COMMON                      = \
     openthread-core-config-check.h    \
     openthread-core-config.h          \
@@ -259,6 +287,7 @@ HEADERS_COMMON                      = \
     common/crc16.hpp                  \
     common/debug.hpp                  \
     common/encoding.hpp               \
+    common/extension.hpp              \
     common/instance.hpp               \
     common/locator.hpp                \
     common/logging.hpp                \
@@ -333,7 +362,6 @@ HEADERS_COMMON                      = \
     thread/network_data.hpp           \
     thread/network_data_leader.hpp    \
     thread/network_data_leader_ftd.hpp \
-    thread/network_data_leader_mtd.hpp \
     thread/network_data_local.hpp     \
     thread/network_data_tlvs.hpp      \
     thread/network_diagnostic.hpp     \
@@ -365,6 +393,7 @@ noinst_HEADERS                      = \
 PRETTY_FILES                        = \
     $(HEADERS_COMMON)                 \
     $(SOURCES_COMMON)                 \
+    $(EXTRA_DIST)                     \
     $(NULL)
 
 if OPENTHREAD_BUILD_COVERAGE

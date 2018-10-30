@@ -51,16 +51,6 @@
 #define SPINEL_API_WARN_UNUSED_RESULT __attribute__((warn_unused_result))
 #endif // ifdef __GNUC__
 
-#if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
-#if defined(__cplusplus)
-#define __BEGIN_DECLS extern "C" {
-#define __END_DECLS }
-#else // if defined(__cplusplus)
-#define __BEGIN_DECLS
-#define __END_DECLS
-#endif // else defined(__cplusplus)
-#endif // if !defined(__BEGIN_DECLS) || !defined(__END_DECLS)
-
 #endif // ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 #ifndef SPINEL_API_EXTERN
@@ -105,9 +95,12 @@
 
 // ----------------------------------------------------------------------------
 
-__BEGIN_DECLS
+#if defined(__cplusplus)
+extern "C" {
+#endif
 
-typedef enum {
+typedef enum
+{
     SPINEL_STATUS_OK      = 0, ///< Operation has completed successfully.
     SPINEL_STATUS_FAILURE = 1, ///< Operation has failed for some undefined reason.
 
@@ -204,28 +197,32 @@ typedef enum {
     SPINEL_STATUS_EXPERIMENTAL__END   = 2097152,
 } spinel_status_t;
 
-typedef enum {
+typedef enum
+{
     SPINEL_NET_ROLE_DETACHED = 0,
     SPINEL_NET_ROLE_CHILD    = 1,
     SPINEL_NET_ROLE_ROUTER   = 2,
     SPINEL_NET_ROLE_LEADER   = 3,
 } spinel_net_role_t;
 
-typedef enum {
+typedef enum
+{
     SPINEL_IPV6_ICMP_PING_OFFLOAD_DISABLED       = 0,
     SPINEL_IPV6_ICMP_PING_OFFLOAD_UNICAST_ONLY   = 1,
     SPINEL_IPV6_ICMP_PING_OFFLOAD_MULTICAST_ONLY = 2,
     SPINEL_IPV6_ICMP_PING_OFFLOAD_ALL            = 3,
 } spinel_ipv6_icmp_ping_offload_mode_t;
 
-typedef enum {
+typedef enum
+{
     SPINEL_SCAN_STATE_IDLE     = 0,
     SPINEL_SCAN_STATE_BEACON   = 1,
     SPINEL_SCAN_STATE_ENERGY   = 2,
     SPINEL_SCAN_STATE_DISCOVER = 3,
 } spinel_scan_state_t;
 
-typedef enum {
+typedef enum
+{
     SPINEL_MCU_POWER_STATE_ON        = 0,
     SPINEL_MCU_POWER_STATE_LOW_POWER = 1,
     SPINEL_MCU_POWER_STATE_OFF       = 2,
@@ -234,7 +231,8 @@ typedef enum {
 // The `spinel_power_state_t` enumeration and `POWER_STATE`
 // property are deprecated. Please use `MCU_POWER_STATE`
 // instead.
-typedef enum {
+typedef enum
+{
     SPINEL_POWER_STATE_OFFLINE    = 0,
     SPINEL_POWER_STATE_DEEP_SLEEP = 1,
     SPINEL_POWER_STATE_STANDBY    = 2,
@@ -242,7 +240,8 @@ typedef enum {
     SPINEL_POWER_STATE_ONLINE     = 4,
 } spinel_power_state_t;
 
-typedef enum {
+typedef enum
+{
     SPINEL_HOST_POWER_STATE_OFFLINE    = 0,
     SPINEL_HOST_POWER_STATE_DEEP_SLEEP = 1,
     SPINEL_HOST_POWER_STATE_RESERVED   = 2,
@@ -477,6 +476,7 @@ enum
     SPINEL_CAP_OPENTHREAD_LOG_METADATA = (SPINEL_CAP_OPENTHREAD__BEGIN + 6),
     SPINEL_CAP_TIME_SYNC               = (SPINEL_CAP_OPENTHREAD__BEGIN + 7),
     SPINEL_CAP_CHILD_SUPERVISION       = (SPINEL_CAP_OPENTHREAD__BEGIN + 8),
+    SPINEL_CAP_POSIX_APP               = (SPINEL_CAP_OPENTHREAD__BEGIN + 9),
     SPINEL_CAP_OPENTHREAD__END         = 640,
 
     SPINEL_CAP_THREAD__BEGIN       = 1024,
@@ -525,7 +525,8 @@ enum
  *    Experimental |          2,000,000 - 2,097,151 | Experimental use only
  *
  */
-typedef enum {
+typedef enum
+{
     SPINEL_PROP_LAST_STATUS      = 0,  ///< status [i]
     SPINEL_PROP_PROTOCOL_VERSION = 1,  ///< major, minor [i,i]
     SPINEL_PROP_NCP_VERSION      = 2,  ///< version string [U]
@@ -1087,6 +1088,7 @@ typedef enum {
 
     /// Thread Child Timeout
     /** Format: `L`
+     *  Unit: Seconds
      *
      *  Used when operating in the Child role.
      */
@@ -2003,6 +2005,36 @@ typedef enum {
      */
     SPINEL_PROP_CHILD_SUPERVISION_CHECK_TIMEOUT = SPINEL_PROP_OPENTHREAD__BEGIN + 11,
 
+    // RCP (NCP in radio only mode) version
+    /** Format `U` - Read only
+     *
+     * Required capability: SPINEL_CAP_POSIX_APP
+     *
+     * This property gives the version string of RCP (NCP in radio mode) which is being controlled by the POSIX
+     * application. It is available only in "POSIX Application" configuration (i.e., `OPENTHREAD_ENABLE_POSIX_APP` is
+     * enabled).
+     *
+     */
+    SPINEL_PROP_RCP_VERSION = SPINEL_PROP_OPENTHREAD__BEGIN + 12,
+
+    /// Thread Parent Response info
+    /** Format: `ESccCCCb` - Asynchronous event only
+     *
+     *  `E`: Extended address
+     *  `S`: RLOC16
+     *  `c`: Instant RSSI
+     *  'c': Parent Priority
+     *  `C`: Link Quality3
+     *  `C`: Link Quality2
+     *  `C`: Link Quality1
+     *  'b': Is the node receiving parent response frame attached
+     *
+     * This property sends Parent Response frame information to the Host.
+     * This property is available for FTD build only.
+     *
+     */
+    SPINEL_PROP_PARENT_RESPONSE_INFO = SPINEL_PROP_OPENTHREAD__BEGIN + 13,
+
     SPINEL_PROP_OPENTHREAD__END = 0x2000,
 
     SPINEL_PROP_INTERFACE__BEGIN = 0x100,
@@ -2574,6 +2606,8 @@ SPINEL_API_EXTERN const char *spinel_capability_to_cstr(unsigned int capability)
 
 // ----------------------------------------------------------------------------
 
-__END_DECLS
+#if defined(__cplusplus)
+}
+#endif
 
 #endif /* defined(SPINEL_HEADER_INCLUDED) */

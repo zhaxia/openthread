@@ -40,11 +40,11 @@ cd /tmp || die
     sudo apt-get update || die
 
     [ $BUILD_TARGET != posix-distcheck -a $BUILD_TARGET != posix-32-bit -a $BUILD_TARGET != posix-app-cli -a $BUILD_TARGET != posix-mtd -a $BUILD_TARGET != posix-ncp -a $BUILD_TARGET != posix-app-ncp ] || {
-        pip install --user --upgrade pip || die
-        pip install --user -r $TRAVIS_BUILD_DIR/tests/scripts/thread-cert/requirements.txt || die
+        pip install --upgrade pip || die
+        pip install -r $TRAVIS_BUILD_DIR/tests/scripts/thread-cert/requirements.txt || die
         [ $BUILD_TARGET != posix-ncp -a $BUILD_TARGET != posix-app-ncp ] || {
             # Packages used by ncp tools.
-            pip install --user git+https://github.com/openthread/pyspinel || die
+            pip install git+https://github.com/openthread/pyspinel || die
         }
     }
 
@@ -63,7 +63,29 @@ cd /tmp || die
     }
 
     [ $BUILD_TARGET != posix-app-pty ] || {
-        sudo apt-get install socat expect || die
+        sudo apt-get install socat expect libdbus-1-dev autoconf-archive || die
+        JOBS=$(getconf _NPROCESSORS_ONLN)
+        (
+        WPANTUND_TMPDIR=/tmp/wpantund
+        git clone --depth 1 https://github.com/openthread/wpantund.git $WPANTUND_TMPDIR
+        cd $WPANTUND_TMPDIR
+        ./bootstrap.sh
+        ./configure --prefix= --exec-prefix=/usr --disable-ncp-dummy --enable-static-link-ncp-plugin=spinel
+        make -j $JOBS
+        sudo make install
+        ) || die
+        (
+        LIBCOAP_TMPDIR=/tmp/libcoap
+        mkdir $LIBCOAP_TMPDIR
+        cd $LIBCOAP_TMPDIR
+        wget https://github.com/obgm/libcoap/archive/bsd-licensed.tar.gz
+        tar xvf bsd-licensed.tar.gz
+        cd libcoap-bsd-licensed
+        ./autogen.sh
+        ./configure --prefix= --exec-prefix=/usr --with-boost=internal --disable-tests --disable-documentation
+        make -j $JOBS
+        sudo make install
+        ) || die
     }
 
     [ $BUILD_TARGET != scan-build ] || {
@@ -99,9 +121,9 @@ cd /tmp || die
     }
 
     [ $BUILD_TARGET != arm-gcc-7 ] || {
-        wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2017q4/gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2 || die
-        tar xjf gcc-arm-none-eabi-7-2017-q4-major-linux.tar.bz2 || die
-        export PATH=/tmp/gcc-arm-none-eabi-7-2017-q4-major/bin:$PATH || die
+        wget https://developer.arm.com/-/media/Files/downloads/gnu-rm/7-2018q2/gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2 || die
+        tar xjf gcc-arm-none-eabi-7-2018-q2-update-linux.tar.bz2 || die
+        export PATH=/tmp/gcc-arm-none-eabi-7-2018-q2-update/bin:$PATH || die
         arm-none-eabi-gcc --version || die
     }
 
@@ -139,15 +161,4 @@ cd /tmp || die
         cd .. || die
     }
 
-}
-
-[ $TRAVIS_OS_NAME != osx ] || {
-    sudo easy_install pexpect || die
-
-    [ $BUILD_TARGET != cc2538 ] || {
-        wget https://launchpad.net/gcc-arm-embedded/4.9/4.9-2015-q3-update/+download/gcc-arm-none-eabi-4_9-2015q3-20150921-mac.tar.bz2 || die
-        tar xjf gcc-arm-none-eabi-4_9-2015q3-20150921-mac.tar.bz2 || die
-        export PATH=/tmp/gcc-arm-none-eabi-4_9-2015q3/bin:$PATH || die
-        arm-none-eabi-gcc --version || die
-    }
 }

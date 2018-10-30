@@ -102,7 +102,10 @@ Dtls::Dtls(Instance &aInstance)
     memset(&mCtrDrbg, 0, sizeof(mCtrDrbg));
     memset(&mSsl, 0, sizeof(mSsl));
     memset(&mConf, 0, sizeof(mConf));
+
+#ifdef MBEDTLS_SSL_COOKIE_C
     memset(&mCookieCtx, 0, sizeof(mCookieCtx));
+#endif
 
     mProvisioningUrl.Init();
 }
@@ -159,8 +162,11 @@ otError Dtls::Start(bool             aClient,
                                       MBEDTLS_ENTROPY_SOURCE_STRONG);
     VerifyOrExit(rval == 0);
 
+#ifdef MBEDTLS_DEBUG_C
     // mbedTLS's debug level is almost the same as OpenThread's
     mbedtls_debug_set_threshold(OPENTHREAD_CONFIG_LOG_LEVEL);
+#endif
+
     otPlatRadioGetIeeeEui64(&GetInstance(), eui64.m8);
     rval = mbedtls_ctr_drbg_seed(&mCtrDrbg, mbedtls_entropy_func, &mEntropy, eui64.m8, sizeof(eui64));
     VerifyOrExit(rval == 0);
@@ -190,6 +196,7 @@ otError Dtls::Start(bool             aClient,
     mbedtls_ssl_conf_handshake_timeout(&mConf, 8000, 60000);
     mbedtls_ssl_conf_dbg(&mConf, HandleMbedtlsDebug, this);
 
+#if OPENTHREAD_ENABLE_BORDER_AGENT || OPENTHREAD_ENABLE_COMMISSIONER || OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
     if (!aClient)
     {
         mbedtls_ssl_cookie_init(&mCookieCtx);
@@ -199,6 +206,7 @@ otError Dtls::Start(bool             aClient,
 
         mbedtls_ssl_conf_dtls_cookies(&mConf, mbedtls_ssl_cookie_write, mbedtls_ssl_cookie_check, &mCookieCtx);
     }
+#endif // OPENTHREAD_ENABLE_BORDER_AGENT || OPENTHREAD_ENABLE_COMMISSIONER || OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
     rval = mbedtls_ssl_setup(&mSsl, &mConf);
     VerifyOrExit(rval == 0);
@@ -223,12 +231,12 @@ otError Dtls::Start(bool             aClient,
 
     if (mCipherSuites[0] == MBEDTLS_TLS_ECJPAKE_WITH_AES_128_CCM_8)
     {
-        otLogInfoMeshCoP(GetInstance(), "DTLS started");
+        otLogInfoMeshCoP("DTLS started");
     }
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
     else
     {
-        otLogInfoCoap(GetInstance(), "Application Coap Secure DTLS started");
+        otLogInfoCoap("Application Coap Secure DTLS started");
     }
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
@@ -276,7 +284,7 @@ int Dtls::SetApplicationCoapSecureKeys(void)
         break;
 
     default:
-        otLogCritCoap(GetInstance(), "Application Coap Secure DTLS: Not supported cipher.");
+        otLogCritCoap("Application Coap Secure DTLS: Not supported cipher.");
         rval = MBEDTLS_ERR_SSL_BAD_INPUT_DATA;
         ExitNow();
         break;
@@ -313,7 +321,10 @@ void Dtls::Close(void)
     mbedtls_ssl_config_free(&mConf);
     mbedtls_ctr_drbg_free(&mCtrDrbg);
     mbedtls_entropy_free(&mEntropy);
+
+#ifdef MBEDTLS_SSL_COOKIE_C
     mbedtls_ssl_cookie_free(&mCookieCtx);
+#endif
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 #ifdef MBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
@@ -439,11 +450,13 @@ exit:
 #endif // MBEDTLS_BASE64_C
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
+#if OPENTHREAD_ENABLE_BORDER_AGENT || OPENTHREAD_ENABLE_COMMISSIONER
 otError Dtls::SetClientId(const uint8_t *aClientId, uint8_t aLength)
 {
     int rval = mbedtls_ssl_set_client_transport_id(&mSsl, aClientId, aLength);
     return MapError(rval);
 }
+#endif // OPENTHREAD_ENABLE_BORDER_AGENT || OPENTHREAD_ENABLE_COMMISSIONER
 
 bool Dtls::IsConnected(void)
 {
@@ -496,12 +509,12 @@ int Dtls::HandleMbedtlsTransmit(const unsigned char *aBuf, size_t aLength)
 
     if (mCipherSuites[0] == MBEDTLS_TLS_ECJPAKE_WITH_AES_128_CCM_8)
     {
-        otLogInfoMeshCoP(GetInstance(), "Dtls::HandleMbedtlsTransmit");
+        otLogInfoMeshCoP("Dtls::HandleMbedtlsTransmit");
     }
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
     else
     {
-        otLogInfoCoap(GetInstance(), "Dtls::ApplicationCoapSecure HandleMbedtlsTransmit");
+        otLogInfoCoap("Dtls::ApplicationCoapSecure HandleMbedtlsTransmit");
     }
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
@@ -539,12 +552,12 @@ int Dtls::HandleMbedtlsReceive(unsigned char *aBuf, size_t aLength)
 
     if (mCipherSuites[0] == MBEDTLS_TLS_ECJPAKE_WITH_AES_128_CCM_8)
     {
-        otLogInfoMeshCoP(GetInstance(), "Dtls::HandleMbedtlsReceive");
+        otLogInfoMeshCoP("Dtls::HandleMbedtlsReceive");
     }
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
     else
     {
-        otLogInfoCoap(GetInstance(), "Dtls:: ApplicationCoapSecure HandleMbedtlsReceive");
+        otLogInfoCoap("Dtls:: ApplicationCoapSecure HandleMbedtlsReceive");
     }
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
@@ -574,12 +587,12 @@ int Dtls::HandleMbedtlsGetTimer(void)
 
     if (mCipherSuites[0] == MBEDTLS_TLS_ECJPAKE_WITH_AES_128_CCM_8)
     {
-        otLogInfoMeshCoP(GetInstance(), "Dtls::HandleMbedtlsGetTimer");
+        otLogInfoMeshCoP("Dtls::HandleMbedtlsGetTimer");
     }
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
     else
     {
-        otLogInfoCoap(GetInstance(), "Dtls:: ApplicationCoapSecure HandleMbedtlsGetTimer");
+        otLogInfoCoap("Dtls:: ApplicationCoapSecure HandleMbedtlsGetTimer");
     }
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
@@ -612,12 +625,12 @@ void Dtls::HandleMbedtlsSetTimer(uint32_t aIntermediate, uint32_t aFinish)
 {
     if (mCipherSuites[0] == MBEDTLS_TLS_ECJPAKE_WITH_AES_128_CCM_8)
     {
-        otLogInfoMeshCoP(GetInstance(), "Dtls::SetTimer");
+        otLogInfoMeshCoP("Dtls::SetTimer");
     }
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
     else
     {
-        otLogInfoCoap(GetInstance(), "Dtls::ApplicationCoapSecure SetTimer");
+        otLogInfoCoap("Dtls::ApplicationCoapSecure SetTimer");
     }
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
@@ -662,12 +675,12 @@ int Dtls::HandleMbedtlsExportKeys(const unsigned char *aMasterSecret,
 
     if (mCipherSuites[0] == MBEDTLS_TLS_ECJPAKE_WITH_AES_128_CCM_8)
     {
-        otLogInfoMeshCoP(GetInstance(), "Generated KEK");
+        otLogInfoMeshCoP("Generated KEK");
     }
 #if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
     else
     {
-        otLogInfoCoap(GetInstance(), "ApplicationCoapSecure Generated KEK");
+        otLogInfoCoap("ApplicationCoapSecure Generated KEK");
     }
 #endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
 
@@ -866,20 +879,20 @@ void Dtls::HandleMbedtlsDebug(void *ctx, int level, const char *, int, const cha
         switch (level)
         {
         case 1:
-            otLogCritMbedTls(pThis->GetInstance(), "%s", str);
+            otLogCritMbedTls("%s", str);
             break;
 
         case 2:
-            otLogWarnMbedTls(pThis->GetInstance(), "%s", str);
+            otLogWarnMbedTls("%s", str);
             break;
 
         case 3:
-            otLogInfoMbedTls(pThis->GetInstance(), "%s", str);
+            otLogInfoMbedTls("%s", str);
             break;
 
         case 4:
         default:
-            otLogDebgMbedTls(pThis->GetInstance(), "%s", str);
+            otLogDebgMbedTls("%s", str);
             break;
         }
     }
@@ -889,17 +902,17 @@ void Dtls::HandleMbedtlsDebug(void *ctx, int level, const char *, int, const cha
         switch (level)
         {
         case 1:
-            otLogCritCoap(pThis->GetInstance(), "ApplicationCoapSecure Mbedtls: %s", str);
+            otLogCritCoap("ApplicationCoapSecure Mbedtls: %s", str);
             break;
         case 2:
-            otLogWarnCoap(pThis->GetInstance(), "ApplicationCoapSecure Mbedtls: %s", str);
+            otLogWarnCoap("ApplicationCoapSecure Mbedtls: %s", str);
             break;
         case 3:
-            otLogInfoCoap(pThis->GetInstance(), "ApplicationCoapSecure Mbedtls: %s", str);
+            otLogInfoCoap("ApplicationCoapSecure Mbedtls: %s", str);
             break;
         case 4:
         default:
-            otLogDebgCoap(pThis->GetInstance(), "ApplicationCoapSecure Mbedtls: %s", str);
+            otLogDebgCoap("ApplicationCoapSecure Mbedtls: %s", str);
             break;
         }
     }

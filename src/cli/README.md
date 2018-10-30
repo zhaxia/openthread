@@ -69,7 +69,7 @@ OpenThread test scripts use the CLI to execute test cases.
 * [singleton](#singleton)
 * [state](#state)
 * [thread](#thread-start)
-* [txpowermax](#txpowermax)
+* [txpower](#txpower)
 * [version](#version)
 * [diag](#diag)
 * [service](#service)
@@ -1348,6 +1348,12 @@ Done
 
 Get the diagnostic information for a Thread Router as parent.
 
+Note: When operating as a Thread Router, this command will return the cached
+      information from when the device was previously attached as a Thread
+      Child. Returning cached information is necessary to support the Thread
+      Test Harness - Test Scenario 8.2.x requests the former parent (i.e. Joiner
+      Router's) MAC address even if the device has already promoted to a router.
+
 ```bash
 > parent
 Ext Addr: be1857c6c21dce55
@@ -1764,7 +1770,7 @@ Disable Thread protocol operation and detach from a Thread network.
 Done
 ```
 
-### txpowermax
+### txpower
 
 Get the transmit power in dBm.
 
@@ -1774,7 +1780,7 @@ Get the transmit power in dBm.
 Done
 ```
 
-### txpowermax \<txpowermax\>
+### txpower \<txpower\>
 
 Set the transmit power.
 

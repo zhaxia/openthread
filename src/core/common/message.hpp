@@ -229,10 +229,10 @@ public:
 
     enum
     {
-        kPriorityHigh    = 0, ///< High priority level.
-        kPriorityMedium  = 1, ///< Medium priority level.
-        kPriorityLow     = 2, ///< Low priority level.
-        kPriorityVeryLow = 3, ///< Very low priority level.
+        kPriorityLow    = 0, ///< Low priority level.
+        kPriorityNormal = 1, ///< Normal priority level.
+        kPriorityHigh   = 2, ///< High priority level.
+        kPriorityNet    = 3, ///< Network Control priority level.
 
         kNumPriorities = 4, ///< Number of priority levels.
     };
@@ -1103,21 +1103,21 @@ private:
     void RemoveFromList(uint8_t aListId, Message &aMessage);
 
     /**
-     * This method decreases (moves back) the given priority while ensuring to wrap from
-     * priority value 0 back to `kNumPriorities` -1.
+     * This method increases (moves forward) the given priority while ensuring to wrap from
+     * priority value `kNumPriorities` -1 back to 0.
      *
      * @param[in] aPriority  A given priority level
      *
-     * @returns Decreased/Moved back priority level
+     * @returns Increased/Moved forward priority level
      */
     uint8_t PrevPriority(uint8_t aPriority) const
     {
-        return (aPriority == 0) ? (Message::kNumPriorities - 1) : (aPriority - 1);
+        return (aPriority == Message::kNumPriorities - 1) ? 0 : (aPriority + 1);
     }
 
     /**
-     * This private method finds the first non-NULL tail starting from the given priority level and moving back.
-     * It wraps from priority value 0 back to `kNumPriorities` -1.
+     * This private method finds the first non-NULL tail starting from the given priority level and moving forward.
+     * It wraps from priority value `kNumPriorities` -1 back to 0.
      *
      * aStartPriorityLevel  Starting priority level.
      *
@@ -1287,7 +1287,7 @@ public:
 private:
     enum
     {
-        kDefaultMessagePriority = Message::kPriorityLow,
+        kDefaultMessagePriority = Message::kPriorityNormal,
     };
 
     Buffer *       NewBuffer(uint8_t aPriority);

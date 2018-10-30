@@ -39,7 +39,6 @@ import logging
 from Queue import Queue
 
 import serial
-import paramiko
 from IThci import IThci
 from GRLLibs.UtilityModules.Test import Thread_Device_Role, Device_Data_Requirement, MacType
 from GRLLibs.UtilityModules.enums import PlatformDiagnosticPacket_Direction, PlatformDiagnosticPacket_Type
@@ -78,7 +77,6 @@ class OpenThread_WpanCtl(IThci):
             self.AutoDUTEnable = False
             self._is_net = False                  # whether device is through ser2net
             self.logStatus = {'stop':'stop', 'running':'running', 'pauseReq':'pauseReq', 'paused':'paused'}
-            self.joinStatus = {'notstart':'idle', 'ongoing':'discover', 'succeed':'joined', 'failed':'failed'}
             self.logThreadStatus = self.logStatus['stop']
             self.connectType = (kwargs.get('Param5')).strip().lower() if kwargs.get('Param5') is not None else 'usb'
             if self.connectType == 'ip':
@@ -638,43 +636,6 @@ class OpenThread_WpanCtl(IThci):
 
         return string
 
-    def __readCommissioningLogs(self, durationInSeconds):
-        """read logs during the commissioning process
-
-        Args:
-            durationInSeconds: time duration for reading commissioning logs
-
-        Returns:
-            Commissioning logs
-        """
-        self.logThreadStatus = self.logStatus['running']
-        logs = Queue()
-        t_end = time.time() + durationInSeconds
-        while time.time() < t_end:
-            time.sleep(0.3)
-            if self.logThreadStatus == self.logStatus['paused']:
-                continue
-
-            try:
-                line = self._readline()
-                if line:
-                    print line
-                    logs.put(line)
-
-                    if "Join success" in line:
-                        self.joinCommissionedStatus = self.joinStatus['succeed']
-                    elif "Join failed" in line:
-                        self.joinCommissionedStatus = self.joinStatus['failed']
-
-            except Exception:
-                pass
-
-            if self.logThreadStatus == self.logStatus['pauseReq']:
-                self.logThreadStatus = self.logStatus['paused']
-
-        self.logThreadStatus = self.logStatus['stop']
-        return logs
-
     def __convertChannelMask(self, channelsArray):
         """convert channelsArray to bitmask format
 
@@ -691,6 +652,26 @@ class OpenThread_WpanCtl(IThci):
             maskSet = (maskSet | mask)
 
         return maskSet
+
+    def __ChannelMaskListToStr(self, channelList):
+        """convert a channel list to a string
+
+        Args:
+            channelList: channel list (i.e. [21, 22, 23])
+
+        Returns:
+            a string with range-like format (i.e. '21-23')
+        """
+        chan_mask_range = ''
+        if isinstance(channelList, list):
+            if len(channelList) == 1:
+                chan_mask_range = str(channelList[0])
+            elif len(channelList) > 1:
+                chan_mask_range = str(channelList[0]) + '-' + str(channelList[-1])
+        else:
+            print 'not a list:', channelList
+
+        return chan_mask_range
 
     def __setChannelMask(self, channelMask):
         print 'call _setChannelMask'
@@ -743,6 +724,21 @@ class OpenThread_WpanCtl(IThci):
         print '%s call getCommissionerSessionId' % self.port
         return self.__sendCommand(WPANCTL_CMD + 'getprop -v Commissioner:SessionId')[0]
 
+    def __getJoinerState(self):
+        """ get joiner state """
+        maxDuration = 150  # seconds
+        t_end = time.time() + maxDuration
+        while time.time() < t_end:
+            joinerState = self.__stripValue(self.__sendCommand('sudo wpanctl getprop -v NCP:State')[0])
+            if joinerState == 'offline:commissioned':
+                return True
+            elif joinerState == 'associating:credentials-needed':
+                return False
+            else:
+                time.sleep(5)
+                continue
+        return False
+
     def _connect(self):
         if self.connectType == 'usb':
             print 'My port is %s' % self.port
@@ -766,6 +762,7 @@ class OpenThread_WpanCtl(IThci):
         elif self.connectType == 'ip':
             print "My IP: %s Port: %s" % (self.dutIpv4, self.dutPort)
             try:
+                import paramiko
                 self.handle = paramiko.SSHClient()
                 self.handle.set_missing_host_key_policy(paramiko.AutoAddPolicy())
                 self.handle.connect(self.dutIpv4, port=self.dutPort, username=WPAN_CARRIER_USER, password=WPAN_CARRIER_PASSWD)
@@ -1424,7 +1421,6 @@ class OpenThread_WpanCtl(IThci):
         self.hasActiveDatasetToCommit = False
         self.logThread = Queue()
         self.logThreadStatus = self.logStatus['stop']
-        self.joinCommissionedStatus = self.joinStatus['notstart']
         self.networkDataRequirement = ''      # indicate Thread device requests full or stable network data
         self.isPowerDown = False              # indicate if Thread device experiences a power down event
         self._addressfilterMode = 'disable'   # indicate AddressFilter mode ['disable', 'whitelist', 'blacklist']
@@ -2011,8 +2007,6 @@ class OpenThread_WpanCtl(IThci):
         if not self.isActiveCommissioner:
             self.startCollapsedCommissioner()
         if self.__sendCommand(cmd)[0] != 'Fail':
-            if self.logThreadStatus == self.logStatus['stop']:
-                self.logThread = ThreadRunner.run(target=self.__readCommissioningLogs, args=(120,))
             return True
         else:
             return False
@@ -2071,24 +2065,12 @@ class OpenThread_WpanCtl(IThci):
         cmd = WPANCTL_CMD + 'joiner --start %s %s' %(strPSKd, self.provisioningUrl)
         print cmd
         if self.__sendCommand(cmd)[0] != "Fail":
-            maxDuration = 150 # seconds
-            self.joinCommissionedStatus = self.joinStatus['ongoing']
-
-            if self.logThreadStatus == self.logStatus['stop']:
-                self.logThread = ThreadRunner.run(target=self.__readCommissioningLogs, args=(maxDuration,))
-
-            t_end = time.time() + maxDuration
-            while time.time() < t_end:
-                if self.joinCommissionedStatus == self.joinStatus['succeed']:
-                    break
-                elif self.joinCommissionedStatus == self.joinStatus['failed']:
-                    return False
-
-                time.sleep(1)
-
-            self.__sendCommand(WPANCTL_CMD + 'joiner --attach')
-            time.sleep(30)
-            return True
+            if self.__getJoinerState():
+                self.__sendCommand(WPANCTL_CMD + 'joiner --attach')
+                time.sleep(30)
+                return True
+            else:
+                return False
         else:
             return False
 
@@ -2161,7 +2143,7 @@ class OpenThread_WpanCtl(IThci):
         """
         print '%s call MGMT_ED_SCAN' % self.port
         channelMask = ''
-        channelMask = '0x' + self.__convertLongToString(self.__convertChannelMask(listChannelMask))
+        channelMask = self.__ChannelMaskListToStr(listChannelMask)
         try:
             cmd = WPANCTL_CMD + 'commissioner energy-scan %s %s %s %s %s' % (channelMask, xCount, xPeriod, xScanDuration, sAddr)
             print cmd
@@ -2182,7 +2164,7 @@ class OpenThread_WpanCtl(IThci):
         print '%s call MGMT_PANID_QUERY' % self.port
         panid = ''
         channelMask = ''
-        channelMask = '0x' + self.__convertLongToString(self.__convertChannelMask(listChannelMask))
+        channelMask = self.__ChannelMaskListToStr(listChannelMask)
 
         if not isinstance(xPanId, str):
             panid = str(hex(xPanId))
@@ -2203,7 +2185,7 @@ class OpenThread_WpanCtl(IThci):
         """
         print '%s call MGMT_ANNOUNCE_BEGIN' % self.port
         channelMask = ''
-        channelMask = '0x' + self.__convertLongToString(self.__convertChannelMask(listChannelMask))
+        channelMask = self.__ChannelMaskListToStr(listChannelMask)
         try:
             cmd = WPANCTL_CMD + 'commissioner announce-begin %s %s %s %s' % (channelMask, xCount, xPeriod, sAddr)
             print cmd

@@ -798,13 +798,15 @@ public:
     /**
      * This method returns the MLE Timeout value.
      *
-     * @returns The MLE Timeout value.
+     * @returns The MLE Timeout value in seconds.
      *
      */
     uint32_t GetTimeout(void) const { return mTimeout; }
 
     /**
      * This method sets the MLE Timeout value.
+     *
+     * @param[in]  aTimeout  The Timeout value in seconds.
      *
      */
     otError SetTimeout(uint32_t aTimeout);
@@ -1639,7 +1641,7 @@ protected:
 private:
     enum
     {
-        kMleMessagePriority = Message::kPriorityHigh,
+        kMleMessagePriority = Message::kPriorityNet,
         kMleHopLimit        = 255,
 
         // Parameters related to "periodic parent search" feature (CONFIG_ENABLE_PERIODIC_PARENT_SEARCH).

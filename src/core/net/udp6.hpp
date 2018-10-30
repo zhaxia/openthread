@@ -188,7 +188,7 @@ public:
 private:
     enum
     {
-        kDefaultSocketMessagePriority = Message::kPriorityLow,
+        kDefaultSocketMessagePriority = Message::kPriorityNormal,
     };
 
     UdpSocket *GetNext(void) { return static_cast<UdpSocket *>(mNext); }
@@ -324,6 +324,10 @@ public:
      */
     otError UpdateChecksum(Message &aMessage, uint16_t aPseudoHeaderChecksum);
 
+#if OPENTHREAD_ENABLE_PLATFORM_UDP
+    otUdpSocket *GetUdpSockets(void) { return mSockets; }
+#endif
+
 #if OPENTHREAD_ENABLE_UDP_PROXY
     /**
      * This method sets the proxy sender.
@@ -342,7 +346,7 @@ public:
 private:
     enum
     {
-        kDefaultUdpMessagePriority = Message::kPriorityLow,
+        kDefaultUdpMessagePriority = Message::kPriorityNormal,
     };
 
     enum

@@ -233,7 +233,7 @@ AC_PATH_PROG(CMP, cmp)
 #
 
 PROSPECTIVE_CFLAGS="-Wall -Wextra -Wshadow -Werror -std=c99 -pedantic-errors"
-PROSPECTIVE_CXXFLAGS="-Wall -Wextra -Wshadow -Werror -std=gnu++98 -Wno-c++14-compat"
+PROSPECTIVE_CXXFLAGS="-Wall -Wextra -Wshadow -Werror -std=gnu++98 -Wno-c++14-compat -fno-exceptions"
 
 AC_CACHE_CHECK([whether $CC is Clang],
     [nl_cv_clang],
@@ -319,6 +319,11 @@ AC_ARG_ENABLE(fuzz-targets,
 AC_MSG_RESULT(${enable_fuzz_targets})
 
 AM_CONDITIONAL([OPENTHREAD_ENABLE_FUZZ_TARGETS], [test "${enable_fuzz_targets}" = "yes"])
+
+if test "${enable_fuzz_targets}" = "no" ; then
+    PROSPECTIVE_CXXFLAGS="-fno-rtti"
+    AX_CHECK_COMPILER_OPTIONS([C++], ${PROSPECTIVE_CXXFLAGS})
+fi
 
 # Address Sanitizer
 
@@ -796,6 +801,35 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE], [test "${enable_appl
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE],[${OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE}],[Define to 1 if you want to enable CoAP Secure to an application.])
 
 #
+# Platform UDP
+#
+
+AC_ARG_ENABLE(platform_udp,
+    [AS_HELP_STRING([--enable-platform-udp],[Enable platform UDP support @<:@default=no@:>@.])],
+    [
+        case "${enableval}" in
+        no|yes)
+            enable_platform_udp=${enableval}
+            ;;
+        *)
+            AC_MSG_ERROR([Invalid value ${enable_platform_udp} for --enable-platform-udp])
+            ;;
+        esac
+    ],
+    [enable_platform_udp=no])
+
+if test "$enable_platform_udp" = "yes"; then
+    OPENTHREAD_ENABLE_PLATFORM_UDP=1
+else
+    OPENTHREAD_ENABLE_PLATFORM_UDP=0
+fi
+
+AC_MSG_RESULT(${enable_platform_udp})
+AC_SUBST(OPENTHREAD_ENABLE_PLATFORM_UDP)
+AM_CONDITIONAL([OPENTHREAD_ENABLE_PLATFORM_UDP], [test "${enable_platform_udp}" = "yes"])
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_PLATFORM_UDP], [${OPENTHREAD_ENABLE_PLATFORM_UDP}], [Define to 1 to enable platform UDP.])
+
+#
 # Thread Commissioner
 #
 
@@ -1032,6 +1066,36 @@ AC_MSG_RESULT(${enable_diag})
 AC_SUBST(OPENTHREAD_ENABLE_DIAG)
 AM_CONDITIONAL([OPENTHREAD_ENABLE_DIAG], [test "${enable_diag}" = "yes"])
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_DIAG],[${OPENTHREAD_ENABLE_DIAG}],[Define to 1 if you want to use diagnostics module])
+
+#
+# Vendor Extension - Specify a C++ source file which will be built as part of OpenThread core library.
+#
+
+AC_ARG_WITH(
+    [vendor-extension],
+    [AS_HELP_STRING([--with-vendor-extension=<VENDOR_EXT.CPP>],[Specify a C++ source file built as part of OpenThread core library. @<:@default=none@:>@.])],
+    [
+        if test "${withval}" = "no"
+        then OPENTHREAD_ENABLE_VENDOR_EXTENSION=0
+        elif test '!' -f "${withval}"
+        then AC_MSG_ERROR([Can't open ${withval} for --with-vendor-extension])
+        else
+            OPENTHREAD_ENABLE_VENDOR_EXTENSION=1
+
+            # Get the absolute path.
+            OPENTHREAD_VENDOR_EXTENSION_SOURCE=$(cd `dirname ${withval}` && pwd)/$(basename ${withval})
+        fi
+    ],
+    [
+        OPENTHREAD_ENABLE_VENDOR_EXTENSION=0
+        with_vendor_extension=none
+    ])
+
+AC_MSG_CHECKING([for vendor extension])
+AC_MSG_RESULT(${OPENTHREAD_VENDOR_EXTENSION_SOURCE-none})
+AC_SUBST(OPENTHREAD_VENDOR_EXTENSION_SOURCE)
+AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_VENDOR_EXTENSION],[${OPENTHREAD_ENABLE_VENDOR_EXTENSION}],[Define to 1 if using vendor extension])
+AM_CONDITIONAL([OPENTHREAD_ENABLE_VENDOR_EXTENSION], [test "${OPENTHREAD_ENABLE_VENDOR_EXTENSION}" = "1"])
 
 #
 # Legacy Network
@@ -1799,6 +1863,7 @@ AC_MSG_NOTICE([
   OpenThread NCP-BUS Configuration          : ${with_ncp_bus}
   OpenThread NCP Vendor Hook Source         : ${with_ncp_vendor_hook_source}
   OpenThread NCP Spinel Encrypter           : ${with_ncp_spinel_encrypter_libs}
+  OpenThread Vendor Extension Source        : ${with_vendor_extension}
   OpenThread Multiple Instances support     : ${enable_multiple_instances}
   OpenThread MTD Network Diagnostic support : ${enable_mtd_network_diagnostic}
   OpenThread builtin mbedtls support        : ${enable_builtin_mbedtls}

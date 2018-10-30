@@ -118,9 +118,20 @@ otError CoapSecure::Stop(void)
     return CoapBase::Stop();
 }
 
-otError CoapSecure::Connect(const Ip6::MessageInfo &aMessageInfo, ConnectedCallback aCallback, void *aContext)
+otError CoapSecure::Connect(const Ip6::SockAddr &aSockAddr, ConnectedCallback aCallback, void *aContext)
 {
-    mPeerAddress       = aMessageInfo;
+    memcpy(&mPeerAddress.mPeerAddr, &aSockAddr.mAddress, sizeof(mPeerAddress.mPeerAddr));
+    mPeerAddress.mPeerPort = aSockAddr.mPort;
+
+    if (aSockAddr.GetAddress().IsLinkLocal() || aSockAddr.GetAddress().IsMulticast())
+    {
+        mPeerAddress.mInterfaceId = aSockAddr.mScopeId;
+    }
+    else
+    {
+        mPeerAddress.mInterfaceId = 0;
+    }
+
     mConnectedCallback = aCallback;
     mConnectedContext  = aContext;
 
@@ -140,7 +151,15 @@ bool CoapSecure::IsConnected(void)
 
 otError CoapSecure::Disconnect(void)
 {
-    return GetNetif().GetDtls().Stop();
+    Ip6::SockAddr sockAddr;
+    otError       error = OT_ERROR_NONE;
+
+    SuccessOrExit(error = GetNetif().GetDtls().Stop());
+    // Disconnect from previous peer by connecting to any address
+    SuccessOrExit(error = mSocket.Connect(sockAddr));
+
+exit:
+    return error;
 }
 
 MeshCoP::Dtls &CoapSecure::GetDtls(void)
@@ -258,7 +277,10 @@ void CoapSecure::Receive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo
                      (mPeerAddress.GetPeerPort() == aMessageInfo.GetPeerPort()));
     }
 
+#if OPENTHREAD_ENABLE_BORDER_AGENT || OPENTHREAD_ENABLE_COMMISSIONER
     netif.GetDtls().SetClientId(mPeerAddress.GetPeerAddr().mFields.m8, sizeof(mPeerAddress.GetPeerAddr().mFields));
+#endif
+
     netif.GetDtls().Receive(aMessage, aMessage.GetOffset(), aMessage.GetLength() - aMessage.GetOffset());
 
 exit:

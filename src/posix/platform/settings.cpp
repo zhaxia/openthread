@@ -35,23 +35,27 @@
 #include "platform-posix.h"
 
 #include <assert.h>
+#include <fcntl.h>
 #include <inttypes.h>
 #include <stddef.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <openthread/platform/misc.h>
 #include <openthread/platform/settings.h>
 
 #include "common/code_utils.hpp"
 
-#define VerifyOrDie(aCondition) \
-    do                          \
-    {                           \
-        if (!(aCondition))      \
-        {                       \
-            perror(__func__);   \
-            exit(EXIT_FAILURE); \
-        }                       \
+#define VerifyOrDie(aCondition)    \
+    do                             \
+    {                              \
+        if (!(aCondition))         \
+        {                          \
+            perror(__func__);      \
+            exit(OT_EXIT_FAILURE); \
+        }                          \
     } while (false)
 
 static const size_t kMaxFileNameSize = sizeof(OPENTHREAD_CONFIG_POSIX_SETTINGS_PATH) + 32;
@@ -247,7 +251,7 @@ otError otPlatSettingsAdd(otInstance *aInstance, uint16_t aKey, const uint8_t *a
     if (size > 0)
     {
         VerifyOrDie(0 == lseek(sSettingsFd, 0, SEEK_SET));
-        swapWrite(swapFd, size);
+        swapWrite(swapFd, static_cast<uint16_t>(size));
     }
 
     VerifyOrDie(write(swapFd, &aKey, sizeof(aKey)) == sizeof(aKey) &&
@@ -290,7 +294,7 @@ otError otPlatSettingsDelete(otInstance *aInstance, uint16_t aKey, int aIndex)
             if (aIndex == 0)
             {
                 VerifyOrExit(offset == lseek(sSettingsFd, length, SEEK_CUR), error = OT_ERROR_PARSE);
-                swapWrite(swapFd, size - offset);
+                swapWrite(swapFd, static_cast<uint16_t>(size - offset));
                 error = OT_ERROR_NONE;
                 break;
             }

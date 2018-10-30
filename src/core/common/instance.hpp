@@ -67,6 +67,9 @@
 #include "utils/channel_monitor.hpp"
 #endif
 #endif // OPENTHREAD_FTD || OPENTHREAD_MTD
+#if OPENTHREAD_ENABLE_VENDOR_EXTENSION
+#include "common/extension.hpp"
+#endif
 
 /**
  * @addtogroup core-instance
@@ -177,24 +180,6 @@ public:
      */
     TaskletScheduler &GetTaskletScheduler(void) { return mTaskletScheduler; }
 
-#if OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
-    /**
-     * This method returns the current dynamic log level.
-     *
-     * @returns the currently set dynamic log level.
-     *
-     */
-    otLogLevel GetDynamicLogLevel(void) const { return mLogLevel; }
-
-    /**
-     * This method sets the dynamic log level.
-     *
-     * @param[in]  aLogLevel The dynamic log level.
-     *
-     */
-    void SetDynamicLogLevel(otLogLevel aLogLevel) { mLogLevel = aLogLevel; }
-#endif
-
     /**
      * This method returns the active log level.
      *
@@ -204,12 +189,22 @@ public:
     otLogLevel GetLogLevel(void) const
 #if OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
     {
-        return GetDynamicLogLevel();
+        return mLogLevel;
     }
 #else
     {
         return static_cast<otLogLevel>(OPENTHREAD_CONFIG_LOG_LEVEL);
     }
+#endif
+
+#if OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
+    /**
+     * This method sets the log level.
+     *
+     * @param[in] aLogLevel  A log level.
+     *
+     */
+    void SetLogLevel(otLogLevel aLogLevel) { mLogLevel = aLogLevel; }
 #endif
 
     /**
@@ -376,6 +371,16 @@ public:
      */
     MessagePool &GetMessagePool(void) { return mMessagePool; }
 
+#if OPENTHREAD_ENABLE_VENDOR_EXTENSION
+    /**
+     * This method returns a reference to vendor extension object.
+     *
+     * @returns A reference to the vendor extension object.
+     *
+     */
+    Extension::ExtensionBase &GetExtension(void) { return mExtension; }
+#endif
+
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
 
     /**
@@ -457,8 +462,12 @@ private:
 #if OPENTHREAD_RADIO || OPENTHREAD_ENABLE_RAW_LINK_API
     LinkRaw mLinkRaw;
 #endif // OPENTHREAD_RADIO || OPENTHREAD_ENABLE_RAW_LINK_API
+
 #if OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
     otLogLevel mLogLevel;
+#endif
+#if OPENTHREAD_ENABLE_VENDOR_EXTENSION
+    Extension::ExtensionBase &mExtension;
 #endif
     bool mIsInitialized;
 };
@@ -690,6 +699,13 @@ template <> inline TaskletScheduler &Instance::Get(void)
 {
     return GetTaskletScheduler();
 }
+
+#if OPENTHREAD_ENABLE_VENDOR_EXTENSION
+template <> inline Extension::ExtensionBase &Instance::Get(void)
+{
+    return GetExtension();
+}
+#endif
 
 /**
  * @}

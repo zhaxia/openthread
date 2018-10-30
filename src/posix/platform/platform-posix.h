@@ -38,21 +38,8 @@
 #include <openthread-core-config.h>
 #include <openthread/config.h>
 
-#include <assert.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <netinet/in.h>
-#include <poll.h>
 #include <sys/select.h>
-#include <sys/socket.h>
-#include <sys/stat.h>
 #include <sys/time.h>
-#include <unistd.h>
 
 #include <openthread/instance.h>
 
@@ -79,6 +66,33 @@ struct Event
     uint16_t mDataLength;
     uint8_t  mData[OT_EVENT_DATA_MAX_SIZE];
 } OT_TOOL_PACKED_END;
+
+/**
+ * This enumeration represents exit codes used when OpenThread exits.
+ *
+ */
+enum
+{
+    /**
+     * Success.
+     */
+    OT_EXIT_SUCCESS = 0,
+
+    /**
+     * Generic failure.
+     */
+    OT_EXIT_FAILURE = 1,
+
+    /**
+     * Invalid arguments.
+     */
+    OT_EXIT_INVALID_ARGUMENTS = 2,
+
+    /**
+     * Incompatible radio spinel.
+     */
+    OT_EXIT_INCOMPATIBLE_RADIO_SPINEL = 3,
+};
 
 /**
  * Unique node ID.
@@ -314,6 +328,30 @@ void otSimRadioSpinelProcess(otInstance *aInstance, const struct Event *aEvent);
 #else
 #define otSysGetTime(aTime) gettimeofday(aTime, NULL)
 #endif
+
+/**
+ * This function initializes platform UDP driver.
+ *
+ */
+void platformUdpInit(void);
+
+/**
+ * This function performs platform UDP driver processing.
+ *
+ * @param[in]   aInstance   The OpenThread instance structure.
+ * @param[in]   aReadFdSet  A pointer to the read file descriptors.
+ *
+ */
+void platformUdpProcess(otInstance *aInstance, const fd_set *aReadSet);
+
+/**
+ * This function updates the file descriptor sets with file descriptors used by the platform UDP driver.
+ *
+ * @param[in]     aInstance    The OpenThread instance structure.
+ * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
+ * @param[inout]  aMaxFd       A pointer to the max file descriptor.
+ */
+void platformUdpUpdateFdSet(otInstance *aInstance, fd_set *aReadFdSet, int *aMaxFd);
 
 #ifdef __cplusplus
 }

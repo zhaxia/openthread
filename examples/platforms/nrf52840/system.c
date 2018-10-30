@@ -81,6 +81,11 @@ void otSysInit(int argc, char *argv[])
         nrf5UartInit();
         nrf5CryptoInit();
     }
+    else
+    {
+        nrf5UartClearPendingData();
+    }
+
 #ifndef SPIS_TRANSPORT_DISABLE
     nrf5SpiSlaveInit();
 #endif
@@ -123,13 +128,13 @@ bool otSysPseudoResetWasRequested(void)
 
 void otSysProcessDrivers(otInstance *aInstance)
 {
-    nrf5AlarmProcess(aInstance);
     nrf5RadioProcess(aInstance);
     nrf5UartProcess();
     nrf5TempProcess();
 #ifndef SPIS_TRANSPORT_DISABLE
     nrf5SpiSlaveProcess();
 #endif
+    nrf5AlarmProcess(aInstance);
 }
 
 __WEAK void otSysEventSignalPending(void)

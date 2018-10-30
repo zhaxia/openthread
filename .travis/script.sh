@@ -34,6 +34,8 @@ die() {
 
 set -x
 
+python --version || die
+
 [ $BUILD_TARGET != pretty-check ] || {
     ./bootstrap || die
     ./configure || die
@@ -43,32 +45,38 @@ set -x
 [ $BUILD_TARGET != scan-build ] || {
     ./bootstrap || die
 
-    # avoids "third_party/mbedtls/repo/library/ssl_srv.c:2904:9: warning: Value stored to 'p' is never read"
-    export CPPFLAGS=-DMBEDTLS_KEY_EXCHANGE_ECDHE_ECDSA_ENABLED
+    export CPPFLAGS="-DMBEDTLS_DEBUG_C"
 
     scan-build ./configure                \
-        --enable-cli-app=all              \
-        --enable-ncp-app=all              \
-        --with-ncp-bus=uart               \
-        --with-examples=posix             \
         --enable-application-coap         \
         --enable-application-coap-secure  \
+        --enable-border-agent             \
         --enable-border-router            \
         --enable-cert-log                 \
+        --enable-channel-manager          \
+        --enable-channel-monitor          \
         --enable-child-supervision        \
+        --enable-cli                      \
         --enable-commissioner             \
         --enable-dhcp6-client             \
         --enable-dhcp6-server             \
         --enable-diag                     \
         --enable-dns-client               \
+        --enable-ftd                      \
         --enable-jam-detection            \
         --enable-joiner                   \
         --enable-legacy                   \
         --enable-mac-filter               \
+        --enable-mtd                      \
         --enable-mtd-network-diagnostic   \
+        --enable-ncp                      \
+        --with-ncp-bus=uart               \
+        --enable-radio-only               \
         --enable-raw-link-api             \
         --enable-service                  \
-        --enable-tmf-proxy || die
+        --enable-udp-proxy                \
+        --with-examples=posix || die
+
     scan-build --status-bugs -analyze-headers -v make || die
 }
 
@@ -322,7 +330,7 @@ set -x
 }
 
 [ $BUILD_TARGET != arm-gcc-7 ] || {
-    export PATH=/tmp/gcc-arm-none-eabi-7-2017-q4-major/bin:$PATH || die
+    export PATH=/tmp/gcc-arm-none-eabi-7-2018-q2-update/bin:$PATH || die
 
     git checkout -- . || die
     git clean -xfd || die
@@ -386,17 +394,17 @@ set -x
     arm-none-eabi-size  output/cc2652/bin/ot-ncp-ftd || die
     arm-none-eabi-size  output/cc2652/bin/ot-ncp-mtd || die
 
-    git checkout -- . || die
-    git clean -xfd || die
-    wget http://ww1.microchip.com/downloads/en/DeviceDoc/asf-standalone-archive-3.36.0.58.zip || die
-    unzip -qq asf-standalone-archive-3.36.0.58.zip || die
-    mv xdk-asf-3.36.0 third_party/microchip/asf || die
-    ./bootstrap || die
-    COMMISSIONER=1 JOINER=1 DHCP6_CLIENT=1 DHCP6_SERVER=1 DNS_CLIENT=1 make -f examples/Makefile-samr21 || die
-    arm-none-eabi-size  output/samr21/bin/ot-cli-ftd || die
-    arm-none-eabi-size  output/samr21/bin/ot-cli-mtd || die
-    arm-none-eabi-size  output/samr21/bin/ot-ncp-ftd || die
-    arm-none-eabi-size  output/samr21/bin/ot-ncp-mtd || die
+    # git checkout -- . || die
+    # git clean -xfd || die
+    # wget http://ww1.microchip.com/downloads/en/DeviceDoc/asf-standalone-archive-3.36.0.58.zip || die
+    # unzip -qq asf-standalone-archive-3.36.0.58.zip || die
+    # mv xdk-asf-3.36.0 third_party/microchip/asf || die
+    # ./bootstrap || die
+    # COMMISSIONER=1 JOINER=1 DHCP6_CLIENT=1 DHCP6_SERVER=1 DNS_CLIENT=1 make -f examples/Makefile-samr21 || die
+    # arm-none-eabi-size  output/samr21/bin/ot-cli-ftd || die
+    # arm-none-eabi-size  output/samr21/bin/ot-cli-mtd || die
+    # arm-none-eabi-size  output/samr21/bin/ot-ncp-ftd || die
+    # arm-none-eabi-size  output/samr21/bin/ot-ncp-mtd || die
 }
 
 [ $BUILD_TARGET != posix ] || {
@@ -432,7 +440,8 @@ set -x
         --enable-channel-manager            \
         --enable-channel-monitor            \
         --disable-docs                      \
-        --disable-tests || die
+        --disable-tests                     \
+        --with-vendor-extension=./src/core/common/extension_example.cpp || die
     make -j 8 || die
 
     git checkout -- . || die
@@ -451,6 +460,8 @@ set -x
         --disable-docs                      \
         --disable-tests || die
     make -j 8 || die
+
+    export CPPFLAGS=-DOPENTHREAD_CONFIG_ENABLE_TIME_SYNC=1
 
     git checkout -- . || die
     git clean -xfd || die
@@ -488,49 +499,7 @@ set -x
 }
 
 [ $BUILD_TARGET != posix-app-pty ] || {
-    ./bootstrap
-    COVERAGE=1 make -f examples/Makefile-posix
-    COVERAGE=1 make -f src/posix/Makefile-posix
-
-    SOCAT_OUTPUT=/tmp/ot-socat
-    socat -d -d pty,raw,echo=0 pty,raw,echo=0 > /dev/null 2> $SOCAT_OUTPUT &
-    while true; do
-        if test $(head -n2 $SOCAT_OUTPUT | wc -l) = 2; then
-            RADIO_PTY=$(head -n1 $SOCAT_OUTPUT | grep -o '/dev/.\+')
-            CORE_PTY=$(head -n2 $SOCAT_OUTPUT | tail -n1 | grep -o '/dev/.\+')
-            break
-        fi
-        echo 'Waiting for socat ready...'
-        sleep 1
-    done
-    echo 'RADIO_PTY' $DEVICE_PTY
-    echo 'CORE_PTY' $CORE_PTY
-
-    RADIO_NCP_PATH="$(pwd)/$(ls output/*linux*/bin/ot-ncp-radio)"
-    $RADIO_NCP_PATH 1 > $RADIO_PTY < $RADIO_PTY &
-    OT_CLI_PATH="$(pwd)/$(ls output/posix/*linux*/bin/ot-cli)"
-
-    expect <<EOF || die
-spawn $OT_CLI_PATH $CORE_PTY -echo
-set timeout 2
-send "panid 0xface\r\n"
-expect "Done"
-send "ifconfig up\r\n"
-expect "Done"
-send "thread start\r\n"
-expect "Done"
-sleep 5
-send "state\r\n"
-expect {
-    "leader" {
-        send "exit\r\n"
-        expect eof
-    }
-    timeout abort
-}
-send_user "Success"
-EOF
-    killall socat
+    .travis/check-posix-app-pty || die
 }
 
 [ $BUILD_TARGET != posix-mtd ] || {
@@ -557,5 +526,17 @@ EOF
 }
 
 [ $BUILD_TARGET != toranj-test-framework ] || {
-    ./tests/toranj/start.sh
+    ./tests/toranj/start.sh || die
+}
+
+[ $BUILD_TARGET != osx ] || {
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    make -f examples/Makefile-posix || die
+
+    git checkout -- . || die
+    git clean -xfd || die
+    ./bootstrap || die
+    make -f src/posix/Makefile-posix || die
 }

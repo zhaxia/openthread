@@ -56,6 +56,7 @@ openthread_headers                      = \
     commissioner.h                        \
     config.h                              \
     crypto.h                              \
+    border_agent.h                        \
     border_router.h                       \
     dataset.h                             \
     dataset_ftd.h                         \
@@ -71,6 +72,7 @@ openthread_headers                      = \
     joiner.h                              \
     link.h                                \
     link_raw.h                            \
+    logging.h                             \
     message.h                             \
     ncp.h                                 \
     netdata.h                             \

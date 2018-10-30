@@ -38,6 +38,7 @@
 #include <openthread/diag.h>
 #include <openthread/icmp6.h>
 #include <openthread/link.h>
+#include <openthread/logging.h>
 #include <openthread/ncp.h>
 #include <openthread/platform/misc.h>
 #include <openthread/platform/radio.h>
@@ -279,6 +280,7 @@ NcpBase::NcpBase(Instance *aInstance)
 #if OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
     memset(&mSteeringDataAddress, 0, sizeof(mSteeringDataAddress));
 #endif
+    otThreadRegisterParentResponseCallback(mInstance, &NcpBase::HandleParentResponseInfo, static_cast<void *>(this));
 #endif // OPENTHREAD_FTD
 #if OPENTHREAD_ENABLE_LEGACY
     mLegacyNodeDidJoin = false;
@@ -289,6 +291,10 @@ NcpBase::NcpBase(Instance *aInstance)
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
     mChangedPropsSet.AddLastStatus(SPINEL_STATUS_RESET_UNKNOWN);
     mUpdateChangedPropsTask.Post();
+
+#if OPENTHREAD_ENABLE_VENDOR_EXTENSION
+    aInstance->GetExtension().SignalNcpInit(*this);
+#endif
 }
 
 NcpBase *NcpBase::GetNcpInstance(void)
@@ -1316,9 +1322,9 @@ exit:
 
 #endif // OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
 
-    // ----------------------------------------------------------------------------
-    // MARK: Individual Property Getters and Setters
-    // ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+// MARK: Individual Property Getters and Setters
+// ----------------------------------------------------------------------------
 
 #if OPENTHREAD_ENABLE_DIAG
 
@@ -1774,6 +1780,10 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CAPS>(void)
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_MAC_RAW));
 #endif
 
+#if OPENTHREAD_ENABLE_POSIX_APP
+    SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_POSIX_APP));
+#endif
+
 #if (OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_NCP_SPINEL)
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_OPENTHREAD_LOG_METADATA));
 #endif
@@ -2134,7 +2144,7 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_DEBUG_TEST_WATCHDOG>(
 
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_DEBUG_NCP_LOG_LEVEL>(void)
 {
-    return mEncoder.WriteUint8(ConvertLogLevel(otGetDynamicLogLevel(mInstance)));
+    return mEncoder.WriteUint8(ConvertLogLevel(otLoggingGetLevel()));
 }
 
 template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_DEBUG_NCP_LOG_LEVEL>(void)
@@ -2178,7 +2188,7 @@ template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_DEBUG_NCP_LOG_LEVEL>(
         break;
     }
 
-    error = otSetDynamicLogLevel(mInstance, logLevel);
+    error = otLoggingSetLevel(logLevel);
 
 exit:
     return error;
