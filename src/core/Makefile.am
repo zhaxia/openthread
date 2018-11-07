@@ -126,6 +126,7 @@ SOURCES_COMMON                      = \
     api/netdata_api.cpp               \
     api/network_time_api.cpp          \
     api/server_api.cpp                \
+    api/sntp_api.cpp                  \
     api/tasklet_api.cpp               \
     api/thread_api.cpp                \
     api/thread_ftd_api.cpp            \
@@ -147,10 +148,12 @@ SOURCES_COMMON                      = \
     common/trickle_timer.cpp          \
     crypto/aes_ccm.cpp                \
     crypto/aes_ecb.cpp                \
+    crypto/ecdsa.cpp                  \
     crypto/hmac_sha256.cpp            \
     crypto/mbedtls.cpp                \
     crypto/pbkdf2_cmac.cpp            \
     crypto/sha256.cpp                 \
+    mac/channel_mask.cpp              \
     mac/link_raw.cpp                  \
     mac/mac.cpp                       \
     mac/mac_filter.cpp                \
@@ -182,6 +185,7 @@ SOURCES_COMMON                      = \
     net/ip6_mpl.cpp                   \
     net/ip6_routes.cpp                \
     net/netif.cpp                     \
+    net/sntp_client.cpp               \
     net/udp6.cpp                      \
     thread/address_resolver.cpp       \
     thread/announce_begin_server.cpp  \
@@ -304,10 +308,12 @@ HEADERS_COMMON                      = \
     common/trickle_timer.hpp          \
     crypto/aes_ccm.hpp                \
     crypto/aes_ecb.hpp                \
+    crypto/ecdsa.hpp                  \
     crypto/hmac_sha256.hpp            \
     crypto/mbedtls.hpp                \
     crypto/pbkdf2_cmac.h              \
     crypto/sha256.hpp                 \
+    mac/channel_mask.hpp              \
     mac/link_raw.hpp                  \
     mac/mac.hpp                       \
     mac/mac_filter.hpp                \
@@ -340,6 +346,7 @@ HEADERS_COMMON                      = \
     net/ip6_mpl.hpp                   \
     net/ip6_routes.hpp                \
     net/netif.hpp                     \
+    net/sntp_client.hpp               \
     net/socket.hpp                    \
     net/tcp.hpp                       \
     net/udp6.hpp                      \

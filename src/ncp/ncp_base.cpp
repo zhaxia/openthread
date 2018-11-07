@@ -213,13 +213,11 @@ NcpBase::NcpBase(Instance *aInstance)
     , mHostPowerState(SPINEL_HOST_POWER_STATE_ONLINE)
     , mHostPowerReplyFrameTag(NcpFrameBuffer::kInvalidTag)
     , mHostPowerStateHeader(0)
-    ,
 #if OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
-    mAllowPeekDelegate(NULL)
+    , mAllowPeekDelegate(NULL)
     , mAllowPokeDelegate(NULL)
-    ,
 #endif
-    mNextExpectedTid(0)
+    , mNextExpectedTid(0)
     , mResponseQueueHead(0)
     , mResponseQueueTail(0)
     , mAllowLocalNetworkDataChange(false)
@@ -227,27 +225,23 @@ NcpBase::NcpBase(Instance *aInstance)
     , mIsRawStreamEnabled(false)
     , mDisableStreamWrite(false)
     , mShouldEmitChildTableUpdate(false)
-    ,
 #if OPENTHREAD_FTD
-    mPreferredRouteId(0)
-    ,
+    , mPreferredRouteId(0)
 #endif
 #if OPENTHREAD_RADIO || OPENTHREAD_ENABLE_RAW_LINK_API
-    mCurTransmitTID(0)
+    , mCurTransmitTID(0)
     , mCurScanChannel(kInvalidScanChannel)
     , mSrcMatchEnabled(false)
-    ,
 #endif // OPENTHREAD_RADIO || OPENTHREAD_ENABLE_RAW_LINK_API
 #if OPENTHREAD_MTD || OPENTHREAD_FTD
-    mInboundSecureIpFrameCounter(0)
+    , mInboundSecureIpFrameCounter(0)
     , mInboundInsecureIpFrameCounter(0)
     , mOutboundSecureIpFrameCounter(0)
     , mOutboundInsecureIpFrameCounter(0)
     , mDroppedOutboundIpFrameCounter(0)
     , mDroppedInboundIpFrameCounter(0)
-    ,
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD
-    mFramingErrorCounter(0)
+    , mFramingErrorCounter(0)
     , mRxSpinelFrameCounter(0)
     , mRxSpinelOutOfOrderTidCounter(0)
     , mTxSpinelFrameCounter(0)
@@ -270,8 +264,8 @@ NcpBase::NcpBase(Instance *aInstance)
     otSetStateChangedCallback(mInstance, &NcpBase::HandleStateChanged, this);
     otIp6SetReceiveCallback(mInstance, &NcpBase::HandleDatagramFromStack, this);
     otIp6SetReceiveFilterEnabled(mInstance, true);
-#if OPENTHREAD_ENABLE_UDP_PROXY
-    otUdpProxySetSender(mInstance, &NcpBase::HandleUdpProxyStream, this);
+#if OPENTHREAD_ENABLE_UDP_FORWARD
+    otUdpForwardSetForwarder(mInstance, &NcpBase::HandleUdpForwardStream, this);
 #endif
     otLinkSetPcapCallback(mInstance, &NcpBase::HandleRawFrame, static_cast<void *>(this));
     otIcmp6SetEchoMode(mInstance, OT_ICMP6_ECHO_HANDLER_DISABLED);
@@ -1848,8 +1842,8 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CAPS>(void)
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_THREAD_JOINER));
 #endif
 
-#if OPENTHREAD_ENABLE_UDP_PROXY
-    SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_THREAD_UDP_PROXY));
+#if OPENTHREAD_ENABLE_UDP_FORWARD
+    SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_THREAD_UDP_FORWARD));
 #endif
 
 #endif // OPENTHREAD_MTD || OPENTHREAD_FTD

@@ -87,6 +87,10 @@ ifeq ($(DNS_CLIENT),1)
 configure_OPTIONS              += --enable-dns-client
 endif
 
+ifeq ($(ECDSA),1)
+configure_OPTIONS              += --enable-ecdsa
+endif
+
 ifeq ($(JAM_DETECTION),1)
 configure_OPTIONS              += --enable-jam-detection
 endif
@@ -115,8 +119,12 @@ ifeq ($(SERVICE),1)
 configure_OPTIONS              += --enable-service
 endif
 
-ifeq ($(UDP_PROXY),1)
-configure_OPTIONS              += --enable-udp-proxy
+ifeq ($(SNTP_CLIENT),1)
+configure_OPTIONS              += --enable-sntp-client
+endif
+
+ifeq ($(UDP_FORWARD),1)
+configure_OPTIONS              += --enable-udp-forward
 endif
 
 ifeq ($(DEBUG_UART),1)
