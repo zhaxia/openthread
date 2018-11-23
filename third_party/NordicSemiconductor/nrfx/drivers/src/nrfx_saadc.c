@@ -39,7 +39,7 @@
  */
 #include <nrfx.h>
 
-#if NRFX_CHECK(NRFX_SAADC_ENABLED)
+#if 1//NRFX_CHECK(NRFX_SAADC_ENABLED)
 #include <nrfx_saadc.h>
 
 #define NRFX_LOG_MODULE SAADC
@@ -101,6 +101,13 @@ static nrfx_saadc_cb_t m_cb;
 
 void nrfx_saadc_irq_handler(void)
 {
+    {
+        nrfx_saadc_evt_t evt;
+
+        evt.type               = NRFX_SAADC_EVT_TEST;
+        m_cb.event_handler(&evt);
+    }
+
     if (nrf_saadc_event_check(NRF_SAADC_EVENT_END))
     {
         nrf_saadc_event_clear(NRF_SAADC_EVENT_END);
@@ -234,6 +241,7 @@ nrfx_err_t nrfx_saadc_init(nrfx_saadc_config_t const * p_config,
     m_cb.limits_enabled_flags = 0;
     m_cb.conversions_end      = false;
 
+    nrf_saadc_channel_sample_rate_set(p_config->sample_rate);
     nrf_saadc_int_disable(NRF_SAADC_INT_ALL);
     nrf_saadc_event_clear(NRF_SAADC_EVENT_END);
     nrf_saadc_event_clear(NRF_SAADC_EVENT_STARTED);
@@ -497,7 +505,17 @@ nrfx_err_t nrfx_saadc_buffer_convert(nrf_saadc_value_t * p_buffer, uint16_t size
                   __func__,
                   size,
                   m_cb.active_channels);
+/*
+    {
+        nrf_saadc_sample_rate_t sample_rate =
+        {
+            .mode = NRF_SAADC_SAMPLE_RATE_MODE_TIMER,
+            .cap_and_cmp_value = 1000,
+        };
 
+        nrf_saadc_channel_sample_rate_set(sample_rate);
+    }
+*/
     if (m_cb.low_power_mode)
     {
         m_cb.buffer_size_left = size;

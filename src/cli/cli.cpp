@@ -144,6 +144,7 @@ const struct Command Interpreter::sCommands[] = {
     {"extaddr", &Interpreter::ProcessExtAddress},
     {"extpanid", &Interpreter::ProcessExtPanId},
     {"factoryreset", &Interpreter::ProcessFactoryReset},
+    {"flash", &Interpreter::ProcessFlash},
     {"ifconfig", &Interpreter::ProcessIfconfig},
 #ifdef OTDLL
     {"instance", &Interpreter::ProcessInstance},
@@ -234,6 +235,7 @@ const struct Command Interpreter::sCommands[] = {
 #ifndef OTDLL
     {"txpower", &Interpreter::ProcessTxPower},
     {"udp", &Interpreter::ProcessUdp},
+    {"wav", &Interpreter::ProcessWav},
 #endif
     {"version", &Interpreter::ProcessVersion},
 };
@@ -292,6 +294,7 @@ Interpreter::Interpreter(Instance *aInstance)
     , mResolvingInProgress(0)
 #endif
     , mUdp(*this)
+    , mCliWav(*this)
 #endif
     , mInstance(aInstance)
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
@@ -1008,6 +1011,31 @@ void Interpreter::ProcessFactoryReset(int argc, char *argv[])
     OT_UNUSED_VARIABLE(argv);
 
     otInstanceFactoryReset(mInstance);
+}
+
+void Interpreter::ProcessFlash(int argc, char *argv[])
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(argc > 0, error = OT_ERROR_INVALID_ARGS);
+
+    if (strcmp(argv[0], "read") == 0)
+    {
+	    uint8_t *pFlash = (uint8_t *)(0x60000);
+        for (int i = 0; i < 16; i++)
+		{ 
+       		mServer->OutputFormat("%02x ", pFlash[i]);
+		}
+
+       	mServer->OutputFormat("\r\n");
+	}
+	else
+	{
+		error = OT_ERROR_INVALID_ARGS;
+	}
+
+exit:
+    AppendResult(error);
 }
 
 void Interpreter::ProcessIfconfig(int argc, char *argv[])
@@ -2917,6 +2945,13 @@ void Interpreter::ProcessUdp(int argc, char *argv[])
 {
     otError error;
     error = mUdp.Process(argc, argv);
+    AppendResult(error);
+}
+
+void Interpreter::ProcessWav(int argc, char *argv[])
+{
+    otError error;
+    error = mCliWav.Process(argc, argv);
     AppendResult(error);
 }
 #endif

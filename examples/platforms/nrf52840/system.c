@@ -92,6 +92,8 @@ void otSysInit(int argc, char *argv[])
     nrf5MiscInit();
     nrf5RadioInit();
     nrf5TempInit();
+    nrf5SoundInit();
+    nrf5MicInit();
 
 #if PLATFORM_FEM_ENABLE_DEFAULT_CONFIG
     PlatformFemSetConfigParams(&PLATFORM_FEM_DEFAULT_CONFIG);
@@ -115,6 +117,9 @@ void otSysDeinit(void)
     }
     nrf5RandomDeinit();
     nrf5AlarmDeinit();
+    nrf5SoundDeinit();
+    nrf5MicDeinit();
+
 #if (OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED) || \
     (OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_NCP_SPINEL)
     nrf5LogDeinit();

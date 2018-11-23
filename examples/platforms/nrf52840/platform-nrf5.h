@@ -101,6 +101,13 @@ void nrf5RandomInit(void);
  */
 void nrf5RandomDeinit(void);
 
+
+void nrf5SoundInit(void);
+void nrf5SoundDeinit(void);
+
+void nrf5MicInit(void);
+void nrf5MicDeinit(void);
+
 /**
  * Initialization of Logger driver.
  *

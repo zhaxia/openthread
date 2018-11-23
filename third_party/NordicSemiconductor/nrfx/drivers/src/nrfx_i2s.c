@@ -40,7 +40,7 @@
 
 #include <nrfx.h>
 
-#if NRFX_CHECK(NRFX_I2S_ENABLED)
+#if 1 //NRFX_CHECK(NRFX_I2S_ENABLED)
 
 #include <nrfx_i2s.h>
 #include <hal/nrf_gpio.h>

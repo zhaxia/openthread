@@ -82,6 +82,8 @@
 #define UART_HWFC_ENABLED 1
 #endif
 
+#define NRFX_I2S_ENABLED 1
+
 /**
  * @def UART_BAUDRATE
  *

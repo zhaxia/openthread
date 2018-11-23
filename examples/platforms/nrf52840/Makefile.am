@@ -70,6 +70,7 @@ COMMONCPPFLAGS                                                                  
     -I$(top_srcdir)/third_party/NordicSemiconductor/nrfx                                                     \
     -I$(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal                                                 \
     -I$(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers                                             \
+    -I$(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers/src                                         \
     -I$(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers/include                                     \
     -I$(top_srcdir)/third_party/NordicSemiconductor/nrfx/mdk                                                 \
     -I$(top_srcdir)/third_party/NordicSemiconductor/nrfx/soc                                                 \
@@ -82,12 +83,14 @@ PLATFORM_COMMON_SOURCES                                                         
     fem.c                                                                                                    \
     flash.c                                                                                                  \
     logging.c                                                                                                \
+    mic.c                                                                                                    \
     misc.c                                                                                                   \
     platform-config.h                                                                                        \
     platform-fem.h                                                                                           \
     platform-nrf5.h                                                                                          \
     radio.c                                                                                                  \
     random.c                                                                                                 \
+    sound.c                                                                                                  \
     temp.c                                                                                                   \
     spi-slave.c                                                                                              \
     system.c                                                                                                 \
@@ -179,6 +182,8 @@ NORDICSEMI_SOURCES                                                              
     @top_builddir@/third_party/NordicSemiconductor/libraries/usb/class/cdc/acm/app_usbd_cdc_acm.c            \
     @top_builddir@/third_party/NordicSemiconductor/libraries/utf_converter/utf.c                             \
     @top_builddir@/third_party/NordicSemiconductor/nrfx/drivers/src/nrfx_clock.c                             \
+    @top_builddir@/third_party/NordicSemiconductor/nrfx/drivers/src/nrfx_i2s.c                               \
+    @top_builddir@/third_party/NordicSemiconductor/nrfx/drivers/src/nrfx_saadc.c                             \
     @top_builddir@/third_party/NordicSemiconductor/nrfx/drivers/src/nrfx_power.c                             \
     @top_builddir@/third_party/NordicSemiconductor/nrfx/drivers/src/nrfx_systick.c                           \
     @top_builddir@/third_party/NordicSemiconductor/nrfx/hal/nrf_nvmc.c                                       \
@@ -328,17 +333,21 @@ noinst_HEADERS                                                                  
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers/nrfx_common.h                                   \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers/nrfx_errors.h                                   \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers/include/nrfx_clock.h                            \
+    $(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers/include/nrfx_i2s.h                              \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers/include/nrfx_power_clock.h                      \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers/include/nrfx_power.h                            \
+    $(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers/include/nrfx_saadc.h                            \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/drivers/include/nrfx_systick.h                          \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_clock.h                                         \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_gpio.h                                          \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_gpiote.h                                        \
+    $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_i2s.h                                           \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_egu.h                                           \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_nvmc.h                                          \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_ppi.h                                           \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_power.h                                         \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_rng.h                                           \
+    $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_saadc.h                                         \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_spis.h                                          \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_uart.h                                          \
     $(top_srcdir)/third_party/NordicSemiconductor/nrfx/hal/nrf_usbd.h                                          \

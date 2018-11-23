@@ -118,10 +118,11 @@ extern "C" {
  */
 typedef struct
 {
-    nrf_saadc_resolution_t resolution;         ///< Resolution configuration.
-    nrf_saadc_oversample_t oversample;         ///< Oversampling configuration.
-    uint8_t                interrupt_priority; ///< Interrupt priority.
-    bool                   low_power_mode;     ///< Indicates if low power mode is active.
+    nrf_saadc_resolution_t  resolution;         ///< Resolution configuration.
+    nrf_saadc_oversample_t  oversample;         ///< Oversampling configuration.
+    nrf_saadc_sample_rate_t sample_rate;        ///< Sample Rate configuration.
+    uint8_t                 interrupt_priority; ///< Interrupt priority.
+    bool                    low_power_mode;     ///< Indicates if low power mode is active.
 } nrfx_saadc_config_t;
 
 /**
@@ -131,7 +132,8 @@ typedef enum
 {
     NRFX_SAADC_EVT_DONE,         ///< Event generated when the buffer is filled with samples.
     NRFX_SAADC_EVT_LIMIT,        ///< Event generated after one of the limits is reached.
-    NRFX_SAADC_EVT_CALIBRATEDONE ///< Event generated when the calibration is complete.
+    NRFX_SAADC_EVT_CALIBRATEDONE, ///< Event generated when the calibration is complete.
+    NRFX_SAADC_EVT_TEST
 } nrfx_saadc_evt_type_t;
 
 /**

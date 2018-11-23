@@ -289,6 +289,22 @@ typedef struct
     nrf_saadc_input_t     pin_n;
 } nrf_saadc_channel_config_t;
 
+typedef enum
+{
+    NRF_SAADC_SAMPLE_RATE_MODE_TASK  = 0,
+    NRF_SAADC_SAMPLE_RATE_MODE_TIMER = 1,
+} nrf_saadc_sample_rate_mode_t;
+
+typedef struct
+{
+    nrf_saadc_sample_rate_mode_t mode;
+    uint16_t                     cap_and_cmp_value;
+} nrf_saadc_sample_rate_t;
+
+__STATIC_INLINE void nrf_saadc_channel_sample_rate_set(nrf_saadc_sample_rate_t sample_rate)
+{
+    NRF_SAADC->SAMPLERATE = (sample_rate.mode << 12) | (sample_rate.cap_and_cmp_value & 0x07FF);
+}
 
 /**
  * @brief Function for triggering a specific SAADC task.

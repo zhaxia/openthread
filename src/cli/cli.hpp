@@ -44,6 +44,7 @@
 
 #include "cli/cli_server.hpp"
 #include "cli/cli_udp_example.hpp"
+#include "cli/cli_wav.hpp"
 
 #if OPENTHREAD_ENABLE_APPLICATION_COAP
 #include <coap/coap_header.hpp>
@@ -102,6 +103,7 @@ class Interpreter
     friend class Coap;
     friend class CoapSecure;
     friend class UdpExample;
+    friend class CliWav;
 
 public:
     /**
@@ -179,6 +181,8 @@ public:
      */
     void SetUserCommands(const otCliCommand *aCommands, uint8_t aLength);
 
+    CliWav &GetCliWav() { return mCliWav; }
+
 private:
     enum
     {
@@ -233,6 +237,7 @@ private:
     void    ProcessExtAddress(int argc, char *argv[]);
     void    ProcessExtPanId(int argc, char *argv[]);
     void    ProcessFactoryReset(int argc, char *argv[]);
+    void    ProcessFlash(int argc, char *argv[]);
     void    ProcessIfconfig(int argc, char *argv[]);
     void    ProcessIpAddr(int argc, char *argv[]);
     otError ProcessIpAddrAdd(int argc, char *argv[]);
@@ -321,6 +326,7 @@ private:
 #ifndef OTDLL
     void ProcessTxPower(int argc, char *argv[]);
     void ProcessUdp(int argc, char *argv[]);
+    void ProcessWav(int argc, char *argv[]);
 #endif
     void ProcessVersion(int argc, char *argv[]);
 #if OPENTHREAD_ENABLE_MAC_FILTER
@@ -448,6 +454,7 @@ private:
 #endif
 
     UdpExample mUdp;
+    CliWav     mCliWav;
 
 #endif
 
