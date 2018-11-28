@@ -463,6 +463,29 @@ extern "C" {
 #endif // NRF_802154_TX_STARTED_NOTIFY_ENABLED
 
 /**
+ * @}
+ * @defgroup nrf_802154_config_coex COEX procedure configuration
+ * @{
+ */
+
+/**
+ * @def NRF_802154_COEX_ENABLED
+ *
+ * If COEX should be enabled by the driver.
+ *
+ */
+#if NRF_802154_CSMA_CA_ENABLED
+#ifndef NRF_802154_COEX_ENABLED
+#define NRF_802154_COEX_ENABLED 0
+#endif
+#else
+#ifdef NRF_802154_COEX_ENABLED
+#undef NRF_802154_COEX_ENABLED
+#endif
+#define NRF_802154_COEX_ENABLED 0
+#endif
+
+/**
  *@}
  **/
 

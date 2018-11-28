@@ -67,6 +67,9 @@ typedef uint8_t nrf_802154_tx_error_t;
 #define NRF_802154_TX_ERROR_TIMESLOT_ENDED    0x04 //!< Radio timeslot ended during transmission procedure.
 #define NRF_802154_TX_ERROR_NO_ACK            0x05 //!< ACK frame was not received during time-out period.
 #define NRF_802154_TX_ERROR_ABORTED           0x06 //!< Procedure was aborted by another driver operation with FORCE priority.
+#if NRF_802154_COEX_ENABLED
+#define NRF_802154_TX_ERROR_COEX_NOT_GRANTED  0x07 //!< Radio coex permission not granted.
+#endif // NRF_802154_COEX_ENABLED
 
 /**
  * @brief Possible errors during frame reception.
@@ -80,6 +83,9 @@ typedef uint8_t nrf_802154_rx_error_t;
 #define NRF_802154_RX_ERROR_RUNTIME           0x04 //!< A runtime error occurred (for example, CPU was held for too long).
 #define NRF_802154_RX_ERROR_TIMESLOT_ENDED    0x05 //!< Radio timeslot ended during frame reception.
 #define NRF_802154_RX_ERROR_ABORTED           0x06 //!< Procedure was aborted by another driver operation with FORCE priority.
+#if NRF_802154_COEX_ENABLED
+#define NRF_802154_RX_ERROR_COEX_NOT_GRANTED  0x07 //!< Radio coex permission not granted.
+#endif // NRF_802154_COEX_ENABLED
 
 /**
  * @brief Possible errors during energy detection.

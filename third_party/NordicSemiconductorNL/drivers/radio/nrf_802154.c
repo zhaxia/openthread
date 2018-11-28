@@ -61,6 +61,9 @@
 #include "platform/timer/nrf_802154_timer.h"
 #include "raal/nrf_raal_api.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
+#if NRF_802154_COEX_ENABLED
+#include "coex/nrf_coex_api.h"
+#endif // NRF_802154_COEX_ENABLED
 
 #include "mac_features/nrf_802154_csma_ca.h"
 #include "mac_features/nrf_802154_ack_timeout.h"
@@ -180,6 +183,9 @@ void nrf_802154_init(void)
     nrf_802154_timer_init();
     nrf_802154_timer_sched_init();
     nrf_raal_init();
+#if NRF_802154_COEX_ENABLED
+    nrf_coex_init();
+#endif // NRF_802154_COEX_ENABLED
 }
 
 void nrf_802154_deinit(void)
@@ -267,6 +273,14 @@ bool nrf_802154_transmit_raw(const uint8_t * p_data, bool cca)
 {
     bool result;
     nrf_802154_log(EVENT_TRACE_ENTER, FUNCTION_TRANSMIT);
+
+#if NRF_802154_COEX_ENABLED
+    if (!nrf_coex_tx_request(p_data))
+    {
+        // packet will be handled by coex
+        return true;
+    }
+#endif // NRF_802154_COEX_ENABLED
 
     result = nrf_802154_request_transmit(NRF_802154_TERM_NONE,
                                          REQ_ORIG_HIGHER_LAYER,

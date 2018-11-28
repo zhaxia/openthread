@@ -44,6 +44,9 @@
 #include "hal/nrf_radio.h"
 #include "platform/timer/nrf_802154_timer.h"
 #include "raal/nrf_raal_api.h"
+#if NRF_802154_COEX_ENABLED
+#include "coex/nrf_coex_api.h"
+#endif // NRF_802154_COEX_ENABLED
 
 #include <nrf.h>
 
@@ -127,6 +130,9 @@ static bool critical_section_enter(bool forced)
 
         radio_critical_section_enter();
         nrf_raal_critical_section_enter();
+#if NRF_802154_COEX_ENABLED
+        nrf_coex_critical_section_enter();
+#endif // NRF_802154_COEX_ENABLED
     }
     while (__STREXB(cnt + 1, &m_nested_critical_section_counter));
 
@@ -174,6 +180,9 @@ void nrf_802154_critical_section_exit(void)
             // RAAL critical section shall be exited before RADIO IRQ handler is enabled. In other
             // case RADIO IRQ handler may be called out of timeslot.
             nrf_raal_critical_section_exit();
+#if NRF_802154_COEX_ENABLED
+            nrf_coex_critical_section_exit();
+#endif // NRF_802154_COEX_ENABLED
             radio_critical_section_exit();
 
             exiting_crit_sect = false;

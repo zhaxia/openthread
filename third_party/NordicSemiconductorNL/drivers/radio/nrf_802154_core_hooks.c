@@ -45,12 +45,19 @@
 #include "mac_features/nrf_802154_csma_ca.h"
 #include "nrf_802154_config.h"
 #include "nrf_802154_types.h"
+#if NRF_802154_COEX_ENABLED
+#include "coex/nrf_coex_api.h"
+#endif // NRF_802154_COEX_ENABLED
 
 
 typedef bool (* abort_hook)(nrf_802154_term_t term_lvl, req_originator_t req_orig);
 typedef void (* transmitted_hook)(const uint8_t * p_frame);
 typedef bool (* tx_failed_hook)(const uint8_t * p_frame, nrf_802154_tx_error_t error);
 typedef bool (* tx_started_hook)(const uint8_t * p_frame);
+#if NRF_802154_COEX_ENABLED
+typedef void (* rx_ended_hook)(bool success);
+typedef void (* tx_ended_hook)(bool success);
+#endif // NRF_802154_COEX_ENABLED
 
 /* Since some compilers do not allow empty initializers for arrays with unspecified bounds,
  * NULL pointer is appended to below arrays if the compiler used is not GCC. It is intentionally
@@ -104,6 +111,22 @@ static const tx_started_hook m_tx_started_hooks[] =
 
     NULL,
 };
+
+#if NRF_802154_COEX_ENABLED
+static const rx_ended_hook m_rx_ended_hooks[] =
+{
+    nrf_coex_rx_ended_hook,
+
+    NULL,
+};
+
+static const tx_ended_hook m_tx_ended_hooks[] =
+{
+    nrf_coex_tx_ended_hook,
+
+    NULL,
+};
+#endif // NRF_802154_COEX_ENABLED
 
 bool nrf_802154_core_hooks_terminate(nrf_802154_term_t term_lvl, req_originator_t req_orig)
 {
@@ -183,3 +206,31 @@ bool nrf_802154_core_hooks_tx_started(const uint8_t * p_frame)
 
     return result;
 }
+
+#if NRF_802154_COEX_ENABLED
+void nrf_802154_core_hooks_rx_ended(bool success)
+{
+    for (uint32_t i = 0; i < sizeof(m_rx_ended_hooks) / sizeof(m_rx_ended_hooks[0]); i++)
+    {
+        if (m_rx_ended_hooks[i] == NULL)
+        {
+            break;
+        }
+
+        m_rx_ended_hooks[i](success);
+    }
+}
+
+void nrf_802154_core_hooks_tx_ended(bool success)
+{
+    for (uint32_t i = 0; i < sizeof(m_tx_ended_hooks) / sizeof(m_tx_ended_hooks[0]); i++)
+    {
+        if (m_tx_ended_hooks[i] == NULL)
+        {
+            break;
+        }
+
+        m_tx_ended_hooks[i](success);
+    }
+}
+#endif // NRF_802154_COEX_ENABLED

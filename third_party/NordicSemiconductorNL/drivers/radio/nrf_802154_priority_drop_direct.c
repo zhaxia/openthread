@@ -38,6 +38,9 @@
 #include "nrf_802154_priority_drop.h"
 
 #include "raal/nrf_raal_api.h"
+#if NRF_802154_COEX_ENABLED
+#include "coex/nrf_coex_api.h"
+#endif // NRF_802154_COEX_ENABLED
 
 void nrf_802154_priority_drop_init(void)
 {
@@ -47,6 +50,9 @@ void nrf_802154_priority_drop_init(void)
 void nrf_802154_priority_drop_timeslot_exit(void)
 {
     nrf_raal_continuous_mode_exit();
+#if NRF_802154_COEX_ENABLED
+    nrf_coex_stop();
+#endif // NRF_802154_COEX_ENABLED
 }
 
 void nrf_802154_priority_drop_timeslot_exit_terminate(void)

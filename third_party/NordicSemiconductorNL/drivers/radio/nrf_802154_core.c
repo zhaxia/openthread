@@ -64,6 +64,9 @@
 
 #include "nrf_802154_core_hooks.h"
 #include "raal/nrf_raal_api.h"
+#if NRF_802154_COEX_ENABLED
+#include "coex/nrf_coex_api.h"
+#endif // NRF_802154_COEX_ENABLED
 
 
 #define EGU_EVENT           NRF_EGU_EVENT_TRIGGERED15
@@ -189,6 +192,9 @@ typedef struct
 #if !NRF_802154_DISABLE_BCC_MATCHING
     bool psdu_being_received   :1;  ///< If PSDU is currently being received.
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
+#if NRF_802154_COEX_ENABLED
+    bool rx_coex_requested     :1;  ///< If coex for the frame being receive is already requested.
+#endif // NRF_802154_COEX_ENABLED
 } nrf_radio802154_flags_t;
 static nrf_radio802154_flags_t m_flags;  ///< Flags used to store current driver state.
 
@@ -216,6 +222,9 @@ static void rx_flags_clear(void)
 #if !NRF_802154_DISABLE_BCC_MATCHING
     m_flags.psdu_being_received   = false;
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
+#if NRF_802154_COEX_ENABLED
+    m_flags.rx_coex_requested     = false;
+#endif // NRF_802154_COEX_ENABLED
 }
 
 /** Get result of last RSSI measurement.
@@ -265,8 +274,19 @@ static bool timeslot_is_granted(void)
     return m_timeslot_is_granted;
 }
 
+#if NRF_802154_COEX_ENABLED
+static void receive_ended_notify(bool success)
+{
+    nrf_802154_core_hooks_rx_ended(success);
+}
+#endif
+
 static void received_frame_notify(uint8_t * p_psdu)
 {
+#if NRF_802154_COEX_ENABLED
+    receive_ended_notify(true);
+#endif // NRF_802154_COEX_ENABLED
+
     nrf_802154_notify_received(p_psdu,                       // data
                                rssi_last_measurement_get(),  // rssi
                                lqi_get(p_psdu));             // lqi
@@ -286,6 +306,10 @@ static void received_frame_notify_and_nesting_allow(uint8_t * p_psdu)
 static void receive_failed_notify(nrf_802154_rx_error_t error)
 {
     nrf_802154_critical_section_nesting_allow();
+
+#if NRF_802154_COEX_ENABLED
+    receive_ended_notify(false);
+#endif // NRF_802154_COEX_ENABLED
 
     nrf_802154_notify_receive_failed(error);
 
@@ -887,6 +911,9 @@ static void sleep_terminate(void)
 {
     nrf_802154_priority_drop_timeslot_exit_terminate();
     nrf_raal_continuous_mode_enter();
+#if NRF_802154_COEX_ENABLED
+    nrf_coex_start();
+#endif // NRF_802154_COEX_ENABLED
 }
 
 /** Terminate RX procedure. */
@@ -1130,6 +1157,10 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
 
                         if (notify_abort)
                         {
+#if NRF_802154_COEX_ENABLED
+                            receive_ended_notify(false);
+#endif // NRF_802154_COEX_ENABLED
+
                             nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_ABORTED);
                         }
                     }
@@ -1451,6 +1482,13 @@ static bool tx_init(const uint8_t * p_data, bool cca, bool disabled_was_triggere
         return false;
     }
 
+#if NRF_802154_COEX_ENABLED
+    if (!nrf_coex_grant_active())
+    {
+        return false;
+    }
+#endif // NRF_802154_COEX_ENABLED
+
     nrf_radio_tx_power_set(nrf_802154_pib_tx_power_get());
     nrf_radio_packet_ptr_set(p_data);
 
@@ -1537,6 +1575,13 @@ static void cca_init(bool disabled_was_triggered)
     {
         return;
     }
+
+#if NRF_802154_COEX_ENABLED
+    if (!nrf_coex_grant_active())
+    {
+        return;
+    }
+#endif // NRF_802154_COEX_ENABLED
 
     // Set shorts
     nrf_radio_shorts_set(SHORTS_CCA);
@@ -1764,11 +1809,36 @@ static void irq_bcmatch_state_rx(void)
             irq_deinit();
             nrf_radio_reset();
 
+#if NRF_802154_COEX_ENABLED
+            receive_ended_notify(false);
+#endif // NRF_802154_COEX_ENABLED
+
             nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_TIMESLOT_ENDED);
 
             return;
         }
     }
+
+#if NRF_802154_COEX_ENABLED
+    if (!m_flags.rx_coex_requested)
+    {
+        if (nrf_coex_rx_request())
+        {
+            m_flags.rx_coex_requested = true;
+        }
+        else
+        {
+            irq_deinit();
+            nrf_radio_reset();
+
+            receive_ended_notify(false);
+
+            nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_COEX_NOT_GRANTED);
+
+            return;
+        }
+    }
+#endif // NRF_802154_COEX_ENABLED
 
     if (!m_flags.frame_filtered)
     {
@@ -1796,6 +1866,12 @@ static void irq_bcmatch_state_rx(void)
             {
                 receive_failed_notify(filter_result);
             }
+#if NRF_802154_COEX_ENABLED
+            else
+            {
+                receive_ended_notify(false);
+            }
+#endif // NRF_802154_COEX_ENABLED
         }
         else
         {
@@ -1870,6 +1946,34 @@ static void irq_crcok_state_rx(void)
         return;
     }
 #endif // NRF_802154_DISABLE_BCC_MATCHING
+
+#if NRF_802154_COEX_ENABLED
+    // coex request
+    if (m_flags.frame_filtered &&
+        ack_is_requested(p_received_psdu) &&
+        !nrf_coex_grant_active())
+    {
+        // Frame is destined to this node but coex has denied request to transmit ACK
+        irq_deinit();
+        nrf_radio_reset();
+
+        rx_flags_clear();
+
+        // Filter out received ACK frame if promiscuous mode is disabled.
+        if (((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK) ||
+            nrf_802154_pib_promiscuous_get())
+        {
+            mp_current_rx_buffer->free = false;
+            received_frame_notify_and_nesting_allow(p_received_psdu);
+        }
+        else
+        {
+            receive_ended_notify(false);
+        }
+
+        return;
+    }
+#endif // NRF_802154_COEX_ENABLED
 
     if (m_flags.frame_filtered || nrf_802154_pib_promiscuous_get())
     {
@@ -2018,6 +2122,10 @@ static void irq_crcok_state_rx(void)
                 {
                     nrf_radio_task_trigger(NRF_RADIO_TASK_START);
                 }
+
+#if NRF_802154_COEX_ENABLED
+                receive_ended_notify(false);
+#endif // NRF_802154_COEX_ENABLED
             }
         }
     }

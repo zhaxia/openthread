@@ -46,6 +46,9 @@
 #include "nrf_802154_notification.h"
 #include "nrf_802154_request.h"
 #include "timer_scheduler/nrf_802154_timer_sched.h"
+#if NRF_802154_COEX_ENABLED
+#include "coex/nrf_coex_api.h"
+#endif // NRF_802154_COEX_ENABLED
 
 static uint8_t m_nb;  ///< The number of times the CSMA-CA algorithm was required to back off while attempting the current transmission.
 static uint8_t m_be;  ///< Backoff exponent, which is related to how many backoff periods a device shall wait before attempting to assess a channel.
@@ -116,6 +119,17 @@ static void frame_transmit(void * p_context)
         return;
     }
 
+#if NRF_802154_COEX_ENABLED
+    if (!nrf_coex_tx_request(mp_psdu))
+    {
+        // packet will be handled by coex
+        // nrf_coex_tx_request() must explicitly
+        // stop the csma-ca procedure if it is
+        // going to handle the packet
+        return;
+    }
+#endif // NRF_802154_COEX_ENABLED
+
     if (!nrf_802154_request_transmit(NRF_802154_TERM_NONE,
                                      REQ_ORIG_CSMA_CA,
                                      mp_psdu,
@@ -167,6 +181,25 @@ static bool channel_busy(void)
 
     return result;
 }
+
+#if NRF_802154_COEX_ENABLED
+void nrf_802154_csma_ca_stop_immediate(void)
+{
+    procedure_stop();
+}
+
+void nrf_802154_csma_ca_start_immediate(const uint8_t * p_data)
+{
+    assert(!procedure_is_running());
+
+    mp_psdu      = p_data;
+    m_nb         = 0;
+    m_be         = NRF_802154_CSMA_CA_MIN_BE;
+    m_is_running = true;
+
+    frame_transmit(NULL);
+}
+#endif // NRF_802154_COEX_ENABLED
 
 void nrf_802154_csma_ca_start(const uint8_t * p_data)
 {
