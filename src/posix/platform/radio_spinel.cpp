@@ -37,14 +37,6 @@
 
 #include <assert.h>
 #include <errno.h>
-#include <fcntl.h>
-#if OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE
-#ifdef OPENTHREAD_TARGET_DARWIN
-#include <util.h>
-#else
-#include <pty.h>
-#endif
-#endif
 #include <stdarg.h>
 #include <stdlib.h>
 #include <sys/resource.h>
@@ -62,87 +54,10 @@
 #include <openthread/platform/diag.h>
 #include <openthread/platform/radio.h>
 
-#ifndef SOCKET_UTILS_DEFAULT_SHELL
-#define SOCKET_UTILS_DEFAULT_SHELL "/bin/sh"
-#endif
-
-enum
-{
-    IEEE802154_MIN_LENGTH = 5,
-    IEEE802154_MAX_LENGTH = 127,
-    IEEE802154_ACK_LENGTH = 5,
-
-    IEEE802154_BROADCAST = 0xffff,
-
-    IEEE802154_FRAME_TYPE_ACK    = 2 << 0,
-    IEEE802154_FRAME_TYPE_MACCMD = 3 << 0,
-    IEEE802154_FRAME_TYPE_MASK   = 7 << 0,
-
-    IEEE802154_SECURITY_ENABLED  = 1 << 3,
-    IEEE802154_FRAME_PENDING     = 1 << 4,
-    IEEE802154_ACK_REQUEST       = 1 << 5,
-    IEEE802154_PANID_COMPRESSION = 1 << 6,
-
-    IEEE802154_DST_ADDR_NONE  = 0 << 2,
-    IEEE802154_DST_ADDR_SHORT = 2 << 2,
-    IEEE802154_DST_ADDR_EXT   = 3 << 2,
-    IEEE802154_DST_ADDR_MASK  = 3 << 2,
-
-    IEEE802154_SRC_ADDR_NONE  = 0 << 6,
-    IEEE802154_SRC_ADDR_SHORT = 2 << 6,
-    IEEE802154_SRC_ADDR_EXT   = 3 << 6,
-    IEEE802154_SRC_ADDR_MASK  = 3 << 6,
-
-    IEEE802154_DSN_OFFSET     = 2,
-    IEEE802154_DSTPAN_OFFSET  = 3,
-    IEEE802154_DSTADDR_OFFSET = 5,
-
-    IEEE802154_SEC_LEVEL_MASK = 7 << 0,
-
-    IEEE802154_KEY_ID_MODE_0    = 0 << 3,
-    IEEE802154_KEY_ID_MODE_1    = 1 << 3,
-    IEEE802154_KEY_ID_MODE_2    = 2 << 3,
-    IEEE802154_KEY_ID_MODE_3    = 3 << 3,
-    IEEE802154_KEY_ID_MODE_MASK = 3 << 3,
-
-    IEEE802154_MACCMD_DATA_REQ = 4,
-};
-
-enum
-{
-    kIdle,
-    kSent,
-    kDone,
-};
-
-static ot::RadioSpinel sRadioSpinel;
-
-static inline otPanId getDstPan(const uint8_t *frame)
-{
-    return static_cast<otPanId>((frame[IEEE802154_DSTPAN_OFFSET + 1] << 8) | frame[IEEE802154_DSTPAN_OFFSET]);
-}
-
-static inline otShortAddress getShortAddress(const uint8_t *frame)
-{
-    return static_cast<otShortAddress>((frame[IEEE802154_DSTADDR_OFFSET + 1] << 8) | frame[IEEE802154_DSTADDR_OFFSET]);
-}
-
-static inline void getExtAddress(const uint8_t *frame, otExtAddress *address)
-{
-    size_t i;
-
-    for (i = 0; i < sizeof(otExtAddress); i++)
-    {
-        address->m8[i] = frame[IEEE802154_DSTADDR_OFFSET + (sizeof(otExtAddress) - 1 - i)];
-    }
-}
-
-static inline bool isAckRequested(const uint8_t *frame)
-{
-    return (frame[0] & IEEE802154_ACK_REQUEST) != 0;
-}
+static ot::PosixApp::RadioSpinel sRadioSpinel;
 
 namespace ot {
+namespace PosixApp {
 
 static otError SpinelStatusToOtError(spinel_status_t aError)
 {
@@ -220,275 +135,30 @@ static otError SpinelStatusToOtError(spinel_status_t aError)
 
 static void LogIfFail(const char *aText, otError aError)
 {
+    OT_UNUSED_VARIABLE(aText);
+    OT_UNUSED_VARIABLE(aError);
+
     if (aError != OT_ERROR_NONE)
     {
         otLogWarnPlat("%s: %s", aText, otThreadErrorToString(aError));
     }
-
-    OT_UNUSED_VARIABLE(aText);
-    OT_UNUSED_VARIABLE(aError);
 }
 
-#if OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE
-static int ForkPty(const char *aCommand, const char *aArguments)
+void HdlcInterface::Callbacks::HandleReceivedFrame(const uint8_t *aBuffer, uint16_t aLength)
 {
-    int fd  = -1;
-    int pid = -1;
-
-    {
-        struct termios tios;
-
-        memset(&tios, 0, sizeof(tios));
-        cfmakeraw(&tios);
-        tios.c_cflag = CS8 | HUPCL | CREAD | CLOCAL;
-
-        pid = forkpty(&fd, NULL, &tios, NULL);
-        VerifyOrExit(pid >= 0);
-    }
-
-    if (0 == pid)
-    {
-        const int     kMaxCommand = 255;
-        char          cmd[kMaxCommand];
-        int           rval;
-        struct rlimit limit;
-
-        rval = getrlimit(RLIMIT_NOFILE, &limit);
-        rval = setenv("SHELL", SOCKET_UTILS_DEFAULT_SHELL, 0);
-
-        VerifyOrExit(rval == 0, perror("setenv failed"));
-
-        // Close all file descriptors larger than STDERR_FILENO.
-        for (rlim_t i = (STDERR_FILENO + 1); i < limit.rlim_cur; i++)
-        {
-            close(static_cast<int>(i));
-        }
-
-        rval = snprintf(cmd, sizeof(cmd), "exec %s %s", aCommand, aArguments);
-        VerifyOrExit(rval > 0 && static_cast<size_t>(rval) < sizeof(cmd),
-                     otLogCritPlat("NCP file and configuration is too long!"));
-
-        execl(getenv("SHELL"), getenv("SHELL"), "-c", cmd, NULL);
-        perror("open pty failed");
-        exit(OT_EXIT_INVALID_ARGUMENTS);
-    }
-    else
-    {
-        int rval = fcntl(fd, F_GETFL);
-
-        if (rval != -1)
-        {
-            rval = fcntl(fd, F_SETFL, rval | O_NONBLOCK);
-        }
-
-        if (rval == -1)
-        {
-            perror("set nonblock failed");
-            close(fd);
-            fd = -1;
-        }
-    }
-
-exit:
-    return fd;
+    static_cast<RadioSpinel *>(this)->HandleSpinelFrame(aBuffer, aLength);
 }
-#endif // OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE
-
-static int OpenFile(const char *aFile, const char *aConfig)
-{
-    int fd   = -1;
-    int rval = 0;
-
-    fd = open(aFile, O_RDWR | O_NOCTTY | O_NONBLOCK);
-    if (fd == -1)
-    {
-        perror("open uart failed");
-        ExitNow();
-    }
-
-    if (isatty(fd))
-    {
-        struct termios tios;
-
-        int  speed  = 115200;
-        int  cstopb = 1;
-        char parity = 'N';
-
-        VerifyOrExit((rval = tcgetattr(fd, &tios)) == 0);
-
-        cfmakeraw(&tios);
-
-        tios.c_cflag = CS8 | HUPCL | CREAD | CLOCAL;
-
-        // example: 115200N1
-        sscanf(aConfig, "%u%c%d", &speed, &parity, &cstopb);
-
-        switch (parity)
-        {
-        case 'N':
-            break;
-        case 'E':
-            tios.c_cflag |= PARENB;
-            break;
-        case 'O':
-            tios.c_cflag |= (PARENB | PARODD);
-            break;
-        default:
-            // not supported
-            assert(false);
-            exit(OT_EXIT_INVALID_ARGUMENTS);
-            break;
-        }
-
-        switch (cstopb)
-        {
-        case 1:
-            tios.c_cflag &= static_cast<unsigned long>(~CSTOPB);
-            break;
-        case 2:
-            tios.c_cflag |= CSTOPB;
-            break;
-        default:
-            assert(false);
-            exit(OT_EXIT_INVALID_ARGUMENTS);
-            break;
-        }
-
-        switch (speed)
-        {
-        case 9600:
-            speed = B9600;
-            break;
-        case 19200:
-            speed = B19200;
-            break;
-        case 38400:
-            speed = B38400;
-            break;
-        case 57600:
-            speed = B57600;
-            break;
-        case 115200:
-            speed = B115200;
-            break;
-#ifdef B230400
-        case 230400:
-            speed = B230400;
-            break;
-#endif
-#ifdef B460800
-        case 460800:
-            speed = B460800;
-            break;
-#endif
-#ifdef B500000
-        case 500000:
-            speed = B500000;
-            break;
-#endif
-#ifdef B576000
-        case 576000:
-            speed = B576000;
-            break;
-#endif
-#ifdef B921600
-        case 921600:
-            speed = B921600;
-            break;
-#endif
-#ifdef B1000000
-        case 1000000:
-            speed = B1000000;
-            break;
-#endif
-#ifdef B1152000
-        case 1152000:
-            speed = B1152000;
-            break;
-#endif
-#ifdef B1500000
-        case 1500000:
-            speed = B1500000;
-            break;
-#endif
-#ifdef B2000000
-        case 2000000:
-            speed = B2000000;
-            break;
-#endif
-#ifdef B2500000
-        case 2500000:
-            speed = B2500000;
-            break;
-#endif
-#ifdef B3000000
-        case 3000000:
-            speed = B3000000;
-            break;
-#endif
-#ifdef B3500000
-        case 3500000:
-            speed = B3500000;
-            break;
-#endif
-#ifdef B4000000
-        case 4000000:
-            speed = B4000000;
-            break;
-#endif
-        default:
-            assert(false);
-            exit(OT_EXIT_INVALID_ARGUMENTS);
-            break;
-        }
-
-        VerifyOrExit((rval = cfsetspeed(&tios, static_cast<speed_t>(speed))) == 0, perror("cfsetspeed"));
-        VerifyOrExit((rval = tcsetattr(fd, TCSANOW, &tios)) == 0, perror("tcsetattr"));
-        VerifyOrExit((rval = tcflush(fd, TCIOFLUSH)) == 0);
-    }
-
-exit:
-    if (rval != 0)
-    {
-        exit(OT_EXIT_FAILURE);
-    }
-
-    return fd;
-}
-
-class UartTxBuffer : public Hdlc::Encoder::BufferWriteIterator
-{
-public:
-    UartTxBuffer(void)
-    {
-        mWritePointer    = mBuffer;
-        mRemainingLength = sizeof(mBuffer);
-    }
-
-    uint16_t       GetLength(void) const { return static_cast<uint16_t>(mWritePointer - mBuffer); }
-    const uint8_t *GetBuffer(void) const { return mBuffer; }
-
-private:
-    enum
-    {
-        kUartTxBufferSize = 512, // Uart tx buffer size.
-    };
-    uint8_t mBuffer[kUartTxBufferSize];
-};
 
 RadioSpinel::RadioSpinel(void)
-    : mCmdTidsInUse(0)
+    : mInstance(NULL)
+    , mHdlcInterface(*this)
+    , mCmdTidsInUse(0)
     , mCmdNextTid(1)
     , mTxRadioTid(0)
     , mWaitingTid(0)
     , mWaitingKey(SPINEL_PROP_LAST_STATUS)
-    , mHdlcDecoder(mHdlcBuffer, sizeof(mHdlcBuffer), HandleSpinelFrame, HandleHdlcError, this)
     , mRxSensitivity(0)
-    , mTxState(kIdle)
-    , mSockFd(-1)
-    , mState(OT_RADIO_STATE_DISABLED)
-    , mIsAckRequested(false)
-    , mIsDecoding(false)
+    , mState(kStateDisabled)
     , mIsPromiscuous(false)
     , mIsReady(false)
     , mSupportsLogStream(false)
@@ -503,31 +173,9 @@ RadioSpinel::RadioSpinel(void)
 
 void RadioSpinel::Init(const char *aRadioFile, const char *aRadioConfig)
 {
-    otError     error = OT_ERROR_NONE;
-    struct stat st;
+    otError error = OT_ERROR_NONE;
 
-    // not allowed to initialize again.
-    assert(mSockFd == -1);
-
-    VerifyOrExit(stat(aRadioFile, &st) == 0, perror("stat ncp file failed"); error = OT_ERROR_INVALID_ARGS);
-
-    if (S_ISCHR(st.st_mode))
-    {
-        mSockFd = OpenFile(aRadioFile, aRadioConfig);
-        VerifyOrExit(mSockFd != -1, error = OT_ERROR_INVALID_ARGS);
-    }
-#if OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE
-    else if (S_ISREG(st.st_mode))
-    {
-        mSockFd = ForkPty(aRadioFile, aRadioConfig);
-        VerifyOrExit(mSockFd != -1, error = OT_ERROR_INVALID_ARGS);
-    }
-#endif // OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE
-    else
-    {
-        otLogCritPlat("Radio file '%s' not supported", aRadioFile);
-        ExitNow(error = OT_ERROR_INVALID_ARGS);
-    }
+    SuccessOrExit(error = mHdlcInterface.Init(aRadioFile, aRadioConfig));
 
     SuccessOrExit(error = SendReset());
     SuccessOrExit(error = WaitResponse());
@@ -542,8 +190,9 @@ void RadioSpinel::Init(const char *aRadioFile, const char *aRadioConfig)
     SuccessOrExit(error = Get(SPINEL_PROP_HWADDR, SPINEL_DATATYPE_UINT64_S, &gNodeId));
     gNodeId = ot::Encoding::BigEndian::HostSwap64(gNodeId);
 
-    mRxRadioFrame.mPsdu = mRxPsdu;
-    mTxRadioFrame.mPsdu = mTxPsdu;
+    mRxRadioFrame.mPsdu  = mRxPsdu;
+    mTxRadioFrame.mPsdu  = mTxPsdu;
+    mAckRadioFrame.mPsdu = mAckPsdu;
 
 exit:
     SuccessOrDie(error);
@@ -640,14 +289,7 @@ exit:
 
 void RadioSpinel::Deinit(void)
 {
-    // this function is only allowed after successfully initialized.
-    assert(mSockFd != -1);
-
-    VerifyOrExit(0 == close(mSockFd), perror("close NCP"));
-    VerifyOrExit(-1 != wait(NULL), perror("wait NCP"));
-
-exit:
-    return;
+    mHdlcInterface.Deinit();
 }
 
 void RadioSpinel::HandleSpinelFrame(const uint8_t *aBuffer, uint16_t aLength)
@@ -672,15 +314,6 @@ void RadioSpinel::HandleSpinelFrame(const uint8_t *aBuffer, uint16_t aLength)
 
 exit:
     LogIfFail("Error handling hdlc frame", error);
-}
-
-void RadioSpinel::HandleHdlcError(void *aContext, otError aError, uint8_t *aBuffer, uint16_t aLength)
-{
-    otLogWarnPlat("Error decoding hdlc frame: %s", otThreadErrorToString(aError));
-    OT_UNUSED_VARIABLE(aContext);
-    OT_UNUSED_VARIABLE(aError);
-    OT_UNUSED_VARIABLE(aBuffer);
-    OT_UNUSED_VARIABLE(aLength);
 }
 
 void RadioSpinel::HandleNotification(const uint8_t *aBuffer, uint16_t aLength)
@@ -749,7 +382,11 @@ void RadioSpinel::HandleResponse(const uint8_t *aBuffer, uint16_t aLength)
     }
     else if (mTxRadioTid == SPINEL_HEADER_GET_TID(header))
     {
-        HandleTransmitDone(cmd, key, data, static_cast<uint16_t>(len));
+        if (mState == kStateTransmitting)
+        {
+            HandleTransmitDone(cmd, key, data, static_cast<uint16_t>(len));
+        }
+
         FreeTid(mTxRadioTid);
         mTxRadioTid = 0;
     }
@@ -946,33 +583,6 @@ exit:
     return error;
 }
 
-void RadioSpinel::DecodeHdlc(const uint8_t *aData, uint16_t aLength)
-{
-    mIsDecoding = true;
-    mHdlcDecoder.Decode(aData, aLength);
-    mIsDecoding = false;
-}
-
-void RadioSpinel::ReadAll(void)
-{
-    uint8_t buf[kMaxSpinelFrame];
-    ssize_t rval = read(mSockFd, buf, sizeof(buf));
-
-    if (rval < 0)
-    {
-        perror("read spinel");
-        if (errno != EAGAIN)
-        {
-            abort();
-        }
-    }
-
-    if (rval > 0)
-    {
-        DecodeHdlc(buf, static_cast<uint16_t>(rval));
-    }
-}
-
 void RadioSpinel::ProcessFrameQueue(void)
 {
     uint8_t        length;
@@ -987,78 +597,54 @@ void RadioSpinel::ProcessFrameQueue(void)
 
 void RadioSpinel::RadioReceive(void)
 {
-    otError        error = OT_ERROR_NONE;
-    otPanId        dstpan;
-    otShortAddress shortAddress;
-    otExtAddress   extAddress;
-
-    VerifyOrExit(mIsPromiscuous == false, error = OT_ERROR_NONE);
-    VerifyOrExit((mState == OT_RADIO_STATE_RECEIVE || mState == OT_RADIO_STATE_TRANSMIT), error = OT_ERROR_DROP);
-
-    switch (mRxRadioFrame.mPsdu[1] & IEEE802154_DST_ADDR_MASK)
+    if (!mIsPromiscuous)
     {
-    case IEEE802154_DST_ADDR_NONE:
-        break;
+        switch (mState)
+        {
+        case kStateDisabled:
+        case kStateSleep:
+            ExitNow();
 
-    case IEEE802154_DST_ADDR_SHORT:
-        dstpan       = getDstPan(mRxRadioFrame.mPsdu);
-        shortAddress = getShortAddress(mRxRadioFrame.mPsdu);
-        VerifyOrExit((dstpan == IEEE802154_BROADCAST || dstpan == mPanid) &&
-                         (shortAddress == IEEE802154_BROADCAST || shortAddress == mShortAddress),
-                     error = OT_ERROR_ABORT);
-        break;
-
-    case IEEE802154_DST_ADDR_EXT:
-        dstpan = getDstPan(mRxRadioFrame.mPsdu);
-        getExtAddress(mRxRadioFrame.mPsdu, &extAddress);
-        VerifyOrExit((dstpan == IEEE802154_BROADCAST || dstpan == mPanid) &&
-                         memcmp(&extAddress, mExtendedAddress.m8, sizeof(extAddress)) == 0,
-                     error = OT_ERROR_ABORT);
-        break;
-
-    default:
-        error = OT_ERROR_ABORT;
-        goto exit;
+        case kStateReceive:
+        case kStateTransmitPending:
+        case kStateTransmitting:
+        case kStateTransmitDone:
+            break;
+        }
     }
 
-exit:
-
 #if OPENTHREAD_ENABLE_DIAG
-
     if (otPlatDiagModeGet())
     {
-        otPlatDiagRadioReceiveDone(mInstance, error == OT_ERROR_NONE ? &mRxRadioFrame : NULL, error);
+        otPlatDiagRadioReceiveDone(mInstance, &mRxRadioFrame, OT_ERROR_NONE);
     }
     else
 #endif
     {
-        otPlatRadioReceiveDone(mInstance, error == OT_ERROR_NONE ? &mRxRadioFrame : NULL, error);
+        otPlatRadioReceiveDone(mInstance, &mRxRadioFrame, OT_ERROR_NONE);
     }
+
+exit:
+    return;
 }
 
 void RadioSpinel::UpdateFdSet(fd_set &aReadFdSet, fd_set &aWriteFdSet, int &aMaxFd, struct timeval &aTimeout)
 {
-    if ((mState != OT_RADIO_STATE_TRANSMIT || mTxState == kSent))
-    {
-        FD_SET(mSockFd, &aReadFdSet);
+    int sockFd = mHdlcInterface.GetSocket();
 
-        if (aMaxFd < mSockFd)
-        {
-            aMaxFd = mSockFd;
-        }
+    FD_SET(sockFd, &aReadFdSet);
+
+    if (aMaxFd < sockFd)
+    {
+        aMaxFd = sockFd;
     }
 
-    if (mState == OT_RADIO_STATE_TRANSMIT && mTxState == kIdle)
+    if (mState == kStateTransmitPending)
     {
-        FD_SET(mSockFd, &aWriteFdSet);
-
-        if (aMaxFd < mSockFd)
-        {
-            aMaxFd = mSockFd;
-        }
+        FD_SET(sockFd, &aWriteFdSet);
     }
 
-    if (!mFrameQueue.IsEmpty() || (mState == OT_RADIO_STATE_TRANSMIT && mTxState == kDone))
+    if (!mFrameQueue.IsEmpty() || (mState == kStateTransmitDone))
     {
         aTimeout.tv_sec  = 0;
         aTimeout.tv_usec = 0;
@@ -1067,21 +653,21 @@ void RadioSpinel::UpdateFdSet(fd_set &aReadFdSet, fd_set &aWriteFdSet, int &aMax
 
 void RadioSpinel::Process(const fd_set &aReadFdSet, const fd_set &aWriteFdSet)
 {
-    if (FD_ISSET(mSockFd, &aReadFdSet) || !mFrameQueue.IsEmpty())
+    if (FD_ISSET(mHdlcInterface.GetSocket(), &aReadFdSet) || !mFrameQueue.IsEmpty())
     {
         // Handle frames received during WaitResponse()
         ProcessFrameQueue();
 
-        if (FD_ISSET(mSockFd, &aReadFdSet))
+        if (FD_ISSET(mHdlcInterface.GetSocket(), &aReadFdSet))
         {
-            ReadAll();
+            mHdlcInterface.Read();
             ProcessFrameQueue();
         }
     }
 
-    if (mState == OT_RADIO_STATE_TRANSMIT && mTxState == kDone)
+    if (mState == kStateTransmitDone)
     {
-        mState = OT_RADIO_STATE_RECEIVE;
+        mState = kStateReceive;
 
 #if OPENTHREAD_ENABLE_DIAG
         if (otPlatDiagModeGet())
@@ -1091,15 +677,14 @@ void RadioSpinel::Process(const fd_set &aReadFdSet, const fd_set &aWriteFdSet)
         else
 #endif
         {
-            otPlatRadioTxDone(mInstance, mTransmitFrame, (mIsAckRequested ? &mRxRadioFrame : NULL), mTxError);
+            otPlatRadioTxDone(mInstance, mTransmitFrame, (mAckRadioFrame.mLength != 0) ? &mAckRadioFrame : NULL,
+                              mTxError);
         }
-
-        mTxState = kIdle;
     }
 
-    if (FD_ISSET(mSockFd, &aWriteFdSet))
+    if (FD_ISSET(mHdlcInterface.GetSocket(), &aWriteFdSet))
     {
-        if (mState == OT_RADIO_STATE_TRANSMIT && mTxState == kIdle)
+        if (mState == kStateTransmitPending)
         {
             RadioTransmit();
         }
@@ -1308,7 +893,7 @@ otError RadioSpinel::WaitResponse(void)
         switch (event.mEvent)
         {
         case OT_SIM_EVENT_RADIO_SPINEL_WRITE:
-            DecodeHdlc(event.mData, event.mDataLength);
+            mHdlcInterface.ProcessReadData(event.mData, event.mDataLength);
             break;
 
         case OT_SIM_EVENT_ALARM_FIRED:
@@ -1322,24 +907,25 @@ otError RadioSpinel::WaitResponse(void)
             break;
         }
 #else  // OPENTHREAD_POSIX_VIRTUAL_TIME
+        int    sockFd = mHdlcInterface.GetSocket();
         fd_set read_fds;
         fd_set error_fds;
         int    rval;
 
         FD_ZERO(&read_fds);
         FD_ZERO(&error_fds);
-        FD_SET(mSockFd, &read_fds);
-        FD_SET(mSockFd, &error_fds);
+        FD_SET(sockFd, &read_fds);
+        FD_SET(sockFd, &error_fds);
 
-        rval = select(mSockFd + 1, &read_fds, NULL, &error_fds, &timeout);
+        rval = select(sockFd + 1, &read_fds, NULL, &error_fds, &timeout);
 
         if (rval > 0)
         {
-            if (FD_ISSET(mSockFd, &read_fds))
+            if (FD_ISSET(sockFd, &read_fds))
             {
-                ReadAll();
+                mHdlcInterface.Read();
             }
-            else if (FD_ISSET(mSockFd, &error_fds))
+            else if (FD_ISSET(sockFd, &error_fds))
             {
                 fprintf(stderr, "NCP error\r\n");
                 exit(OT_EXIT_FAILURE);
@@ -1397,7 +983,7 @@ spinel_tid_t RadioSpinel::GetNextTid(void)
 }
 
 /**
- * This method delievers the radio frame to transceiver.
+ * This method delivers the radio frame to transceiver.
  *
  * otPlatRadioTxStarted() is triggered immediately for now, which may be earlier than real started time.
  *
@@ -1408,9 +994,7 @@ void RadioSpinel::RadioTransmit(void)
 
     assert(mTransmitFrame != NULL);
     otPlatRadioTxStarted(mInstance, mTransmitFrame);
-    assert(mTxState == kIdle);
-
-    mIsAckRequested = isAckRequested(mTransmitFrame->mPsdu) && !mIsPromiscuous;
+    assert(mState == kStateTransmitPending);
 
     error = Request(true, SPINEL_CMD_PROP_VALUE_SET, SPINEL_PROP_STREAM_RAW,
                     SPINEL_DATATYPE_DATA_WLEN_S SPINEL_DATATYPE_UINT8_S SPINEL_DATATYPE_INT8_S, mTransmitFrame->mPsdu,
@@ -1418,11 +1002,11 @@ void RadioSpinel::RadioTransmit(void)
 
     if (error == OT_ERROR_NONE)
     {
-        mTxState = kSent;
+        mState = kStateTransmitting;
     }
     else
     {
-        mState = OT_RADIO_STATE_RECEIVE;
+        mState = kStateReceive;
 
 #if OPENTHREAD_ENABLE_DIAG
 
@@ -1435,47 +1019,13 @@ void RadioSpinel::RadioTransmit(void)
         {
             otPlatRadioTxDone(mInstance, mTransmitFrame, NULL, error);
         }
-
-        mTxState = kIdle;
     }
-}
-
-otError RadioSpinel::WriteAll(const uint8_t *aBuffer, uint16_t aLength)
-{
-    otError error = OT_ERROR_NONE;
-
-#if OPENTHREAD_POSIX_VIRTUAL_TIME
-    otSimSendRadioSpinelWriteEvent(aBuffer, aLength);
-#else
-    while (aLength)
-    {
-        ssize_t rval = write(mSockFd, aBuffer, aLength);
-
-        if (rval > 0)
-        {
-            aLength -= static_cast<uint16_t>(rval);
-            aBuffer += static_cast<uint16_t>(rval);
-        }
-        else if (rval < 0)
-        {
-            perror("send command failed");
-            ExitNow(error = OT_ERROR_FAILED);
-        }
-        else
-        {
-            ExitNow(error = OT_ERROR_FAILED);
-        }
-    }
-exit:
-#endif
-    return error;
 }
 
 otError RadioSpinel::SendReset(void)
 {
     otError        error = OT_ERROR_NONE;
     uint8_t        buffer[kMaxSpinelFrame];
-    UartTxBuffer   txBuffer;
     spinel_ssize_t packed;
 
     // Pack the header, command and key
@@ -1484,16 +1034,7 @@ otError RadioSpinel::SendReset(void)
 
     VerifyOrExit(packed > 0 && static_cast<size_t>(packed) <= sizeof(buffer), error = OT_ERROR_NO_BUFS);
 
-    mHdlcEncoder.Init(txBuffer);
-    for (spinel_ssize_t i = 0; i < packed; i++)
-    {
-        error = mHdlcEncoder.Encode(buffer[i], txBuffer);
-        VerifyOrExit(error == OT_ERROR_NONE);
-    }
-    mHdlcEncoder.Finalize(txBuffer);
-
-    error = WriteAll(txBuffer.GetBuffer(), txBuffer.GetLength());
-    VerifyOrExit(error == OT_ERROR_NONE);
+    SuccessOrExit(error = mHdlcInterface.SendFrame(buffer, static_cast<uint16_t>(packed)));
 
     sleep(0);
 
@@ -1509,7 +1050,6 @@ otError RadioSpinel::SendCommand(uint32_t          aCommand,
 {
     otError        error = OT_ERROR_NONE;
     uint8_t        buffer[kMaxSpinelFrame];
-    UartTxBuffer   txBuffer;
     spinel_ssize_t packed;
     uint16_t       offset;
 
@@ -1530,15 +1070,7 @@ otError RadioSpinel::SendCommand(uint32_t          aCommand,
         offset += static_cast<uint16_t>(packed);
     }
 
-    mHdlcEncoder.Init(txBuffer);
-    for (uint8_t i = 0; i < offset; i++)
-    {
-        error = mHdlcEncoder.Encode(buffer[i], txBuffer);
-        VerifyOrExit(error == OT_ERROR_NONE);
-    }
-    mHdlcEncoder.Finalize(txBuffer);
-
-    error = WriteAll(txBuffer.GetBuffer(), txBuffer.GetLength());
+    error = mHdlcInterface.SendFrame(buffer, offset);
 
 exit:
     return error;
@@ -1608,10 +1140,13 @@ void RadioSpinel::HandleTransmitDone(uint32_t          aCommand,
         aBuffer += unpacked;
         aLength -= static_cast<spinel_size_t>(unpacked);
 
-        if (mIsAckRequested)
+        if (aLength > 0)
         {
-            VerifyOrExit(aLength > 0, error = OT_ERROR_FAILED);
-            SuccessOrExit(error = ParseRadioFrame(mRxRadioFrame, aBuffer, aLength));
+            SuccessOrExit(error = ParseRadioFrame(mAckRadioFrame, aBuffer, aLength));
+        }
+        else
+        {
+            mAckRadioFrame.mLength = 0;
         }
     }
     else
@@ -1621,7 +1156,7 @@ void RadioSpinel::HandleTransmitDone(uint32_t          aCommand,
     }
 
 exit:
-    mTxState = kDone;
+    mState   = kStateTransmitDone;
     mTxError = error;
     LogIfFail("Handle transmit done failed", error);
 }
@@ -1630,8 +1165,8 @@ otError RadioSpinel::Transmit(otRadioFrame &aFrame)
 {
     otError error = OT_ERROR_INVALID_STATE;
 
-    VerifyOrExit(mState == OT_RADIO_STATE_RECEIVE);
-    mState         = OT_RADIO_STATE_TRANSMIT;
+    VerifyOrExit(mState == kStateReceive);
+    mState         = kStateTransmitPending;
     error          = OT_ERROR_NONE;
     mTransmitFrame = &aFrame;
 
@@ -1643,7 +1178,7 @@ otError RadioSpinel::Receive(uint8_t aChannel)
 {
     otError error = OT_ERROR_NONE;
 
-    VerifyOrExit(mState != OT_RADIO_STATE_DISABLED, error = OT_ERROR_INVALID_STATE);
+    VerifyOrExit(mState != kStateDisabled, error = OT_ERROR_INVALID_STATE);
 
     if (mChannel != aChannel)
     {
@@ -1652,7 +1187,7 @@ otError RadioSpinel::Receive(uint8_t aChannel)
         mChannel = aChannel;
     }
 
-    if (mState == OT_RADIO_STATE_SLEEP)
+    if (mState == kStateSleep)
     {
         error = Set(SPINEL_PROP_MAC_RAW_STREAM_ENABLED, SPINEL_DATATYPE_BOOL_S, true);
         VerifyOrExit(error == OT_ERROR_NONE);
@@ -1664,8 +1199,7 @@ otError RadioSpinel::Receive(uint8_t aChannel)
         mTxRadioTid = 0;
     }
 
-    mTxState = kIdle;
-    mState   = OT_RADIO_STATE_RECEIVE;
+    mState = kStateReceive;
 
 exit:
     assert(error == OT_ERROR_NONE);
@@ -1678,14 +1212,14 @@ otError RadioSpinel::Sleep(void)
 
     switch (mState)
     {
-    case OT_RADIO_STATE_RECEIVE:
+    case kStateReceive:
         error = sRadioSpinel.Set(SPINEL_PROP_MAC_RAW_STREAM_ENABLED, SPINEL_DATATYPE_BOOL_S, false);
         VerifyOrExit(error == OT_ERROR_NONE);
 
-        mState = OT_RADIO_STATE_SLEEP;
+        mState = kStateSleep;
         break;
 
-    case OT_RADIO_STATE_SLEEP:
+    case kStateSleep:
         break;
 
     default:
@@ -1711,7 +1245,7 @@ otError RadioSpinel::Enable(otInstance *aInstance)
         error = Get(SPINEL_PROP_PHY_RX_SENSITIVITY, SPINEL_DATATYPE_INT8_S, &mRxSensitivity);
         VerifyOrExit(error == OT_ERROR_NONE);
 
-        mState = OT_RADIO_STATE_SLEEP;
+        mState = kStateSleep;
     }
 
 exit:
@@ -1729,7 +1263,7 @@ otError RadioSpinel::Disable(void)
         error     = sRadioSpinel.Set(SPINEL_PROP_PHY_ENABLED, SPINEL_DATATYPE_BOOL_S, false);
         VerifyOrExit(error == OT_ERROR_NONE);
 
-        mState = OT_RADIO_STATE_DISABLED;
+        mState = kStateDisabled;
     }
 
 exit:
@@ -1753,6 +1287,7 @@ otError RadioSpinel::PlatDiagProcess(const char *aString, char *aOutput, size_t 
 }
 #endif
 
+} // namespace PosixApp
 } // namespace ot
 
 void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
@@ -1960,7 +1495,7 @@ int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
 }
 
 #if OPENTHREAD_POSIX_VIRTUAL_TIME
-void ot::RadioSpinel::Process(const Event &aEvent)
+void ot::PosixApp::RadioSpinel::Process(const Event &aEvent)
 {
     if (!mFrameQueue.IsEmpty())
     {
@@ -1970,13 +1505,13 @@ void ot::RadioSpinel::Process(const Event &aEvent)
     // The current event can be other event types
     if (aEvent.mEvent == OT_SIM_EVENT_RADIO_SPINEL_WRITE)
     {
-        mHdlcDecoder.Decode(aEvent.mData, aEvent.mDataLength);
+        mHdlcInterface.ProcessReadData(aEvent.mData, aEvent.mDataLength);
         ProcessFrameQueue();
     }
 
-    if (mState == OT_RADIO_STATE_TRANSMIT && mTxState == kDone)
+    if (mState == kStateTransmitDone)
     {
-        mState = OT_RADIO_STATE_RECEIVE;
+        mState = kStateReceive;
 
 #if OPENTHREAD_ENABLE_DIAG
         if (otPlatDiagModeGet())
@@ -1986,22 +1521,21 @@ void ot::RadioSpinel::Process(const Event &aEvent)
         else
 #endif
         {
-            otPlatRadioTxDone(mInstance, mTransmitFrame, (mIsAckRequested ? &mRxRadioFrame : NULL), mTxError);
+            otPlatRadioTxDone(mInstance, mTransmitFrame, (mAckRadioFrame.mLength != 0) ? &mAckRadioFrame : NULL,
+                              mTxError);
         }
-
-        mTxState = kIdle;
     }
 
-    if (mState == OT_RADIO_STATE_TRANSMIT && mTxState == kIdle)
+    if (mState == kStateTransmitPending)
     {
         RadioTransmit();
     }
 }
 
-void ot::RadioSpinel::Update(struct timeval &aTimeout)
+void ot::PosixApp::RadioSpinel::Update(struct timeval &aTimeout)
 {
     // Prevent sleep event when transmitting
-    if (mState == OT_RADIO_STATE_TRANSMIT && mTxState == kIdle)
+    if (mState == kStateTransmitPending)
     {
         aTimeout.tv_sec  = 0;
         aTimeout.tv_usec = 0;
@@ -2075,13 +1609,13 @@ exit:
 
 void otPlatDiagRadioReceived(otInstance *aInstance, otRadioFrame *aFrame, otError aError)
 {
-    (void)aInstance;
-    (void)aFrame;
-    (void)aError;
+    OT_UNUSED_VARIABLE(aInstance);
+    OT_UNUSED_VARIABLE(aFrame);
+    OT_UNUSED_VARIABLE(aError);
 }
 
 void otPlatDiagAlarmCallback(otInstance *aInstance)
 {
-    (void)aInstance;
+    OT_UNUSED_VARIABLE(aInstance);
 }
 #endif // OPENTHREAD_ENABLE_DIAG

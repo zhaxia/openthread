@@ -148,6 +148,7 @@ void JoinerRouter::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &a
     JoinerRouterLocatorTlv rloc;
     ExtendedTlv            tlv;
     uint16_t               borderAgentRloc;
+    uint16_t               offset;
 
     otLogInfoMeshCoP("JoinerRouter::HandleUdpReceive");
 
@@ -175,22 +176,9 @@ void JoinerRouter::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &a
     tlv.SetType(Tlv::kJoinerDtlsEncapsulation);
     tlv.SetLength(aMessage.GetLength() - aMessage.GetOffset());
     SuccessOrExit(error = message->Append(&tlv, sizeof(tlv)));
-
-    while (aMessage.GetOffset() < aMessage.GetLength())
-    {
-        uint16_t length = aMessage.GetLength() - aMessage.GetOffset();
-        uint8_t  tmp[16];
-
-        if (length >= sizeof(tmp))
-        {
-            length = sizeof(tmp);
-        }
-
-        aMessage.Read(aMessage.GetOffset(), length, tmp);
-        aMessage.MoveOffset(length);
-
-        SuccessOrExit(error = message->Append(tmp, length));
-    }
+    offset = message->GetLength();
+    SuccessOrExit(error = message->SetLength(offset + tlv.GetLength()));
+    aMessage.CopyTo(aMessage.GetOffset(), offset, tlv.GetLength(), *message);
 
     messageInfo.SetSockAddr(netif.GetMle().GetMeshLocal16());
     messageInfo.SetPeerAddr(netif.GetMle().GetMeshLocal16());
@@ -221,6 +209,8 @@ void JoinerRouter::HandleRelayTransmit(void *               aContext,
 
 void JoinerRouter::HandleRelayTransmit(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
+    OT_UNUSED_VARIABLE(aMessageInfo);
+
     otError            error;
     JoinerUdpPortTlv   joinerPort;
     JoinerIidTlv       joinerIid;
@@ -280,8 +270,6 @@ void JoinerRouter::HandleRelayTransmit(Coap::Header &aHeader, Message &aMessage,
     }
 
 exit:
-    OT_UNUSED_VARIABLE(aMessageInfo);
-
     if (error != OT_ERROR_NONE && message != NULL)
     {
         message->Free();

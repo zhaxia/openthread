@@ -170,6 +170,13 @@ void otIp6SetReceiveCallback(otInstance *aInstance, otIp6ReceiveCallback aCallba
     instance.GetIp6().SetReceiveDatagramCallback(aCallback, aCallbackContext);
 }
 
+void otIp6SetAddressCallback(otInstance *aInstance, otIp6AddressCallback aCallback, void *aCallbackContext)
+{
+    Instance &instance = *static_cast<Instance *>(aInstance);
+
+    instance.GetThreadNetif().SetAddressCallback(aCallback, aCallbackContext);
+}
+
 bool otIp6IsReceiveFilterEnabled(otInstance *aInstance)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
@@ -263,4 +270,18 @@ exit:
 bool otIp6IsAddressUnspecified(const otIp6Address *aAddress)
 {
     return static_cast<const Ip6::Address *>(aAddress)->IsUnspecified();
+}
+
+otError otIp6SelectSourceAddress(otInstance *aInstance, otMessageInfo *aMessageInfo)
+{
+    otError                         error    = OT_ERROR_NONE;
+    Instance &                      instance = *static_cast<Instance *>(aInstance);
+    const Ip6::NetifUnicastAddress *netifAddr;
+
+    netifAddr = instance.GetIp6().SelectSourceAddress(*static_cast<Ip6::MessageInfo *>(aMessageInfo));
+    VerifyOrExit(netifAddr != NULL, error = OT_ERROR_NOT_FOUND);
+    memcpy(&aMessageInfo->mSockAddr, &netifAddr->mAddress, sizeof(aMessageInfo->mSockAddr));
+
+exit:
+    return error;
 }

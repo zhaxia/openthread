@@ -79,6 +79,7 @@ void Dhcp6Client::UpdateAddresses(otInstance *   aInstance,
                                   void *         aContext)
 {
     OT_UNUSED_VARIABLE(aContext);
+
     bool                  found    = false;
     bool                  newAgent = false;
     otDhcpAddress *       address  = NULL;
@@ -119,7 +120,7 @@ void Dhcp6Client::UpdateAddresses(otInstance *   aInstance,
 
         if (!found)
         {
-            otIp6RemoveUnicastAddress(aInstance, &(address->mAddress.mAddress));
+            GetNetif().RemoveUnicastAddress(*static_cast<Ip6::NetifUnicastAddress *>(&address->mAddress));
             RemoveIdentityAssociation(config.mRloc16, config.mPrefix);
             memset(address, 0, sizeof(*address));
         }
@@ -518,8 +519,9 @@ void Dhcp6Client::HandleUdpReceive(void *aContext, otMessage *aMessage, const ot
 
 void Dhcp6Client::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
-    Dhcp6Header header;
     OT_UNUSED_VARIABLE(aMessageInfo);
+
+    Dhcp6Header header;
 
     VerifyOrExit(aMessage.Read(aMessage.GetOffset(), sizeof(header), &header) == sizeof(header));
     aMessage.MoveOffset(sizeof(header));
@@ -689,7 +691,7 @@ otError Dhcp6Client::ProcessIaAddress(Message &aMessage, uint16_t aOffset)
             address->mValidLifetime      = option.GetValidLifetime();
             address->mAddress.mPreferred = address->mPreferredLifetime != 0;
             address->mAddress.mValid     = address->mValidLifetime != 0;
-            otIp6AddUnicastAddress(&GetNetif().GetInstance(), &address->mAddress);
+            GetNetif().AddUnicastAddress(*static_cast<Ip6::NetifUnicastAddress *>(&address->mAddress));
             break;
         }
     }

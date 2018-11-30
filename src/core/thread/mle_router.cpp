@@ -600,7 +600,7 @@ otError MleRouter::HandleLinkRequest(const Message &aMessage, const Ip6::Message
 
     // Version
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kVersion, sizeof(version), version));
-    VerifyOrExit(version.IsValid() && version.GetVersion() >= kVersion, error = OT_ERROR_PARSE);
+    VerifyOrExit(version.IsValid() && version.GetVersion() >= kThreadVersion, error = OT_ERROR_PARSE);
 
     // Leader Data
     if (Tlv::GetTlv(aMessage, Tlv::kLeaderData, sizeof(leaderData), leaderData) == OT_ERROR_NONE)
@@ -1587,6 +1587,9 @@ otError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::Messa
 
     // A Router MUST NOT send an MLE Parent Response if:
 
+    // 0. It is detached or attempting to another partition
+    VerifyOrExit((mRole != OT_DEVICE_ROLE_DETACHED) && (mAttachState == kAttachStateIdle), error = OT_ERROR_DROP);
+
     // 1. It has no available Child capacity (if Max Child Count minus
     // Child Count would be equal to zero)
     // ==> verified below when allocating a child entry
@@ -1609,7 +1612,7 @@ otError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::Messa
 
     // Version
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kVersion, sizeof(version), version));
-    VerifyOrExit(version.IsValid() && version.GetVersion() >= kVersion, error = OT_ERROR_PARSE);
+    VerifyOrExit(version.IsValid() && version.GetVersion() >= kThreadVersion, error = OT_ERROR_PARSE);
 
     // Scan Mask
     SuccessOrExit(error = Tlv::GetTlv(aMessage, Tlv::kScanMask, sizeof(scanMask), scanMask));
@@ -2733,7 +2736,7 @@ otError MleRouter::SendDiscoveryResponse(const Ip6::Address &aDestination, uint1
 
     // Discovery Response TLV
     discoveryResponse.Init();
-    discoveryResponse.SetVersion(kVersion);
+    discoveryResponse.SetVersion(kThreadVersion);
 
     if (netif.GetKeyManager().GetSecurityPolicyFlags() & OT_SECURITY_POLICY_NATIVE_COMMISSIONING)
     {

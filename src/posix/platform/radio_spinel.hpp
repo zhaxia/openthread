@@ -37,12 +37,13 @@
 #include <openthread/platform/radio.h>
 
 #include "frame_queue.hpp"
-#include "hdlc.hpp"
+#include "hdlc_interface.hpp"
 #include "spinel.h"
 
 namespace ot {
+namespace PosixApp {
 
-class RadioSpinel
+class RadioSpinel : public HdlcInterface::Callbacks
 {
 public:
     /**
@@ -367,7 +368,7 @@ public:
      * @returns TRUE if the radio is enabled, FALSE otherwise.
      *
      */
-    bool IsEnabled(void) const { return mState != OT_RADIO_STATE_DISABLED; }
+    bool IsEnabled(void) const { return mState != kStateDisabled; }
 
     /**
      * This method updates the file descriptor sets with file descriptors used by the radio driver.
@@ -439,21 +440,37 @@ public:
     otError PlatDiagProcess(const char *aString, char *aOutput, size_t aOutputMaxLen);
 #endif
 
+    /**
+     *  This method processes a received Spinel frame.
+     *
+     * @param[in] aBuffer  A pointer to buffer containing the frame.
+     * @param[in] aLength  Length (number of bytes) in the received frame.
+     *
+     */
+    void HandleSpinelFrame(const uint8_t *aFrame, uint16_t aLength);
+
 private:
     enum
     {
-        kMaxSpinelFrame    = 2048, ///< Max size in bytes for transferring spinel frames.
+        kMaxSpinelFrame    = HdlcInterface::kMaxFrameSize,
         kMaxWaitTime       = 2000, ///< Max time to wait for response in milliseconds.
         kVersionStringSize = 128,  ///< Max size of version string.
         kCapsBufferSize    = 100,  ///< Max buffer size used to store `SPINEL_PROP_CAPS` value.
     };
 
+    enum State
+    {
+        kStateDisabled,        ///< Radio is disabled.
+        kStateSleep,           ///< Radio is sleep.
+        kStateReceive,         ///< Radio is in receive mode.
+        kStateTransmitPending, ///< Frame transmission requested, waiting to pass frame to radio.
+        kStateTransmitting,    ///< Frame passed to radio for transmission, waiting for done event from radio.
+        kStateTransmitDone,    ///< Radio indicated frame transmission is done.
+    };
+
     otError CheckSpinelVersion(void);
     otError CheckCapabilities(void);
     otError CheckRadioCapabilities(void);
-    void    DecodeHdlc(const uint8_t *aData, uint16_t aLength);
-    void    ReadAll(void);
-    otError WriteAll(const uint8_t *aBuffer, uint16_t aLength);
     void    ProcessFrameQueue(void);
 
     /**
@@ -526,12 +543,10 @@ private:
                         va_list           args);
     otError ParseRadioFrame(otRadioFrame &aFrame, const uint8_t *aBuffer, uint16_t aLength);
 
-    static void HandleHdlcError(void *aContext, otError aError, uint8_t *aBuffer, uint16_t aLength);
     static void HandleSpinelFrame(void *aContext, uint8_t *aBuffer, uint16_t aLength)
     {
         static_cast<RadioSpinel *>(aContext)->HandleSpinelFrame(aBuffer, aLength);
     }
-    void HandleSpinelFrame(const uint8_t *aBuffer, uint16_t aLength);
 
     /**
      * This method returns if the property changed event is safe to be handled now.
@@ -546,7 +561,7 @@ private:
      */
     bool IsSafeToHandleNow(spinel_prop_key_t aKey) const
     {
-        return !((mIsDecoding || mWaitingKey != SPINEL_PROP_LAST_STATUS) &&
+        return !((mHdlcInterface.IsDecoding() || mWaitingKey != SPINEL_PROP_LAST_STATUS) &&
                  (aKey == SPINEL_PROP_STREAM_RAW || aKey == SPINEL_PROP_MAC_ENERGY_SCAN_RESULT));
     }
 
@@ -562,6 +577,8 @@ private:
 
     otInstance *mInstance;
 
+    HdlcInterface mHdlcInterface;
+
     uint16_t          mCmdTidsInUse;    ///< Used transaction ids.
     spinel_tid_t      mCmdNextTid;      ///< Next available transaction id.
     spinel_tid_t      mTxRadioTid;      ///< The transaction id used to send a radio frame.
@@ -572,15 +589,14 @@ private:
     uint32_t          mExpectedCommand; ///< Expected response command of current transaction.
     otError           mError;           ///< The result of current transaction.
 
-    uint8_t       mHdlcBuffer[kMaxSpinelFrame];
-    Hdlc::Decoder mHdlcDecoder;
-    Hdlc::Encoder mHdlcEncoder;
-    FrameQueue    mFrameQueue;
+    FrameQueue mFrameQueue;
 
     uint8_t       mRxPsdu[OT_RADIO_FRAME_MAX_SIZE];
     uint8_t       mTxPsdu[OT_RADIO_FRAME_MAX_SIZE];
+    uint8_t       mAckPsdu[OT_RADIO_FRAME_MAX_SIZE];
     otRadioFrame  mRxRadioFrame;
     otRadioFrame  mTxRadioFrame;
+    otRadioFrame  mAckRadioFrame;
     otRadioFrame *mTransmitFrame; ///< Points to the frame to send
 
     otExtAddress mExtendedAddress;
@@ -589,17 +605,13 @@ private:
     otRadioCaps  mRadioCaps;
     uint8_t      mChannel;
     int8_t       mRxSensitivity;
-    uint8_t      mTxState;
     otError      mTxError;
     char         mVersion[kVersionStringSize];
 
-    int          mSockFd;
-    otRadioState mState;
-    bool         mIsAckRequested : 1;    ///< Ack requested.
-    bool         mIsDecoding : 1;        ///< Decoding hdlc frames.
-    bool         mIsPromiscuous : 1;     ///< Promiscuous mode.
-    bool         mIsReady : 1;           ///< NCP ready.
-    bool         mSupportsLogStream : 1; ///< RCP supports `LOG_STREAM` property with OpenThread log meta-data format.
+    State mState;
+    bool  mIsPromiscuous : 1;     ///< Promiscuous mode.
+    bool  mIsReady : 1;           ///< NCP ready.
+    bool  mSupportsLogStream : 1; ///< RCP supports `LOG_STREAM` property with OpenThread log meta-data format.
 
 #if OPENTHREAD_ENABLE_DIAG
     bool   mDiagMode;
@@ -608,6 +620,7 @@ private:
 #endif
 };
 
+} // namespace PosixApp
 } // namespace ot
 
 #endif // RADIO_SPINEL_HPP_

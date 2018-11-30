@@ -40,6 +40,7 @@
 #include <openthread/link.h>
 #include <openthread/logging.h>
 #include <openthread/ncp.h>
+#include <openthread/network_time.h>
 #include <openthread/platform/misc.h>
 #include <openthread/platform/radio.h>
 
@@ -223,6 +224,7 @@ NcpBase::NcpBase(Instance *aInstance)
     , mAllowLocalNetworkDataChange(false)
     , mRequireJoinExistingNetwork(false)
     , mIsRawStreamEnabled(false)
+    , mPcapEnabled(false)
     , mDisableStreamWrite(false)
     , mShouldEmitChildTableUpdate(false)
 #if OPENTHREAD_FTD
@@ -264,10 +266,12 @@ NcpBase::NcpBase(Instance *aInstance)
     otSetStateChangedCallback(mInstance, &NcpBase::HandleStateChanged, this);
     otIp6SetReceiveCallback(mInstance, &NcpBase::HandleDatagramFromStack, this);
     otIp6SetReceiveFilterEnabled(mInstance, true);
+#if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+    otNetworkTimeSyncSetCallback(mInstance, &NcpBase::HandleTimeSyncUpdate, this);
+#endif // OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
 #if OPENTHREAD_ENABLE_UDP_FORWARD
     otUdpForwardSetForwarder(mInstance, &NcpBase::HandleUdpForwardStream, this);
 #endif
-    otLinkSetPcapCallback(mInstance, &NcpBase::HandleRawFrame, static_cast<void *>(this));
     otIcmp6SetEchoMode(mInstance, OT_ICMP6_ECHO_HANDLER_DISABLED);
 #if OPENTHREAD_FTD
     otThreadSetChildTableCallback(mInstance, &NcpBase::HandleChildTableChanged);
@@ -634,56 +638,6 @@ void NcpBase::RegisterPeekPokeDelagates(otNcpDelegateAllowPeekPoke aAllowPeekDel
 }
 
 #endif // OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
-
-// ----------------------------------------------------------------------------
-// MARK: Raw frame handling
-// ----------------------------------------------------------------------------
-
-void NcpBase::HandleRawFrame(const otRadioFrame *aFrame, void *aContext)
-{
-    static_cast<NcpBase *>(aContext)->HandleRawFrame(aFrame);
-}
-
-void NcpBase::HandleRawFrame(const otRadioFrame *aFrame)
-{
-    uint16_t flags  = 0;
-    uint8_t  header = SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0;
-
-    if (!mIsRawStreamEnabled)
-    {
-        goto exit;
-    }
-
-    if (aFrame->mDidTx)
-    {
-        flags |= SPINEL_MD_FLAG_TX;
-    }
-
-    // Append frame header and frame length
-    SuccessOrExit(mEncoder.BeginFrame(header, SPINEL_CMD_PROP_VALUE_IS, SPINEL_PROP_STREAM_RAW));
-    SuccessOrExit(mEncoder.WriteUint16(aFrame->mLength));
-
-    // Append the frame contents
-    SuccessOrExit(mEncoder.WriteData(aFrame->mPsdu, aFrame->mLength));
-
-    // Append metadata (rssi, etc)
-    SuccessOrExit(mEncoder.WriteInt8(aFrame->mInfo.mRxInfo.mRssi)); // RSSI
-    SuccessOrExit(mEncoder.WriteInt8(-128));                        // Noise floor (Currently unused)
-    SuccessOrExit(mEncoder.WriteUint16(flags));                     // Flags
-
-    SuccessOrExit(mEncoder.OpenStruct()); // PHY-data
-    // Empty for now
-    SuccessOrExit(mEncoder.CloseStruct());
-
-    SuccessOrExit(mEncoder.OpenStruct()); // Vendor-data
-    // Empty for now
-    SuccessOrExit(mEncoder.CloseStruct());
-
-    SuccessOrExit(mEncoder.EndFrame());
-
-exit:
-    return;
-}
 
 // ----------------------------------------------------------------------------
 // MARK: Spinel Response Handling
@@ -1194,9 +1148,9 @@ otError NcpBase::CommandHandler_NOOP(uint8_t aHeader)
 
 otError NcpBase::CommandHandler_RESET(uint8_t aHeader)
 {
-    otError error = OT_ERROR_NONE;
-
     OT_UNUSED_VARIABLE(aHeader);
+
+    otError error = OT_ERROR_NONE;
 
     // Signal a platform reset. If implemented, this function
     // shouldn't return.
@@ -1785,6 +1739,8 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CAPS>(void)
 #if OPENTHREAD_MTD || OPENTHREAD_FTD
 
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_NET_THREAD_1_1));
+    SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_PCAP));
+
 #if OPENTHREAD_ENABLE_MAC_FILTER
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_MAC_WHITELIST));
 #endif
@@ -1840,6 +1796,10 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CAPS>(void)
 
 #if OPENTHREAD_ENABLE_JOINER
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_THREAD_JOINER));
+#endif
+
+#if OPENTHREAD_ENABLE_BORDER_ROUTER
+    SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_THREAD_BORDER_ROUTER));
 #endif
 
 #if OPENTHREAD_ENABLE_UDP_FORWARD
@@ -2198,6 +2158,9 @@ exit:
 otError otNcpRegisterPeekPokeDelagates(otNcpDelegateAllowPeekPoke aAllowPeekDelegate,
                                        otNcpDelegateAllowPeekPoke aAllowPokeDelegate)
 {
+    OT_UNUSED_VARIABLE(aAllowPeekDelegate);
+    OT_UNUSED_VARIABLE(aAllowPokeDelegate);
+
     otError error = OT_ERROR_NONE;
 
 #if OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
@@ -2208,9 +2171,6 @@ otError otNcpRegisterPeekPokeDelagates(otNcpDelegateAllowPeekPoke aAllowPeekDele
         ncp->RegisterPeekPokeDelagates(aAllowPeekDelegate, aAllowPokeDelegate);
     }
 #else
-    OT_UNUSED_VARIABLE(aAllowPeekDelegate);
-    OT_UNUSED_VARIABLE(aAllowPokeDelegate);
-
     error = OT_ERROR_DISABLED_FEATURE;
 
 #endif // OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
@@ -2237,6 +2197,9 @@ otError otNcpStreamWrite(int aStreamId, const uint8_t *aDataPtr, int aDataLen)
 
 extern "C" void otNcpPlatLogv(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, va_list aArgs)
 {
+    OT_UNUSED_VARIABLE(aLogLevel);
+    OT_UNUSED_VARIABLE(aLogRegion);
+
     char logString[OPENTHREAD_CONFIG_NCP_SPINEL_LOG_MAX_SIZE];
     int  charsWritten;
 
@@ -2249,9 +2212,6 @@ extern "C" void otNcpPlatLogv(otLogLevel aLogLevel, otLogRegion aLogRegion, cons
 
         otNcpStreamWrite(0, reinterpret_cast<uint8_t *>(logString), charsWritten);
     }
-
-    OT_UNUSED_VARIABLE(aLogLevel);
-    OT_UNUSED_VARIABLE(aLogRegion);
 }
 
 #if (OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_NCP_SPINEL)

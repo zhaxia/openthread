@@ -409,6 +409,31 @@ typedef void (*otIp6ReceiveCallback)(otMessage *aMessage, void *aContext);
 void otIp6SetReceiveCallback(otInstance *aInstance, otIp6ReceiveCallback aCallback, void *aCallbackContext);
 
 /**
+ * This function pointer is called when an internal IPv6 address is added or removed.
+ *
+ * @param[in]   aAddress            A pointer to the IPv6 address.
+ * @param[in]   aPrefixLength       The prefix length if @p aAddress is unicast address, and 128 for multicast address.
+ * @param[in]   aIsAdded            TRUE if the @p aAddress was added, FALSE if @p aAddress was removed.
+ * @param[in]   aContext            A pointer to application-specific context.
+ *
+ */
+typedef void (*otIp6AddressCallback)(const otIp6Address *aAddress,
+                                     uint8_t             aPrefixLength,
+                                     bool                aIsAdded,
+                                     void *              aContext);
+
+/**
+ * This function registers a callback to notify internal IPv6 address changes.
+ *
+ * @param[in]   aInstance           A pointer to an OpenThread instance.
+ * @param[in]   aCallback           A pointer to a function that is called when an internal IPv6 address is added or
+ *                                  removed. NULL to disable the callback.
+ * @param[in]   aCallbackContext    A pointer to application-specific context.
+ *
+ */
+void otIp6SetAddressCallback(otInstance *aInstance, otIp6AddressCallback aCallback, void *aCallbackContext);
+
+/**
  * This function indicates whether or not Thread control traffic is filtered out when delivering IPv6 datagrams
  * via the callback specified in otIp6SetReceiveCallback().
  *
@@ -536,6 +561,17 @@ OTAPI uint8_t OTCALL otIp6PrefixMatch(const otIp6Address *aFirst, const otIp6Add
  *
  */
 bool otIp6IsAddressUnspecified(const otIp6Address *aAddress);
+
+/**
+ * This function perform OpenThread source address selection.
+ *
+ * @param[inout]  aMessageInfo  A pointer to the message information.
+ *
+ * @retval  OT_ERROR_NONE       Found a source address and is filled into mSockAddr of @p aMessageInfo.
+ * @retval  OT_ERROR_NOT_FOUND  No source address was found and @p aMessageInfo is unchanged.
+ *
+ */
+otError otIp6SelectSourceAddress(otInstance *aInstance, otMessageInfo *aMessageInfo);
 
 /**
  * @}

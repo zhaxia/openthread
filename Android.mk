@@ -110,6 +110,8 @@ LOCAL_SRC_FILES                                          := \
     src/core/mac/mac.cpp                                    \
     src/core/mac/mac_filter.cpp                             \
     src/core/mac/mac_frame.cpp                              \
+    src/core/mac/sub_mac.cpp                                \
+    src/core/mac/sub_mac_callbacks.cpp                      \
     src/core/meshcop/announce_begin_client.cpp              \
     src/core/meshcop/border_agent.cpp                       \
     src/core/meshcop/commissioner.cpp                       \
@@ -180,15 +182,16 @@ LOCAL_SRC_FILES                                          := \
     src/ncp/spinel_decoder.cpp                              \
     src/ncp/spinel_encoder.cpp                              \
     src/posix/platform/alarm.c                              \
-    src/posix/platform/misc.c                               \
+    src/posix/platform/frame_queue.cpp                      \
+    src/posix/platform/hdlc_interface.cpp                   \
     src/posix/platform/logging.c                            \
+    src/posix/platform/misc.c                               \
+    src/posix/platform/radio_spinel.cpp                     \
     src/posix/platform/random.c                             \
+    src/posix/platform/settings.cpp                         \
+    src/posix/platform/spi-stubs.c                          \
     src/posix/platform/system.c                             \
     src/posix/platform/uart.c                               \
-    src/posix/platform/spi-stubs.c                          \
-    src/posix/platform/frame_queue.cpp                      \
-    src/posix/platform/radio_spinel.cpp                     \
-    src/posix/platform/settings.cpp                         \
     third_party/mbedtls/repo/library/md.c                   \
     third_party/mbedtls/repo/library/md_wrap.c              \
     third_party/mbedtls/repo/library/memory_buffer_alloc.c  \
@@ -216,6 +219,8 @@ LOCAL_SRC_FILES                                          := \
     third_party/mbedtls/repo/library/ecp.c                  \
     $(NULL)
 
+include $(OT_EXTRA_BUILD_CONFIG)
+
 include $(BUILD_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
@@ -229,11 +234,13 @@ LOCAL_C_INCLUDES                                         := \
     $(LOCAL_PATH)/src/cli                                   \
     $(LOCAL_PATH)/src/core                                  \
     $(LOCAL_PATH)/src/posix/platform                        \
+    $(LOCAL_PATH)/third_party/mbedtls                       \
     $(LOCAL_PATH)/third_party/mbedtls/repo/include          \
     $(NULL)
 
 LOCAL_CFLAGS                                                                := \
     -D_GNU_SOURCE                                                              \
+    -DMBEDTLS_CONFIG_FILE=\"mbedtls-config.h\"                                 \
     -DOPENTHREAD_CONFIG_FILE=\<openthread-config-android.h\>                   \
     -DOPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE=1                          \
     -DOPENTHREAD_FTD=1                                                         \
@@ -257,6 +264,8 @@ LOCAL_SRC_FILES                            := \
     src/posix/main.c                          \
     $(NULL)
 
+include $(OT_EXTRA_BUILD_CONFIG)
+
 LOCAL_STATIC_LIBRARIES = ot-core
 include $(BUILD_EXECUTABLE)
 
@@ -271,11 +280,13 @@ LOCAL_C_INCLUDES                                         := \
     $(LOCAL_PATH)/src/core                                  \
     $(LOCAL_PATH)/src/ncp                                   \
     $(LOCAL_PATH)/src/posix/platform                        \
+    $(LOCAL_PATH)/third_party/mbedtls                       \
     $(LOCAL_PATH)/third_party/mbedtls/repo/include          \
     $(NULL)
 
 LOCAL_CFLAGS                                                                := \
     -D_GNU_SOURCE                                                              \
+    -DMBEDTLS_CONFIG_FILE=\"mbedtls-config.h\"                                 \
     -DOPENTHREAD_CONFIG_FILE=\<openthread-config-android.h\>                   \
     -DOPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE=1                          \
     -DOPENTHREAD_FTD=1                                                         \
@@ -299,6 +310,8 @@ LOCAL_SRC_FILES                            := \
     src/ncp/ncp_uart.cpp                      \
     src/posix/main.c                          \
     $(NULL)
+
+include $(OT_EXTRA_BUILD_CONFIG)
 
 LOCAL_STATIC_LIBRARIES = ot-core
 include $(BUILD_EXECUTABLE)
