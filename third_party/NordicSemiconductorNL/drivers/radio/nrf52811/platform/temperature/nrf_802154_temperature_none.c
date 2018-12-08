@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
+/* Copyright (c) 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,39 +28,33 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
- * @section Timings.
+ * @file
+ *   This file implements the thermometer abstraction stub that does not use thermometer.
+ *
+ * This thermometer abstraction will cause RSSI, LQI, ED, CCA threshold errors up to 3 dBm when
+ * temperature of device differs more than 5 C from 20 C.
+ *
  */
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
+#include "nrf_802154_temperature.h"
 
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
+#include <stdint.h>
 
-#ifdef NRF52840_XXAA
+#define DEFAULT_TEMPERATURE 20 ///< Default temperature reported by this driver stub [C].
 
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
-
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-//#error "Device not supported."
-
-#endif
-
-#ifdef __cplusplus
+void nrf_802154_temperature_init(void)
+{
+    // Intentionally empty
 }
-#endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+void nrf_802154_temperature_deinit(void)
+{
+    // Intentionally empty
+}
+
+int8_t nrf_802154_temperature_get(void)
+{
+    return DEFAULT_TEMPERATURE;
+}
+

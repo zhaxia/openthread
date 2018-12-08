@@ -28,39 +28,65 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
- * @section Timings.
+ * @file
+ *   This file implements notifications triggered by the nrf 802.15.4 radio driver via SWI.
+ *
  */
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
+#include "nrf_802154_notification.h"
 
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
+#include <stdbool.h>
+#include <stdint.h>
 
-#ifdef NRF52840_XXAA
+#include "nrf_802154.h"
+#include "nrf_802154_swi.h"
 
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
-
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-//#error "Device not supported."
-
-#endif
-
-#ifdef __cplusplus
+void nrf_802154_notification_init(void)
+{
+    nrf_802154_swi_init();
 }
-#endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+void nrf_802154_notify_received(uint8_t * p_data, int8_t power, int8_t lqi)
+{
+    nrf_802154_swi_notify_received(p_data, power, lqi);
+}
+
+void nrf_802154_notify_receive_failed(nrf_802154_rx_error_t error)
+{
+    nrf_802154_swi_notify_receive_failed(error);
+}
+
+void nrf_802154_notify_transmitted(const uint8_t * p_frame,
+                                   uint8_t       * p_ack,
+                                   int8_t          power,
+                                   int8_t          lqi)
+{
+    nrf_802154_swi_notify_transmitted(p_frame, p_ack, power, lqi);
+}
+
+void nrf_802154_notify_transmit_failed(const uint8_t * p_frame, nrf_802154_tx_error_t error)
+{
+    nrf_802154_swi_notify_transmit_failed(p_frame, error);
+}
+
+void nrf_802154_notify_energy_detected(uint8_t result)
+{
+    nrf_802154_swi_notify_energy_detected(result);
+}
+
+void nrf_802154_notify_energy_detection_failed(nrf_802154_ed_error_t error)
+{
+    nrf_802154_swi_notify_energy_detection_failed(error);
+}
+
+void nrf_802154_notify_cca(bool is_free)
+{
+    nrf_802154_swi_notify_cca(is_free);
+}
+
+void nrf_802154_notify_cca_failed(nrf_802154_cca_error_t error)
+{
+    nrf_802154_swi_notify_cca_failed(error);
+}
+

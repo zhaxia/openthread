@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
+/* Copyright (c) 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,39 +28,60 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
+/**
+ * @brief This module defines Thermometer Abstraction Layer for the 802.15.4 driver.
+ *
+ */
+
+#ifndef NRF_802154_TEMPERATURE_H_
+#define NRF_802154_TEMPERATURE_H_
+
+#include <stdbool.h>
+#include <stdint.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @section Timings.
+ * @defgroup nrf_802154_temperature Thermometer Abstraction Layer for the 802.15.4 driver
+ * @{
+ * @ingroup nrf_802154
+ * @brief Thermometer Abstraction Layer interface for the 802.15.4 driver.
+ *
+ * Thermometer Abstraction Layer is an abstraction layer of thermometer that is used to correct
+ * RSSI, LQI, ED result and CCA threshold measurements.
+ *
  */
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
+/**
+ * @brief Initialize thermometer.
+ */
+void nrf_802154_temperature_init(void);
 
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
+/**
+ * @brief Uninitialize thermometer.
+ */
+void nrf_802154_temperature_deinit(void);
 
-#ifdef NRF52840_XXAA
+/**
+ * @brief Get current temperature.
+ *
+ * @return Current temperature [C].
+ */
+int8_t nrf_802154_temperature_get(void);
 
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
+/**
+ * @brief Callback executed when temperature changes.
+ */
+extern void nrf_802154_temperature_changed(void);
 
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-//#error "Device not supported."
-
-#endif
+/**
+ *@}
+ **/
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+#endif /* NRF_802154_TEMPERATURE_H_ */
