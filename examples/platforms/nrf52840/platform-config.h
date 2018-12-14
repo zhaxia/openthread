@@ -249,71 +249,6 @@
 #endif
 
 /*******************************************************************************
- * @section Log module configuration.
- ******************************************************************************/
-
-/**
- * @def LOG_RTT_BUFFER_INDEX
- *
- * RTT's buffer index.
- *
- */
-#ifndef LOG_RTT_BUFFER_INDEX
-#define LOG_RTT_BUFFER_INDEX 0
-#endif
-
-/**
- * @def LOG_RTT_BUFFER_NAME
- *
- * RTT's name.
- *
- */
-#ifndef LOG_RTT_BUFFER_NAME
-#define LOG_RTT_BUFFER_NAME "Terminal"
-#endif
-
-/**
- * @def LOG_RTT_BUFFER_SIZE
- *
- * LOG RTT's buffer size.
- *
- */
-#ifndef LOG_RTT_BUFFER_SIZE
-#define LOG_RTT_BUFFER_SIZE 256
-#endif
-
-/**
- * @def LOG_RTT_COLOR_ENABLE
- *
- * Enable colors on RTT Viewer.
- *
- */
-#ifndef LOG_RTT_COLOR_ENABLE
-#define LOG_RTT_COLOR_ENABLE 1
-#endif
-
-/**
- * @def LOG_PARSE_BUFFER_SIZE
- *
- * LOG buffer used to parse print format. It will be locally allocated on the
- * stack.
- *
- */
-#ifndef LOG_PARSE_BUFFER_SIZE
-#define LOG_PARSE_BUFFER_SIZE 128
-#endif
-
-/**
- * @def LOG_TIMESTAMP_ENABLE
- *
- * Enable timestamp in the logs.
- *
- */
-#ifndef LOG_TIMESTAMP_ENABLE
-#define LOG_TIMESTAMP_ENABLE 1
-#endif
-
-/*******************************************************************************
  * @section SPI Slave configuration.
  ******************************************************************************/
 
@@ -419,6 +354,26 @@
  */
 #ifndef USB_CDC_AS_SERIAL_TRANSPORT
 #define USB_CDC_AS_SERIAL_TRANSPORT 0
+#endif
+
+/**
+ * @def The USB interface to use for CDC ACM COMM.
+ *
+ * According to the USB Specification, interface numbers cannot have gaps. Tailor this value to adhere to this
+ * limitation. Takes values between 0-255.
+ */
+#ifndef USB_CDC_ACM_COMM_INTERFACE
+#define USB_CDC_ACM_COMM_INTERFACE 1
+#endif
+
+/**
+ * @def The USB interface to use for CDC ACM DATA.
+ *
+ * According to the USB Specification, interface numbers cannot have gaps. Tailor this value to adhere to this
+ * limitation. Takes values between 0-255.
+ */
+#ifndef USB_CDC_ACM_DATA_INTERFACE
+#define USB_CDC_ACM_DATA_INTERFACE 2
 #endif
 
 /**

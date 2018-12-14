@@ -670,7 +670,9 @@
 /**
  * @def OPENTHREAD_CONFIG_LOG_LEVEL
  *
- * The log level (used at compile time).
+ * The log level (used at compile time). If `OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL`
+ * is set, this defines the most verbose log level possible. See
+ *`OPENTHREAD_CONFIG_INITIAL_LOG_LEVEL` to set the initial log level.
  *
  */
 #ifndef OPENTHREAD_CONFIG_LOG_LEVEL
@@ -689,6 +691,16 @@
  */
 #ifndef OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
 #define OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL 0
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_INITIAL_LOG_LEVEL
+ *
+ * The initial log level used when OpenThread is initialized. See
+ * `OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL`.
+ */
+#ifndef OPENTHREAD_CONFIG_INITIAL_LOG_LEVEL
+#define OPENTHREAD_CONFIG_INITIAL_LOG_LEVEL OPENTHREAD_CONFIG_LOG_LEVEL
 #endif
 
 /**
@@ -1648,6 +1660,16 @@
  */
 #ifndef OPENTHREAD_CONFIG_MLE_PARTITION_MERGE_MARGIN_MIN
 #define OPENTHREAD_CONFIG_MLE_PARTITION_MERGE_MARGIN_MIN 10
+#endif
+
+/**
+ * @def OPENTHREAD_CONFIG_MLE_CHILD_ROUTER_LINKS
+ *
+ * Specifies the desired number of router links that a REED / FED attempts to maintain.
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_MLE_CHILD_ROUTER_LINKS
+#define OPENTHREAD_CONFIG_MLE_CHILD_ROUTER_LINKS 3
 #endif
 
 /**

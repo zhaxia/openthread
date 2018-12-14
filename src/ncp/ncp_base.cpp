@@ -257,10 +257,6 @@ NcpBase::NcpBase(Instance *aInstance)
 
     memset(&mResponseQueue, 0, sizeof(mResponseQueue));
 
-#if OPENTHREAD_ENABLE_DHCP6_CLIENT
-    memset(mDhcpAddresses, 0, sizeof(mDhcpAddresses));
-#endif
-
 #if OPENTHREAD_MTD || OPENTHREAD_FTD
     otMessageQueueInit(&mMessageQueue);
     otSetStateChangedCallback(mInstance, &NcpBase::HandleStateChanged, this);
@@ -1722,6 +1718,14 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CAPS>(void)
 
 #if OPENTHREAD_CONFIG_NCP_ENABLE_MCU_POWER_STATE_CONTROL
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_MCU_POWER_STATE));
+#endif
+
+#if OPENTHREAD_FTD
+    SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_CONFIG_FTD));
+#elif OPENTHREAD_MTD
+    SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_CONFIG_MTD));
+#elif OPENTHREAD_RADIO
+    SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_CONFIG_RADIO));
 #endif
 
 #if OPENTHREAD_RADIO || OPENTHREAD_ENABLE_RAW_LINK_API

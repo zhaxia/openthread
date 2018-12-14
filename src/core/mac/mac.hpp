@@ -74,8 +74,7 @@ enum
     kSleepDelay      = 300, ///< Max sleep delay when frame is pending (milliseconds).
     kNonceSize       = 13,  ///< Size of IEEE 802.15.4 Nonce (bytes).
 
-    kScanChannelsAll     = OT_CHANNEL_ALL, ///< All channels.
-    kScanDurationDefault = 300,            ///< Default interval between channels (milliseconds).
+    kScanDurationDefault = 300, ///< Default interval between channels (milliseconds).
 
     kMaxCsmaBackoffsDirect =
         OPENTHREAD_CONFIG_MAC_MAX_CSMA_BACKOFFS_DIRECT, ///< macMaxCsmaBackoffs for direct transmissions
@@ -555,24 +554,6 @@ public:
      *
      */
     int8_t GetNoiseFloor(void);
-
-    /**
-     * This method indicates whether or not CSMA backoff is supported by the radio layer.
-     *
-     * @retval true   CSMA backoff is supported by the radio.
-     * @retval false  CSMA backoff is not supported by the radio.
-     *
-     */
-    bool RadioSupportsCsmaBackoff(void);
-
-    /**
-     * This method indicates whether or not transmit retries is supported by the radio layer.
-     *
-     * @retval true   Retries (and CSMA) are supported by the radio.
-     * @retval false  Retries (and CSMA) are not supported by the radio.
-     *
-     */
-    bool RadioSupportsRetries(void);
 
     /**
      * This method returns the current CCA (Clear Channel Assessment) failure rate.

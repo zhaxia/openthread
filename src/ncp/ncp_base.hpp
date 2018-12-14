@@ -43,7 +43,6 @@
 #if OPENTHREAD_FTD
 #include <openthread/thread_ftd.h>
 #endif
-#include <openthread/dhcp6_client.h>
 #include <openthread/message.h>
 #include <openthread/ncp.h>
 
@@ -310,13 +309,14 @@ protected:
 
     otError EncodeOperationalDataset(const otOperationalDataset &aDataset);
 
-#if OPENTHREAD_FTD
-    otError EncodeChildInfo(const otChildInfo &aChildInfo);
     otError DecodeOperationalDataset(otOperationalDataset &aDataset,
                                      const uint8_t **      aTlvs             = NULL,
                                      uint8_t *             aTlvsLength       = NULL,
                                      const otIp6Address ** aDestIpAddress    = NULL,
                                      bool                  aAllowEmptyValues = false);
+
+#if OPENTHREAD_FTD
+    otError EncodeChildInfo(const otChildInfo &aChildInfo);
 #endif
 
 #if OPENTHREAD_ENABLE_UDP_FORWARD
@@ -533,10 +533,6 @@ protected:
     bool mPcapEnabled;
     bool mDisableStreamWrite;
     bool mShouldEmitChildTableUpdate;
-
-#if OPENTHREAD_ENABLE_DHCP6_CLIENT
-    otDhcpAddress mDhcpAddresses[OPENTHREAD_CONFIG_NUM_DHCP_PREFIXES];
-#endif
 
 #if OPENTHREAD_FTD
 #if OPENTHREAD_CONFIG_ENABLE_STEERING_DATA_SET_OOB
