@@ -178,6 +178,15 @@ public:
     otError Init(const Message &aMessage);
 
     /**
+     * This method indicates whether or not the header appears to be well-formed.
+     *
+     * @retval TRUE  if the header appears to be well-formed.
+     * @retval FALSE if the header does not appear to be well-formed.
+     *
+     */
+    bool IsValid(void) const;
+
+    /**
      * This method indicates whether or not the IPv6 Version is set to 6.
      *
      * @retval TRUE   If the IPv6 Version is set to 6.
@@ -216,7 +225,7 @@ public:
      * @returns The IPv6 Payload Length value.
      *
      */
-    uint16_t GetPayloadLength(void) { return HostSwap16(mPayloadLength); }
+    uint16_t GetPayloadLength(void) const { return HostSwap16(mPayloadLength); }
 
     /**
      * This method sets the IPv6 Payload Length value.
@@ -505,8 +514,7 @@ private:
 } OT_TOOL_PACKED_END;
 
 /**
- * This class implements IPv6 Pad1 Option generation and parsing. Pad1 does not
- * followdefault option header structure.
+ * This class implements IPv6 Pad1 Option generation and parsing. Pad1 does not follow default option header structure.
  *
  */
 OT_TOOL_PACKED_BEGIN

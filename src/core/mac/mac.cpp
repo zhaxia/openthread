@@ -323,13 +323,17 @@ void Mac::SetRxOnWhenIdle(bool aRxOnWhenIdle)
 
     if (mRxOnWhenIdle)
     {
-        mPendingWaitingForData = false;
+        if (mPendingWaitingForData)
+        {
+            mTimer.Stop();
+            mPendingWaitingForData = false;
+        }
 
         if (mOperation == kOperationWaitingForData)
         {
             mTimer.Stop();
             FinishOperation();
-            PerformNextOperation();
+            mOperationTask.Post();
         }
 
 #if OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS
@@ -355,7 +359,6 @@ otError Mac::SetPanChannel(uint8_t aChannel)
 {
     otError error = OT_ERROR_NONE;
 
-    VerifyOrExit(OT_RADIO_CHANNEL_MIN <= aChannel && aChannel <= OT_RADIO_CHANNEL_MAX, error = OT_ERROR_INVALID_ARGS);
     VerifyOrExit(mSupportedChannelMask.ContainsChannel(aChannel), error = OT_ERROR_INVALID_ARGS);
 
     VerifyOrExit(mPanChannel != aChannel, GetNotifier().SignalIfFirst(OT_CHANGED_THREAD_CHANNEL));
@@ -379,7 +382,6 @@ otError Mac::SetRadioChannel(uint16_t aAcquisitionId, uint8_t aChannel)
 {
     otError error = OT_ERROR_NONE;
 
-    VerifyOrExit(OT_RADIO_CHANNEL_MIN <= aChannel && aChannel <= OT_RADIO_CHANNEL_MAX, error = OT_ERROR_INVALID_ARGS);
     VerifyOrExit(mSupportedChannelMask.ContainsChannel(aChannel), error = OT_ERROR_INVALID_ARGS);
 
     VerifyOrExit(mRadioChannelAcquisitionId && aAcquisitionId == mRadioChannelAcquisitionId,
@@ -1168,14 +1170,8 @@ void Mac::HandleTransmitDone(Frame &aFrame, Frame *aAckFrame, otError aError)
     case kOperationTransmitData:
         if (aFrame.IsDataRequestCommand())
         {
-            bool framePending = false;
-
-            if ((aError == OT_ERROR_NONE) && aFrame.GetAckRequest() && (aAckFrame != NULL))
-            {
-                framePending = aAckFrame->GetFramePending();
-            }
-
-            if (mEnabled && framePending)
+            if (mEnabled && (aError == OT_ERROR_NONE) && aFrame.GetAckRequest() && (aAckFrame != NULL) &&
+                aAckFrame->GetFramePending())
             {
                 mTimer.Start(kDataPollTimeout);
                 StartOperation(kOperationWaitingForData);
@@ -1234,14 +1230,20 @@ void Mac::HandleTimer(void)
         PerformNextOperation();
         break;
 
-    default:
 #if OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS
-        otLogDebgMac("Sleep delay timeout expired");
-        mDelayingSleep = false;
-        UpdateIdleMode();
-#else
-        assert(false);
+    case kOperationIdle:
+        if (mDelayingSleep)
+        {
+            otLogDebgMac("Sleep delay timeout expired");
+            mDelayingSleep = false;
+            UpdateIdleMode();
+        }
+
+        break;
 #endif
+
+    default:
+        assert(false);
         break;
     }
 }

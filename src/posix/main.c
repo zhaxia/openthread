@@ -30,8 +30,11 @@
 
 #include <openthread-core-config.h>
 #include <setjmp.h>
+#include <signal.h>
 #include <unistd.h>
-#include <openthread/config.h>
+#ifdef __linux__
+#include <sys/prctl.h>
+#endif
 
 #define OPENTHREAD_POSIX_APP_NCP 1
 #define OPENTHREAD_POSIX_APP_CLI 2
@@ -62,6 +65,12 @@ int main(int argc, char *argv[])
 {
     otInstance *instance;
 
+#ifdef __linux__
+    // Ensure we terminate this process if the
+    // parent process dies.
+    prctl(PR_SET_PDEATHSIG, SIGHUP);
+#endif
+
     if (setjmp(gResetJump))
     {
         alarm(0);
@@ -76,6 +85,9 @@ int main(int argc, char *argv[])
 #if OPENTHREAD_POSIX_APP == OPENTHREAD_POSIX_APP_NCP
     otNcpInit(instance);
 #elif OPENTHREAD_POSIX_APP == OPENTHREAD_POSIX_APP_CLI
+#if OPENTHREAD_ENABLE_PLATFORM_NETIF
+    otSysInitNetif(instance);
+#endif
     otCliUartInit(instance);
 #endif
 

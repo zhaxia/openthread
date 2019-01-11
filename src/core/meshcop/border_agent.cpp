@@ -203,6 +203,7 @@ void BorderAgent::HandleCoapResponse(void *               aContext,
         StateTlv stateTlv;
 
         SuccessOrExit(error = Tlv::GetTlv(*message, Tlv::kState, sizeof(stateTlv), stateTlv));
+        VerifyOrExit(stateTlv.IsValid(), error = OT_ERROR_PARSE);
 
         if (stateTlv.GetState() == StateTlv::kAccept)
         {
@@ -210,6 +211,7 @@ void BorderAgent::HandleCoapResponse(void *               aContext,
 
             SuccessOrExit(error =
                               Tlv::GetTlv(*message, Tlv::kCommissionerSessionId, sizeof(sessionIdTlv), sessionIdTlv));
+            VerifyOrExit(sessionIdTlv.IsValid(), error = OT_ERROR_PARSE);
 
             netif.GetMle().GetCommissionerAloc(borderAgent.mCommissionerAloc.GetAddress(),
                                                sessionIdTlv.GetCommissionerSessionId());
@@ -335,7 +337,7 @@ void BorderAgent::HandleProxyTransmit(const Coap::Header &aHeader, const Message
         UdpEncapsulationTlv tlv;
 
         SuccessOrExit(error = Tlv::GetOffset(aMessage, Tlv::kUdpEncapsulation, offset));
-        aMessage.Read(offset, sizeof(tlv), &tlv);
+        VerifyOrExit(aMessage.Read(offset, sizeof(tlv), &tlv) == sizeof(tlv), error = OT_ERROR_PARSE);
 
         VerifyOrExit((message = GetInstance().GetIp6().GetUdp().NewMessage(0)) != NULL, error = OT_ERROR_NO_BUFS);
         SuccessOrExit(error = message->SetLength(tlv.GetUdpLength()));

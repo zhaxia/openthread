@@ -197,7 +197,6 @@ LOCAL_SRC_FILES                                          := \
     src/ncp/spinel_decoder.cpp                              \
     src/ncp/spinel_encoder.cpp                              \
     src/posix/platform/alarm.c                              \
-    src/posix/platform/frame_queue.cpp                      \
     src/posix/platform/hdlc_interface.cpp                   \
     src/posix/platform/logging.c                            \
     src/posix/platform/misc.c                               \
@@ -259,6 +258,7 @@ LOCAL_CFLAGS                                                                := \
     -DOPENTHREAD_CONFIG_FILE=\<openthread-config-android.h\>                   \
     $(OPENTHREAD_COMMON_FLAGS)                                                 \
     -DOPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE=1                          \
+    -DOPENTHREAD_CONFIG_UART_CLI_RAW=1                                         \
     -DOPENTHREAD_FTD=1                                                         \
     -DOPENTHREAD_POSIX=1                                                       \
     -DOPENTHREAD_POSIX_APP=2                                                   \

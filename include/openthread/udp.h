@@ -104,7 +104,7 @@ typedef struct otUdpSocket
  *
  * @returns A pointer to the message buffer or NULL if no message buffers are available or parameters are invalid.
  *
- * @sa otFreeMessage
+ * @sa otMessageFree
  *
  */
 otMessage *otUdpNewMessage(otInstance *aInstance, const otMessageSettings *aSettings);
@@ -237,7 +237,7 @@ typedef void (*otUdpForwarder)(otMessage *   aMessage,
                                void *        aContext);
 
 /**
- * Set UDP forward callback to deliever UDP packets to host.
+ * Set UDP forward callback to deliver UDP packets to host.
  *
  * @param[in]  aInstance            A pointer to an OpenThread instance.
  * @param[in]  aForwarder           A pointer to a function called to forward UDP packet to host.
