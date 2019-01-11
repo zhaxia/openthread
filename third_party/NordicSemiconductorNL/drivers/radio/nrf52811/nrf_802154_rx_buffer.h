@@ -28,39 +28,56 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
+/**
+ * @brief This module contains buffer for frames received by nRF 802.15.4 radio driver.
+ *
+ */
+
+#ifndef NRF_802154_RX_BUFFER_H_
+#define NRF_802154_RX_BUFFER_H_
+
+#include <stdbool.h>
+#include <stdint.h>
+
+#include "nrf_802154_const.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @section Timings.
+ * @brief Structure containing received frame.
  */
+typedef struct
+{
+    uint8_t psdu[MAX_PACKET_SIZE + 1];
+    bool    free;                      // If this buffer is free or contains a frame.
+} rx_buffer_t;
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
+/**
+ * @brief Array containing all buffers used to receive frame.
+ *
+ * This array is in global scope to allow optimizations in Core module in case there is only
+ * one buffer provided by this module.
+ *
+ */
+extern rx_buffer_t nrf_802154_rx_buffers[];
 
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
+/**
+ * @brief Initialize buffer for received frames.
+ */
+void nrf_802154_rx_buffer_init(void);
 
-#ifdef NRF52840_XXAA
-
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
-
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-//#error "Device not supported."
-
-#endif
+/**
+ * @brief Get free buffer to receive a frame.
+ *
+ * @return  Pointer to free buffer of NULL if no free buffer is available.
+ */
+rx_buffer_t * nrf_802154_rx_buffer_free_find(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+#endif /* NRF_802154_RX_BUFFER_H_ */
+

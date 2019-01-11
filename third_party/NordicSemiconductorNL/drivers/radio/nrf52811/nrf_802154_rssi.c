@@ -1,4 +1,4 @@
-/* Copyright (c) 2017 - 2018, Nordic Semiconductor ASA
+/* Copyright (c) 2018, Nordic Semiconductor ASA
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,39 +28,69 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
- * @section Timings.
+ * @file
+ *   This file implements RSSI calculations for 802.15.4 driver.
+ *
  */
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
+#include <stdint.h>
 
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
+#include "platform/temperature/nrf_802154_temperature.h"
 
-#ifdef NRF52840_XXAA
+int8_t nrf_802154_rssi_sample_temp_corr_value_get(void)
+{
+    int8_t temp = nrf_802154_temperature_get();
+    int8_t result;
 
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
+    if (temp <= -30)
+    {
+        result = 3;
+    }
+    else if (temp <= -10)
+    {
+        result = 2;
+    }
+    else if (temp <= 10)
+    {
+        result = 1;
+    }
+    else if (temp <= 30)
+    {
+        result = 0;
+    }
+    else if (temp <= 50)
+    {
+        result = -1;
+    }
+    else if (temp <= 70)
+    {
+        result = -2;
+    }
+    else
+    {
+        result = -3;
+    }
 
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-//#error "Device not supported."
-
-#endif
-
-#ifdef __cplusplus
+    return result;
 }
-#endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+uint8_t nrf_802154_rssi_sample_corrected_get(uint8_t rssi_sample)
+{
+    return rssi_sample + nrf_802154_rssi_sample_temp_corr_value_get();
+}
+
+uint8_t nrf_802154_rssi_lqi_corrected_get(uint8_t lqi)
+{
+    return lqi - nrf_802154_rssi_sample_temp_corr_value_get();
+}
+
+uint8_t nrf_802154_rssi_ed_corrected_get(uint8_t ed)
+{
+    return ed - nrf_802154_rssi_sample_temp_corr_value_get();
+}
+
+uint8_t nrf_802154_rssi_cca_ed_threshold_corrected_get(uint8_t cca_ed)
+{
+    return cca_ed - nrf_802154_rssi_sample_temp_corr_value_get();
+}

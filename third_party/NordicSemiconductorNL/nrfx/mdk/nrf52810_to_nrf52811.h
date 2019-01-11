@@ -39,37 +39,26 @@ OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 */
 
-#ifndef NRF_PERIPHERALS_H__
-#define NRF_PERIPHERALS_H__
+#ifndef NRF52810_TO_NRF52811_H
+#define NRF52810_TO_NRF52811_H
 
 /*lint ++flb "Enter library region */
 
-#if defined(_WIN32)
-    /* Do not include nrf specific files when building for PC host */
-#elif defined(__unix)
-    /* Do not include nrf specific files when building for PC host */
-#elif defined(__APPLE__)
-    /* Do not include nrf specific files when building for PC host */
-#else
-    
-    #if defined(NRF51)
-        #include "nrf51_peripherals.h"
-        
-    #elif defined(NRF52810_XXAA)
-        #include "nrf52810_peripherals.h"    
-    #elif defined(NRF52811_XXAA)
-        #include "nrf52811_peripherals.h"
-    #elif defined(NRF52832_XXAA) || defined(NRF52832_XXAB)
-        #include "nrf52832_peripherals.h"
+/* This file is given to prevent your SW from not compiling with the name changes between nRF52810 and nRF52811 devices.
+ * It redefines the old nRF52810 names into the new ones as long as the functionality is still supported. If the
+ * functionality is gone, there old names are not defined, so compilation will fail. */
+ 
+/* Differences between latest nRF52810 headers and nRF52811 headers. */
 
-    #elif defined(NRF52840_XXAA)
-        #include "nrf52840_peripherals.h"
-        
-    #else
-        #error "Device must be defined. See nrf.h."
-    #endif
-#endif
+/* Interrupt service routines handlers. */
+#define     TWIM0_TWIS0_IRQHandler      TWIM0_TWIS0_SPIM1_SPIS1_IRQHandler
+
+
+/* Interrupt service routines index. */
+#define     TWIM0_TWIS0_IRQn            TWIM0_TWIS0_SPIM1_SPIS1_IRQn
+
 
 /*lint --flb "Leave library region" */
 
-#endif // NRF_PERIPHERALS_H__
+#endif /* NRF51_TO_NRF52810_H */
+

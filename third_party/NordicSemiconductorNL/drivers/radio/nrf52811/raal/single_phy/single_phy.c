@@ -28,39 +28,58 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
- * @section Timings.
+ * @file
+ *   This file implements the nrf 802.15.4 radio arbiter for single phy.
+ *
+ * This arbiter should be used when 802.15.4 is the only wireless protocol used by the application.
+ *
  */
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
+#include "nrf_raal_api.h"
 
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
+#include <assert.h>
+#include <stdbool.h>
+#include <stdint.h>
 
-#ifdef NRF52840_XXAA
+static bool m_continuous;
 
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
-
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-//#error "Device not supported."
-
-#endif
-
-#ifdef __cplusplus
+void nrf_raal_init(void)
+{
+    m_continuous = false;
 }
-#endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+void nrf_raal_uninit(void)
+{
+    // Intentionally empty.
+}
+
+void nrf_raal_continuous_mode_enter(void)
+{
+    assert(!m_continuous);
+
+    m_continuous = true;
+    nrf_raal_timeslot_started();
+}
+
+void nrf_raal_continuous_mode_exit(void)
+{
+    assert(m_continuous);
+
+    m_continuous = false;
+}
+
+bool nrf_raal_timeslot_request(uint32_t length_us)
+{
+    (void) length_us;
+
+    assert(m_continuous);
+
+    return true;
+}
+
+uint32_t nrf_raal_timeslot_us_left_get(void)
+{
+    return UINT32_MAX;
+}
+

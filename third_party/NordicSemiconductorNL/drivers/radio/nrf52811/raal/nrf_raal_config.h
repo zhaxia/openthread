@@ -28,39 +28,43 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
+#ifndef NRF_RAAL_CONFIG_H__
+#define NRF_RAAL_CONFIG_H__
+
+#ifdef NRF_802154_PROJECT_CONFIG
+#include NRF_802154_PROJECT_CONFIG
+#endif
+
+#include <nrf.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @section Timings.
+ * @defgroup nrf_raal_config RAAL configuration
+ * @{
+ * @ingroup nrf_802154
+ * @brief Configuration of Radio Arbiter Abstraction Layer.
  */
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
-
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
-
-#ifdef NRF52840_XXAA
-
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
-
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-//#error "Device not supported."
-
+/**
+ * @def NRF_RAAL_MAX_CLEAN_UP_TIME_US
+ *
+ * Maximum time within radio driver needs to do any clean-up actions on RADIO peripheral
+ * and stop using it completely.
+ *
+ */
+#ifndef NRF_RAAL_MAX_CLEAN_UP_TIME_US
+#define NRF_RAAL_MAX_CLEAN_UP_TIME_US  91
 #endif
+
+/**
+ *@}
+ **/
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+#endif // NRF_RAAL_CONFIG_H__

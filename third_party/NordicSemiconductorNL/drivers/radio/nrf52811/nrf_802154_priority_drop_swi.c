@@ -28,39 +28,29 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
- * @section Timings.
+ * @file
+ *   This file implements procedures that should be called with lower priority than caller in
+ *   the nrf 802.15.4 radio driver.
+ *
  */
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
+#include "nrf_802154_priority_drop.h"
 
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
+#include "nrf_802154_swi.h"
 
-#ifdef NRF52840_XXAA
-
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
-
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-//#error "Device not supported."
-
-#endif
-
-#ifdef __cplusplus
+void nrf_802154_priority_drop_init(void)
+{
+    nrf_802154_swi_init();
 }
-#endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+void nrf_802154_priority_drop_timeslot_exit(void)
+{
+    nrf_802154_swi_timeslot_exit();
+}
+
+void nrf_802154_priority_drop_timeslot_exit_terminate(void)
+{
+    nrf_802154_swi_timeslot_exit_terminate();
+}
+

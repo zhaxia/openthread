@@ -28,39 +28,87 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
- * @section Timings.
+ * @file
+ *   This file implements the nrf 802.15.4 HF Clock abstraction with SDK driver.
+ *
+ * This implementation uses clock driver implementation from SDK.
  */
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
+#include "nrf_802154_clock.h"
 
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
+#include <stddef.h>
 
-#ifdef NRF52840_XXAA
+#include <compiler_abstraction.h>
+#include <nrf_drv_clock.h>
 
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
+static void clock_handler(nrf_drv_clock_evt_type_t event);
 
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
+static nrf_drv_clock_handler_item_t m_clock_handler =
+{
+    .p_next        = NULL,
+    .event_handler = clock_handler,
+};
 
-#else
+static void clock_handler(nrf_drv_clock_evt_type_t event)
+{
+    if (event == NRF_DRV_CLOCK_EVT_HFCLK_STARTED)
+    {
+        nrf_802154_clock_hfclk_ready();
+    }
 
-//#error "Device not supported."
-
-#endif
-
-#ifdef __cplusplus
+    if (event == NRF_DRV_CLOCK_EVT_LFCLK_STARTED)
+    {
+        nrf_802154_clock_lfclk_ready();
+    }
 }
-#endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+void nrf_802154_clock_init(void)
+{
+    // Intentionally empty.
+}
+
+void nrf_802154_clock_deinit(void)
+{
+    // Intentionally empty.
+}
+
+void nrf_802154_clock_hfclk_start(void)
+{
+    nrf_drv_clock_hfclk_request(&m_clock_handler);
+}
+
+void nrf_802154_clock_hfclk_stop(void)
+{
+    nrf_drv_clock_hfclk_release();
+}
+
+bool nrf_802154_clock_hfclk_is_running(void)
+{
+    return nrf_drv_clock_hfclk_is_running();
+}
+
+void nrf_802154_clock_lfclk_start(void)
+{
+    nrf_drv_clock_lfclk_request(&m_clock_handler);
+}
+
+void nrf_802154_clock_lfclk_stop(void)
+{
+    nrf_drv_clock_lfclk_release();
+}
+
+bool nrf_802154_clock_lfclk_is_running(void)
+{
+    return nrf_drv_clock_lfclk_is_running();
+}
+
+__WEAK void nrf_802154_clock_hfclk_ready(void)
+{
+    // Intentionally empty.
+}
+
+__WEAK void nrf_802154_clock_lfclk_ready(void)
+{
+    // Intentionally empty.
+}

@@ -28,39 +28,49 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
+#ifndef NRF_802154_PRIORITY_DROP_H__
+#define NRF_802154_PRIORITY_DROP_H__
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 /**
- * @section Timings.
+ * @defgroup nrf_802154_priority_drop 802.15.4 driver procedures with lower priority.
+ * @{
+ * @ingroup nrf_802154
+ * @brief Internal procedures of 802.15.4 driver that should be called with lower priority than
+ *        the caller's priority.
  */
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
+/**
+ * @brief Initialize notification module.
+ */
+void nrf_802154_priority_drop_init(void);
 
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
+/**
+ * @brief Request discarding of the timeslot.
+ *
+ * @note This function should be called through this module to prevent calling it from arbiter context.
+ */
+void nrf_802154_priority_drop_timeslot_exit(void);
 
-#ifdef NRF52840_XXAA
+/**
+ * @brief Terminate requesting of timeslot discarding.
+ *
+ * Function used to to terminate timeslot exit procedure requested by previous call to
+ * @rev nrf_802154_priority_drop_timeslot_exit. Timeslot discarding is terminated only if it has
+ * not been started.
+ */
+void nrf_802154_priority_drop_timeslot_exit_terminate(void);
 
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
-
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-//#error "Device not supported."
-
-#endif
+/**
+ *@}
+ **/
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+#endif // NRF_802154_PRIORITY_DROP_H__
+

@@ -28,39 +28,41 @@
  *
  */
 
-#ifndef NRF_FEM_CONTROL_CONFIG_H_
-#define NRF_FEM_CONTROL_CONFIG_H_
-
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /**
- * @section Timings.
+ * @file
+ *   This file implements buffer management for frames received by nRF 802.15.4 radio driver.
+ *
  */
 
-/** Time in us when PA GPIO is activated before radio is ready for transmission. */
-#define NRF_FEM_PA_TIME_IN_ADVANCE          23
+#include "nrf_802154_rx_buffer.h"
 
-/** Time in us when LNA GPIO is activated before radio is ready for reception. */
-#define NRF_FEM_LNA_TIME_IN_ADVANCE         5
+#include <stddef.h>
 
-#ifdef NRF52840_XXAA
+#include "nrf_802154_config.h"
 
-/** Radio ramp-up time in TX mode, in us. */
-#define NRF_FEM_RADIO_TX_STARTUP_LATENCY_US 40
-
-/** Radio ramp-up time in RX mode, in us. */
-#define NRF_FEM_RADIO_RX_STARTUP_LATENCY_US 40
-
-#else
-
-//#error "Device not supported."
-
+#if NRF_802154_RX_BUFFERS < 1
+#error Not enough rx buffers in the 802.15.4 radio driver.
 #endif
 
-#ifdef __cplusplus
+rx_buffer_t nrf_802154_rx_buffers[NRF_802154_RX_BUFFERS]; ///< Receive buffers.
+
+void nrf_802154_rx_buffer_init(void)
+{
+    for (uint32_t i = 0; i < NRF_802154_RX_BUFFERS; i++)
+    {
+        nrf_802154_rx_buffers[i].free = true;
+    }
 }
-#endif
 
-#endif /* NRF_FEM_CONTROL_CONFIG_H_ */
+rx_buffer_t * nrf_802154_rx_buffer_free_find(void)
+{
+    for (uint32_t i = 0; i < NRF_802154_RX_BUFFERS; i++)
+    {
+        if (nrf_802154_rx_buffers[i].free)
+        {
+            return &nrf_802154_rx_buffers[i];
+        }
+    }
+
+    return NULL;
+}
