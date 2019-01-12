@@ -419,7 +419,6 @@ void Udp::HandlePayload(Message &aMessage, MessageInfo &aMessageInfo)
         }
 
         socket->HandleUdpReceive(aMessage, aMessageInfo);
-        break;
     }
 }
 
