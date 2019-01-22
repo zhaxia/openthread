@@ -14,6 +14,7 @@ void nrf_coex_init(void);
 void nrf_coex_start(void);
 void nrf_coex_stop(void);
 bool nrf_coex_rx_request(void);
+bool nrf_coex_ack_request(void);
 bool nrf_coex_tx_request(const uint8_t *p_data);
 bool nrf_coex_grant_active(void);
 void nrf_coex_critical_section_enter(void);

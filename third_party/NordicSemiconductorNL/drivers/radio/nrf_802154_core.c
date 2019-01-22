@@ -1951,7 +1951,7 @@ static void irq_crcok_state_rx(void)
     // coex request
     if (m_flags.frame_filtered &&
         ack_is_requested(p_received_psdu) &&
-        !nrf_coex_grant_active())
+        !nrf_coex_ack_request())
     {
         // Frame is destined to this node but coex has denied request to transmit ACK
         irq_deinit();
