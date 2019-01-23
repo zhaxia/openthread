@@ -568,7 +568,7 @@ static void irq_deinit(void)
 {
     NVIC_DisableIRQ(RADIO_IRQn);
     NVIC_ClearPendingIRQ(RADIO_IRQn);
-    NVIC_SetPriority(RADIO_IRQn, 0);
+    NVIC_SetPriority(RADIO_IRQn, NRF_802154_IRQ_PRIORITY);  // for Nest FreeRTOS compatibility (including for NRF_802154_COEX_ENABLED)
 
     __DSB();
     __ISB();
@@ -1828,12 +1828,8 @@ static void irq_bcmatch_state_rx(void)
         }
         else
         {
-            irq_deinit();
-            nrf_radio_reset();
-
-            receive_ended_notify(false);
-
-            nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_COEX_NOT_GRANTED);
+            nrf_raal_timeslot_ended();
+            nrf_raal_timeslot_started();
 
             return;
         }
@@ -1954,22 +1950,9 @@ static void irq_crcok_state_rx(void)
         !nrf_coex_ack_request())
     {
         // Frame is destined to this node but coex has denied request to transmit ACK
-        irq_deinit();
-        nrf_radio_reset();
-
-        rx_flags_clear();
-
-        // Filter out received ACK frame if promiscuous mode is disabled.
-        if (((p_received_psdu[FRAME_TYPE_OFFSET] & FRAME_TYPE_MASK) != FRAME_TYPE_ACK) ||
-            nrf_802154_pib_promiscuous_get())
-        {
-            mp_current_rx_buffer->free = false;
-            received_frame_notify_and_nesting_allow(p_received_psdu);
-        }
-        else
-        {
-            receive_ended_notify(false);
-        }
+        state_set(RADIO_STATE_TX_ACK);
+        nrf_raal_timeslot_ended();
+        nrf_raal_timeslot_started();
 
         return;
     }
