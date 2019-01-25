@@ -147,6 +147,20 @@ static void random_backoff_start(void)
 {
     uint8_t backoff_periods = rand() % (1 << m_be);
 
+#if NRF_802154_COEX_ENABLED
+    // Notify the coex driver that the tx frame is no
+    // longer in progress during csma/cca retry backoffs
+    // with a duration greater than 0.  This will cause
+    // the coex driver to deactivate the REQ signal
+    // during the backoff period.  The REQ will be
+    // re-activated when frame_transmit() is called
+    // after the backoff timer expires.
+    if ((m_nb != 0) && (backoff_periods != 0))
+    {
+        nrf_coex_tx_ended_hook(false);
+    }
+#endif // NRF_802154_COEX_ENABLED
+
     m_timer.callback  = frame_transmit;
     m_timer.p_context = NULL;
     m_timer.t0        = nrf_802154_timer_sched_time_get();
