@@ -52,7 +52,7 @@ ChannelManager::ChannelManager(Instance &aInstance)
     , mSupportedChannelMask(0)
     , mFavoredChannelMask(0)
     , mActiveTimestamp(0)
-    , mNotifierCallback(&ChannelManager::HandleStateChanged, this)
+    , mNotifierCallback(aInstance, &ChannelManager::HandleStateChanged, this)
     , mDelay(kMinimumDelay)
     , mChannel(0)
     , mState(kStateIdle)
@@ -60,7 +60,6 @@ ChannelManager::ChannelManager(Instance &aInstance)
     , mAutoSelectInterval(kDefaultAutoSelectInterval)
     , mAutoSelectEnabled(false)
 {
-    aInstance.GetNotifier().RegisterCallback(mNotifierCallback);
 }
 
 void ChannelManager::RequestChannelChange(uint8_t aChannel)
@@ -364,7 +363,7 @@ exit:
     return error;
 }
 
-bool ChannelManager::ShouldAttamptChannelChange(void)
+bool ChannelManager::ShouldAttemptChannelChange(void)
 {
     uint16_t ccaFailureRate = GetInstance().Get<Mac::Mac>().GetCcaFailureRate();
     bool     shouldAttempt  = (ccaFailureRate >= kCcaFailureRateThreshold);
@@ -386,7 +385,7 @@ otError ChannelManager::RequestChannelSelect(bool aSkipQualityCheck)
 
     VerifyOrExit(GetInstance().Get<Mle::Mle>().GetRole() != OT_DEVICE_ROLE_DISABLED, error = OT_ERROR_INVALID_STATE);
 
-    VerifyOrExit(aSkipQualityCheck || ShouldAttamptChannelChange());
+    VerifyOrExit(aSkipQualityCheck || ShouldAttemptChannelChange());
 
     SuccessOrExit(error = FindBetterChannel(newChannel, newOccupancy));
 

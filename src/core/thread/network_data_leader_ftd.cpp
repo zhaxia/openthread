@@ -39,7 +39,7 @@
 
 #include <openthread/platform/random.h>
 
-#include "coap/coap_header.hpp"
+#include "coap/coap_message.hpp"
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
 #include "common/encoding.hpp"
@@ -120,10 +120,9 @@ uint32_t Leader::GetContextIdReuseDelay(void) const
     return mContextIdReuseDelay;
 }
 
-otError Leader::SetContextIdReuseDelay(uint32_t aDelay)
+void Leader::SetContextIdReuseDelay(uint32_t aDelay)
 {
     mContextIdReuseDelay = aDelay;
-    return OT_ERROR_NONE;
 }
 
 void Leader::RemoveBorderRouter(uint16_t aRloc16, MatchMode aMatchMode)
@@ -148,17 +147,13 @@ exit:
     return;
 }
 
-void Leader::HandleServerData(void *               aContext,
-                              otCoapHeader *       aHeader,
-                              otMessage *          aMessage,
-                              const otMessageInfo *aMessageInfo)
+void Leader::HandleServerData(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
 {
-    static_cast<Leader *>(aContext)->HandleServerData(*static_cast<Coap::Header *>(aHeader),
-                                                      *static_cast<Message *>(aMessage),
+    static_cast<Leader *>(aContext)->HandleServerData(*static_cast<Coap::Message *>(aMessage),
                                                       *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
-void Leader::HandleServerData(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+void Leader::HandleServerData(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     ThreadNetworkDataTlv networkData;
     ThreadRloc16Tlv      rloc16;
@@ -178,7 +173,7 @@ void Leader::HandleServerData(Coap::Header &aHeader, Message &aMessage, const Ip
                             networkData.GetLength());
     }
 
-    SuccessOrExit(GetNetif().GetCoap().SendEmptyAck(aHeader, aMessageInfo));
+    SuccessOrExit(GetNetif().GetCoap().SendEmptyAck(aMessage, aMessageInfo));
 
     otLogInfoNetData("Sent network data registration acknowledgment");
 
@@ -186,17 +181,13 @@ exit:
     return;
 }
 
-void Leader::HandleCommissioningSet(void *               aContext,
-                                    otCoapHeader *       aHeader,
-                                    otMessage *          aMessage,
-                                    const otMessageInfo *aMessageInfo)
+void Leader::HandleCommissioningSet(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
 {
-    static_cast<Leader *>(aContext)->HandleCommissioningSet(*static_cast<Coap::Header *>(aHeader),
-                                                            *static_cast<Message *>(aMessage),
+    static_cast<Leader *>(aContext)->HandleCommissioningSet(*static_cast<Coap::Message *>(aMessage),
                                                             *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
-void Leader::HandleCommissioningSet(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+void Leader::HandleCommissioningSet(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     uint16_t                 offset = aMessage.GetOffset();
     uint16_t                 length = aMessage.GetLength() - aMessage.GetOffset();
@@ -291,23 +282,19 @@ exit:
 
     if (GetNetif().GetMle().GetRole() == OT_DEVICE_ROLE_LEADER)
     {
-        SendCommissioningSetResponse(aHeader, aMessageInfo, state);
+        SendCommissioningSetResponse(aMessage, aMessageInfo, state);
     }
 
     return;
 }
 
-void Leader::HandleCommissioningGet(void *               aContext,
-                                    otCoapHeader *       aHeader,
-                                    otMessage *          aMessage,
-                                    const otMessageInfo *aMessageInfo)
+void Leader::HandleCommissioningGet(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
 {
-    static_cast<Leader *>(aContext)->HandleCommissioningGet(*static_cast<Coap::Header *>(aHeader),
-                                                            *static_cast<Message *>(aMessage),
+    static_cast<Leader *>(aContext)->HandleCommissioningGet(*static_cast<Coap::Message *>(aMessage),
                                                             *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
-void Leader::HandleCommissioningGet(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+void Leader::HandleCommissioningGet(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     MeshCoP::Tlv tlv;
     uint16_t     offset = aMessage.GetOffset();
@@ -328,27 +315,25 @@ void Leader::HandleCommissioningGet(Coap::Header &aHeader, Message &aMessage, co
         offset += sizeof(tlv) + tlv.GetLength();
     }
 
-    SendCommissioningGetResponse(aHeader, aMessageInfo, tlvs, length);
+    SendCommissioningGetResponse(aMessage, aMessageInfo, tlvs, length);
 }
 
-void Leader::SendCommissioningGetResponse(const Coap::Header &    aRequestHeader,
+void Leader::SendCommissioningGetResponse(const Coap::Message &   aRequest,
                                           const Ip6::MessageInfo &aMessageInfo,
                                           uint8_t *               aTlvs,
                                           uint8_t                 aLength)
 {
-    ThreadNetif &netif = GetNetif();
-    otError      error = OT_ERROR_NONE;
-    Coap::Header responseHeader;
-    Message *    message;
-    uint8_t      index;
-    uint8_t *    data   = NULL;
-    uint8_t      length = 0;
+    ThreadNetif &  netif = GetNetif();
+    otError        error = OT_ERROR_NONE;
+    Coap::Message *message;
+    uint8_t        index;
+    uint8_t *      data   = NULL;
+    uint8_t        length = 0;
 
-    responseHeader.SetDefaultResponseHeader(aRequestHeader);
-    responseHeader.SetPayloadMarker();
+    VerifyOrExit((message = MeshCoP::NewMeshCoPMessage(netif.GetCoap())) != NULL, error = OT_ERROR_NO_BUFS);
 
-    VerifyOrExit((message = MeshCoP::NewMeshCoPMessage(netif.GetCoap(), responseHeader)) != NULL,
-                 error = OT_ERROR_NO_BUFS);
+    message->SetDefaultResponseHeader(aRequest);
+    message->SetPayloadMarker();
 
     for (NetworkDataTlv *cur                                            = reinterpret_cast<NetworkDataTlv *>(mTlvs);
          cur < reinterpret_cast<NetworkDataTlv *>(mTlvs + mLength); cur = cur->GetNext())
@@ -383,7 +368,7 @@ void Leader::SendCommissioningGetResponse(const Coap::Header &    aRequestHeader
         }
     }
 
-    if (message->GetLength() == responseHeader.GetLength())
+    if (message->GetLength() == message->GetOffset())
     {
         // no payload, remove coap payload marker
         message->SetLength(message->GetLength() - 1);
@@ -401,21 +386,19 @@ exit:
     }
 }
 
-void Leader::SendCommissioningSetResponse(const Coap::Header &     aRequestHeader,
+void Leader::SendCommissioningSetResponse(const Coap::Message &    aRequest,
                                           const Ip6::MessageInfo & aMessageInfo,
                                           MeshCoP::StateTlv::State aState)
 {
     ThreadNetif &     netif = GetNetif();
     otError           error = OT_ERROR_NONE;
-    Coap::Header      responseHeader;
-    Message *         message;
+    Coap::Message *   message;
     MeshCoP::StateTlv state;
 
-    responseHeader.SetDefaultResponseHeader(aRequestHeader);
-    responseHeader.SetPayloadMarker();
+    VerifyOrExit((message = MeshCoP::NewMeshCoPMessage(netif.GetCoap())) != NULL, error = OT_ERROR_NO_BUFS);
 
-    VerifyOrExit((message = MeshCoP::NewMeshCoPMessage(netif.GetCoap(), responseHeader)) != NULL,
-                 error = OT_ERROR_NO_BUFS);
+    message->SetDefaultResponseHeader(aRequest);
+    message->SetPayloadMarker();
 
     state.Init();
     state.SetState(aState);
@@ -788,7 +771,7 @@ otError Leader::RegisterNetworkData(uint16_t aRloc16, uint8_t *aTlvs, uint8_t aT
         // Store old Service IDs for given rloc16, so updates to server will reuse the same Service ID
         SuccessOrExit(error = GetNetworkData(false, oldTlvs, oldTlvsLength));
 
-        SuccessOrExit(error = RemoveRloc(aRloc16, kMatchModeRloc16));
+        RemoveRloc(aRloc16, kMatchModeRloc16);
         SuccessOrExit(error = AddNetworkData(aTlvs, aTlvsLength, oldTlvs, oldTlvsLength));
 
         mVersion++;
@@ -1213,7 +1196,7 @@ exit:
     return rval;
 }
 
-otError Leader::FreeContext(uint8_t aContextId)
+void Leader::FreeContext(uint8_t aContextId)
 {
     otLogInfoNetData("Free Context Id = %d", aContextId);
     RemoveContext(aContextId);
@@ -1221,7 +1204,6 @@ otError Leader::FreeContext(uint8_t aContextId)
     mVersion++;
     mStableVersion++;
     GetNotifier().Signal(OT_CHANGED_THREAD_NETDATA);
-    return OT_ERROR_NONE;
 }
 
 void Leader::StartContextReuseTimer(uint8_t aContextId)
@@ -1257,7 +1239,7 @@ exit:
     return error;
 }
 
-otError Leader::RemoveRloc(uint16_t aRloc16, MatchMode aMatchMode)
+void Leader::RemoveRloc(uint16_t aRloc16, MatchMode aMatchMode)
 {
     NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(mTlvs);
     NetworkDataTlv *end;
@@ -1320,11 +1302,9 @@ otError Leader::RemoveRloc(uint16_t aRloc16, MatchMode aMatchMode)
     }
 
     otDumpDebgNetData("remove done", mTlvs, mLength);
-
-    return OT_ERROR_NONE;
 }
 
-otError Leader::RemoveRloc(PrefixTlv &prefix, uint16_t aRloc16, MatchMode aMatchMode)
+void Leader::RemoveRloc(PrefixTlv &prefix, uint16_t aRloc16, MatchMode aMatchMode)
 {
     NetworkDataTlv *cur = prefix.GetSubTlvs();
     NetworkDataTlv *end;
@@ -1387,12 +1367,10 @@ otError Leader::RemoveRloc(PrefixTlv &prefix, uint16_t aRloc16, MatchMode aMatch
             StopContextReuseTimer(context->GetContextId());
         }
     }
-
-    return OT_ERROR_NONE;
 }
 
 #if OPENTHREAD_ENABLE_SERVICE
-otError Leader::RemoveRloc(ServiceTlv &service, uint16_t aRloc16, MatchMode aMatchMode)
+void Leader::RemoveRloc(ServiceTlv &service, uint16_t aRloc16, MatchMode aMatchMode)
 {
     NetworkDataTlv *cur = service.GetSubTlvs();
     NetworkDataTlv *end;
@@ -1429,12 +1407,10 @@ otError Leader::RemoveRloc(ServiceTlv &service, uint16_t aRloc16, MatchMode aMat
 
         cur = cur->GetNext();
     }
-
-    return OT_ERROR_NONE;
 }
 #endif
 
-otError Leader::RemoveRloc(PrefixTlv &aPrefix, HasRouteTlv &aHasRoute, uint16_t aRloc16, MatchMode aMatchMode)
+void Leader::RemoveRloc(PrefixTlv &aPrefix, HasRouteTlv &aHasRoute, uint16_t aRloc16, MatchMode aMatchMode)
 {
     HasRouteEntry *entry = aHasRoute.GetFirstEntry();
 
@@ -1450,11 +1426,9 @@ otError Leader::RemoveRloc(PrefixTlv &aPrefix, HasRouteTlv &aHasRoute, uint16_t 
 
         entry = entry->GetNext();
     }
-
-    return OT_ERROR_NONE;
 }
 
-otError Leader::RemoveRloc(PrefixTlv &aPrefix, BorderRouterTlv &aBorderRouter, uint16_t aRloc16, MatchMode aMatchMode)
+void Leader::RemoveRloc(PrefixTlv &aPrefix, BorderRouterTlv &aBorderRouter, uint16_t aRloc16, MatchMode aMatchMode)
 {
     BorderRouterEntry *entry = aBorderRouter.GetFirstEntry();
 
@@ -1470,11 +1444,9 @@ otError Leader::RemoveRloc(PrefixTlv &aPrefix, BorderRouterTlv &aBorderRouter, u
 
         entry = entry->GetNext();
     }
-
-    return OT_ERROR_NONE;
 }
 
-otError Leader::RemoveContext(uint8_t aContextId)
+void Leader::RemoveContext(uint8_t aContextId)
 {
     NetworkDataTlv *cur = reinterpret_cast<NetworkDataTlv *>(mTlvs);
     NetworkDataTlv *end;
@@ -1514,11 +1486,9 @@ otError Leader::RemoveContext(uint8_t aContextId)
     }
 
     otDumpDebgNetData("remove done", mTlvs, mLength);
-
-    return OT_ERROR_NONE;
 }
 
-otError Leader::RemoveContext(PrefixTlv &aPrefix, uint8_t aContextId)
+void Leader::RemoveContext(PrefixTlv &aPrefix, uint8_t aContextId)
 {
     NetworkDataTlv *cur = aPrefix.GetSubTlvs();
     NetworkDataTlv *end;
@@ -1558,8 +1528,6 @@ otError Leader::RemoveContext(PrefixTlv &aPrefix, uint8_t aContextId)
 
         cur = cur->GetNext();
     }
-
-    return OT_ERROR_NONE;
 }
 
 void Leader::UpdateContextsAfterReset(void)

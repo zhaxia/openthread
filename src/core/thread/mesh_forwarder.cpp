@@ -97,23 +97,18 @@ MeshForwarder::MeshForwarder(Instance &aInstance)
 #endif
 }
 
-otError MeshForwarder::Start(void)
+void MeshForwarder::Start(void)
 {
-    otError error = OT_ERROR_NONE;
-
     if (mEnabled == false)
     {
         GetNetif().GetMac().SetRxOnWhenIdle(true);
         mEnabled = true;
     }
-
-    return error;
 }
 
-otError MeshForwarder::Stop(void)
+void MeshForwarder::Stop(void)
 {
     ThreadNetif &netif = GetNetif();
-    otError      error = OT_ERROR_NONE;
     Message *    message;
 
     VerifyOrExit(mEnabled == true);
@@ -147,7 +142,7 @@ otError MeshForwarder::Stop(void)
     netif.GetMac().SetRxOnWhenIdle(false);
 
 exit:
-    return error;
+    return;
 }
 
 void MeshForwarder::RemoveMessage(Message &aMessage)
@@ -416,7 +411,7 @@ void MeshForwarder::SetRxOnWhenIdle(bool aRxOnWhenIdle)
     }
 }
 
-otError MeshForwarder::GetMacSourceAddress(const Ip6::Address &aIp6Addr, Mac::Address &aMacAddr)
+void MeshForwarder::GetMacSourceAddress(const Ip6::Address &aIp6Addr, Mac::Address &aMacAddr)
 {
     ThreadNetif &netif = GetNetif();
 
@@ -426,11 +421,9 @@ otError MeshForwarder::GetMacSourceAddress(const Ip6::Address &aIp6Addr, Mac::Ad
     {
         aMacAddr.SetShort(netif.GetMac().GetShortAddress());
     }
-
-    return OT_ERROR_NONE;
 }
 
-otError MeshForwarder::GetMacDestinationAddress(const Ip6::Address &aIp6Addr, Mac::Address &aMacAddr)
+void MeshForwarder::GetMacDestinationAddress(const Ip6::Address &aIp6Addr, Mac::Address &aMacAddr)
 {
     if (aIp6Addr.IsMulticast())
     {
@@ -451,8 +444,6 @@ otError MeshForwarder::GetMacDestinationAddress(const Ip6::Address &aIp6Addr, Ma
     {
         aIp6Addr.ToExtAddress(aMacAddr);
     }
-
-    return OT_ERROR_NONE;
 }
 
 otError MeshForwarder::GetMeshHeader(const uint8_t *&aFrame, uint8_t &aFrameLength, Lowpan::MeshHeader &aMeshHeader)
@@ -591,17 +582,17 @@ otError MeshForwarder::HandleFrameRequest(Mac::Frame &aFrame)
         break;
 
     case Message::kTypeMacDataPoll:
-        error = SendPoll(*mSendMessage, aFrame);
+        SendPoll(*mSendMessage, aFrame);
         break;
 
 #if OPENTHREAD_FTD
 
     case Message::kType6lowpan:
-        error = SendMesh(*mSendMessage, aFrame);
+        SendMesh(*mSendMessage, aFrame);
         break;
 
     case Message::kTypeSupervision:
-        error              = SendEmptyFrame(aFrame, kSupervisionMsgAckRequest);
+        SendEmptyFrame(aFrame, kSupervisionMsgAckRequest);
         mMessageNextOffset = mSendMessage->GetLength();
         break;
 
@@ -656,7 +647,7 @@ exit:
     return error;
 }
 
-otError MeshForwarder::SendPoll(Message &aMessage, Mac::Frame &aFrame)
+void MeshForwarder::SendPoll(Message &aMessage, Mac::Frame &aFrame)
 {
     ThreadNetif &netif = GetNetif();
     uint16_t     fcf;
@@ -682,8 +673,6 @@ otError MeshForwarder::SendPoll(Message &aMessage, Mac::Frame &aFrame)
     aFrame.SetCommandId(Mac::Frame::kMacCmdDataRequest);
 
     mMessageNextOffset = aMessage.GetLength();
-
-    return OT_ERROR_NONE;
 }
 
 otError MeshForwarder::SendFragment(Message &aMessage, Mac::Frame &aFrame)
@@ -973,7 +962,7 @@ exit:
     return error;
 }
 
-otError MeshForwarder::SendEmptyFrame(Mac::Frame &aFrame, bool aAckRequest)
+void MeshForwarder::SendEmptyFrame(Mac::Frame &aFrame, bool aAckRequest)
 {
     ThreadNetif &netif = GetNetif();
     uint16_t     fcf;
@@ -1010,8 +999,6 @@ otError MeshForwarder::SendEmptyFrame(Mac::Frame &aFrame, bool aAckRequest)
     aFrame.SetSrcAddr(macSource);
     aFrame.SetPayloadLength(0);
     aFrame.SetFramePending(false);
-
-    return OT_ERROR_NONE;
 }
 
 void MeshForwarder::HandleSentFrame(Mac::Frame &aFrame, otError aError)

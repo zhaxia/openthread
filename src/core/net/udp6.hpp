@@ -104,7 +104,7 @@ public:
      * @param[in]  aUdp  A reference to the UDP transport object.
      *
      */
-    UdpSocket(Udp &aUdp);
+    explicit UdpSocket(Udp &aUdp);
 
     /**
      * This method returns a new UDP message with sufficient header space reserved.
@@ -137,7 +137,8 @@ public:
      *
      * @param[in]  aSockAddr  A reference to the socket address.
      *
-     * @retval OT_ERROR_NONE  Successfully bound the socket.
+     * @retval OT_ERROR_NONE    Successfully bound the socket.
+     * @retval OT_ERROR_FAILED  Failed to bind UDP Socket.
      *
      */
     otError Bind(const SockAddr &aSockAddr);
@@ -147,14 +148,17 @@ public:
      *
      * @param[in]  aSockAddr  A reference to the socket address.
      *
-     * @retval OT_ERROR_NONE  Successfully connected the socket.
+     * @retval OT_ERROR_NONE    Successfully connected the socket.
+     * @retval OT_ERROR_FAILED  Failed to connect UDP Socket.
+     *
      */
     otError Connect(const SockAddr &aSockAddr);
 
     /**
      * This method closes the UDP socket.
      *
-     * @retval OT_ERROR_NONE  Successfully closed the UDP socket.
+     * @retval OT_ERROR_NONE    Successfully closed the UDP socket.
+     * @retval OT_ERROR_FAILED  Failed to close UDP Socket.
      *
      */
     otError Close(void);
@@ -222,7 +226,8 @@ public:
      *
      * @param[in]  aReceiver  A reference to the UDP receiver.
      *
-     * @retval OT_ERROR_NONE  Successfully added the UDP receiver.
+     * @retval OT_ERROR_NONE    Successfully added the UDP receiver.
+     * @retval OT_ERROR_ALREADY The UDP receiver was already added.
      *
      */
     otError AddReceiver(UdpReceiver &aReceiver);
@@ -232,7 +237,8 @@ public:
      *
      * @param[in]  aReceiver  A reference to the UDP receiver.
      *
-     * @retval OT_ERROR_NONE  Successfully removed the UDP receiver.
+     * @retval OT_ERROR_NONE        Successfully removed the UDP receiver.
+     * @retval OT_ERROR_NOT_FOUND   The UDP receiver was not added.
      *
      */
     otError RemoveReceiver(UdpReceiver &aReceiver);
@@ -242,20 +248,16 @@ public:
      *
      * @param[in]  aSocket  A reference to the UDP socket.
      *
-     * @retval OT_ERROR_NONE  Successfully added the UDP socket.
-     *
      */
-    otError AddSocket(UdpSocket &aSocket);
+    void AddSocket(UdpSocket &aSocket);
 
     /**
      * This method removes a UDP socket.
      *
      * @param[in]  aSocket  A reference to the UDP socket.
      *
-     * @retval OT_ERROR_NONE  Successfully removed the UDP socket.
-     *
      */
-    otError RemoveSocket(UdpSocket &aSocket);
+    void RemoveSocket(UdpSocket &aSocket);
 
     /**
      * This method returns a new ephemeral port.
@@ -316,11 +318,8 @@ public:
      * @param[in]  aMessage               A reference to the UDP message.
      * @param[in]  aPseudoHeaderChecksum  The pseudo-header checksum value.
      *
-     * @retval OT_ERROR_NONE          Successfully updated the UDP checksum.
-     * @retval OT_ERROR_INVALID_ARGS  The message was invalid.
-     *
      */
-    otError UpdateChecksum(Message &aMessage, uint16_t aPseudoHeaderChecksum);
+    void UpdateChecksum(Message &aMessage, uint16_t aPseudoHeaderChecksum);
 
 #if OPENTHREAD_ENABLE_PLATFORM_UDP
     otUdpSocket *GetUdpSockets(void) { return mSockets; }

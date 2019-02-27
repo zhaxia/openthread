@@ -447,11 +447,11 @@ otError otThreadSetEnabled(otInstance *aInstance, bool aEnabled)
     {
         VerifyOrExit(instance.GetThreadNetif().GetMac().GetPanId() != Mac::kPanIdBroadcast,
                      error = OT_ERROR_INVALID_STATE);
-        error = instance.GetThreadNetif().GetMle().Start(true, false);
+        error = instance.GetThreadNetif().GetMle().Start(/* aAnnounceAttach */ false);
     }
     else
     {
-        error = instance.GetThreadNetif().GetMle().Stop(true);
+        instance.GetThreadNetif().GetMle().Stop(true);
     }
 
 exit:

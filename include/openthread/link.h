@@ -279,11 +279,15 @@ OTAPI bool OTCALL otLinkIsInTransmitState(otInstance *aInstance);
 /**
  * This function enqueues an IEEE 802.15.4 out of band Frame for transmission.
  *
+ * An Out of Band frame is one that was generated outside of OpenThread.
+ *
  * @param[in] aInstance  A pointer to an OpenThread instance.
  * @param[in] aOobFrame  A pointer to the frame to transmit.
  *
- * @retval OT_ERROR_NONE           Successfully enqueued an IEEE 802.15.4 Data Request message.
- * @retval OT_ERROR_ALREADY        An IEEE 802.15.4 out of band frame is already enqueued.
+ * @retval OT_ERROR_NONE           Successfully scheduled the frame transmission.
+ * @retval OT_ERROR_ALREADY        MAC layer is busy sending a previously requested frame.
+ * @retval OT_ERROR_INVALID_STATE  The MAC layer is not enabled.
+ * @retval OT_ERROR_INVALID_ARGS   The argument @p aOobFrame is NULL.
  *
  */
 OTAPI otError OTCALL otLinkOutOfBandTransmitRequest(otInstance *aInstance, otRadioFrame *aOobFrame);
@@ -718,10 +722,11 @@ OTAPI const otMacCounters *OTCALL otLinkGetCounters(otInstance *aInstance);
  * @note This callback is called before IEEE 802.15.4 security processing.
  *
  * @param[in]  aFrame    A pointer to the received IEEE 802.15.4 frame.
+ * @param[in]  aIsTx     Whether this frame is transmitted, not received.
  * @param[in]  aContext  A pointer to application-specific context.
  *
  */
-typedef void (*otLinkPcapCallback)(const otRadioFrame *aFrame, void *aContext);
+typedef void (*otLinkPcapCallback)(const otRadioFrame *aFrame, bool aIsTx, void *aContext);
 
 /**
  * This function registers a callback to provide received raw IEEE 802.15.4 frames.

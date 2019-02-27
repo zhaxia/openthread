@@ -26,6 +26,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "openthread-core-config.h"
 #include "platform-posix.h"
 
 #include <assert.h>
@@ -47,7 +48,6 @@ void otPlatReset(otInstance *aInstance)
     OT_UNUSED_VARIABLE(aInstance);
 
     otSysDeinit();
-    platformUartRestore();
 
     longjmp(gResetJump, 1);
     assert(false);

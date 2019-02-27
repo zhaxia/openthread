@@ -327,7 +327,7 @@ bool NcpFrameBuffer::InFrameIsWriting(Priority aPriority) const
     return (mWriteDirection == static_cast<Direction>(aPriority));
 }
 
-otError NcpFrameBuffer::InFrameBegin(Priority aPriority)
+void NcpFrameBuffer::InFrameBegin(Priority aPriority)
 {
     // Discard any previous unfinished frame.
     InFrameDiscard();
@@ -345,8 +345,6 @@ otError NcpFrameBuffer::InFrameBegin(Priority aPriority)
 
     // Set up the segment head and tail
     mWriteSegmentHead = mWriteSegmentTail = mWriteFrameStart[mWriteDirection];
-
-    return OT_ERROR_NONE;
 }
 
 otError NcpFrameBuffer::InFrameFeedByte(uint8_t aByte)
@@ -432,7 +430,7 @@ otError NcpFrameBuffer::InFrameOverwrite(const WritePosition &aPosition,
 
     VerifyOrExit(aPosition.mSegmentHead == mWriteSegmentHead, error = OT_ERROR_INVALID_ARGS);
 
-    // Ensure the overwrite does not go beyond current sgement tail.
+    // Ensure the overwrite does not go beyond current segment tail.
     segmentLength = GetDistance(mWriteSegmentHead, mWriteSegmentTail, mWriteDirection);
     distance      = GetDistance(mWriteSegmentHead, aPosition.mPosition, mWriteDirection);
     VerifyOrExit(distance + aDataBufferLength <= segmentLength, error = OT_ERROR_INVALID_ARGS);

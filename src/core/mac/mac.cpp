@@ -96,7 +96,6 @@ Mac::Mac(Instance &aInstance)
     , mScanChannel(OT_RADIO_CHANNEL_MIN)
     , mScanDuration(0)
     , mScanChannelMask()
-    , mScanContext(NULL)
     , mActiveScanHandler(NULL) /* Initialize `mActiveScanHandler` and `mEnergyScanHandler` union */
     , mSubMac(aInstance, *this)
     , mOperationTask(aInstance, &Mac::HandleOperationTask, this)
@@ -126,7 +125,7 @@ Mac::Mac(Instance &aInstance)
     SetShortAddress(GetShortAddress());
 }
 
-otError Mac::ActiveScan(uint32_t aScanChannels, uint16_t aScanDuration, ActiveScanHandler aHandler, void *aContext)
+otError Mac::ActiveScan(uint32_t aScanChannels, uint16_t aScanDuration, ActiveScanHandler aHandler)
 {
     otError error = OT_ERROR_NONE;
 
@@ -140,13 +139,13 @@ otError Mac::ActiveScan(uint32_t aScanChannels, uint16_t aScanDuration, ActiveSc
         aScanDuration = kScanDurationDefault;
     }
 
-    Scan(kOperationActiveScan, aScanChannels, aScanDuration, aContext);
+    Scan(kOperationActiveScan, aScanChannels, aScanDuration);
 
 exit:
     return error;
 }
 
-otError Mac::EnergyScan(uint32_t aScanChannels, uint16_t aScanDuration, EnergyScanHandler aHandler, void *aContext)
+otError Mac::EnergyScan(uint32_t aScanChannels, uint16_t aScanDuration, EnergyScanHandler aHandler)
 {
     otError error = OT_ERROR_NONE;
 
@@ -154,15 +153,15 @@ otError Mac::EnergyScan(uint32_t aScanChannels, uint16_t aScanDuration, EnergySc
     VerifyOrExit(!IsActiveScanInProgress() && !IsEnergyScanInProgress(), error = OT_ERROR_BUSY);
 
     mEnergyScanHandler = aHandler;
-    Scan(kOperationEnergyScan, aScanChannels, aScanDuration, aContext);
+
+    Scan(kOperationEnergyScan, aScanChannels, aScanDuration);
 
 exit:
     return error;
 }
 
-void Mac::Scan(Operation aScanOperation, uint32_t aScanChannels, uint16_t aScanDuration, void *aContext)
+void Mac::Scan(Operation aScanOperation, uint32_t aScanChannels, uint16_t aScanDuration)
 {
-    mScanContext  = aContext;
     mScanDuration = aScanDuration;
     mScanChannel  = ChannelMask::kChannelIteratorFirst;
 
@@ -257,7 +256,7 @@ void Mac::PerformActiveScan(void)
     {
         mSubMac.SetPanId(mPanId);
         FinishOperation();
-        mActiveScanHandler(mScanContext, NULL);
+        mActiveScanHandler(GetInstance(), NULL);
         PerformNextOperation();
     }
 }
@@ -287,7 +286,7 @@ exit:
     if (error != OT_ERROR_NONE)
     {
         FinishOperation();
-        mEnergyScanHandler(mScanContext, NULL);
+        mEnergyScanHandler(GetInstance(), NULL);
         PerformNextOperation();
     }
 }
@@ -301,7 +300,7 @@ void Mac::ReportEnergyScanResult(int8_t aRssi)
         result.mChannel = mScanChannel;
         result.mMaxRssi = aRssi;
 
-        mEnergyScanHandler(mScanContext, &result);
+        mEnergyScanHandler(GetInstance(), &result);
     }
 }
 
@@ -318,7 +317,7 @@ void Mac::SetRxOnWhenIdle(bool aRxOnWhenIdle)
     mRxOnWhenIdle = aRxOnWhenIdle;
 
     // If the new value for `mRxOnWhenIdle` is `true` (i.e., radio should
-    // remain in Rx while idle) we stop any ongoing or pending `WaitinForData`
+    // remain in Rx while idle) we stop any ongoing or pending `WaitingForData`
     // operation (since this operation only applies to sleepy devices).
 
     if (mRxOnWhenIdle)
@@ -349,10 +348,9 @@ exit:
     return;
 }
 
-otError Mac::SetShortAddress(ShortAddress aShortAddress)
+void Mac::SetShortAddress(ShortAddress aShortAddress)
 {
     mSubMac.SetShortAddress(aShortAddress);
-    return OT_ERROR_NONE;
 }
 
 otError Mac::SetPanChannel(uint8_t aChannel)
@@ -365,14 +363,13 @@ otError Mac::SetPanChannel(uint8_t aChannel)
 
     mPanChannel = aChannel;
     mCcaSuccessRateTracker.Reset();
+    GetNotifier().Signal(OT_CHANGED_THREAD_CHANNEL);
 
     VerifyOrExit(!mRadioChannelAcquisitionId);
 
     mRadioChannel = mPanChannel;
 
     UpdateIdleMode();
-
-    GetNotifier().Signal(OT_CHANGED_THREAD_CHANNEL);
 
 exit:
     return error;
@@ -461,7 +458,7 @@ exit:
     return error;
 }
 
-otError Mac::SetPanId(PanId aPanId)
+void Mac::SetPanId(PanId aPanId)
 {
     VerifyOrExit(mPanId != aPanId, GetNotifier().SignalIfFirst(OT_CHANGED_THREAD_PANID));
     mPanId = aPanId;
@@ -469,10 +466,10 @@ otError Mac::SetPanId(PanId aPanId)
     GetNotifier().Signal(OT_CHANGED_THREAD_PANID);
 
 exit:
-    return OT_ERROR_NONE;
+    return;
 }
 
-otError Mac::SetExtendedPanId(const otExtendedPanId &aExtendedPanId)
+void Mac::SetExtendedPanId(const otExtendedPanId &aExtendedPanId)
 {
     VerifyOrExit(memcmp(mExtendedPanId.m8, aExtendedPanId.m8, sizeof(mExtendedPanId)) != 0,
                  GetNotifier().SignalIfFirst(OT_CHANGED_THREAD_EXT_PANID));
@@ -481,7 +478,7 @@ otError Mac::SetExtendedPanId(const otExtendedPanId &aExtendedPanId)
     GetNotifier().Signal(OT_CHANGED_THREAD_EXT_PANID);
 
 exit:
-    return OT_ERROR_NONE;
+    return;
 }
 
 otError Mac::SendFrameRequest(void)
@@ -501,8 +498,10 @@ otError Mac::SendOutOfBandFrameRequest(otRadioFrame *aOobFrame)
 {
     otError error = OT_ERROR_NONE;
 
+    VerifyOrExit(aOobFrame != NULL, error = OT_ERROR_INVALID_ARGS);
     VerifyOrExit(mEnabled, error = OT_ERROR_INVALID_STATE);
-    VerifyOrExit(mOobFrame == NULL, error = OT_ERROR_ALREADY);
+    VerifyOrExit(!mPendingTransmitOobFrame && (mOperation != kOperationTransmitOutOfBandFrame),
+                 error = OT_ERROR_ALREADY);
 
     mOobFrame = static_cast<Frame *>(aOobFrame);
 
@@ -618,7 +617,6 @@ void Mac::PerformNextOperation(void)
         mPendingEnergyScan       = false;
         mPendingTransmitBeacon   = false;
         mPendingTransmitData     = false;
-        mOobFrame                = NULL;
         mTimer.Stop();
 #if OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS
         mDelayingSleep    = false;
@@ -795,7 +793,7 @@ bool Mac::ShouldSendBeacon(void) const
         // When `ENABLE_BEACON_RSP_WHEN_JOINABLE` feature is enabled,
         // the device should transmit IEEE 802.15.4 Beacons in response
         // to IEEE 802.15.4 Beacon Requests even while the device is not
-        // router capable and detached (i.e., `IsBeaconeEnabled()` is
+        // router capable and detached (i.e., `IsBeaconEnabled()` is
         // false) but only if it is in joinable state (unsecure port
         // list is not empty).
 
@@ -1196,7 +1194,6 @@ void Mac::HandleTransmitDone(Frame &aFrame, Frame *aAckFrame, otError aError)
         break;
 
     case kOperationTransmitOutOfBandFrame:
-        mOobFrame = NULL;
         FinishOperation();
         PerformNextOperation();
         break;
@@ -1585,7 +1582,7 @@ void Mac::HandleReceivedFrame(Frame *aFrame, otError aError)
         if (aFrame->GetType() == Frame::kFcfFrameBeacon)
         {
             mCounters.mRxBeacon++;
-            mActiveScanHandler(mScanContext, aFrame);
+            mActiveScanHandler(GetInstance(), aFrame);
             ExitNow();
         }
 
@@ -1756,11 +1753,9 @@ void Mac::SetPromiscuous(bool aPromiscuous)
     UpdateIdleMode();
 }
 
-otError Mac::SetEnabled(bool aEnable)
+void Mac::SetEnabled(bool aEnable)
 {
     mEnabled = aEnable;
-
-    return OT_ERROR_NONE;
 }
 
 void Mac::ResetCounters(void)

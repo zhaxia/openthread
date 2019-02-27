@@ -129,7 +129,7 @@ public:
      * @param[in]  aDelay  The CONTEXT_ID_REUSE_DELAY value.
      *
      */
-    otError SetContextIdReuseDelay(uint32_t aDelay);
+    void SetContextIdReuseDelay(uint32_t aDelay);
 
     /**
      * This method removes Network Data entries matching with a given RLOC16.
@@ -171,11 +171,8 @@ public:
 #endif
 
 private:
-    static void HandleServerData(void *               aContext,
-                                 otCoapHeader *       aHeader,
-                                 otMessage *          aMessage,
-                                 const otMessageInfo *aMessageInfo);
-    void        HandleServerData(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    static void HandleServerData(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+    void        HandleServerData(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
     static void HandleTimer(Timer &aTimer);
     void        HandleTimer(void);
@@ -191,23 +188,23 @@ private:
     otError AddService(ServiceTlv &aTlv, uint8_t *aOldTlvs, uint8_t aOldTlvsLength);
 #endif
 
-    int     AllocateContext(void);
-    otError FreeContext(uint8_t aContextId);
-    void    StartContextReuseTimer(uint8_t aContextId);
-    void    StopContextReuseTimer(uint8_t aContextId);
+    int  AllocateContext(void);
+    void FreeContext(uint8_t aContextId);
+    void StartContextReuseTimer(uint8_t aContextId);
+    void StopContextReuseTimer(uint8_t aContextId);
 
-    otError RemoveContext(uint8_t aContextId);
-    otError RemoveContext(PrefixTlv &aPrefix, uint8_t aContextId);
+    void RemoveContext(uint8_t aContextId);
+    void RemoveContext(PrefixTlv &aPrefix, uint8_t aContextId);
 
-    otError RemoveCommissioningData(void);
+    void RemoveCommissioningData(void);
 
-    otError RemoveRloc(uint16_t aRloc16, MatchMode aMatchMode);
-    otError RemoveRloc(PrefixTlv &aPrefix, uint16_t aRloc16, MatchMode aMatchMode);
+    void RemoveRloc(uint16_t aRloc16, MatchMode aMatchMode);
+    void RemoveRloc(PrefixTlv &aPrefix, uint16_t aRloc16, MatchMode aMatchMode);
 #if OPENTHREAD_ENABLE_SERVICE
-    otError RemoveRloc(ServiceTlv &service, uint16_t aRloc16, MatchMode aMatchMode);
+    void RemoveRloc(ServiceTlv &service, uint16_t aRloc16, MatchMode aMatchMode);
 #endif
-    otError RemoveRloc(PrefixTlv &aPrefix, HasRouteTlv &aHasRoute, uint16_t aRloc16, MatchMode aMatchMode);
-    otError RemoveRloc(PrefixTlv &aPrefix, BorderRouterTlv &aBorderRouter, uint16_t aRloc16, MatchMode aMatchMode);
+    void RemoveRloc(PrefixTlv &aPrefix, HasRouteTlv &aHasRoute, uint16_t aRloc16, MatchMode aMatchMode);
+    void RemoveRloc(PrefixTlv &aPrefix, BorderRouterTlv &aBorderRouter, uint16_t aRloc16, MatchMode aMatchMode);
 
     static bool RlocMatch(uint16_t aFirstRloc16, uint16_t aSecondRloc16, MatchMode aMatchMode);
 
@@ -221,23 +218,17 @@ private:
 
     bool IsStableUpdated(uint8_t *aTlvs, uint8_t aTlvsLength, uint8_t *aTlvsBase, uint8_t aTlvsBaseLength);
 
-    static void HandleCommissioningSet(void *               aContext,
-                                       otCoapHeader *       aHeader,
-                                       otMessage *          aMessage,
-                                       const otMessageInfo *aMessageInfo);
-    void        HandleCommissioningSet(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    static void HandleCommissioningSet(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+    void        HandleCommissioningSet(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
-    static void HandleCommissioningGet(void *               aContext,
-                                       otCoapHeader *       aHeader,
-                                       otMessage *          aMessage,
-                                       const otMessageInfo *aMessageInfo);
-    void        HandleCommissioningGet(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    static void HandleCommissioningGet(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+    void        HandleCommissioningGet(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
-    void SendCommissioningGetResponse(const Coap::Header &    aRequestHeader,
+    void SendCommissioningGetResponse(const Coap::Message &   aRequest,
                                       const Ip6::MessageInfo &aMessageInfo,
                                       uint8_t *               aTlvs,
                                       uint8_t                 aLength);
-    void SendCommissioningSetResponse(const Coap::Header &     aRequestHeader,
+    void SendCommissioningSetResponse(const Coap::Message &    aRequest,
                                       const Ip6::MessageInfo & aMessageInfo,
                                       MeshCoP::StateTlv::State aState);
 

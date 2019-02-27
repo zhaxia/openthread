@@ -40,15 +40,13 @@
 
 #include <openthread/instance.h>
 
+#include "platform-config.h"
+
 /**
- * @def OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE
- *
- * Define as 1 to enable PTY device support in POSIX app.
+ * This is the socket name used by daemon mode.
  *
  */
-#ifndef OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE
-#define OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE 1
-#endif
+#define OPENTHREAD_POSIX_APP_SOCKET_NAME OPENTHREAD_POSIX_APP_SOCKET_BASENAME ".sock"
 
 #ifdef __cplusplus
 extern "C" {
@@ -200,7 +198,7 @@ void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMax
  * @param[in]   aWriteFdSet     A pointer to the write file descriptors.
  *
  */
-void platformRadioProcess(otInstance *aInstance, fd_set *aReadFdSet, fd_set *aWriteFdSet);
+void platformRadioProcess(otInstance *aInstance, const fd_set *aReadFdSet, const fd_set *aWriteFdSet);
 
 /**
  * This function initializes the random number service used by OpenThread.
@@ -264,12 +262,6 @@ void platformNetifUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *a
  *
  */
 void platformNetifProcess(const fd_set *aReadFdSet, const fd_set *aWriteFdSet, const fd_set *aErrorFdSet);
-
-/**
- * This function restores the Uart.
- *
- */
-void platformUartRestore(void);
 
 /**
  * This function initialize simulation.

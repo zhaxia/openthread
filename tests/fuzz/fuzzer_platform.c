@@ -29,13 +29,17 @@
 #include <string.h>
 
 #include <openthread/platform/alarm-milli.h>
+#include <openthread/platform/diag.h>
 #include <openthread/platform/logging.h>
 #include <openthread/platform/misc.h>
 #include <openthread/platform/radio.h>
 #include <openthread/platform/random.h>
 #include <openthread/platform/settings.h>
+#include <openthread/platform/uart.h>
 
-static uint32_t sRandomState = 1;
+static uint32_t     sRandomState = 1;
+static uint8_t      sRadioTransmitPsdu[OT_RADIO_FRAME_MAX_SIZE];
+static otRadioFrame sRadioTransmitFrame = {.mPsdu = sRadioTransmitPsdu};
 
 void FuzzerPlatformInit(void)
 {
@@ -76,6 +80,26 @@ void otPlatAlarmMicroStop(otInstance *aInstance)
     (void)aInstance;
 }
 
+bool otDiagIsEnabled(void)
+{
+    return false;
+}
+
+void otDiagProcessCmd(int aArgCount, char *aArgVector[], char *aOutput, size_t aOutputMaxLen)
+{
+    (void)aArgCount;
+    (void)aArgVector;
+    (void)aOutput;
+    (void)aOutputMaxLen;
+}
+
+void otDiagProcessCmdLine(const char *aString, char *aOutput, size_t aOutputMaxLen)
+{
+    (void)aString;
+    (void)aOutput;
+    (void)aOutputMaxLen;
+}
+
 void otPlatReset(otInstance *aInstance)
 {
     (void)aInstance;
@@ -92,6 +116,10 @@ void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat
     (void)aLogLevel;
     (void)aLogRegion;
     (void)aFormat;
+}
+
+void otPlatWakeHost(void)
+{
 }
 
 void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
@@ -162,10 +190,17 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
     return OT_ERROR_NONE;
 }
 
+otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)
+{
+    (void)aInstance;
+    (void)aPower;
+    return OT_ERROR_NONE;
+}
+
 otRadioFrame *otPlatRadioGetTransmitBuffer(otInstance *aInstance)
 {
     (void)aInstance;
-    return NULL;
+    return &sRadioTransmitFrame;
 }
 
 int8_t otPlatRadioGetRssi(otInstance *aInstance)
@@ -345,4 +380,21 @@ otError otPlatSettingsDelete(otInstance *aInstance, uint16_t aKey, int aIndex)
 void otPlatSettingsWipe(otInstance *aInstance)
 {
     (void)aInstance;
+}
+
+otError otPlatUartEnable(void)
+{
+    return OT_ERROR_NONE;
+}
+
+otError otPlatUartDisable(void)
+{
+    return OT_ERROR_NONE;
+}
+
+otError otPlatUartSend(const uint8_t *aBuf, uint16_t aBufLength)
+{
+    (void)aBuf;
+    (void)aBufLength;
+    return OT_ERROR_NONE;
 }

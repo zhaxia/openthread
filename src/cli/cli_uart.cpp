@@ -36,26 +36,68 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include "utils/wrap_string.h"
 
 #include <openthread/cli.h>
 #include <openthread/platform/logging.h>
 #include <openthread/platform/uart.h>
+
 #include "cli/cli.hpp"
 #include "common/code_utils.hpp"
 #include "common/encoding.hpp"
 #include "common/logging.hpp"
 #include "common/new.hpp"
 #include "common/tasklet.hpp"
+#include "utils/static_assert.hpp"
+#include "utils/wrap_string.h"
 
 #if OPENTHREAD_CONFIG_ENABLE_DEBUG_UART
 #include <openthread/platform/debug_uart.h>
 #endif
 
+#ifdef OT_CLI_UART_LOCK_HDR_FILE
+
+#include OT_CLI_UART_LOCK_HDR_FILE
+
+#else
+
+/**
+ * Macro to acquire an exclusive lock of uart cli output
+ * Default implementation does nothing
+ *
+ */
+#ifndef OT_CLI_UART_OUTPUT_LOCK
+#define OT_CLI_UART_OUTPUT_LOCK() \
+    do                            \
+    {                             \
+    } while (0)
+#endif
+
+/**
+ * Macro to release the exclusive lock of uart cli output
+ * Default implementation does nothing
+ *
+ */
+#ifndef OT_CLI_UART_OUTPUT_UNLOCK
+#define OT_CLI_UART_OUTPUT_UNLOCK() \
+    do                              \
+    {                               \
+    } while (0)
+#endif
+
+#endif // OT_CLI_UART_LOCK_HDR_FILE
+
+#if OPENTHREAD_ENABLE_DIAG
+OT_STATIC_ASSERT(OPENTHREAD_CONFIG_DIAG_OUTPUT_BUFFER_SIZE <= OPENTHREAD_CONFIG_CLI_UART_TX_BUFFER_SIZE,
+                 "diag output buffer should be smaller than CLI UART tx buffer");
+OT_STATIC_ASSERT(OPENTHREAD_CONFIG_DIAG_CMD_LINE_BUFFER_SIZE <= OPENTHREAD_CONFIG_CLI_UART_RX_BUFFER_SIZE,
+                 "diag command line should be smaller than CLI UART rx buffer");
+#endif
+
+OT_STATIC_ASSERT(OPENTHREAD_CONFIG_CLI_MAX_LINE_LENGTH <= OPENTHREAD_CONFIG_CLI_UART_RX_BUFFER_SIZE,
+                 "command line should be should be smaller than CLI rx buffer");
+
 namespace ot {
 namespace Cli {
-
-Uart *Uart::sUartServer;
 
 static otDEFINE_ALIGNED_VAR(sCliUartRaw, sizeof(Uart), uint64_t);
 
@@ -63,39 +105,11 @@ extern "C" void otCliUartInit(otInstance *aInstance)
 {
     Instance *instance = static_cast<Instance *>(aInstance);
 
-    Uart::sUartServer = new (&sCliUartRaw) Uart(instance);
-}
-
-extern "C" void otCliUartSetUserCommands(const otCliCommand *aUserCommands, uint8_t aLength)
-{
-    Uart::sUartServer->GetInterpreter().SetUserCommands(aUserCommands, aLength);
-}
-
-extern "C" void otCliUartOutputBytes(const uint8_t *aBytes, uint8_t aLength)
-{
-    Uart::sUartServer->GetInterpreter().OutputBytes(aBytes, aLength);
-}
-
-extern "C" void otCliUartOutputFormat(const char *aFmt, ...)
-{
-    va_list aAp;
-    va_start(aAp, aFmt);
-    Uart::sUartServer->OutputFormatV(aFmt, aAp);
-    va_end(aAp);
-}
-
-extern "C" void otCliUartOutput(const char *aString, uint16_t aLength)
-{
-    Uart::sUartServer->Output(aString, aLength);
-}
-
-extern "C" void otCliUartAppendResult(otError aError)
-{
-    Uart::sUartServer->GetInterpreter().AppendResult(aError);
+    Server::sServer = new (&sCliUartRaw) Uart(instance);
 }
 
 Uart::Uart(Instance *aInstance)
-    : mInterpreter(aInstance)
+    : Server(aInstance)
 {
     mRxLength   = 0;
     mTxHead     = 0;
@@ -107,7 +121,7 @@ Uart::Uart(Instance *aInstance)
 
 extern "C" void otPlatUartReceived(const uint8_t *aBuf, uint16_t aBufLength)
 {
-    Uart::sUartServer->ReceiveTask(aBuf, aBufLength);
+    static_cast<Uart *>(Server::sServer)->ReceiveTask(aBuf, aBufLength);
 }
 
 void Uart::ReceiveTask(const uint8_t *aBuf, uint16_t aBufLength)
@@ -170,7 +184,7 @@ void Uart::ReceiveTask(const uint8_t *aBuf, uint16_t aBufLength)
             break;
 
         default:
-            if (mRxLength < kRxBufferSize)
+            if (mRxLength < kRxBufferSize - 1)
             {
                 Output(reinterpret_cast<const char *>(aBuf), 1);
                 mRxBuffer[mRxLength++] = static_cast<char>(*aBuf);
@@ -236,6 +250,7 @@ otError Uart::ProcessCommand(void)
 
 int Uart::Output(const char *aBuf, uint16_t aBufLength)
 {
+    OT_CLI_UART_OUTPUT_LOCK();
     uint16_t remaining = kTxBufferSize - mTxLength;
     uint16_t tail;
 
@@ -252,29 +267,9 @@ int Uart::Output(const char *aBuf, uint16_t aBufLength)
     }
 
     Send();
+    OT_CLI_UART_OUTPUT_UNLOCK();
 
     return aBufLength;
-}
-
-int Uart::OutputFormat(const char *fmt, ...)
-{
-    char    buf[kMaxLineLength];
-    va_list ap;
-
-    va_start(ap, fmt);
-    vsnprintf(buf, sizeof(buf), fmt, ap);
-    va_end(ap);
-
-    return Output(buf, static_cast<uint16_t>(strlen(buf)));
-}
-
-int Uart::OutputFormatV(const char *aFmt, va_list aAp)
-{
-    char buf[kMaxLineLength];
-
-    vsnprintf(buf, sizeof(buf), aFmt, aAp);
-
-    return Output(buf, static_cast<uint16_t>(strlen(buf)));
 }
 
 void Uart::Send(void)
@@ -305,7 +300,7 @@ exit:
 
 extern "C" void otPlatUartSendDone(void)
 {
-    Uart::sUartServer->SendDoneTask();
+    static_cast<Uart *>(Server::sServer)->SendDoneTask();
 }
 
 void Uart::SendDoneTask(void)
@@ -315,20 +310,6 @@ void Uart::SendDoneTask(void)
     mSendLength = 0;
 
     Send();
-}
-
-extern "C" void otCliPlatLogv(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, va_list aArgs)
-{
-    OT_UNUSED_VARIABLE(aLogLevel);
-    OT_UNUSED_VARIABLE(aLogRegion);
-
-    VerifyOrExit(Uart::sUartServer != NULL);
-
-    Uart::sUartServer->OutputFormatV(aFormat, aArgs);
-    Uart::sUartServer->OutputFormat("\r\n");
-
-exit:
-    return;
 }
 
 } // namespace Cli

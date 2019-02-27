@@ -41,7 +41,7 @@
 #include <openthread/thread_ftd.h>
 
 #include "coap/coap.hpp"
-#include "coap/coap_header.hpp"
+#include "coap/coap_message.hpp"
 #include "common/timer.hpp"
 #include "common/trickle_timer.hpp"
 #include "mac/mac_frame.hpp"
@@ -331,10 +331,8 @@ public:
      *
      * @param[in]  aNeighbor  A reference to the neighbor object.
      *
-     * @retval OT_ERROR_NONE      Successfully removed the neighbor.
-     *
      */
-    otError RemoveNeighbor(Neighbor &aNeighbor);
+    void RemoveNeighbor(Neighbor &aNeighbor);
 
     /**
      * This method gets the `ChildTable` object.
@@ -497,7 +495,7 @@ public:
     static int ComparePartitions(bool                 aSingletonA,
                                  const LeaderDataTlv &aLeaderDataA,
                                  bool                 aSingletonB,
-                                 const LeaderDataTlv &aleaderDataB);
+                                 const LeaderDataTlv &aLeaderDataB);
 
     /**
      * This method checks if the destination is reachable.
@@ -695,7 +693,7 @@ private:
     otError AppendPendingDataset(Message &aMessage);
     otError GetChildInfo(Child &aChild, otChildInfo &aChildInfo);
     otError RefreshStoredChildren(void);
-    otError HandleDetachStart(void);
+    void    HandleDetachStart(void);
     otError HandleChildStart(AttachMode aMode);
     otError HandleLinkRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     otError HandleLinkAccept(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo, uint32_t aKeySequence);
@@ -716,17 +714,17 @@ private:
                                       const Ip6::MessageInfo &aMessageInfo,
                                       uint32_t                aKeySequence);
     otError HandleDataRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
-    otError HandleNetworkDataUpdateRouter(void);
+    void    HandleNetworkDataUpdateRouter(void);
     otError HandleDiscoveryRequest(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
-    otError HandleTimeSync(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    void HandleTimeSync(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 #endif
 
     otError ProcessRouteTlv(const RouteTlv &aRoute);
     void    StopAdvertiseTimer(void);
     otError SendAddressSolicit(ThreadStatusTlv::Status aStatus);
     otError SendAddressRelease(void);
-    void    SendAddressSolicitResponse(const Coap::Header &    aRequest,
+    void    SendAddressSolicitResponse(const Coap::Message &   aRequest,
                                        const Router *          aRouter,
                                        const Ip6::MessageInfo &aMessageInfo);
     otError SendAdvertisement(void);
@@ -734,10 +732,10 @@ private:
                            Neighbor *              aNeighbor,
                            const TlvRequestTlv &   aTlvRequest,
                            const ChallengeTlv &    aChallenge);
-    otError SendParentResponse(Child *aChild, const ChallengeTlv &aChallenge, bool aRoutersOnlyRequest);
+    void    SendParentResponse(Child *aChild, const ChallengeTlv &aChallenge, bool aRoutersOnlyRequest);
     otError SendChildIdResponse(Child &aChild);
     otError SendChildUpdateRequest(Child &aChild);
-    otError SendChildUpdateResponse(Child *                 aChild,
+    void    SendChildUpdateResponse(Child *                 aChild,
                                     const Ip6::MessageInfo &aMessageInfo,
                                     const uint8_t *         aTlvs,
                                     uint8_t                 aTlvsLength,
@@ -748,32 +746,22 @@ private:
                              uint16_t            aDelay);
     otError SendDiscoveryResponse(const Ip6::Address &aDestination, uint16_t aPanId);
 
-    otError SetStateRouter(uint16_t aRloc16);
-    otError SetStateLeader(uint16_t aRloc16);
+    void    SetStateRouter(uint16_t aRloc16);
+    void    SetStateLeader(uint16_t aRloc16);
     void    StopLeader(void);
     void    SynchronizeChildNetworkData(void);
     otError UpdateChildAddresses(const Message &aMessage, uint16_t aOffset, Child &aChild);
     void    UpdateRoutes(const RouteTlv &aTlv, uint8_t aRouterId);
 
     static void HandleAddressSolicitResponse(void *               aContext,
-                                             otCoapHeader *       aHeader,
                                              otMessage *          aMessage,
                                              const otMessageInfo *aMessageInfo,
                                              otError              result);
-    void        HandleAddressSolicitResponse(Coap::Header *          aHeader,
-                                             Message *               aMessage,
-                                             const Ip6::MessageInfo *aMessageInfo,
-                                             otError                 result);
-    static void HandleAddressRelease(void *               aContext,
-                                     otCoapHeader *       aHeader,
-                                     otMessage *          aMessage,
-                                     const otMessageInfo *aMessageInfo);
-    void        HandleAddressRelease(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
-    static void HandleAddressSolicit(void *               aContext,
-                                     otCoapHeader *       aHeader,
-                                     otMessage *          aMessage,
-                                     const otMessageInfo *aMessageInfo);
-    void        HandleAddressSolicit(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    void HandleAddressSolicitResponse(Coap::Message *aMessage, const Ip6::MessageInfo *aMessageInfo, otError result);
+    static void HandleAddressRelease(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+    void        HandleAddressRelease(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    static void HandleAddressSolicit(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+    void        HandleAddressSolicit(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
     static bool IsSingleton(const RouteTlv &aRouteTlv);
 

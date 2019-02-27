@@ -529,7 +529,7 @@ void MeshForwarder::PrepareIndirectTransmission(Message &aMessage, const Child &
     }
 }
 
-otError MeshForwarder::SendMesh(Message &aMessage, Mac::Frame &aFrame)
+void MeshForwarder::SendMesh(Message &aMessage, Mac::Frame &aFrame)
 {
     ThreadNetif &netif = GetNetif();
     uint16_t     fcf;
@@ -550,8 +550,6 @@ otError MeshForwarder::SendMesh(Message &aMessage, Mac::Frame &aFrame)
     aFrame.SetPayloadLength(static_cast<uint8_t>(aMessage.GetLength()));
 
     mMessageNextOffset = aMessage.GetLength();
-
-    return OT_ERROR_NONE;
 }
 
 void MeshForwarder::HandleDataRequest(const Mac::Address &aMacSource, const otThreadLinkInfo &aLinkInfo)
@@ -1055,7 +1053,7 @@ void MeshForwarder::UpdateFragmentPriority(Lowpan::FragmentHeader &aFragmentHead
 
     if (aFragmentHeader.GetDatagramOffset() == 0)
     {
-        VerifyOrExit((entry = GetUnusedFragementPriorityEntry()) != NULL);
+        VerifyOrExit((entry = GetUnusedFragmentPriorityEntry()) != NULL);
 
         entry->SetDatagramTag(aFragmentHeader.GetDatagramTag());
         entry->SetSrcRloc16(aSrcRloc16);
@@ -1099,7 +1097,7 @@ FragmentPriorityEntry *MeshForwarder::FindFragmentPriorityEntry(uint16_t aTag, u
     return (i >= OT_ARRAY_LENGTH(mFragmentEntries)) ? NULL : &mFragmentEntries[i];
 }
 
-FragmentPriorityEntry *MeshForwarder::GetUnusedFragementPriorityEntry(void)
+FragmentPriorityEntry *MeshForwarder::GetUnusedFragmentPriorityEntry(void)
 {
     size_t i;
 

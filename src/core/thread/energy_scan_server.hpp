@@ -66,13 +66,10 @@ private:
         kReportDelay = 500,  ///< Delay before sending a report (milliseconds)
     };
 
-    static void HandleRequest(void *               aContext,
-                              otCoapHeader *       aHeader,
-                              otMessage *          aMessage,
-                              const otMessageInfo *aMessageInfo);
-    void        HandleRequest(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
+    static void HandleRequest(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
+    void        HandleRequest(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
 
-    static void HandleScanResult(void *aContext, otEnergyScanResult *aResult);
+    static void HandleScanResult(Instance &aInstance, otEnergyScanResult *aResult);
     void        HandleScanResult(otEnergyScanResult *aResult);
 
     static void HandleTimer(Timer &aTimer);

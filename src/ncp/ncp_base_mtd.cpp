@@ -43,9 +43,6 @@
 #if OPENTHREAD_ENABLE_CHILD_SUPERVISION
 #include <openthread/child_supervision.h>
 #endif
-#if OPENTHREAD_ENABLE_DHCP6_SERVER
-#include <openthread/dhcp6_server.h>
-#endif
 #include <openthread/diag.h>
 #include <openthread/icmp6.h>
 #if OPENTHREAD_ENABLE_JAM_DETECTION
@@ -105,7 +102,7 @@ static uint8_t BorderRouterConfigToFlagByte(const otBorderRouterConfig &aConfig)
         flags |= SPINEL_NET_FLAG_ON_MESH;
     }
 
-    flags |= (aConfig.mPreference << SPINEL_NET_FLAG_PREFERENCE_OFFSET);
+    flags |= (static_cast<uint8_t>(aConfig.mPreference) << SPINEL_NET_FLAG_PREFERENCE_OFFSET);
 
     return flags;
 }
@@ -2262,6 +2259,31 @@ exit:
     return error;
 }
 
+template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CNTR_MLE_COUNTERS>(void)
+{
+    otError              error    = OT_ERROR_NONE;
+    const otMleCounters *counters = otThreadGetMleCounters(mInstance);
+
+    if (counters == NULL)
+    {
+        error = mEncoder.OverwriteWithLastStatusError(SPINEL_STATUS_INVALID_COMMAND_FOR_PROP);
+        ExitNow();
+    }
+
+    SuccessOrExit(error = mEncoder.WriteUint16(counters->mDisabledRole));
+    SuccessOrExit(error = mEncoder.WriteUint16(counters->mDetachedRole));
+    SuccessOrExit(error = mEncoder.WriteUint16(counters->mChildRole));
+    SuccessOrExit(error = mEncoder.WriteUint16(counters->mRouterRole));
+    SuccessOrExit(error = mEncoder.WriteUint16(counters->mLeaderRole));
+    SuccessOrExit(error = mEncoder.WriteUint16(counters->mAttachAttempts));
+    SuccessOrExit(error = mEncoder.WriteUint16(counters->mPartitionIdChanges));
+    SuccessOrExit(error = mEncoder.WriteUint16(counters->mBetterPartitionAttachAttempts));
+    SuccessOrExit(error = mEncoder.WriteUint16(counters->mParentChanges));
+
+exit:
+    return error;
+}
+
 #if OPENTHREAD_ENABLE_MAC_FILTER
 
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_MAC_WHITELIST>(void)
@@ -3250,19 +3272,19 @@ exit:
 // MARK: Pcap frame handling
 // ----------------------------------------------------------------------------
 
-void NcpBase::HandlePcapFrame(const otRadioFrame *aFrame, void *aContext)
+void NcpBase::HandlePcapFrame(const otRadioFrame *aFrame, bool aIsTx, void *aContext)
 {
-    static_cast<NcpBase *>(aContext)->HandlePcapFrame(aFrame);
+    static_cast<NcpBase *>(aContext)->HandlePcapFrame(aFrame, aIsTx);
 }
 
-void NcpBase::HandlePcapFrame(const otRadioFrame *aFrame)
+void NcpBase::HandlePcapFrame(const otRadioFrame *aFrame, bool aIsTx)
 {
     uint16_t flags  = 0;
     uint8_t  header = SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0;
 
     VerifyOrExit(mPcapEnabled);
 
-    if (aFrame->mDidTx)
+    if (aIsTx)
     {
         flags |= SPINEL_MD_FLAG_TX;
     }
@@ -3428,10 +3450,6 @@ void NcpBase::ProcessThreadChangedFlags(void)
             {
                 mChangedPropsSet.AddProperty(SPINEL_PROP_THREAD_ON_MESH_NETS);
                 mChangedPropsSet.AddProperty(SPINEL_PROP_THREAD_OFF_MESH_ROUTES);
-
-#if OPENTHREAD_ENABLE_DHCP6_SERVER
-                otDhcp6ServerUpdate(mInstance);
-#endif
             }
 
             mThreadChangedFlags &= ~threadFlag;

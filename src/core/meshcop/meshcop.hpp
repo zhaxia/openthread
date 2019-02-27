@@ -49,16 +49,17 @@ namespace MeshCoP {
 enum
 {
     kMeshCoPMessagePriority = Message::kPriorityNet, ///< The priority for MeshCoP message
+    kBorderAgentUdpPort     = 49191,                 ///< UDP port of border agent service.
 };
 
 /**
  * This function create Message for MeshCoP
  *
  */
-inline Message *NewMeshCoPMessage(Coap::Coap &aCoap, const Coap::Header &aHeader)
+inline Coap::Message *NewMeshCoPMessage(Coap::CoapBase &aCoap)
 {
     otMessageSettings settings = {true, static_cast<otMessagePriority>(kMeshCoPMessagePriority)};
-    return aCoap.NewMessage(aHeader, &settings);
+    return aCoap.NewMessage(&settings);
 }
 
 /**

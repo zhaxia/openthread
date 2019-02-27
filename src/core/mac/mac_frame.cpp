@@ -89,7 +89,7 @@ Address::InfoString Address::ToString(void) const
                                     : (mType == kTypeNone ? InfoString("None") : InfoString("0x%04x", GetShort()));
 }
 
-otError Frame::InitMacHeader(uint16_t aFcf, uint8_t aSecurityControl)
+void Frame::InitMacHeader(uint16_t aFcf, uint8_t aSecurityControl)
 {
     uint8_t *bytes  = GetPsdu();
     uint8_t  length = 0;
@@ -180,8 +180,6 @@ otError Frame::InitMacHeader(uint16_t aFcf, uint8_t aSecurityControl)
     }
 
     SetPsduLength(length + GetFooterLength());
-
-    return OT_ERROR_NONE;
 }
 
 uint16_t Frame::GetFrameControlField(void) const
@@ -250,14 +248,12 @@ exit:
     return error;
 }
 
-otError Frame::SetDstPanId(PanId aPanId)
+void Frame::SetDstPanId(PanId aPanId)
 {
     uint8_t index = FindDstPanIdIndex();
 
     assert(index != kInvalidIndex);
     Encoding::LittleEndian::WriteUint16(aPanId, GetPsdu() + index);
-
-    return OT_ERROR_NONE;
 }
 
 uint8_t Frame::FindDstAddrIndex(void) const
@@ -291,15 +287,13 @@ exit:
     return error;
 }
 
-otError Frame::SetDstAddr(ShortAddress aShortAddress)
+void Frame::SetDstAddr(ShortAddress aShortAddress)
 {
     assert((GetFrameControlField() & kFcfDstAddrMask) == kFcfDstAddrShort);
     Encoding::LittleEndian::WriteUint16(aShortAddress, GetPsdu() + FindDstAddrIndex());
-
-    return OT_ERROR_NONE;
 }
 
-otError Frame::SetDstAddr(const ExtAddress &aExtAddress)
+void Frame::SetDstAddr(const ExtAddress &aExtAddress)
 {
     uint8_t  index = FindDstAddrIndex();
     uint8_t *buf   = GetPsdu() + index;
@@ -311,30 +305,24 @@ otError Frame::SetDstAddr(const ExtAddress &aExtAddress)
     {
         buf[i] = aExtAddress.m8[sizeof(ExtAddress) - 1 - i];
     }
-
-    return OT_ERROR_NONE;
 }
 
-otError Frame::SetDstAddr(const Address &aAddress)
+void Frame::SetDstAddr(const Address &aAddress)
 {
-    otError error = OT_ERROR_NONE;
-
     switch (aAddress.GetType())
     {
     case Address::kTypeShort:
-        error = SetDstAddr(aAddress.GetShort());
+        SetDstAddr(aAddress.GetShort());
         break;
 
     case Address::kTypeExtended:
-        error = SetDstAddr(aAddress.GetExtended());
+        SetDstAddr(aAddress.GetExtended());
         break;
 
     default:
         assert(false);
         break;
     }
-
-    return error;
 }
 
 uint8_t Frame::FindSrcPanIdIndex(void) const
@@ -471,7 +459,7 @@ exit:
     return error;
 }
 
-otError Frame::SetSrcAddr(ShortAddress aShortAddress)
+void Frame::SetSrcAddr(ShortAddress aShortAddress)
 {
     uint8_t index = FindSrcAddrIndex();
 
@@ -479,11 +467,9 @@ otError Frame::SetSrcAddr(ShortAddress aShortAddress)
     assert(index != kInvalidIndex);
 
     Encoding::LittleEndian::WriteUint16(aShortAddress, GetPsdu() + index);
-
-    return OT_ERROR_NONE;
 }
 
-otError Frame::SetSrcAddr(const ExtAddress &aExtAddress)
+void Frame::SetSrcAddr(const ExtAddress &aExtAddress)
 {
     uint8_t  index = FindSrcAddrIndex();
     uint8_t *buf   = GetPsdu() + index;
@@ -495,30 +481,24 @@ otError Frame::SetSrcAddr(const ExtAddress &aExtAddress)
     {
         buf[i] = aExtAddress.m8[sizeof(aExtAddress) - 1 - i];
     }
-
-    return OT_ERROR_NONE;
 }
 
-otError Frame::SetSrcAddr(const Address &aAddress)
+void Frame::SetSrcAddr(const Address &aAddress)
 {
-    otError error = OT_ERROR_NONE;
-
     switch (aAddress.GetType())
     {
     case Address::kTypeShort:
-        error = SetSrcAddr(aAddress.GetShort());
+        SetSrcAddr(aAddress.GetShort());
         break;
 
     case Address::kTypeExtended:
-        error = SetSrcAddr(aAddress.GetExtended());
+        SetSrcAddr(aAddress.GetExtended());
         break;
 
     default:
         assert(false);
         break;
     }
-
-    return error;
 }
 
 uint8_t Frame::FindSecurityHeaderIndex(void) const
@@ -607,7 +587,7 @@ exit:
     return error;
 }
 
-otError Frame::SetFrameCounter(uint32_t aFrameCounter)
+void Frame::SetFrameCounter(uint32_t aFrameCounter)
 {
     uint8_t index = FindSecurityHeaderIndex();
 
@@ -617,8 +597,6 @@ otError Frame::SetFrameCounter(uint32_t aFrameCounter)
     index += kSecurityControlSize;
 
     Encoding::LittleEndian::WriteUint32(aFrameCounter, GetPsdu() + index);
-
-    return OT_ERROR_NONE;
 }
 
 const uint8_t *Frame::GetKeySource(void) const
@@ -694,7 +672,7 @@ exit:
     return error;
 }
 
-otError Frame::SetKeyId(uint8_t aKeyId)
+void Frame::SetKeyId(uint8_t aKeyId)
 {
     uint8_t  keySourceLength;
     uint8_t  index = FindSecurityHeaderIndex();
@@ -707,8 +685,6 @@ otError Frame::SetKeyId(uint8_t aKeyId)
     buf += kSecurityControlSize + kFrameCounterSize + keySourceLength;
 
     buf[0] = aKeyId;
-
-    return OT_ERROR_NONE;
 }
 
 otError Frame::GetCommandId(uint8_t &aCommandId) const
@@ -802,10 +778,9 @@ uint8_t Frame::GetPayloadLength(void) const
     return GetPsduLength() - (GetHeaderLength() + GetFooterLength());
 }
 
-otError Frame::SetPayloadLength(uint8_t aLength)
+void Frame::SetPayloadLength(uint8_t aLength)
 {
     SetPsduLength(GetHeaderLength() + GetFooterLength() + aLength);
-    return OT_ERROR_NONE;
 }
 
 uint8_t Frame::SkipSecurityHeaderIndex(void) const
@@ -901,8 +876,8 @@ uint8_t Frame::FindPayloadIndex(void) const
 {
     uint8_t index = SkipSecurityHeaderIndex();
 #if OPENTHREAD_CONFIG_HEADER_IE_SUPPORT
-    uint8_t *cur    = NULL;
-    uint8_t *footer = GetFooter();
+    const uint8_t *cur    = NULL;
+    const uint8_t *footer = GetFooter();
 #endif
 
     VerifyOrExit(index != kInvalidIndex);
@@ -914,8 +889,8 @@ uint8_t Frame::FindPayloadIndex(void) const
     {
         while (cur + sizeof(HeaderIe) <= footer)
         {
-            HeaderIe *ie  = reinterpret_cast<HeaderIe *>(cur);
-            uint8_t   len = static_cast<uint8_t>(ie->GetLength());
+            const HeaderIe *ie  = reinterpret_cast<const HeaderIe *>(cur);
+            uint8_t         len = static_cast<uint8_t>(ie->GetLength());
 
             cur += sizeof(HeaderIe);
             index += sizeof(HeaderIe);
@@ -945,10 +920,10 @@ exit:
     return index;
 }
 
-uint8_t *Frame::GetPayload(void)
+const uint8_t *Frame::GetPayload(void) const
 {
-    uint8_t  index   = FindPayloadIndex();
-    uint8_t *payload = GetPsdu() + index;
+    uint8_t        index   = FindPayloadIndex();
+    const uint8_t *payload = GetPsdu() + index;
 
     VerifyOrExit(index != kInvalidIndex, payload = NULL);
 
@@ -956,23 +931,7 @@ exit:
     return payload;
 }
 
-uint8_t *Frame::GetPayload(void) const
-{
-    uint8_t  index   = FindPayloadIndex();
-    uint8_t *payload = GetPsdu() + index;
-
-    VerifyOrExit(index != kInvalidIndex, payload = NULL);
-
-exit:
-    return payload;
-}
-
-uint8_t *Frame::GetFooter(void)
-{
-    return GetPsdu() + GetPsduLength() - GetFooterLength();
-}
-
-uint8_t *Frame::GetFooter(void) const
+const uint8_t *Frame::GetFooter(void) const
 {
     return GetPsdu() + GetPsduLength() - GetFooterLength();
 }
@@ -1014,11 +973,11 @@ exit:
     return error;
 }
 
-uint8_t *Frame::GetHeaderIe(uint8_t aIeId) const
+const uint8_t *Frame::GetHeaderIe(uint8_t aIeId) const
 {
-    uint8_t  index   = FindHeaderIeIndex();
-    uint8_t *cur     = NULL;
-    uint8_t *payload = GetPayload();
+    uint8_t        index   = FindHeaderIeIndex();
+    const uint8_t *cur     = NULL;
+    const uint8_t *payload = GetPayload();
 
     VerifyOrExit(index != kInvalidIndex);
 
@@ -1026,8 +985,8 @@ uint8_t *Frame::GetHeaderIe(uint8_t aIeId) const
 
     while (cur + sizeof(HeaderIe) <= payload)
     {
-        HeaderIe *ie  = reinterpret_cast<HeaderIe *>(cur);
-        uint8_t   len = static_cast<uint8_t>(ie->GetLength());
+        const HeaderIe *ie  = reinterpret_cast<const HeaderIe *>(cur);
+        uint8_t         len = static_cast<uint8_t>(ie->GetLength());
 
         if (ie->GetId() == aIeId)
         {
@@ -1052,18 +1011,18 @@ exit:
 #endif // OPENTHREAD_CONFIG_HEADER_IE_SUPPORT
 
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
-uint8_t *Frame::GetTimeIe(void) const
+const uint8_t *Frame::GetTimeIe(void) const
 {
-    TimeIe * timeIe              = NULL;
-    uint8_t *cur                 = NULL;
-    uint8_t  oui[kVendorOuiSize] = {kVendorOuiNest & 0xff, (kVendorOuiNest >> 8) & 0xff, (kVendorOuiNest >> 16) & 0xff};
+    const TimeIe * timeIe       = NULL;
+    const uint8_t *cur          = NULL;
+    uint8_t oui[kVendorOuiSize] = {kVendorOuiNest & 0xff, (kVendorOuiNest >> 8) & 0xff, (kVendorOuiNest >> 16) & 0xff};
 
     cur = GetHeaderIe(kHeaderIeVendor);
     VerifyOrExit(cur != NULL);
 
     cur += sizeof(HeaderIe);
 
-    timeIe = reinterpret_cast<TimeIe *>(cur);
+    timeIe = reinterpret_cast<const TimeIe *>(cur);
     VerifyOrExit(memcmp(oui, timeIe->GetVendorOui(), kVendorOuiSize) == 0, cur = NULL);
     VerifyOrExit(timeIe->GetSubType() == kVendorIeTime, cur = NULL);
 

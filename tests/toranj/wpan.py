@@ -113,9 +113,6 @@ WPAN_OT_MSG_BUFFER_COUNTERS_AS_STRING          = "OpenThread:MsgBufferCounters:A
 WPAN_OT_DEBUG_TEST_ASSERT                      = "OpenThread:Debug:TestAssert"
 WPAN_OT_DEBUG_TEST_WATCHDOG                    = "OpenThread:Debug:TestWatchdog"
 
-WPAN_NCP_COUNTER_ALL_MAC                       = "NCP:Counter:AllMac"
-WPAN_NCP_COUNTER_ALL_MAC_ASVALMAP              = "NCP:Counter:AllMac:AsValMap"
-
 WPAN_MAC_WHITELIST_ENABLED                     = "MAC:Whitelist:Enabled"
 WPAN_MAC_WHITELIST_ENTRIES                     = "MAC:Whitelist:Entries"
 WPAN_MAC_WHITELIST_ENTRIES_ASVALMAP            = "MAC:Whitelist:Entries:AsValMap"
@@ -147,6 +144,52 @@ WPAN_CHANNEL_MANAGER_AUTO_SELECT_ENABLED       = "ChannelManager:AutoSelect:Enab
 WPAN_CHANNEL_MANAGER_AUTO_SELECT_INTERVAL      = "ChannelManager:AutoSelect:Interval"
 WPAN_CHANNEL_MANAGER_SUPPORTED_CHANNEL_MASK    = "ChannelManager:SupportedChannelMask"
 WPAN_CHANNEL_MANAGER_FAVORED_CHANNEL_MASK      = "ChannelManager:FavoredChannelMask"
+
+WPAN_NCP_COUNTER_ALL_MAC                       = "NCP:Counter:AllMac"
+WPAN_NCP_COUNTER_ALL_MAC_ASVALMAP              = "NCP:Counter:AllMac:AsValMap"
+WPAN_NCP_COUNTER_TX_PKT_TOTAL                  = "NCP:Counter:TX_PKT_TOTAL"
+WPAN_NCP_COUNTER_TX_PKT_UNICAST                = "NCP:Counter:TX_PKT_UNICAST"
+WPAN_NCP_COUNTER_TX_PKT_BROADCAST              = "NCP:Counter:TX_PKT_BROADCAST"
+WPAN_NCP_COUNTER_TX_PKT_ACK_REQ                = "NCP:Counter:TX_PKT_ACK_REQ"
+WPAN_NCP_COUNTER_TX_PKT_ACKED                  = "NCP:Counter:TX_PKT_ACKED"
+WPAN_NCP_COUNTER_TX_PKT_NO_ACK_REQ             = "NCP:Counter:TX_PKT_NO_ACK_REQ"
+WPAN_NCP_COUNTER_TX_PKT_DATA                   = "NCP:Counter:TX_PKT_DATA"
+WPAN_NCP_COUNTER_TX_PKT_DATA_POLL              = "NCP:Counter:TX_PKT_DATA_POLL"
+WPAN_NCP_COUNTER_TX_PKT_BEACON                 = "NCP:Counter:TX_PKT_BEACON"
+WPAN_NCP_COUNTER_TX_PKT_BEACON_REQ             = "NCP:Counter:TX_PKT_BEACON_REQ"
+WPAN_NCP_COUNTER_TX_PKT_OTHER                  = "NCP:Counter:TX_PKT_OTHER"
+WPAN_NCP_COUNTER_TX_PKT_RETRY                  = "NCP:Counter:TX_PKT_RETRY"
+WPAN_NCP_COUNTER_TX_ERR_CCA                    = "NCP:Counter:TX_ERR_CCA"
+WPAN_NCP_COUNTER_TX_ERR_ABORT                  = "NCP:Counter:TX_ERR_ABORT"
+WPAN_NCP_COUNTER_RX_PKT_TOTAL                  = "NCP:Counter:RX_PKT_TOTAL"
+WPAN_NCP_COUNTER_RX_PKT_UNICAST                = "NCP:Counter:RX_PKT_UNICAST"
+WPAN_NCP_COUNTER_RX_PKT_BROADCAST              = "NCP:Counter:RX_PKT_BROADCAST"
+WPAN_NCP_COUNTER_RX_PKT_DATA                   = "NCP:Counter:RX_PKT_DATA"
+WPAN_NCP_COUNTER_RX_PKT_DATA_POLL              = "NCP:Counter:RX_PKT_DATA_POLL"
+WPAN_NCP_COUNTER_RX_PKT_BEACON                 = "NCP:Counter:RX_PKT_BEACON"
+WPAN_NCP_COUNTER_RX_PKT_BEACON_REQ             = "NCP:Counter:RX_PKT_BEACON_REQ"
+WPAN_NCP_COUNTER_RX_PKT_OTHER                  = "NCP:Counter:RX_PKT_OTHER"
+WPAN_NCP_COUNTER_RX_PKT_FILT_WL                = "NCP:Counter:RX_PKT_FILT_WL"
+WPAN_NCP_COUNTER_RX_PKT_FILT_DA                = "NCP:Counter:RX_PKT_FILT_DA"
+WPAN_NCP_COUNTER_RX_ERR_EMPTY                  = "NCP:Counter:RX_ERR_EMPTY"
+WPAN_NCP_COUNTER_RX_ERR_UKWN_NBR               = "NCP:Counter:RX_ERR_UKWN_NBR"
+WPAN_NCP_COUNTER_RX_ERR_NVLD_SADDR             = "NCP:Counter:RX_ERR_NVLD_SADDR"
+WPAN_NCP_COUNTER_RX_ERR_SECURITY               = "NCP:Counter:RX_ERR_SECURITY"
+WPAN_NCP_COUNTER_RX_ERR_BAD_FCS                = "NCP:Counter:RX_ERR_BAD_FCS"
+WPAN_NCP_COUNTER_RX_ERR_OTHER                  = "NCP:Counter:RX_ERR_OTHER"
+WPAN_NCP_COUNTER_TX_IP_SEC_TOTAL               = "NCP:Counter:TX_IP_SEC_TOTAL"
+WPAN_NCP_COUNTER_TX_IP_INSEC_TOTAL             = "NCP:Counter:TX_IP_INSEC_TOTAL"
+WPAN_NCP_COUNTER_TX_IP_DROPPED                 = "NCP:Counter:TX_IP_DROPPED"
+WPAN_NCP_COUNTER_RX_IP_SEC_TOTAL               = "NCP:Counter:RX_IP_SEC_TOTAL"
+WPAN_NCP_COUNTER_RX_IP_INSEC_TOTAL             = "NCP:Counter:RX_IP_INSEC_TOTAL"
+WPAN_NCP_COUNTER_RX_IP_DROPPED                 = "NCP:Counter:RX_IP_DROPPED"
+WPAN_NCP_COUNTER_TX_SPINEL_TOTAL               = "NCP:Counter:TX_SPINEL_TOTAL"
+WPAN_NCP_COUNTER_RX_SPINEL_TOTAL               = "NCP:Counter:RX_SPINEL_TOTAL"
+WPAN_NCP_COUNTER_RX_SPINEL_ERR                 = "NCP:Counter:RX_SPINEL_ERR"
+WPAN_NCP_COUNTER_IP_TX_SUCCESS                 = "NCP:Counter:IP_TX_SUCCESS"
+WPAN_NCP_COUNTER_IP_RX_SUCCESS                 = "NCP:Counter:IP_RX_SUCCESS"
+WPAN_NCP_COUNTER_IP_TX_FAILURE                 = "NCP:Counter:IP_TX_FAILURE"
+WPAN_NCP_COUNTER_IP_RX_FAILURE                 = "NCP:Counter:IP_RX_FAILURE"
 
 #----------------------------------------------------------------------------------------------------------------------
 # Valid state values
@@ -197,6 +240,9 @@ THREAD_MODE_FLAG_FULL_THREAD_DEV     = (1 << 1)
 THREAD_MODE_FLAG_SECURE_DATA_REQUEST = (1 << 2)
 THREAD_MODE_FLAG_RX_ON_WHEN_IDLE     = (1 << 3)
 
+_OT_BUILDDIR = os.getenv('top_builddir', '../..')
+_WPANTUND_PREFIX = os.getenv('WPANTUND_PREFIX', '/usr/local')
+
 #-----------------------------------------------------------------------------------------------------------------------
 
 def _log(text, new_line=True, flush=True):
@@ -216,12 +262,12 @@ class Node(object):
     _SPEED_UP_FACTOR = 1    # defines the default time speed up factor
 
     # path to `wpantund`, `wpanctl`, `ot-ncp-ftd`,`ot-ncp` and `ot-ncp-radio`
-    _WPANTUND = '/usr/local/sbin/wpantund'
-    _WPANCTL  = '/usr/local/bin/wpanctl'
-    _OT_NCP_FTD = '../../examples/apps/ncp/ot-ncp-ftd'
+    _WPANTUND = '%s/sbin/wpantund' % _WPANTUND_PREFIX
+    _WPANCTL  = '%s/bin/wpanctl' % _WPANTUND_PREFIX
 
-    _OT_NCP_FTD_POSIX_APP = '../../src/posix/ot-ncp'
-    _OT_NCP_RADIO = '../../examples/apps/ncp/ot-ncp-radio'
+    _OT_NCP_FTD = '%s/examples/apps/ncp/ot-ncp-ftd' % _OT_BUILDDIR
+    _OT_NCP_FTD_POSIX_APP = '%s/src/posix/ot-ncp' % _OT_BUILDDIR
+    _OT_NCP_RADIO = '%s/examples/apps/ncp/ot-ncp-radio' % _OT_BUILDDIR
 
     # Environment variable used to determine how to run OpenThread
     # If set to 1, then posix-app (`ot-ncp`) is used along with a posix RCP `ot-ncp-radio`.

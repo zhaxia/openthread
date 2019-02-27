@@ -91,7 +91,7 @@ struct IdentityAssociation
     uint32_t       mPreferredLifetime; ///< The preferred lifetime.
     uint32_t       mValidLifetime;     ///< The valid lifetime.
     uint16_t       mPrefixAgentRloc;   ///< Rloc of Prefix Agent
-    uint8_t        mStatus;            ///< Status of IdentityAssocation
+    uint8_t        mStatus;            ///< Status of IdentityAssociation
 };
 
 /**
@@ -117,8 +117,8 @@ public:
     void UpdateAddresses(void);
 
 private:
-    otError Start(void);
-    otError Stop(void);
+    void Start(void);
+    void Stop(void);
 
     static bool MatchNetifAddressWithPrefix(const otNetifAddress &aNetifAddress, const otIp6Prefix &aIp6Prefix);
 

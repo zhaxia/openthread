@@ -487,11 +487,11 @@ otError Ip6::SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, IpProto 
     switch (aIpProto)
     {
     case kProtoUdp:
-        SuccessOrExit(error = mUdp.UpdateChecksum(aMessage, checksum));
+        mUdp.UpdateChecksum(aMessage, checksum);
         break;
 
     case kProtoIcmp6:
-        SuccessOrExit(error = mIcmp.UpdateChecksum(aMessage, checksum));
+        mIcmp.UpdateChecksum(aMessage, checksum);
         break;
 
     default:
@@ -701,10 +701,11 @@ otError Ip6::ProcessReceiveCallback(const Message &    aMessage,
 
     if (mIsReceiveIp6FilterEnabled)
     {
-        // do not pass messages sent to an RLOC/ALOC
-        VerifyOrExit(!aMessageInfo.GetSockAddr().IsRoutingLocator() &&
-                         !aMessageInfo.GetSockAddr().IsAnycastRoutingLocator(),
-                     error = OT_ERROR_NO_ROUTE);
+        // do not pass messages sent to an RLOC/ALOC, except Service Locator
+        VerifyOrExit(
+            (!aMessageInfo.GetSockAddr().IsRoutingLocator() && !aMessageInfo.GetSockAddr().IsAnycastRoutingLocator()) ||
+                aMessageInfo.GetSockAddr().IsAnycastServiceLocator(),
+            error = OT_ERROR_NO_ROUTE);
 
         switch (aIpProto)
         {

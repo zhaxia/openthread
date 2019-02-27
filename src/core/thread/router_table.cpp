@@ -52,29 +52,12 @@ RouterTable::Iterator::Iterator(Instance &aInstance)
 
 void RouterTable::Iterator::Reset(void)
 {
-    RouterTable &routerTable = GetInstance().Get<RouterTable>();
-
-    mRouter = &routerTable.mRouters[0];
-
-    if (mRouter->GetRloc16() == 0xffff)
-    {
-        mRouter = NULL;
-    }
+    mRouter = GetInstance().Get<RouterTable>().GetFirstEntry();
 }
 
 void RouterTable::Iterator::Advance(void)
 {
-    RouterTable &routerTable = GetInstance().Get<RouterTable>();
-    Router *     listEnd     = &routerTable.mRouters[Mle::kMaxRouters];
-
-    VerifyOrExit(mRouter != NULL);
-
-    mRouter++;
-
-    VerifyOrExit(mRouter < listEnd && mRouter->GetRloc16() != 0xffff, mRouter = NULL);
-
-exit:
-    return;
+    mRouter = GetInstance().Get<RouterTable>().GetNextEntry(mRouter);
 }
 
 RouterTable::RouterTable(Instance &aInstance)
@@ -84,6 +67,26 @@ RouterTable::RouterTable(Instance &aInstance)
     , mActiveRouterCount(0)
 {
     Clear();
+}
+
+const Router *RouterTable::GetFirstEntry(void) const
+{
+    const Router *router = &mRouters[0];
+    VerifyOrExit(router->GetRloc16() != 0xffff, router = NULL);
+
+exit:
+    return router;
+}
+
+const Router *RouterTable::GetNextEntry(const Router *aRouter) const
+{
+    VerifyOrExit(aRouter != NULL);
+    aRouter++;
+    VerifyOrExit(aRouter < &mRouters[Mle::kMaxRouters], aRouter = NULL);
+    VerifyOrExit(aRouter->GetRloc16() != 0xffff, aRouter = NULL);
+
+exit:
+    return aRouter;
 }
 
 void RouterTable::Clear(void)
@@ -113,22 +116,22 @@ void RouterTable::UpdateAllocation(void)
     mActiveRouterCount = 0;
 
     // build index map
-    for (uint8_t i = 0; i <= Mle::kMaxRouterId; i++)
+    for (uint8_t routerId = 0; routerId <= Mle::kMaxRouterId; routerId++)
     {
-        if (IsAllocated(i) && mActiveRouterCount < Mle::kMaxRouters)
+        if (IsAllocated(routerId) && mActiveRouterCount < Mle::kMaxRouters)
         {
-            indexMap[i] = mActiveRouterCount++;
+            indexMap[routerId] = mActiveRouterCount++;
         }
         else
         {
-            indexMap[i] = Mle::kInvalidRouterId;
+            indexMap[routerId] = Mle::kInvalidRouterId;
         }
     }
 
     // shift entries forward
-    for (int i = Mle::kMaxRouters - 2; i >= 0; i--)
+    for (int index = Mle::kMaxRouters - 2; index >= 0; index--)
     {
-        uint8_t routerId = mRouters[i].GetRouterId();
+        uint8_t routerId = mRouters[index].GetRouterId();
         uint8_t newIndex;
 
         if (routerId > Mle::kMaxRouterId || indexMap[routerId] == Mle::kInvalidRouterId)
@@ -138,16 +141,16 @@ void RouterTable::UpdateAllocation(void)
 
         newIndex = indexMap[routerId];
 
-        if (newIndex > i)
+        if (newIndex > index)
         {
-            mRouters[newIndex] = mRouters[i];
+            mRouters[newIndex] = mRouters[index];
         }
     }
 
     // shift entries backward
-    for (uint8_t i = 1; i < Mle::kMaxRouters; i++)
+    for (uint8_t index = 1; index < Mle::kMaxRouters; index++)
     {
-        uint8_t routerId = mRouters[i].GetRouterId();
+        uint8_t routerId = mRouters[index].GetRouterId();
         uint8_t newIndex;
 
         if (routerId > Mle::kMaxRouterId || indexMap[routerId] == Mle::kInvalidRouterId)
@@ -157,34 +160,34 @@ void RouterTable::UpdateAllocation(void)
 
         newIndex = indexMap[routerId];
 
-        if (newIndex < i)
+        if (newIndex < index)
         {
-            mRouters[newIndex] = mRouters[i];
+            mRouters[newIndex] = mRouters[index];
         }
     }
 
     // fix replaced entries
-    for (uint8_t i = 0; i <= Mle::kMaxRouterId; i++)
+    for (uint8_t routerId = 0; routerId <= Mle::kMaxRouterId; routerId++)
     {
-        uint8_t index = indexMap[i];
+        uint8_t index = indexMap[routerId];
 
         if (index != Mle::kInvalidRouterId)
         {
             Router &router = mRouters[index];
 
-            if (router.GetRouterId() != i)
+            if (router.GetRouterId() != routerId)
             {
                 memset(&router, 0, sizeof(router));
-                router.SetRloc16(Mle::Mle::GetRloc16(i));
+                router.SetRloc16(Mle::Mle::GetRloc16(routerId));
                 router.SetNextHop(Mle::kInvalidRouterId);
             }
         }
     }
 
     // clear unused entries
-    for (uint8_t i = mActiveRouterCount; i < Mle::kMaxRouters; i++)
+    for (uint8_t index = mActiveRouterCount; index < Mle::kMaxRouters; index++)
     {
-        Router &router = mRouters[i];
+        Router &router = mRouters[index];
         memset(&router, 0, sizeof(router));
         router.SetRloc16(0xffff);
     }
@@ -261,6 +264,8 @@ otError RouterTable::Release(uint8_t aRouterId)
     ThreadNetif &netif  = GetNetif();
     uint16_t     rloc16 = Mle::Mle::GetRloc16(aRouterId);
 
+    assert(aRouterId <= Mle::kMaxRouterId);
+
     VerifyOrExit(netif.GetMle().GetRole() == OT_DEVICE_ROLE_LEADER, error = OT_ERROR_INVALID_STATE);
     VerifyOrExit(IsAllocated(aRouterId), error = OT_ERROR_NOT_FOUND);
 
@@ -269,19 +274,12 @@ otError RouterTable::Release(uint8_t aRouterId)
 
     mRouterIdReuseDelay[aRouterId] = Mle::kRouterIdReuseDelay;
 
-    for (int i = 0; i < Mle::kMaxRouters; i++)
+    for (Router *router = GetFirstEntry(); router != NULL; router = GetNextEntry(router))
     {
-        Router &router = mRouters[i];
-
-        if (router.GetRloc16() == 0xffff)
+        if (router->GetNextHop() == rloc16)
         {
-            break;
-        }
-
-        if (router.GetNextHop() == rloc16)
-        {
-            router.SetNextHop(Mle::kInvalidRouterId);
-            router.SetCost(0);
+            router->SetNextHop(Mle::kInvalidRouterId);
+            router->SetCost(0);
         }
     }
 
@@ -305,21 +303,14 @@ void RouterTable::RemoveNeighbor(Router &aRouter)
     aRouter.SetLinkQualityOut(0);
     aRouter.SetLastHeard(TimerMilli::GetNow());
 
-    for (uint8_t i = 0; i < Mle::kMaxRouters; i++)
+    for (Router *cur = GetFirstEntry(); cur != NULL; cur = GetNextEntry(cur))
     {
-        Router &cur = mRouters[i];
-
-        if (cur.GetRloc16() == 0xffff)
+        if (cur->GetNextHop() == aRouter.GetRouterId())
         {
-            break;
-        }
+            cur->SetNextHop(Mle::kInvalidRouterId);
+            cur->SetCost(0);
 
-        if (cur.GetNextHop() == aRouter.GetRouterId())
-        {
-            cur.SetNextHop(Mle::kInvalidRouterId);
-            cur.SetCost(0);
-
-            if (GetLinkCost(cur) >= Mle::kMaxRouteCost)
+            if (GetLinkCost(*cur) >= Mle::kMaxRouteCost)
             {
                 netif.GetMle().ResetAdvertiseInterval();
             }
@@ -339,16 +330,9 @@ uint8_t RouterTable::GetActiveLinkCount(void) const
 {
     uint8_t activeLinks = 0;
 
-    for (int i = 0; i < Mle::kMaxRouters; i++)
+    for (const Router *router = GetFirstEntry(); router != NULL; router = GetNextEntry(router))
     {
-        const Router &cur = mRouters[i];
-
-        if (cur.GetRloc16() == 0xffff)
-        {
-            break;
-        }
-
-        if (cur.GetState() == Neighbor::kStateValid)
+        if (router->GetState() == Neighbor::kStateValid)
         {
             activeLinks++;
         }
@@ -363,11 +347,10 @@ Router *RouterTable::GetNeighbor(uint16_t aRloc16)
 
     VerifyOrExit(aRloc16 != GetNetif().GetMle().GetRloc16());
 
-    for (int i = 0; i < Mle::kMaxRouters; i++)
+    for (router = GetFirstEntry(); router != NULL; router = GetNextEntry(router))
     {
-        if (mRouters[i].GetState() == Neighbor::kStateValid && mRouters[i].GetRloc16() == aRloc16)
+        if (router->GetState() == Neighbor::kStateValid && router->GetRloc16() == aRloc16)
         {
-            router = &mRouters[i];
             ExitNow();
         }
     }
@@ -382,11 +365,10 @@ Router *RouterTable::GetNeighbor(const Mac::ExtAddress &aExtAddress)
 
     VerifyOrExit(aExtAddress != GetNetif().GetMac().GetExtAddress());
 
-    for (int i = 0; i < Mle::kMaxRouters; i++)
+    for (router = GetFirstEntry(); router != NULL; router = GetNextEntry(router))
     {
-        if (mRouters[i].GetState() == Neighbor::kStateValid && mRouters[i].GetExtAddress() == aExtAddress)
+        if (router->GetState() == Neighbor::kStateValid && router->GetExtAddress() == aExtAddress)
         {
-            router = &mRouters[i];
             ExitNow();
         }
     }
@@ -395,61 +377,34 @@ exit:
     return router;
 }
 
-Router *RouterTable::GetRouter(uint8_t aRouterId)
-{
-    Router * rval   = NULL;
-    uint16_t rloc16 = Mle::Mle::GetRloc16(aRouterId);
-
-    for (uint8_t i = 0; i < Mle::kMaxRouters; i++)
-    {
-        if (mRouters[i].GetRloc16() == rloc16)
-        {
-            rval = &mRouters[i];
-            ExitNow();
-        }
-    }
-
-exit:
-    return rval;
-}
-
 const Router *RouterTable::GetRouter(uint8_t aRouterId) const
 {
-    const Router *rval   = NULL;
+    const Router *router = NULL;
     uint16_t      rloc16 = Mle::Mle::GetRloc16(aRouterId);
 
-    for (uint8_t i = 0; i < Mle::kMaxRouters; i++)
+    for (router = GetFirstEntry(); router != NULL; router = GetNextEntry(router))
     {
-        if (mRouters[i].GetRloc16() == rloc16)
+        if (router->GetRloc16() == rloc16)
         {
-            rval = &mRouters[i];
-            ExitNow();
+            break;
         }
     }
 
-exit:
-    return rval;
+    return router;
 }
 
 Router *RouterTable::GetRouter(const Mac::ExtAddress &aExtAddress)
 {
     Router *router = NULL;
 
-    for (int i = 0; i < Mle::kMaxRouters; i++)
+    for (router = GetFirstEntry(); router != NULL; router = GetNextEntry(router))
     {
-        if (mRouters[i].GetRloc16() == 0xffff)
+        if (router->GetExtAddress() == aExtAddress)
         {
             break;
         }
-
-        if (mRouters[i].GetExtAddress() == aExtAddress)
-        {
-            router = &mRouters[i];
-            ExitNow();
-        }
     }
 
-exit:
     return router;
 }
 
@@ -504,9 +459,9 @@ uint8_t RouterTable::GetNeighborCount(void) const
 {
     uint8_t count = 0;
 
-    for (int i = 0; i < Mle::kMaxRouters; i++)
+    for (const Router *router = GetFirstEntry(); router != NULL; router = GetNextEntry(router))
     {
-        if (mRouters[i].GetState() == Neighbor::kStateValid)
+        if (router->GetState() == Neighbor::kStateValid)
         {
             count++;
         }

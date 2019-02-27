@@ -194,7 +194,7 @@ otError MleRouter::BecomeLeader(void)
     netif.GetNetworkDataLeader().Reset();
     netif.GetLeader().SetEmptyCommissionerData();
 
-    SuccessOrExit(error = SetStateLeader(GetRloc16(leaderId)));
+    SetStateLeader(GetRloc16(leaderId));
 
 exit:
     return error;
@@ -213,13 +213,11 @@ void MleRouter::StopLeader(void)
     netif.UnsubscribeAllRoutersMulticast();
 }
 
-otError MleRouter::HandleDetachStart(void)
+void MleRouter::HandleDetachStart(void)
 {
     mRouterTable.ClearNeighbors();
     StopLeader();
     mStateUpdateTimer.Stop();
-
-    return OT_ERROR_NONE;
 }
 
 otError MleRouter::HandleChildStart(AttachMode aMode)
@@ -301,7 +299,7 @@ exit:
     return error;
 }
 
-otError MleRouter::SetStateRouter(uint16_t aRloc16)
+void MleRouter::SetStateRouter(uint16_t aRloc16)
 {
     ThreadNetif &netif = GetNetif();
 
@@ -330,11 +328,9 @@ otError MleRouter::SetStateRouter(uint16_t aRloc16)
             RemoveNeighbor(*iter.GetChild());
         }
     }
-
-    return OT_ERROR_NONE;
 }
 
-otError MleRouter::SetStateLeader(uint16_t aRloc16)
+void MleRouter::SetStateLeader(uint16_t aRloc16)
 {
     ThreadNetif &netif = GetNetif();
 
@@ -373,8 +369,6 @@ otError MleRouter::SetStateLeader(uint16_t aRloc16)
     }
 
     otLogNoteMle("Leader partition id 0x%x", mLeaderData.GetPartitionId());
-
-    return OT_ERROR_NONE;
 }
 
 bool MleRouter::HandleAdvertiseTimer(TrickleTimer &aTimer)
@@ -1675,7 +1669,7 @@ otError MleRouter::HandleParentRequest(const Message &aMessage, const Ip6::Messa
         child->SetTimeout(TimerMilli::MsecToSec(kMaxChildIdRequestTimeout));
     }
 
-    SuccessOrExit(error = SendParentResponse(child, challenge, !scanMask.IsEndDeviceFlagSet()));
+    SendParentResponse(child, challenge, !scanMask.IsEndDeviceFlagSet());
 
 exit:
     return error;
@@ -1897,7 +1891,7 @@ exit:
     return;
 }
 
-otError MleRouter::SendParentResponse(Child *aChild, const ChallengeTlv &aChallenge, bool aRoutersOnlyRequest)
+void MleRouter::SendParentResponse(Child *aChild, const ChallengeTlv &aChallenge, bool aRoutersOnlyRequest)
 {
     otError      error = OT_ERROR_NONE;
     Ip6::Address destination;
@@ -1952,8 +1946,6 @@ exit:
     {
         message->Free();
     }
-
-    return OT_ERROR_NONE;
 }
 
 otError MleRouter::UpdateChildAddresses(const Message &aMessage, uint16_t aOffset, Child &aChild)
@@ -2540,7 +2532,7 @@ exit:
     return error;
 }
 
-otError MleRouter::HandleNetworkDataUpdateRouter(void)
+void MleRouter::HandleNetworkDataUpdateRouter(void)
 {
     static const uint8_t tlvs[] = {Tlv::kNetworkData};
     Ip6::Address         destination;
@@ -2558,7 +2550,7 @@ otError MleRouter::HandleNetworkDataUpdateRouter(void)
     SynchronizeChildNetworkData();
 
 exit:
-    return OT_ERROR_NONE;
+    return;
 }
 
 void MleRouter::SynchronizeChildNetworkData(void)
@@ -2742,6 +2734,12 @@ otError MleRouter::SendDiscoveryResponse(const Ip6::Address &aDestination, uint1
 
     if (netif.GetKeyManager().GetSecurityPolicyFlags() & OT_SECURITY_POLICY_NATIVE_COMMISSIONING)
     {
+        MeshCoP::CommissionerUdpPortTlv commissionerUdpPort;
+
+        commissionerUdpPort.Init();
+        commissionerUdpPort.SetUdpPort(MeshCoP::kBorderAgentUdpPort);
+        SuccessOrExit(error = message->Append(&commissionerUdpPort, sizeof(commissionerUdpPort)));
+
         discoveryResponse.SetNativeCommissioner(true);
     }
     else
@@ -2973,11 +2971,11 @@ exit:
     return error;
 }
 
-otError MleRouter::SendChildUpdateResponse(Child *                 aChild,
-                                           const Ip6::MessageInfo &aMessageInfo,
-                                           const uint8_t *         aTlvs,
-                                           uint8_t                 aTlvslength,
-                                           const ChallengeTlv *    aChallenge)
+void MleRouter::SendChildUpdateResponse(Child *                 aChild,
+                                        const Ip6::MessageInfo &aMessageInfo,
+                                        const uint8_t *         aTlvs,
+                                        uint8_t                 aTlvslength,
+                                        const ChallengeTlv *    aChallenge)
 {
     otError  error = OT_ERROR_NONE;
     Message *message;
@@ -3050,8 +3048,6 @@ exit:
     {
         message->Free();
     }
-
-    return OT_ERROR_NONE;
 }
 
 otError MleRouter::SendDataResponse(const Ip6::Address &aDestination,
@@ -3148,13 +3144,13 @@ otError MleRouter::RemoveNeighbor(const Mac::Address &aAddress)
     Neighbor *neighbor;
 
     VerifyOrExit((neighbor = GetNeighbor(aAddress)) != NULL, error = OT_ERROR_NOT_FOUND);
-    SuccessOrExit(error = RemoveNeighbor(*neighbor));
+    RemoveNeighbor(*neighbor);
 
 exit:
     return error;
 }
 
-otError MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
+void MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
 {
     ThreadNetif &netif = GetNetif();
 
@@ -3204,8 +3200,6 @@ otError MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
 
     aNeighbor.GetLinkInfo().Clear();
     aNeighbor.SetState(Neighbor::kStateInvalid);
-
-    return OT_ERROR_NONE;
 }
 
 Neighbor *MleRouter::GetNeighbor(uint16_t aAddress)
@@ -3811,21 +3805,20 @@ otError MleRouter::SendAddressSolicit(ThreadStatusTlv::Status aStatus)
 {
     ThreadNetif &          netif = GetNetif();
     otError                error = OT_ERROR_NONE;
-    Coap::Header           header;
     ThreadExtMacAddressTlv macAddr64Tlv;
     ThreadRloc16Tlv        rlocTlv;
     ThreadStatusTlv        statusTlv;
     Ip6::MessageInfo       messageInfo;
-    Message *              message = NULL;
+    Coap::Message *        message = NULL;
 
     VerifyOrExit(mAddressSolicitPending == false);
 
-    header.Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
-    header.SetToken(Coap::Header::kDefaultTokenLength);
-    header.AppendUriPathOptions(OT_URI_PATH_ADDRESS_SOLICIT);
-    header.SetPayloadMarker();
+    VerifyOrExit((message = netif.GetCoap().NewMessage()) != NULL, error = OT_ERROR_NO_BUFS);
 
-    VerifyOrExit((message = netif.GetCoap().NewMessage(header)) != NULL, error = OT_ERROR_NO_BUFS);
+    message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
+    message->SetToken(Coap::Message::kDefaultTokenLength);
+    message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_SOLICIT);
+    message->SetPayloadMarker();
 
     macAddr64Tlv.Init();
     macAddr64Tlv.SetMacAddr(netif.GetMac().GetExtAddress());
@@ -3870,18 +3863,17 @@ otError MleRouter::SendAddressRelease(void)
 {
     ThreadNetif &          netif = GetNetif();
     otError                error = OT_ERROR_NONE;
-    Coap::Header           header;
     ThreadRloc16Tlv        rlocTlv;
     ThreadExtMacAddressTlv macAddr64Tlv;
     Ip6::MessageInfo       messageInfo;
-    Message *              message;
+    Coap::Message *        message;
 
-    header.Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
-    header.SetToken(Coap::Header::kDefaultTokenLength);
-    header.AppendUriPathOptions(OT_URI_PATH_ADDRESS_RELEASE);
-    header.SetPayloadMarker();
+    VerifyOrExit((message = netif.GetCoap().NewMessage()) != NULL, error = OT_ERROR_NO_BUFS);
 
-    VerifyOrExit((message = netif.GetCoap().NewMessage(header)) != NULL, error = OT_ERROR_NO_BUFS);
+    message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
+    message->SetToken(Coap::Message::kDefaultTokenLength);
+    message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_RELEASE);
+    message->SetPayloadMarker();
 
     rlocTlv.Init();
     rlocTlv.SetRloc16(GetRloc16(mRouterId));
@@ -3909,18 +3901,15 @@ exit:
 }
 
 void MleRouter::HandleAddressSolicitResponse(void *               aContext,
-                                             otCoapHeader *       aHeader,
                                              otMessage *          aMessage,
                                              const otMessageInfo *aMessageInfo,
                                              otError              aResult)
 {
     static_cast<MleRouter *>(aContext)->HandleAddressSolicitResponse(
-        static_cast<Coap::Header *>(aHeader), static_cast<Message *>(aMessage),
-        static_cast<const Ip6::MessageInfo *>(aMessageInfo), aResult);
+        static_cast<Coap::Message *>(aMessage), static_cast<const Ip6::MessageInfo *>(aMessageInfo), aResult);
 }
 
-void MleRouter::HandleAddressSolicitResponse(Coap::Header *          aHeader,
-                                             Message *               aMessage,
+void MleRouter::HandleAddressSolicitResponse(Coap::Message *         aMessage,
                                              const Ip6::MessageInfo *aMessageInfo,
                                              otError                 aResult)
 {
@@ -3935,9 +3924,9 @@ void MleRouter::HandleAddressSolicitResponse(Coap::Header *          aHeader,
 
     mAddressSolicitPending = false;
 
-    VerifyOrExit(aResult == OT_ERROR_NONE && aHeader != NULL && aMessage != NULL);
+    VerifyOrExit(aResult == OT_ERROR_NONE && aMessage != NULL && aMessage != NULL);
 
-    VerifyOrExit(aHeader->GetCode() == OT_COAP_CODE_CHANGED);
+    VerifyOrExit(aMessage->GetCode() == OT_COAP_CODE_CHANGED);
 
     LogMleMessage("Receive Address Reply", aMessageInfo->GetPeerAddr());
 
@@ -3979,7 +3968,7 @@ void MleRouter::HandleAddressSolicitResponse(Coap::Header *          aHeader,
     // assign short address
     SetRouterId(routerId);
 
-    SuccessOrExit(SetStateRouter(GetRloc16(mRouterId)));
+    SetStateRouter(GetRloc16(mRouterId));
     mRouterTable.Clear();
     mRouterTable.ProcessTlv(routerMaskTlv);
 
@@ -4024,17 +4013,13 @@ exit:
     return;
 }
 
-void MleRouter::HandleAddressSolicit(void *               aContext,
-                                     otCoapHeader *       aHeader,
-                                     otMessage *          aMessage,
-                                     const otMessageInfo *aMessageInfo)
+void MleRouter::HandleAddressSolicit(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
 {
-    static_cast<MleRouter *>(aContext)->HandleAddressSolicit(*static_cast<Coap::Header *>(aHeader),
-                                                             *static_cast<Message *>(aMessage),
+    static_cast<MleRouter *>(aContext)->HandleAddressSolicit(*static_cast<Coap::Message *>(aMessage),
                                                              *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
-void MleRouter::HandleAddressSolicit(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+void MleRouter::HandleAddressSolicit(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     otError                error = OT_ERROR_NONE;
     ThreadExtMacAddressTlv macAddr64Tlv;
@@ -4045,7 +4030,7 @@ void MleRouter::HandleAddressSolicit(Coap::Header &aHeader, Message &aMessage, c
     XtalAccuracyTlv xtalAccuracyTlv;
 #endif
 
-    VerifyOrExit(aHeader.GetType() == OT_COAP_TYPE_CONFIRMABLE && aHeader.GetCode() == OT_COAP_CODE_POST,
+    VerifyOrExit(aMessage.GetType() == OT_COAP_TYPE_CONFIRMABLE && aMessage.GetCode() == OT_COAP_CODE_POST,
                  error = OT_ERROR_PARSE);
 
     LogMleMessage("Receive Address Solicit", aMessageInfo.GetPeerAddr());
@@ -4118,26 +4103,25 @@ exit:
 
     if (error == OT_ERROR_NONE)
     {
-        SendAddressSolicitResponse(aHeader, router, aMessageInfo);
+        SendAddressSolicitResponse(aMessage, router, aMessageInfo);
     }
 }
 
-void MleRouter::SendAddressSolicitResponse(const Coap::Header &    aRequestHeader,
+void MleRouter::SendAddressSolicitResponse(const Coap::Message &   aRequestHeader,
                                            const Router *          aRouter,
                                            const Ip6::MessageInfo &aMessageInfo)
 {
     ThreadNetif &       netif = GetNetif();
     otError             error = OT_ERROR_NONE;
-    Coap::Header        responseHeader;
     ThreadStatusTlv     statusTlv;
     ThreadRouterMaskTlv routerMaskTlv;
     ThreadRloc16Tlv     rlocTlv;
-    Message *           message;
+    Coap::Message *     message;
 
-    responseHeader.SetDefaultResponseHeader(aRequestHeader);
-    responseHeader.SetPayloadMarker();
+    VerifyOrExit((message = netif.GetCoap().NewMessage()) != NULL, error = OT_ERROR_NO_BUFS);
 
-    VerifyOrExit((message = netif.GetCoap().NewMessage(responseHeader)) != NULL, error = OT_ERROR_NO_BUFS);
+    message->SetDefaultResponseHeader(aRequestHeader);
+    message->SetPayloadMarker();
 
     statusTlv.Init();
     statusTlv.SetStatus(aRouter == NULL ? statusTlv.kNoAddressAvailable : statusTlv.kSuccess);
@@ -4176,24 +4160,20 @@ exit:
     }
 }
 
-void MleRouter::HandleAddressRelease(void *               aContext,
-                                     otCoapHeader *       aHeader,
-                                     otMessage *          aMessage,
-                                     const otMessageInfo *aMessageInfo)
+void MleRouter::HandleAddressRelease(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
 {
-    static_cast<MleRouter *>(aContext)->HandleAddressRelease(*static_cast<Coap::Header *>(aHeader),
-                                                             *static_cast<Message *>(aMessage),
+    static_cast<MleRouter *>(aContext)->HandleAddressRelease(*static_cast<Coap::Message *>(aMessage),
                                                              *static_cast<const Ip6::MessageInfo *>(aMessageInfo));
 }
 
-void MleRouter::HandleAddressRelease(Coap::Header &aHeader, Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+void MleRouter::HandleAddressRelease(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     ThreadRloc16Tlv        rlocTlv;
     ThreadExtMacAddressTlv macAddr64Tlv;
     uint8_t                routerId;
     Router *               router;
 
-    VerifyOrExit(aHeader.GetType() == OT_COAP_TYPE_CONFIRMABLE && aHeader.GetCode() == OT_COAP_CODE_POST);
+    VerifyOrExit(aMessage.GetType() == OT_COAP_TYPE_CONFIRMABLE && aMessage.GetCode() == OT_COAP_CODE_POST);
 
     LogMleMessage("Receive Address Release", aMessageInfo.GetPeerAddr());
 
@@ -4210,7 +4190,7 @@ void MleRouter::HandleAddressRelease(Coap::Header &aHeader, Message &aMessage, c
 
     mRouterTable.Release(routerId);
 
-    SuccessOrExit(GetNetif().GetCoap().SendEmptyAck(aHeader, aMessageInfo));
+    SuccessOrExit(GetNetif().GetCoap().SendEmptyAck(aMessage, aMessageInfo));
 
     LogMleMessage("Send Address Release Reply", aMessageInfo.GetPeerAddr());
 
@@ -4714,13 +4694,11 @@ bool MleRouter::IsSleepyChildSubscribed(const Ip6::Address &aAddress, Child &aCh
 }
 
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
-otError MleRouter::HandleTimeSync(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
+void MleRouter::HandleTimeSync(const Message &aMessage, const Ip6::MessageInfo &aMessageInfo)
 {
     LogMleMessage("Receive Time Sync", aMessageInfo.GetPeerAddr());
 
     GetNetif().GetTimeSync().HandleTimeSyncMessage(aMessage);
-
-    return OT_ERROR_NONE;
 }
 
 otError MleRouter::SendTimeSync(void)
