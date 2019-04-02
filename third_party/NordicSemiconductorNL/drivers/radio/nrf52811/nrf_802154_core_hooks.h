@@ -88,6 +88,11 @@ bool nrf_802154_core_hooks_tx_failed(const uint8_t * p_frame, nrf_802154_tx_erro
  */
 bool nrf_802154_core_hooks_tx_started(const uint8_t * p_frame);
 
+#if NRF_802154_COEX_ENABLED
+void nrf_802154_core_hooks_rx_ended(bool success);
+void nrf_802154_core_hooks_tx_ended(bool success);
+#endif // NRF_802154_COEX_ENABLED
+
 /**
  *@}
  **/

@@ -44,6 +44,29 @@
  * @brief CSMA-CA procedure.
  */
 
+#if NRF_802154_COEX_ENABLED
+/**
+ * @brief Stop CSMA-CA procedure.
+ *
+ */
+void nrf_802154_csma_ca_stop_immediate(void);
+
+/**
+ * @brief Start CSMA-CA procedure for transmission of given frame.  First attempt happens immediately without backoff.
+ *
+ * If CSMA-CA procedure is successful and frame is transmitted @sa nrf_802154_tx_started()
+ * function is called. If CSMA/CA procedure failed and frame cannot be transmitted due to busy
+ * channel @sa nrf_802154_transmit_failed() function is called.
+ *
+ * @note CSMA-CA does not timeout waiting for ACK automatically. Waiting for ACK shall be timed out
+ *       by the next layer. ACK timeout timer shall start when @sa nrf_802154_tx_started()
+ *       function is called.
+ *
+ * @param[in]  p_data    Pointer to PSDU of frame that should be transmitted.
+ */
+void nrf_802154_csma_ca_start_immediate(const uint8_t * p_data);
+#endif // NRF_802154_COEX_ENABLED
+
 /**
  * @brief Start CSMA-CA procedure for transmission of given frame.
  *

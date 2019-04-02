@@ -65,6 +65,10 @@
 #include "mac_features/nrf_802154_filter.h"
 
 #include "nrf_802154_core_hooks.h"
+#if NRF_802154_COEX_ENABLED
+#include "raal/nrf_raal_api.h"
+#include "coex/nrf_coex_api.h"
+#endif // NRF_802154_COEX_ENABLED
 
 
 #define EGU_EVENT           NRF_EGU_EVENT_TRIGGERED15
@@ -194,6 +198,9 @@ typedef struct
 #if NRF_802154_TX_STARTED_NOTIFY_ENABLED
     bool tx_started            :1;  ///< If requested transmission has started.
 #endif // NRF_802154_TX_STARTED_NOTIFY_ENABLED
+#if NRF_802154_COEX_ENABLED
+    bool rx_coex_requested     :1;  ///< If coex for the frame being receive is already requested.
+#endif // NRF_802154_COEX_ENABLED
 } nrf_802154_flags_t;
 static nrf_802154_flags_t m_flags;  ///< Flags used to store current driver state.
 
@@ -222,6 +229,9 @@ static void rx_flags_clear(void)
 #if !NRF_802154_DISABLE_BCC_MATCHING
     m_flags.psdu_being_received   = false;
 #endif // !NRF_802154_DISABLE_BCC_MATCHING
+#if NRF_802154_COEX_ENABLED
+    m_flags.rx_coex_requested     = false;
+#endif // NRF_802154_COEX_ENABLED
 }
 
 /** Get result of last RSSI measurement.
@@ -258,8 +268,19 @@ static uint8_t lqi_get(const uint8_t * p_data)
     return (uint8_t)lqi;
 }
 
+#if NRF_802154_COEX_ENABLED
+static void receive_ended_notify(bool success)
+{
+    nrf_802154_core_hooks_rx_ended(success);
+}
+#endif
+
 static void received_frame_notify(uint8_t * p_psdu)
 {
+#if NRF_802154_COEX_ENABLED
+    receive_ended_notify(true);
+#endif // NRF_802154_COEX_ENABLED
+
     nrf_802154_notify_received(p_psdu,                       // data
                                rssi_last_measurement_get(),  // rssi
                                lqi_get(p_psdu));             // lqi
@@ -279,6 +300,10 @@ static void received_frame_notify_and_nesting_allow(uint8_t * p_psdu)
 static void receive_failed_notify(nrf_802154_rx_error_t error)
 {
     nrf_802154_critical_section_nesting_allow();
+
+#if NRF_802154_COEX_ENABLED
+    receive_ended_notify(false);
+#endif // NRF_802154_COEX_ENABLED
 
     nrf_802154_notify_receive_failed(error);
 
@@ -573,7 +598,7 @@ static void irq_deinit(void)
 {
     NVIC_DisableIRQ(RADIO_IRQn);
     NVIC_ClearPendingIRQ(RADIO_IRQn);
-    NVIC_SetPriority(RADIO_IRQn, 0);
+    NVIC_SetPriority(RADIO_IRQn, NRF_802154_IRQ_PRIORITY);  // for Nest FreeRTOS compatibility (including for NRF_802154_COEX_ENABLED)
 
     __DSB();
     __ISB();
@@ -949,6 +974,9 @@ static void sleep_terminate(void)
 {
     nrf_802154_priority_drop_timeslot_exit_terminate();
     nrf_802154_rsch_continuous_mode_enter();
+#if NRF_802154_COEX_ENABLED
+    nrf_coex_start();
+#endif // NRF_802154_COEX_ENABLED
 }
 
 /** Terminate RX procedure. */
@@ -1196,6 +1224,10 @@ static bool current_operation_terminate(nrf_802154_term_t term_lvl,
 
                         if (notify)
                         {
+#if NRF_802154_COEX_ENABLED
+                            receive_ended_notify(false);
+#endif // NRF_802154_COEX_ENABLED
+
                             nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_ABORTED);
                         }
                     }
@@ -1524,6 +1556,13 @@ static bool tx_init(const uint8_t * p_data, bool cca, bool disabled_was_triggere
         return false;
     }
 
+#if NRF_802154_COEX_ENABLED
+    if (!nrf_coex_grant_active())
+    {
+        return false;
+    }
+#endif // NRF_802154_COEX_ENABLED
+
     nrf_radio_tx_power_set(nrf_802154_pib_tx_power_get());
     nrf_radio_packet_ptr_set(p_data);
 
@@ -1611,6 +1650,13 @@ static void cca_init(bool disabled_was_triggered)
     {
         return;
     }
+
+#if NRF_802154_COEX_ENABLED
+    if (!nrf_coex_grant_active())
+    {
+        return;
+    }
+#endif // NRF_802154_COEX_ENABLED
 
     // Set shorts
     nrf_radio_shorts_set(SHORTS_CCA);
@@ -1853,6 +1899,12 @@ static void irq_bcmatch_state_rx(void)
             {
                 receive_failed_notify(filter_result);
             }
+#if NRF_802154_COEX_ENABLED
+            else
+            {
+                receive_ended_notify(false);
+            }
+#endif // NRF_802154_COEX_ENABLED
         }
         else
         {
@@ -1873,9 +1925,35 @@ static void irq_bcmatch_state_rx(void)
             // Disable receiver and wait for a new timeslot.
             rx_terminate();
 
+#if NRF_802154_COEX_ENABLED
+            receive_ended_notify(false);
+            frame_accepted = false;
+#endif // NRF_802154_COEX_ENABLED
+
             nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_TIMESLOT_ENDED);
         }
     }
+
+#if NRF_802154_COEX_ENABLED
+    if ((!m_flags.rx_coex_requested) && (frame_accepted))
+    {
+        if (nrf_coex_rx_request())
+        {
+            m_flags.rx_coex_requested = true;
+        }
+        else
+        {
+            // If a coex rx request is not granted then we need to abort the rx frame
+            // and re-establish a known radio state (RX) that is in sync with the
+            // current state of the coex driver.  There may be other ways to accomplish
+            // this internal to nrf_802154_core.c, however, these APIs are the same public
+            // APIs that are used to accomplish this from the external coex driver when required.
+            nrf_raal_timeslot_ended();
+            nrf_raal_timeslot_started();
+        }
+    }
+#endif // NRF_802154_COEX_ENABLED
+
 }
 #endif //!NRF_802154_DISABLE_BCC_MATCHING
 
@@ -1944,6 +2022,27 @@ static void irq_crcok_state_rx(void)
         return;
     }
 #endif // NRF_802154_DISABLE_BCC_MATCHING
+
+#if NRF_802154_COEX_ENABLED
+    // coex request
+    if (m_flags.frame_filtered &&
+        ack_is_requested(p_received_psdu) &&
+        !nrf_coex_ack_request())
+    {
+        // Frame is destined to this node but coex has denied request to transmit ACK
+        state_set(RADIO_STATE_TX_ACK);
+
+        // If a coex ack tx request is not granted then we need to abort the rx frame
+        // and re-establish a known radio state (RX) that is in sync with the current
+        // state of the coex driver.  There may be other ways to accomplish this internal
+        // to nrf_802154_core.c, however, these APIs are the same public APIs that
+        // are used to accomplish this from the external coex driver when required.
+        nrf_raal_timeslot_ended();
+        nrf_raal_timeslot_started();
+
+        return;
+    }
+#endif // NRF_802154_COEX_ENABLED
 
     if (m_flags.frame_filtered || nrf_802154_pib_promiscuous_get())
     {
@@ -2092,6 +2191,10 @@ static void irq_crcok_state_rx(void)
                 {
                     nrf_radio_task_trigger(NRF_RADIO_TASK_START);
                 }
+
+#if NRF_802154_COEX_ENABLED
+                receive_ended_notify(false);
+#endif // NRF_802154_COEX_ENABLED
             }
         }
     }

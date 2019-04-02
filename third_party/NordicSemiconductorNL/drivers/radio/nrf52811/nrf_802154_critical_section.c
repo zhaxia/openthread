@@ -44,6 +44,9 @@
 #include "nrf_802154_rsch.h"
 #include "hal/nrf_radio.h"
 #include "platform/lp_timer/nrf_802154_lp_timer.h"
+#if NRF_802154_COEX_ENABLED
+#include "coex/nrf_coex_api.h"
+#endif // NRF_802154_COEX_ENABLED
 
 #include <nrf.h>
 
@@ -220,6 +223,10 @@ static bool critical_section_enter(bool forced)
         __DSB();
         __ISB();
 
+#if NRF_802154_COEX_ENABLED
+        nrf_coex_critical_section_enter();
+#endif // NRF_802154_COEX_ENABLED
+
         m_critical_section_monitor++;
 
         result = true;
@@ -256,6 +263,9 @@ static void critical_section_exit(void)
             exiting_crit_sect = true;
 
             rsch_evt_process(rsch_evt);
+#if NRF_802154_COEX_ENABLED
+            nrf_coex_critical_section_exit();
+#endif // NRF_802154_COEX_ENABLED
             radio_critical_section_exit();
             nrf_802154_lp_timer_critical_section_exit();
 
