@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017, The OpenThread Authors.
+ *  Copyright (c) 2019, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,40 +26,41 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef OPENTHREAD_CONSOLE_CLI_H_
+#define OPENTHREAD_CONSOLE_CLI_H_
+
+#include <stdint.h>
+
+#include "openthread-system.h"
+
 /**
- * @file
- *   This file includes definitions for owner locator.
+ * This function initializes CLI console.
+ *
+ * @param[in]  aInstance    A pointer to the OpenThread instance.
+ *
  */
+void otxConsoleInit(otInstance *aInstance);
 
-#ifndef OWNER_LOCATOR_HPP_
-#define OWNER_LOCATOR_HPP_
+/**
+ * This function deinitializes CLI console
+ *
+ */
+void otxConsoleDeinit(void);
 
-#include "openthread-core-config.h"
+/**
+ * This function updates the file descriptor sets with file descriptors used by console.
+ *
+ * @param[inout]    aMainloop   A pointer to the mainloop context.
+ *
+ */
+void otxConsoleUpdate(otSysMainloopContext *aMainloop);
 
-#include "common/instance.hpp"
-#include "common/locator.hpp"
+/**
+ * This function performs console driver processing.
+ *
+ * @param[in]    aMainloop      A pointer to the mainloop context.
+ *
+ */
+void otxConsoleProcess(const otSysMainloopContext *aMainloop);
 
-namespace ot {
-
-#if !OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
-
-template <typename OwnerType> OwnerType &OwnerLocator::GetOwner(void)
-{
-    // This method uses the `Instance` template method `Get<Type>`
-    // to get to the given `Type` from the single OpenThread
-    // instance.
-    //
-    // The specializations of `Instance::Get<Type>` should be defined
-    // for any class (type) which would use `GetOwner<Type>` method
-    // (i.e., any class that is an owner of a callback providing object
-    // such as a `Timer`, `Tasklet`, or in general any sub-class of
-    // `OwnerLocator`).
-
-    return Instance::Get().Get<OwnerType>();
-}
-
-#endif
-
-} // namespace ot
-
-#endif // OWNER_LOCATOR_HPP_
+#endif // OPENTHREAD_CONSOLE_CLI_H_

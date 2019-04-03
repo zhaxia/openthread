@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017, The OpenThread Authors.
+ *  Copyright (c) 2019, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,40 +28,45 @@
 
 /**
  * @file
- *   This file implements the locator class for OpenThread objects.
+ * @brief
+ *   This file defines the software source match table interfaces used by
+ *   soft_source_match_table.c.
  */
 
-#define WPP_NAME "locator.tmh"
+#ifndef SOFT_SOURCE_MATCH_TABLE_H
+#define SOFT_SOURCE_MATCH_TABLE_H
 
-#include "locator.hpp"
+#include "openthread-core-config.h"
+#include <openthread/platform/radio.h>
 
-#include "common/instance.hpp"
-#include "net/ip6.hpp"
+#include <stdint.h>
 
-namespace ot {
-
-#if !OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
-Instance &InstanceLocator::GetInstance(void) const
-{
-    return Instance::Get();
-}
+#ifdef __cplusplus
+extern "C" {
 #endif
 
-#if OPENTHREAD_MTD || OPENTHREAD_FTD
-Ip6::Ip6 &InstanceLocator::GetIp6(void) const
-{
-    return GetInstance().GetIp6();
-}
+#ifndef RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
+#define RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM 0
+#endif
 
-ThreadNetif &InstanceLocator::GetNetif(void) const
-{
-    return GetInstance().GetThreadNetif();
-}
+#ifndef RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
+#define RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM 0
+#endif
 
-Notifier &InstanceLocator::GetNotifier(void) const
-{
-    return GetInstance().GetNotifier();
-}
-#endif // OPENTHREAD_MTD || OPENTHREAD_FTD
+#if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
+void utilsSoftSrcMatchSetPanId(uint16_t aPanId);
+#endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM || RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
 
-} // namespace ot
+#if RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
+int8_t utilsSoftSrcMatchShortFindEntry(const uint16_t aShortAddress);
+#endif // RADIO_CONFIG_SRC_MATCH_SHORT_ENTRY_NUM
+
+#if RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
+int8_t utilsSoftSrcMatchExtFindEntry(const otExtAddress *aExtAddress);
+#endif // RADIO_CONFIG_SRC_MATCH_EXT_ENTRY_NUM
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // SOFT_SOURCE_MATCH_TABLE_H

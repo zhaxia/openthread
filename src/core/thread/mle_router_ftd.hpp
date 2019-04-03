@@ -74,6 +74,7 @@ namespace Mle {
 class MleRouter : public Mle
 {
     friend class Mle;
+    friend class ot::Instance;
 
 public:
     /**
@@ -333,14 +334,6 @@ public:
      *
      */
     void RemoveNeighbor(Neighbor &aNeighbor);
-
-    /**
-     * This method gets the `ChildTable` object.
-     *
-     * @returns  A reference to the `ChildTable`.
-     *
-     */
-    ChildTable &GetChildTable(void) { return mChildTable; }
 
     /**
      * This method restores children information from non-volatile memory.
@@ -652,12 +645,6 @@ public:
     void ResetAdvertiseInterval(void);
 
     /**
-     * This method returns a reference to the router table object.
-     *
-     */
-    RouterTable &GetRouterTable(void) { return mRouterTable; }
-
-    /**
      * This static method converts link quality to route cost.
      *
      * @param[in]  aLinkQuality  The link quality.
@@ -700,7 +687,7 @@ private:
     otError HandleLinkAccept(const Message &         aMessage,
                              const Ip6::MessageInfo &aMessageInfo,
                              uint32_t                aKeySequence,
-                             bool                    request);
+                             bool                    aRequest);
     otError HandleLinkAcceptAndRequest(const Message &         aMessage,
                                        const Ip6::MessageInfo &aMessageInfo,
                                        uint32_t                aKeySequence);
@@ -739,7 +726,7 @@ private:
                                     const Ip6::MessageInfo &aMessageInfo,
                                     const uint8_t *         aTlvs,
                                     uint8_t                 aTlvsLength,
-                                    const ChallengeTlv *    challenge);
+                                    const ChallengeTlv *    aChallenge);
     otError SendDataResponse(const Ip6::Address &aDestination,
                              const uint8_t *     aTlvs,
                              uint8_t             aTlvsLength,
@@ -751,13 +738,13 @@ private:
     void    StopLeader(void);
     void    SynchronizeChildNetworkData(void);
     otError UpdateChildAddresses(const Message &aMessage, uint16_t aOffset, Child &aChild);
-    void    UpdateRoutes(const RouteTlv &aTlv, uint8_t aRouterId);
+    void    UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId);
 
     static void HandleAddressSolicitResponse(void *               aContext,
                                              otMessage *          aMessage,
                                              const otMessageInfo *aMessageInfo,
-                                             otError              result);
-    void HandleAddressSolicitResponse(Coap::Message *aMessage, const Ip6::MessageInfo *aMessageInfo, otError result);
+                                             otError              aResult);
+    void HandleAddressSolicitResponse(Coap::Message *aMessage, const Ip6::MessageInfo *aMessageInfo, otError aResult);
     static void HandleAddressRelease(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);
     void        HandleAddressRelease(Coap::Message &aMessage, const Ip6::MessageInfo &aMessageInfo);
     static void HandleAddressSolicit(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo);

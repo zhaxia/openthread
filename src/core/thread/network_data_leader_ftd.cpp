@@ -44,9 +44,9 @@
 #include "common/debug.hpp"
 #include "common/encoding.hpp"
 #include "common/instance.hpp"
+#include "common/locator-getters.hpp"
 #include "common/logging.hpp"
 #include "common/message.hpp"
-#include "common/owner-locator.hpp"
 #include "common/timer.hpp"
 #include "mac/mac_frame.hpp"
 #include "meshcop/meshcop.hpp"
@@ -82,34 +82,30 @@ void Leader::Reset(void)
 
 void Leader::Start(void)
 {
-    Coap::Coap &coap = GetNetif().GetCoap();
-
-    coap.AddResource(mServerData);
-    coap.AddResource(mCommissioningDataGet);
-    coap.AddResource(mCommissioningDataSet);
+    Get<Coap::Coap>().AddResource(mServerData);
+    Get<Coap::Coap>().AddResource(mCommissioningDataGet);
+    Get<Coap::Coap>().AddResource(mCommissioningDataSet);
 }
 
 void Leader::Stop(void)
 {
-    Coap::Coap &coap = GetNetif().GetCoap();
-
-    coap.RemoveResource(mServerData);
-    coap.RemoveResource(mCommissioningDataGet);
-    coap.RemoveResource(mCommissioningDataSet);
+    Get<Coap::Coap>().RemoveResource(mServerData);
+    Get<Coap::Coap>().RemoveResource(mCommissioningDataGet);
+    Get<Coap::Coap>().RemoveResource(mCommissioningDataSet);
 }
 
 void Leader::IncrementVersion(void)
 {
-    if (GetNetif().GetMle().GetRole() == OT_DEVICE_ROLE_LEADER)
+    if (Get<Mle::MleRouter>().GetRole() == OT_DEVICE_ROLE_LEADER)
     {
         mVersion++;
-        GetNotifier().Signal(OT_CHANGED_THREAD_NETDATA);
+        Get<Notifier>().Signal(OT_CHANGED_THREAD_NETDATA);
     }
 }
 
 void Leader::IncrementStableVersion(void)
 {
-    if (GetNetif().GetMle().GetRole() == OT_DEVICE_ROLE_LEADER)
+    if (Get<Mle::MleRouter>().GetRole() == OT_DEVICE_ROLE_LEADER)
     {
         mStableVersion++;
     }
@@ -141,7 +137,7 @@ void Leader::RemoveBorderRouter(uint16_t aRloc16, MatchMode aMatchMode)
         mStableVersion++;
     }
 
-    GetNotifier().Signal(OT_CHANGED_THREAD_NETDATA);
+    Get<Notifier>().Signal(OT_CHANGED_THREAD_NETDATA);
 
 exit:
     return;
@@ -173,7 +169,7 @@ void Leader::HandleServerData(Coap::Message &aMessage, const Ip6::MessageInfo &a
                             networkData.GetLength());
     }
 
-    SuccessOrExit(GetNetif().GetCoap().SendEmptyAck(aMessage, aMessageInfo));
+    SuccessOrExit(Get<Coap::Coap>().SendEmptyAck(aMessage, aMessageInfo));
 
     otLogInfoNetData("Sent network data registration acknowledgment");
 
@@ -201,7 +197,7 @@ void Leader::HandleCommissioningSet(Coap::Message &aMessage, const Ip6::MessageI
     MeshCoP::Tlv *end;
 
     VerifyOrExit(length <= sizeof(tlvs));
-    VerifyOrExit(GetNetif().GetMle().GetRole() == OT_DEVICE_ROLE_LEADER);
+    VerifyOrExit(Get<Mle::MleRouter>().GetRole() == OT_DEVICE_ROLE_LEADER);
 
     aMessage.Read(offset, length, tlvs);
 
@@ -280,12 +276,10 @@ void Leader::HandleCommissioningSet(Coap::Message &aMessage, const Ip6::MessageI
 
 exit:
 
-    if (GetNetif().GetMle().GetRole() == OT_DEVICE_ROLE_LEADER)
+    if (Get<Mle::MleRouter>().GetRole() == OT_DEVICE_ROLE_LEADER)
     {
         SendCommissioningSetResponse(aMessage, aMessageInfo, state);
     }
-
-    return;
 }
 
 void Leader::HandleCommissioningGet(void *aContext, otMessage *aMessage, const otMessageInfo *aMessageInfo)
@@ -320,17 +314,16 @@ void Leader::HandleCommissioningGet(Coap::Message &aMessage, const Ip6::MessageI
 
 void Leader::SendCommissioningGetResponse(const Coap::Message &   aRequest,
                                           const Ip6::MessageInfo &aMessageInfo,
-                                          uint8_t *               aTlvs,
+                                          const uint8_t *         aTlvs,
                                           uint8_t                 aLength)
 {
-    ThreadNetif &  netif = GetNetif();
     otError        error = OT_ERROR_NONE;
     Coap::Message *message;
     uint8_t        index;
     uint8_t *      data   = NULL;
     uint8_t        length = 0;
 
-    VerifyOrExit((message = MeshCoP::NewMeshCoPMessage(netif.GetCoap())) != NULL, error = OT_ERROR_NO_BUFS);
+    VerifyOrExit((message = MeshCoP::NewMeshCoPMessage(Get<Coap::Coap>())) != NULL, error = OT_ERROR_NO_BUFS);
 
     message->SetDefaultResponseHeader(aRequest);
     message->SetPayloadMarker();
@@ -374,7 +367,7 @@ void Leader::SendCommissioningGetResponse(const Coap::Message &   aRequest,
         message->SetLength(message->GetLength() - 1);
     }
 
-    SuccessOrExit(error = netif.GetCoap().SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, aMessageInfo));
 
     otLogInfoMeshCoP("sent commissioning dataset get response");
 
@@ -390,12 +383,11 @@ void Leader::SendCommissioningSetResponse(const Coap::Message &    aRequest,
                                           const Ip6::MessageInfo & aMessageInfo,
                                           MeshCoP::StateTlv::State aState)
 {
-    ThreadNetif &     netif = GetNetif();
     otError           error = OT_ERROR_NONE;
     Coap::Message *   message;
     MeshCoP::StateTlv state;
 
-    VerifyOrExit((message = MeshCoP::NewMeshCoPMessage(netif.GetCoap())) != NULL, error = OT_ERROR_NO_BUFS);
+    VerifyOrExit((message = MeshCoP::NewMeshCoPMessage(Get<Coap::Coap>())) != NULL, error = OT_ERROR_NO_BUFS);
 
     message->SetDefaultResponseHeader(aRequest);
     message->SetPayloadMarker();
@@ -404,7 +396,7 @@ void Leader::SendCommissioningSetResponse(const Coap::Message &    aRequest,
     state.SetState(aState);
     SuccessOrExit(error = message->Append(&state, sizeof(state)));
 
-    SuccessOrExit(error = netif.GetCoap().SendMessage(*message, aMessageInfo));
+    SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, aMessageInfo));
 
     otLogInfoMeshCoP("sent commissioning dataset set response");
 
@@ -693,14 +685,14 @@ bool Leader::IsStableUpdated(uint8_t *aTlvs, uint8_t aTlvsLength, uint8_t *aTlvs
                         case NetworkDataTlv::kTypeServer:
                         {
                             bool       foundInBase = false;
-                            ServerTlv *server      = reinterpret_cast<ServerTlv *>(curInner);
+                            ServerTlv *server      = static_cast<ServerTlv *>(curInner);
 
-                            NetworkDataTlv *curServerBase = service->GetSubTlvs();
-                            NetworkDataTlv *endServerBase = service->GetNext();
+                            NetworkDataTlv *curServerBase = serviceBase->GetSubTlvs();
+                            NetworkDataTlv *endServerBase = serviceBase->GetNext();
 
                             while (curServerBase <= endServerBase)
                             {
-                                ServerTlv *serverBase = reinterpret_cast<ServerTlv *>(curServerBase);
+                                ServerTlv *serverBase = static_cast<ServerTlv *>(curServerBase);
 
                                 if (curServerBase->IsStable() && (server->GetServer16() == serverBase->GetServer16()) &&
                                     (server->GetServerDataLength() == serverBase->GetServerDataLength()) &&
@@ -794,7 +786,7 @@ otError Leader::RegisterNetworkData(uint16_t aRloc16, uint8_t *aTlvs, uint8_t aT
         }
     }
 
-    GetNotifier().Signal(OT_CHANGED_THREAD_NETDATA);
+    Get<Notifier>().Signal(OT_CHANGED_THREAD_NETDATA);
 
 exit:
     return error;
@@ -1040,7 +1032,7 @@ otError Leader::AddServer(ServiceTlv &aService, ServerTlv &aServer, uint8_t *aOl
         dstService->SetLength(serviceInsertLength - sizeof(NetworkDataTlv));
     }
 
-    dstServer = reinterpret_cast<ServerTlv *>(dstService->GetNext());
+    dstServer = static_cast<ServerTlv *>(dstService->GetNext());
 
     Insert(reinterpret_cast<uint8_t *>(dstServer), sizeof(ServerTlv) + aServer.GetServerDataLength());
     dstServer->Init();
@@ -1071,7 +1063,7 @@ ServiceTlv *Leader::FindServiceById(uint8_t aServiceId)
 
         if (cur->GetType() == NetworkDataTlv::kTypeService)
         {
-            compare = reinterpret_cast<ServiceTlv *>(cur);
+            compare = static_cast<ServiceTlv *>(cur);
 
             if (compare->GetServiceID() == aServiceId)
             {
@@ -1203,7 +1195,7 @@ void Leader::FreeContext(uint8_t aContextId)
     mContextUsed &= ~(1 << aContextId);
     mVersion++;
     mStableVersion++;
-    GetNotifier().Signal(OT_CHANGED_THREAD_NETDATA);
+    Get<Notifier>().Signal(OT_CHANGED_THREAD_NETDATA);
 }
 
 void Leader::StartContextReuseTimer(uint8_t aContextId)
@@ -1304,15 +1296,15 @@ void Leader::RemoveRloc(uint16_t aRloc16, MatchMode aMatchMode)
     otDumpDebgNetData("remove done", mTlvs, mLength);
 }
 
-void Leader::RemoveRloc(PrefixTlv &prefix, uint16_t aRloc16, MatchMode aMatchMode)
+void Leader::RemoveRloc(PrefixTlv &aPrefix, uint16_t aRloc16, MatchMode aMatchMode)
 {
-    NetworkDataTlv *cur = prefix.GetSubTlvs();
+    NetworkDataTlv *cur = aPrefix.GetSubTlvs();
     NetworkDataTlv *end;
     ContextTlv *    context;
 
     while (1)
     {
-        end = prefix.GetNext();
+        end = aPrefix.GetNext();
 
         if (cur >= end)
         {
@@ -1322,12 +1314,12 @@ void Leader::RemoveRloc(PrefixTlv &prefix, uint16_t aRloc16, MatchMode aMatchMod
         switch (cur->GetType())
         {
         case NetworkDataTlv::kTypeHasRoute:
-            RemoveRloc(prefix, *static_cast<HasRouteTlv *>(cur), aRloc16, aMatchMode);
+            RemoveRloc(aPrefix, *static_cast<HasRouteTlv *>(cur), aRloc16, aMatchMode);
 
             // remove has route tlv if empty
             if (cur->GetLength() == 0)
             {
-                prefix.SetSubTlvsLength(prefix.GetSubTlvsLength() - sizeof(HasRouteTlv));
+                aPrefix.SetSubTlvsLength(aPrefix.GetSubTlvsLength() - sizeof(HasRouteTlv));
                 Remove(reinterpret_cast<uint8_t *>(cur), sizeof(HasRouteTlv));
                 continue;
             }
@@ -1335,12 +1327,12 @@ void Leader::RemoveRloc(PrefixTlv &prefix, uint16_t aRloc16, MatchMode aMatchMod
             break;
 
         case NetworkDataTlv::kTypeBorderRouter:
-            RemoveRloc(prefix, *static_cast<BorderRouterTlv *>(cur), aRloc16, aMatchMode);
+            RemoveRloc(aPrefix, *static_cast<BorderRouterTlv *>(cur), aRloc16, aMatchMode);
 
             // remove border router tlv if empty
             if (cur->GetLength() == 0)
             {
-                prefix.SetSubTlvsLength(prefix.GetSubTlvsLength() - sizeof(BorderRouterTlv));
+                aPrefix.SetSubTlvsLength(aPrefix.GetSubTlvsLength() - sizeof(BorderRouterTlv));
                 Remove(reinterpret_cast<uint8_t *>(cur), sizeof(BorderRouterTlv));
                 continue;
             }
@@ -1354,9 +1346,9 @@ void Leader::RemoveRloc(PrefixTlv &prefix, uint16_t aRloc16, MatchMode aMatchMod
         cur = cur->GetNext();
     }
 
-    if ((context = FindContext(prefix)) != NULL)
+    if ((context = FindContext(aPrefix)) != NULL)
     {
-        if (prefix.GetSubTlvsLength() == sizeof(ContextTlv))
+        if (aPrefix.GetSubTlvsLength() == sizeof(ContextTlv))
         {
             context->ClearCompress();
             StartContextReuseTimer(context->GetContextId());
@@ -1370,16 +1362,16 @@ void Leader::RemoveRloc(PrefixTlv &prefix, uint16_t aRloc16, MatchMode aMatchMod
 }
 
 #if OPENTHREAD_ENABLE_SERVICE
-void Leader::RemoveRloc(ServiceTlv &service, uint16_t aRloc16, MatchMode aMatchMode)
+void Leader::RemoveRloc(ServiceTlv &aService, uint16_t aRloc16, MatchMode aMatchMode)
 {
-    NetworkDataTlv *cur = service.GetSubTlvs();
+    NetworkDataTlv *cur = aService.GetSubTlvs();
     NetworkDataTlv *end;
     ServerTlv *     server;
     uint8_t         removeLength;
 
     while (1)
     {
-        end = service.GetNext();
+        end = aService.GetNext();
 
         if (cur >= end)
         {
@@ -1394,7 +1386,7 @@ void Leader::RemoveRloc(ServiceTlv &service, uint16_t aRloc16, MatchMode aMatchM
             if (RlocMatch(server->GetServer16(), aRloc16, aMatchMode))
             {
                 removeLength = sizeof(ServerTlv) + server->GetServerDataLength();
-                service.SetSubTlvsLength(service.GetSubTlvsLength() - removeLength);
+                aService.SetSubTlvsLength(aService.GetSubTlvsLength() - removeLength);
                 Remove(reinterpret_cast<uint8_t *>(cur), removeLength);
                 continue;
             }

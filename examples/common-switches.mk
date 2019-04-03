@@ -53,7 +53,8 @@ MAC_FILTER          ?= 0
 MTD_NETDIAG         ?= 0
 PLATFORM_UDP        ?= 0
 SERVICE             ?= 0
-SLAAC               ?= 1  # SLAAC is enabled by default
+# SLAAC is enabled by default
+SLAAC               ?= 1
 SNTP_CLIENT         ?= 0
 TIME_SYNC           ?= 0
 UDP_FORWARD         ?= 0
@@ -169,7 +170,7 @@ configure_OPTIONS              += --enable-sntp-client
 endif
 
 ifeq ($(TIME_SYNC),1)
-COMMONCFLAGS                   += -DPENTHREAD_CONFIG_ENABLE_TIME_SYNC=1
+COMMONCFLAGS                   += -DOPENTHREAD_CONFIG_ENABLE_TIME_SYNC=1 -DOPENTHREAD_CONFIG_HEADER_IE_SUPPORT=1
 endif
 
 ifeq ($(UDP_FORWARD),1)

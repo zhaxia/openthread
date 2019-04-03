@@ -40,6 +40,7 @@
 
 #include "common/code_utils.hpp"
 #include "common/instance.hpp"
+#include "common/locator-getters.hpp"
 #include "common/logging.hpp"
 #include "common/settings.hpp"
 #include "meshcop/dataset.hpp"
@@ -62,7 +63,7 @@ void DatasetLocal::Clear(void)
 {
     mTimestamp.Init();
     mTimestampPresent = false;
-    GetInstance().GetSettings().DeleteOperationalDataset(IsActive());
+    Get<Settings>().DeleteOperationalDataset(IsActive());
 }
 
 otError DatasetLocal::Restore(Dataset &aDataset)
@@ -70,7 +71,7 @@ otError DatasetLocal::Restore(Dataset &aDataset)
     const Timestamp *timestamp;
     otError          error;
 
-    error = Get(aDataset);
+    error = Read(aDataset);
     SuccessOrExit(error);
 
     timestamp = aDataset.GetTimestamp();
@@ -89,13 +90,13 @@ exit:
     return error;
 }
 
-otError DatasetLocal::Get(Dataset &aDataset) const
+otError DatasetLocal::Read(Dataset &aDataset) const
 {
     DelayTimerTlv *delayTimer;
     uint32_t       elapsed;
     otError        error;
 
-    error = GetInstance().GetSettings().ReadOperationalDataset(IsActive(), aDataset);
+    error = Get<Settings>().ReadOperationalDataset(IsActive(), aDataset);
     VerifyOrExit(error == OT_ERROR_NONE, aDataset.mLength = 0);
 
     if (mType == Tlv::kActiveTimestamp)
@@ -126,14 +127,14 @@ exit:
     return error;
 }
 
-otError DatasetLocal::Get(otOperationalDataset &aDataset) const
+otError DatasetLocal::Read(otOperationalDataset &aDataset) const
 {
     Dataset dataset(mType);
     otError error;
 
     memset(&aDataset, 0, sizeof(aDataset));
 
-    error = Get(dataset);
+    error = Read(dataset);
     SuccessOrExit(error);
 
     dataset.Get(aDataset);
@@ -142,7 +143,7 @@ exit:
     return error;
 }
 
-otError DatasetLocal::Set(const otOperationalDataset &aDataset)
+otError DatasetLocal::Save(const otOperationalDataset &aDataset)
 {
     otError error = OT_ERROR_NONE;
     Dataset dataset(mType);
@@ -150,26 +151,26 @@ otError DatasetLocal::Set(const otOperationalDataset &aDataset)
     error = dataset.Set(aDataset);
     SuccessOrExit(error);
 
-    error = Set(dataset);
+    error = Save(dataset);
     SuccessOrExit(error);
 
 exit:
     return error;
 }
 
-otError DatasetLocal::Set(const Dataset &aDataset)
+otError DatasetLocal::Save(const Dataset &aDataset)
 {
     const Timestamp *timestamp;
     otError          error;
 
     if (aDataset.GetSize() == 0)
     {
-        error = GetInstance().GetSettings().DeleteOperationalDataset(IsActive());
+        error = Get<Settings>().DeleteOperationalDataset(IsActive());
         otLogInfoMeshCoP("%s dataset deleted", mType == Tlv::kActiveTimestamp ? "Active" : "Pending");
     }
     else
     {
-        error = GetInstance().GetSettings().SaveOperationalDataset(IsActive(), aDataset);
+        error = Get<Settings>().SaveOperationalDataset(IsActive(), aDataset);
         otLogInfoMeshCoP("%s dataset set", mType == Tlv::kActiveTimestamp ? "Active" : "Pending");
     }
 
@@ -193,11 +194,11 @@ exit:
     return error;
 }
 
-int DatasetLocal::Compare(const Timestamp *aCompareTimestamp)
+int DatasetLocal::Compare(const Timestamp *aCompare)
 {
     int rval = 1;
 
-    if (aCompareTimestamp == NULL)
+    if (aCompare == NULL)
     {
         if (!mTimestampPresent)
         {
@@ -216,7 +217,7 @@ int DatasetLocal::Compare(const Timestamp *aCompareTimestamp)
         }
         else
         {
-            rval = mTimestamp.Compare(*aCompareTimestamp);
+            rval = mTimestamp.Compare(*aCompare);
         }
     }
 

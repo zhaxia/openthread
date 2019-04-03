@@ -468,15 +468,15 @@ AC_ARG_ENABLE(posix-app,
     [enable_posix_app=no])
 
 if test "$enable_posix_app" = "yes"; then
-    OPENTHREAD_ENABLE_POSIX_APP=1
+    OPENTHREAD_PLATFORM_POSIX_APP=1
 else
-    OPENTHREAD_ENABLE_POSIX_APP=0
+    OPENTHREAD_PLATFORM_POSIX_APP=0
 fi
 
 AC_MSG_RESULT(${enable_posix_app})
-AC_SUBST(OPENTHREAD_ENABLE_POSIX_APP)
-AM_CONDITIONAL([OPENTHREAD_ENABLE_POSIX_APP], [test "${enable_posix_app}" = "yes"])
-AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_POSIX_APP], [${OPENTHREAD_ENABLE_POSIX_APP}], [Define to 1 to build posix application.])
+AC_SUBST(OPENTHREAD_PLATFORM_POSIX_APP)
+AM_CONDITIONAL([OPENTHREAD_PLATFORM_POSIX_APP], [test "${enable_posix_app}" = "yes"])
+AC_DEFINE_UNQUOTED([OPENTHREAD_PLATFORM_POSIX_APP], [${OPENTHREAD_PLATFORM_POSIX_APP}], [Define to 1 to build posix application.])
 
 #
 # POSIX Daemon
@@ -744,6 +744,30 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_NCP_UART], [test "${with_ncp_bus}"  = "uart"])
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_NCP_UART],[${OPENTHREAD_ENABLE_NCP_UART}],[Define to 1 to enable the NCP UART interface.])
 AC_MSG_CHECKING([should NCP support UART])
 AC_MSG_RESULT([${OPENTHREAD_ENABLE_UART}])
+
+#
+# Readline - readline library to use for POSIX CLI
+#
+
+AC_ARG_WITH(
+    [readline],
+    [AS_HELP_STRING([--with-readline],[Specify the readline library (none|readline|edit) @<:@default=none@:>@.])],
+    [],
+    [with_readline=none])
+
+case "${with_readline}" in
+"none")
+    ;;
+"readline")
+    AC_CHECK_LIB([readline], [rl_callback_handler_install])
+    ;;
+"edit")
+    AC_CHECK_LIB([edit], [rl_callback_handler_install])
+    ;;
+*)
+    AC_MSG_ERROR([unexpected --with-readline=${with_readline}])
+    ;;
+esac
 
 #
 # Thread UDP forward
@@ -1661,7 +1685,6 @@ AC_SUBST(OPENTHREAD_ENABLE_ECDSA)
 AM_CONDITIONAL([OPENTHREAD_ENABLE_ECDSA], [test "${enable_ecdsa}" = "yes"])
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_ECDSA], [${OPENTHREAD_ENABLE_ECDSA}], [Define to 1 if you want to enable ECDSA support])
 
-
 #
 # Examples
 #
@@ -1846,7 +1869,7 @@ NL_ENABLE_DOCS([auto],[NO])
 
 AM_CONDITIONAL(OPENTHREAD_BUILD_DOCS, [test "${nl_cv_build_docs}" = "yes"])
 
-AM_CONDITIONAL(OPENTHREAD_POSIX, [test "${OPENTHREAD_ENABLE_POSIX_APP}" = "1" -o "${OPENTHREAD_EXAMPLES_POSIX}" = "1"])
+AM_CONDITIONAL(OPENTHREAD_POSIX, [test "${OPENTHREAD_PLATFORM_POSIX_APP}" = "1" -o "${OPENTHREAD_EXAMPLES_POSIX}" = "1"])
 
 #
 # Checks for libraries and packages.
