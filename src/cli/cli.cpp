@@ -113,6 +113,7 @@ const struct Command Interpreter::sCommands[] = {
     {"channel", &Interpreter::ProcessChannel},
 #if OPENTHREAD_FTD
     {"child", &Interpreter::ProcessChild},
+    {"childip", &Interpreter::ProcessChildIp},
     {"childmax", &Interpreter::ProcessChildMax},
 #endif
     {"childtimeout", &Interpreter::ProcessChildTimeout},
@@ -247,12 +248,7 @@ const struct Command Interpreter::sCommands[] = {
     {"version", &Interpreter::ProcessVersion},
 };
 
-#ifdef OTDLL
-uint32_t otPlatRandomGet(void)
-{
-    return (uint32_t)rand();
-}
-#else
+#ifndef OTDLL
 void otFreeMemory(const void *)
 {
     // No-op on systems running OpenThread in-proc
@@ -403,6 +399,14 @@ void Interpreter::OutputBytes(const uint8_t *aBytes, uint8_t aLength) const
     {
         mServer->OutputFormat("%02x", aBytes[i]);
     }
+}
+
+void Interpreter::OutputIp6Address(const otIp6Address &aAddress) const
+{
+    mServer->OutputFormat(
+        "%x:%x:%x:%x:%x:%x:%x:%x", HostSwap16(aAddress.mFields.m16[0]), HostSwap16(aAddress.mFields.m16[1]),
+        HostSwap16(aAddress.mFields.m16[2]), HostSwap16(aAddress.mFields.m16[3]), HostSwap16(aAddress.mFields.m16[4]),
+        HostSwap16(aAddress.mFields.m16[5]), HostSwap16(aAddress.mFields.m16[6]), HostSwap16(aAddress.mFields.m16[7]));
 }
 
 otError Interpreter::ParseLong(char *aString, long &aLong)
@@ -783,6 +787,42 @@ exit:
     AppendResult(error);
 }
 
+void Interpreter::ProcessChildIp(int argc, char *argv[])
+{
+    otError error = OT_ERROR_NONE;
+    uint8_t maxChildren;
+
+    VerifyOrExit(argc == 0, error = OT_ERROR_INVALID_ARGS);
+
+    maxChildren = otThreadGetMaxAllowedChildren(mInstance);
+
+    for (uint8_t childIndex = 0; childIndex < maxChildren; childIndex++)
+    {
+        otChildIp6AddressIterator iterator = OT_CHILD_IP6_ADDRESS_ITERATOR_INIT;
+        otIp6Address              ip6Address;
+        otChildInfo               childInfo;
+
+        if ((otThreadGetChildInfoByIndex(mInstance, childIndex, &childInfo) != OT_ERROR_NONE) ||
+            childInfo.mIsStateRestoring)
+        {
+            continue;
+        }
+
+        iterator = OT_CHILD_IP6_ADDRESS_ITERATOR_INIT;
+
+        while (otThreadGetChildNextIp6Address(mInstance, childIndex, &iterator, &ip6Address) == OT_ERROR_NONE)
+        {
+            mServer->OutputFormat("%04x: ", childInfo.mRloc16);
+            OutputIp6Address(ip6Address);
+            mServer->OutputFormat("\r\n");
+        }
+    }
+
+exit:
+    OT_UNUSED_VARIABLE(argv);
+    AppendResult(error);
+}
+
 void Interpreter::ProcessChildMax(int argc, char *argv[])
 {
     otError error = OT_ERROR_NONE;
@@ -1064,11 +1104,8 @@ void Interpreter::HandleDnsResponse(const char *aHostname, Ip6::Address &aAddres
 
     if (aResult == OT_ERROR_NONE)
     {
-        mServer->OutputFormat("[%x:%x:%x:%x:%x:%x:%x:%x] TTL: %d\r\n", HostSwap16(aAddress.mFields.m16[0]),
-                              HostSwap16(aAddress.mFields.m16[1]), HostSwap16(aAddress.mFields.m16[2]),
-                              HostSwap16(aAddress.mFields.m16[3]), HostSwap16(aAddress.mFields.m16[4]),
-                              HostSwap16(aAddress.mFields.m16[5]), HostSwap16(aAddress.mFields.m16[6]),
-                              HostSwap16(aAddress.mFields.m16[7]), aTtl);
+        OutputIp6Address(aAddress);
+        mServer->OutputFormat(" TTL: %d\r\n", aTtl);
     }
     else
     {
@@ -1096,11 +1133,8 @@ void Interpreter::ProcessEidCache(int argc, char *argv[])
             continue;
         }
 
-        mServer->OutputFormat("%x:%x:%x:%x:%x:%x:%x:%x %04x\r\n", HostSwap16(entry.mTarget.mFields.m16[0]),
-                              HostSwap16(entry.mTarget.mFields.m16[1]), HostSwap16(entry.mTarget.mFields.m16[2]),
-                              HostSwap16(entry.mTarget.mFields.m16[3]), HostSwap16(entry.mTarget.mFields.m16[4]),
-                              HostSwap16(entry.mTarget.mFields.m16[5]), HostSwap16(entry.mTarget.mFields.m16[6]),
-                              HostSwap16(entry.mTarget.mFields.m16[7]), entry.mRloc16);
+        OutputIp6Address(entry.mTarget);
+        mServer->OutputFormat(" %04x\r\n", entry.mRloc16);
     }
 
 exit:
@@ -1277,11 +1311,8 @@ void Interpreter::ProcessIpAddr(int argc, char *argv[])
 
         for (const otNetifAddress *addr = unicastAddrs; addr; addr = addr->mNext)
         {
-            mServer->OutputFormat("%x:%x:%x:%x:%x:%x:%x:%x\r\n", HostSwap16(addr->mAddress.mFields.m16[0]),
-                                  HostSwap16(addr->mAddress.mFields.m16[1]), HostSwap16(addr->mAddress.mFields.m16[2]),
-                                  HostSwap16(addr->mAddress.mFields.m16[3]), HostSwap16(addr->mAddress.mFields.m16[4]),
-                                  HostSwap16(addr->mAddress.mFields.m16[5]), HostSwap16(addr->mAddress.mFields.m16[6]),
-                                  HostSwap16(addr->mAddress.mFields.m16[7]));
+            OutputIp6Address(addr->mAddress);
+            mServer->OutputFormat("\r\n");
         }
     }
     else
@@ -1376,11 +1407,8 @@ void Interpreter::ProcessIpMulticastAddr(int argc, char *argv[])
     {
         for (const otNetifMulticastAddress *addr = otIp6GetMulticastAddresses(mInstance); addr; addr = addr->mNext)
         {
-            mServer->OutputFormat("%x:%x:%x:%x:%x:%x:%x:%x\r\n", HostSwap16(addr->mAddress.mFields.m16[0]),
-                                  HostSwap16(addr->mAddress.mFields.m16[1]), HostSwap16(addr->mAddress.mFields.m16[2]),
-                                  HostSwap16(addr->mAddress.mFields.m16[3]), HostSwap16(addr->mAddress.mFields.m16[4]),
-                                  HostSwap16(addr->mAddress.mFields.m16[5]), HostSwap16(addr->mAddress.mFields.m16[6]),
-                                  HostSwap16(addr->mAddress.mFields.m16[7]));
+            OutputIp6Address(addr->mAddress);
+            mServer->OutputFormat("\r\n");
         }
     }
     else
@@ -1703,7 +1731,7 @@ void Interpreter::ProcessNetworkDataShow(int argc, char *argv[])
 
     SuccessOrExit(error = otNetDataGet(mInstance, false, data, &len));
 
-    this->OutputBytes(data, static_cast<uint8_t>(len));
+    OutputBytes(data, static_cast<uint8_t>(len));
     mServer->OutputFormat("\r\n");
 
 exit:
@@ -1831,7 +1859,7 @@ void Interpreter::ProcessNetworkTime(int argc, char *argv[])
         uint64_t            time;
         otNetworkTimeStatus networkTimeStatus;
 
-        networkTimeStatus = otNetworkTimeGet(mInstance, time);
+        networkTimeStatus = otNetworkTimeGet(mInstance, &time);
 
         mServer->OutputFormat("Network Time:     %luus", time);
 
@@ -1962,17 +1990,13 @@ void Interpreter::HandleIcmpReceive(Message &               aMessage,
 
     mServer->OutputFormat("%d bytes from ", aMessage.GetLength() - aMessage.GetOffset() + sizeof(otIcmp6Header));
 
-    mServer->OutputFormat(
-        "%x:%x:%x:%x:%x:%x:%x:%x", HostSwap16(aMessageInfo.GetPeerAddr().mFields.m16[0]),
-        HostSwap16(aMessageInfo.GetPeerAddr().mFields.m16[1]), HostSwap16(aMessageInfo.GetPeerAddr().mFields.m16[2]),
-        HostSwap16(aMessageInfo.GetPeerAddr().mFields.m16[3]), HostSwap16(aMessageInfo.GetPeerAddr().mFields.m16[4]),
-        HostSwap16(aMessageInfo.GetPeerAddr().mFields.m16[5]), HostSwap16(aMessageInfo.GetPeerAddr().mFields.m16[6]),
-        HostSwap16(aMessageInfo.GetPeerAddr().mFields.m16[7]));
+    OutputIp6Address(aMessageInfo.GetPeerAddr());
+
     mServer->OutputFormat(": icmp_seq=%d hlim=%d", HostSwap16(aIcmpHeader.mData.m16[1]), aMessageInfo.mHopLimit);
 
     if (aMessage.Read(aMessage.GetOffset(), sizeof(uint32_t), &timestamp) >= static_cast<int>(sizeof(uint32_t)))
     {
-        mServer->OutputFormat(" time=%dms", TimerMilli::GetNow() - HostSwap32(timestamp));
+        mServer->OutputFormat(" time=%dms", TimerMilli::Elapsed(HostSwap32(timestamp)));
     }
 
     mServer->OutputFormat("\r\n");

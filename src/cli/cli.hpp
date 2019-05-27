@@ -173,6 +173,13 @@ public:
     void OutputBytes(const uint8_t *aBytes, uint8_t aLength) const;
 
     /**
+     * Write an IPv6 address to the CLI console.
+     *
+     * @param[in]  aAddress  A reference to the IPv6 address.
+     */
+    void OutputIp6Address(const otIp6Address &aAddress) const;
+
+    /**
      * Set a user command table.
      *
      * @param[in]  aUserCommands  A pointer to an array with user commands.
@@ -195,6 +202,7 @@ private:
     void    ProcessChannel(int argc, char *argv[]);
 #if OPENTHREAD_FTD
     void ProcessChild(int argc, char *argv[]);
+    void ProcessChildIp(int argc, char *argv[]);
     void ProcessChildMax(int argc, char *argv[]);
 #endif
     void ProcessChildTimeout(int argc, char *argv[]);

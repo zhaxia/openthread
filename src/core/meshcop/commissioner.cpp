@@ -38,8 +38,6 @@
 #include <stdio.h>
 #include "utils/wrap_string.h"
 
-#include <openthread/platform/random.h>
-
 #include "coap/coap_message.hpp"
 #include "common/encoding.hpp"
 #include "common/instance.hpp"
@@ -81,6 +79,7 @@ Commissioner::Commissioner(Instance &aInstance)
     mCommissionerAloc.mValid              = true;
     mCommissionerAloc.mScopeOverride      = Ip6::Address::kRealmLocalScope;
     mCommissionerAloc.mScopeOverrideValid = true;
+    mProvisioningUrl.Init();
 }
 
 void Commissioner::AddCoapResources(void)
@@ -314,11 +313,9 @@ exit:
 
 const char *Commissioner::GetProvisioningUrl(uint16_t &aLength) const
 {
-    ProvisioningUrlTlv &provisioningUrl = Get<Coap::CoapSecure>().GetDtls().mProvisioningUrl;
+    aLength = mProvisioningUrl.GetLength();
 
-    aLength = provisioningUrl.GetLength();
-
-    return provisioningUrl.GetProvisioningUrl();
+    return mProvisioningUrl.GetProvisioningUrl();
 }
 
 otError Commissioner::SetProvisioningUrl(const char *aProvisioningUrl)
@@ -331,7 +328,7 @@ otError Commissioner::SetProvisioningUrl(const char *aProvisioningUrl)
         VerifyOrExit(len <= MeshCoP::ProvisioningUrlTlv::kMaxLength, error = OT_ERROR_INVALID_ARGS);
     }
 
-    Get<Coap::CoapSecure>().GetDtls().mProvisioningUrl.SetProvisioningUrl(aProvisioningUrl);
+    mProvisioningUrl.SetProvisioningUrl(aProvisioningUrl);
 
 exit:
     return error;
@@ -399,25 +396,31 @@ void Commissioner::HandleJoinerExpirationTimer(void)
 void Commissioner::UpdateJoinerExpirationTimer(void)
 {
     uint32_t now         = TimerMilli::GetNow();
-    uint32_t nextTimeout = 0xffffffff;
+    uint32_t nextTimeout = TimerMilli::kForeverDt;
 
     // Check if timer should be set for next Joiner.
     for (size_t i = 0; i < OT_ARRAY_LENGTH(mJoiners); i++)
     {
-        {
-            if (!mJoiners[i].mValid)
-            {
-                continue;
-            }
+        int32_t diff;
 
-            if (mJoiners[i].mExpirationTime - now < nextTimeout)
-            {
-                nextTimeout = mJoiners[i].mExpirationTime - now;
-            }
+        if (!mJoiners[i].mValid)
+        {
+            continue;
+        }
+
+        diff = TimerMilli::Diff(now, mJoiners[i].mExpirationTime);
+        if (diff <= 0)
+        {
+            nextTimeout = 0;
+            break;
+        }
+        else if (static_cast<uint32_t>(diff) < nextTimeout)
+        {
+            nextTimeout = static_cast<uint32_t>(diff);
         }
     }
 
-    if (nextTimeout != 0xffffffff)
+    if (nextTimeout != TimerMilli::kForeverDt)
     {
         // Update the timer to the timeout of the next Joiner.
         mJoinerExpirationTimer.Start(nextTimeout);
@@ -899,9 +902,8 @@ void Commissioner::HandleJoinerFinalize(Coap::Message &aMessage, const Ip6::Mess
 
     if (Tlv::GetTlv(aMessage, Tlv::kProvisioningUrl, sizeof(provisioningUrl), provisioningUrl) == OT_ERROR_NONE)
     {
-        if (provisioningUrl.GetLength() != Get<Coap::CoapSecure>().GetDtls().mProvisioningUrl.GetLength() ||
-            memcmp(provisioningUrl.GetProvisioningUrl(),
-                   Get<Coap::CoapSecure>().GetDtls().mProvisioningUrl.GetProvisioningUrl(),
+        if (provisioningUrl.GetLength() != mProvisioningUrl.GetLength() ||
+            memcmp(provisioningUrl.GetProvisioningUrl(), mProvisioningUrl.GetProvisioningUrl(),
                    provisioningUrl.GetLength()) != 0)
         {
             state = StateTlv::kReject;
