@@ -226,12 +226,13 @@ static inline int8_t rssi_last_measurement_get(void)
 }
 
 /// Notify MAC layer that a frame was received.
-static inline void received_frame_notify(void)
+static inline void received_frame_notify(bool acked_with_frame_pending)
 {
     mp_current_rx_buffer->free = false;
     nrf_drv_radio802154_notify_received(mp_current_rx_buffer->psdu,                // data
                                         rssi_last_measurement_get(),               // rssi
-                                        RX_FRAME_LQI(mp_current_rx_buffer->psdu)); // lqi
+                                        RX_FRAME_LQI(mp_current_rx_buffer->psdu),  // lqi
+                                        acked_with_frame_pending);                 // acked_with_frame_pending
 }
 
 /** Set currently used rx buffer to given address.
@@ -952,7 +953,7 @@ static inline void irq_end_state_rx_frame(void)
                 {
                     auto_ack_abort(RADIO_STATE_WAITING_RX_FRAME);
                     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);
-                    received_frame_notify();
+                    received_frame_notify(false);
                 }
                 else
                 {
@@ -988,7 +989,7 @@ static inline void irq_end_state_tx_ack(void)
            nrf_radio_shorts_get() == SHORTS_RX_FOLLOWING); // In case END is handled before READY
     shorts_disable();
 
-    received_frame_notify();
+    received_frame_notify(m_ack_psdu[FRAME_PENDING_OFFSET] & FRAME_PENDING_BIT);
 
     // Clear event READY in case CPU was halted and event END is handled before READY.
     nrf_radio_event_clear(NRF_RADIO_EVENT_READY);

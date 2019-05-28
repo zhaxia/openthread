@@ -411,8 +411,10 @@ bool nrf_802154_continuous_carrier(void);
  * @brief Notify that transmitting the ACK frame has started.
  *
  * @note This function should be very short to prevent dropping frames by the driver.
+ *
+ * @param[in]  p_data  Pointer to buffer containing ACK data (PHR + PSDU).
  */
-extern void nrf_802154_tx_ack_started(void);
+extern void nrf_802154_tx_ack_started(const uint8_t * p_data);
 
 #if NRF_802154_USE_RAW_API
 

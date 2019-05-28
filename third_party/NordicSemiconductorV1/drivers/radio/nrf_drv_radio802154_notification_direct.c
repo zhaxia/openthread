@@ -46,9 +46,9 @@ void nrf_drv_radio802154_notification_init(void)
     // Intentionally empty
 }
 
-void nrf_drv_radio802154_notify_received(uint8_t * p_data, int8_t power, int8_t lqi)
+void nrf_drv_radio802154_notify_received(uint8_t * p_data, int8_t power, int8_t lqi, bool acked_with_frame_pending)
 {
-    nrf_drv_radio802154_received_raw(p_data, power, lqi);
+    nrf_drv_radio802154_received_raw(p_data, power, lqi, acked_with_frame_pending);
 }
 
 void nrf_drv_radio802154_notify_receive_failed(nrf_drv_radio802154_rx_error_t error)
