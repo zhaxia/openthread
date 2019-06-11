@@ -1943,13 +1943,13 @@ static void irq_bcmatch_state_rx(void)
         }
         else
         {
-            // If a coex rx request is not granted then we need to abort the rx frame
-            // and re-establish a known radio state (RX) that is in sync with the
-            // current state of the coex driver.  There may be other ways to accomplish
-            // this internal to nrf_802154_core.c, however, these APIs are the same public
-            // APIs that are used to accomplish this from the external coex driver when required.
-            nrf_raal_timeslot_ended();
-            nrf_raal_timeslot_started();
+            // If a coex rx request is not granted then we just disable receiver and
+            // re-initialize the radio to RX state.
+            rx_terminate();
+            rx_init(true);
+
+            receive_ended_notify(false);
+            nrf_802154_notify_receive_failed(NRF_802154_RX_ERROR_COEX_NOT_GRANTED);
         }
     }
 #endif // NRF_802154_COEX_ENABLED
@@ -2029,16 +2029,13 @@ static void irq_crcok_state_rx(void)
         ack_is_requested(p_received_psdu) &&
         !nrf_coex_ack_request())
     {
-        // Frame is destined to this node but coex has denied request to transmit ACK
-        state_set(RADIO_STATE_TX_ACK);
+        // Frame is destined to this node but coex has denied request to transmit ACK.
+        // Just disable receiver and re-initialize the radio to RX state.
+        rx_terminate();
+        rx_init(true);
 
-        // If a coex ack tx request is not granted then we need to abort the rx frame
-        // and re-establish a known radio state (RX) that is in sync with the current
-        // state of the coex driver.  There may be other ways to accomplish this internal
-        // to nrf_802154_core.c, however, these APIs are the same public APIs that
-        // are used to accomplish this from the external coex driver when required.
-        nrf_raal_timeslot_ended();
-        nrf_raal_timeslot_started();
+        mp_current_rx_buffer->free = false;
+        received_frame_notify_and_nesting_allow(p_received_psdu);
 
         return;
     }
