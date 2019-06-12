@@ -435,14 +435,15 @@ extern void nrf_drv_radio802154_tx_ack_started(void);
  *       |                                                                        |
  *       | <---------------------------- PHR -----------------------------------> |
  *
- * @param[in]  p_data  Pointer to the buffer containing received data (PHR + PSDU). First byte in
- *                     the buffer is length of the frame (PHR) and following bytes is the frame
- *                     itself (PSDU). Length byte (PHR) includes FCS. FCS is already verified by
- *                     the hardware and may be modified by the hardware.
- * @param[in]  power   RSSI of received frame.
- * @param[in]  lqi     LQI of received frame.
+ * @param[in]  p_data                    Pointer to the buffer containing received data (PHR + PSDU). First byte in
+ *                                       the buffer is length of the frame (PHR) and following bytes is the frame
+ *                                       itself (PSDU). Length byte (PHR) includes FCS. FCS is already verified by
+ *                                       the hardware and may be modified by the hardware.
+ * @param[in]  power                     RSSI of received frame.
+ * @param[in]  lqi                       LQI of received frame.
+ * @param[in]  acked_with_frame_pending  Indicates whether the radio has sent an ACK frame with frame pending bit set.
  */
-extern void nrf_drv_radio802154_received_raw(uint8_t * p_data, int8_t power, int8_t lqi);
+extern void nrf_drv_radio802154_received_raw(uint8_t * p_data, int8_t power, int8_t lqi, bool acked_with_frame_pending);
 
 /**
  * @brief Notify that frame was received.
@@ -462,12 +463,13 @@ extern void nrf_drv_radio802154_received_raw(uint8_t * p_data, int8_t power, int
  *       |                                                           |
  *       | <------------------ length -----------------------------> |
  *
- * @param[in]  p_data  Pointer to the buffer containing payload of received frame (PSDU without FCS).
- * @param[in]  length  Length of received payload.
- * @param[in]  power   RSSI of received frame.
- * @param[in]  lqi     LQI of received frame.
+ * @param[in]  p_data                    Pointer to the buffer containing payload of received frame (PSDU without FCS).
+ * @param[in]  length                    Length of received payload.
+ * @param[in]  power                     RSSI of received frame.
+ * @param[in]  lqi                       LQI of received frame.
+ * @param[in]  acked_with_frame_pending  Indicates whether the radio has sent an ACK frame with frame pending bit set.
  */
-extern void nrf_drv_radio802154_received(uint8_t * p_data, uint8_t length, int8_t power, int8_t lqi);
+extern void nrf_drv_radio802154_received(uint8_t * p_data, uint8_t length, int8_t power, int8_t lqi, bool acked_with_frame_pending);
 
 /**
  * @brief Notify that reception of a frame failed.

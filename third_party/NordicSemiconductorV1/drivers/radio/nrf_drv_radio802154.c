@@ -402,21 +402,23 @@ __WEAK void nrf_drv_radio802154_tx_ack_started(void)
     // Intentionally empty
 }
 
-__WEAK void nrf_drv_radio802154_received(uint8_t * p_data, uint8_t length, int8_t power, int8_t lqi)
+__WEAK void nrf_drv_radio802154_received(uint8_t * p_data, uint8_t length, int8_t power, int8_t lqi, bool acked_with_frame_pending)
 {
     (void) length;
     (void) power;
     (void) lqi;
+    (void) acked_with_frame_pending;
 
     nrf_drv_radio802154_buffer_free(p_data);
 }
 
-__WEAK void nrf_drv_radio802154_received_raw(uint8_t * p_data, int8_t power, int8_t lqi)
+__WEAK void nrf_drv_radio802154_received_raw(uint8_t * p_data, int8_t power, int8_t lqi, bool acked_with_frame_pending)
 {
     nrf_drv_radio802154_received(p_data + RAW_PAYLOAD_OFFSET,
                                  p_data[RAW_LENGTH_OFFSET],
                                  power,
-                                 lqi);
+                                 lqi,
+                                 acked_with_frame_pending);
 }
 
 __WEAK void nrf_drv_radio802154_receive_failed(nrf_drv_radio802154_rx_error_t error)

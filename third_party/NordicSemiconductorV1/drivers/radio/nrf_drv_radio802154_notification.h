@@ -55,11 +55,12 @@ void nrf_drv_radio802154_notification_init(void);
 /**
  * @brief Notify next higher layer that a frame was received.
  *
- * @param[in]  p_data  Array of bytes containing PSDU. First byte contains frame length, other contain the frame itself.
- * @param[in]  power   RSSI measured during the frame reception.
- * @param[in]  lqi     LQI indicating measured link quality during the frame reception.
+ * @param[in]  p_data                    Array of bytes containing PSDU. First byte contains frame length, other contain the frame itself.
+ * @param[in]  power                     RSSI measured during the frame reception.
+ * @param[in]  lqi                       LQI indicating measured link quality during the frame reception.
+ * @param[in]  acked_with_frame_pending  Indicates whether the radio has sent an ACK frame with frame pending bit set.
  */
-void nrf_drv_radio802154_notify_received(uint8_t * p_data, int8_t power, int8_t lqi);
+void nrf_drv_radio802154_notify_received(uint8_t * p_data, int8_t power, int8_t lqi, bool acked_with_frame_pending);
 
 /**
  * @brief Notify next higher layer that reception of a frame failed.

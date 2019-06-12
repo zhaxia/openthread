@@ -1773,7 +1773,7 @@ static void irq_address_state_tx_frame(void)
 
 static void irq_address_state_tx_ack(void)
 {
-    nrf_802154_tx_ack_started();
+    nrf_802154_tx_ack_started(m_ack_psdu);
 }
 
 #if !NRF_802154_DISABLE_BCC_MATCHING
