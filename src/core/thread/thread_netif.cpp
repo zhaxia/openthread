@@ -48,7 +48,7 @@
 namespace ot {
 
 ThreadNetif::ThreadNetif(Instance &aInstance)
-    : Netif(aInstance, OT_NETIF_INTERFACE_ID_THREAD)
+    : Netif(aInstance)
     , mCoap(aInstance)
 #if OPENTHREAD_ENABLE_DHCP6_CLIENT
     , mDhcp6Client(aInstance)
@@ -122,7 +122,6 @@ void ThreadNetif::Up(void)
     Get<Utils::ChannelMonitor>().Start();
 #endif
     Get<MeshForwarder>().Start();
-    Get<Ip6::Ip6>().AddNetif(*this);
 
     mIsUp = true;
 
@@ -162,7 +161,6 @@ void ThreadNetif::Down(void)
     UnsubscribeAllNodesMulticast();
 
     mIsUp = false;
-    Get<Ip6::Ip6>().RemoveNetif(*this);
     Get<MeshForwarder>().Stop();
 #if OPENTHREAD_ENABLE_CHANNEL_MONITOR
     Get<Utils::ChannelMonitor>().Stop();
@@ -171,14 +169,6 @@ void ThreadNetif::Down(void)
 
 exit:
     return;
-}
-
-otError ThreadNetif::GetLinkAddress(Ip6::LinkAddress &aAddress) const
-{
-    aAddress.mType       = Ip6::LinkAddress::kEui64;
-    aAddress.mLength     = sizeof(aAddress.mExtAddress);
-    aAddress.mExtAddress = Get<Mac::Mac>().GetExtAddress();
-    return OT_ERROR_NONE;
 }
 
 otError ThreadNetif::RouteLookup(const Ip6::Address &aSource, const Ip6::Address &aDestination, uint8_t *aPrefixMatch)

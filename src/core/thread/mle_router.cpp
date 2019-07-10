@@ -32,8 +32,6 @@
 
 #if OPENTHREAD_FTD
 
-#define WPP_NAME "mle_router.tmh"
-
 #include "mle_router.hpp"
 
 #include "common/code_utils.hpp"
@@ -693,7 +691,7 @@ otError MleRouter::SendLinkAccept(const Ip6::MessageInfo &aMessageInfo,
     SuccessOrExit(error = AppendHeader(*message, command));
     SuccessOrExit(error = AppendVersion(*message));
     SuccessOrExit(error = AppendSourceAddress(*message));
-    SuccessOrExit(error = AppendResponse(*message, aChallenge.GetChallenge(), aChallenge.GetLength()));
+    SuccessOrExit(error = AppendResponse(*message, aChallenge.GetChallenge(), aChallenge.GetChallengeLength()));
     SuccessOrExit(error = AppendLinkFrameCounter(*message));
     SuccessOrExit(error = AppendMleFrameCounter(*message));
 
@@ -1900,7 +1898,7 @@ void MleRouter::SendParentResponse(Child *aChild, const ChallengeTlv &aChallenge
     SuccessOrExit(error = AppendLeaderData(*message));
     SuccessOrExit(error = AppendLinkFrameCounter(*message));
     SuccessOrExit(error = AppendMleFrameCounter(*message));
-    SuccessOrExit(error = AppendResponse(*message, aChallenge.GetChallenge(), aChallenge.GetLength()));
+    SuccessOrExit(error = AppendResponse(*message, aChallenge.GetChallenge(), aChallenge.GetChallengeLength()));
 #if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
     if (aChild->IsTimeSyncEnabled())
     {
@@ -3125,18 +3123,6 @@ bool MleRouter::IsMinimalChild(uint16_t aRloc16)
     return rval;
 }
 
-otError MleRouter::RemoveNeighbor(const Mac::Address &aAddress)
-{
-    otError   error = OT_ERROR_NONE;
-    Neighbor *neighbor;
-
-    VerifyOrExit((neighbor = GetNeighbor(aAddress)) != NULL, error = OT_ERROR_NOT_FOUND);
-    RemoveNeighbor(*neighbor);
-
-exit:
-    return error;
-}
-
 void MleRouter::RemoveNeighbor(Neighbor &aNeighbor)
 {
     switch (mRole)
@@ -3780,7 +3766,6 @@ otError MleRouter::CheckReachability(uint16_t aMeshSource, uint16_t aMeshDest, I
 
     messageInfo.GetPeerAddr()                = GetMeshLocal16();
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(aMeshSource);
-    messageInfo.SetInterfaceId(Get<ThreadNetif>().GetInterfaceId());
 
     Get<Ip6::Icmp>().SendError(Ip6::IcmpHeader::kTypeDstUnreach, Ip6::IcmpHeader::kCodeDstUnreachNoRoute, messageInfo,
                                aIp6Header);
@@ -3804,10 +3789,8 @@ otError MleRouter::SendAddressSolicit(ThreadStatusTlv::Status aStatus)
 
     VerifyOrExit((message = Get<Coap::Coap>().NewMessage()) != NULL, error = OT_ERROR_NO_BUFS);
 
-    message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
-    message->SetToken(Coap::Message::kDefaultTokenLength);
-    message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_SOLICIT);
-    message->SetPayloadMarker();
+    SuccessOrExit(error = message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST, OT_URI_PATH_ADDRESS_SOLICIT));
+    SuccessOrExit(error = message->SetPayloadMarker());
 
     macAddr64Tlv.Init();
     macAddr64Tlv.SetMacAddr(Get<Mac::Mac>().GetExtAddress());
@@ -3858,10 +3841,8 @@ otError MleRouter::SendAddressRelease(void)
 
     VerifyOrExit((message = Get<Coap::Coap>().NewMessage()) != NULL, error = OT_ERROR_NO_BUFS);
 
-    message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
-    message->SetToken(Coap::Message::kDefaultTokenLength);
-    message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_RELEASE);
-    message->SetPayloadMarker();
+    SuccessOrExit(error = message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST, OT_URI_PATH_ADDRESS_RELEASE));
+    SuccessOrExit(error = message->SetPayloadMarker());
 
     rlocTlv.Init();
     rlocTlv.SetRloc16(GetRloc16(mRouterId));
@@ -4105,8 +4086,8 @@ void MleRouter::SendAddressSolicitResponse(const Coap::Message &   aRequest,
 
     VerifyOrExit((message = Get<Coap::Coap>().NewMessage()) != NULL, error = OT_ERROR_NO_BUFS);
 
-    message->SetDefaultResponseHeader(aRequest);
-    message->SetPayloadMarker();
+    SuccessOrExit(error = message->SetDefaultResponseHeader(aRequest));
+    SuccessOrExit(error = message->SetPayloadMarker());
 
     statusTlv.Init();
     statusTlv.SetStatus(aRouter == NULL ? statusTlv.kNoAddressAvailable : statusTlv.kSuccess);

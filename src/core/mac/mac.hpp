@@ -215,7 +215,7 @@ public:
      * @retval OT_ERROR_INVALID_STATE  The MAC layer is not enabled.
      *
      */
-    otError SendFrameRequest(void);
+    otError RequestFrameTransmission(void);
 
     /**
      * This method requests an Out of Band frame for MAC Transmission.
@@ -230,7 +230,17 @@ public:
      * @retval OT_ERROR_INVALID_ARGS   The argument @p aOobFrame is NULL.
      *
      */
-    otError SendOutOfBandFrameRequest(otRadioFrame *aOobFrame);
+    otError RequestOutOfBandFrameTransmission(otRadioFrame *aOobFrame);
+
+    /**
+     * This method requests transmission of a data poll (MAC Data Request) frame.
+     *
+     * @retval OT_ERROR_NONE           Data poll transmission request is scheduled successfully.
+     * @retval OT_ERROR_ALREADY        MAC is busy sending earlier poll transmission request.
+     * @retval OT_ERROR_INVALID_STATE  The MAC layer is not enabled.
+     *
+     */
+    otError RequestDataPollTransmission(void);
 
     /**
      * This method returns a reference to the IEEE 802.15.4 Extended Address.
@@ -262,7 +272,7 @@ public:
      * @param[in]  aShortAddress  The IEEE 802.15.4 Short Address.
      *
      */
-    void SetShortAddress(ShortAddress aShortAddress);
+    void SetShortAddress(ShortAddress aShortAddress) { mSubMac.SetShortAddress(aShortAddress); }
 
     /**
      * This method returns the IEEE 802.15.4 PAN Channel.
@@ -358,7 +368,10 @@ public:
      * @retval OT_ERROR_INVALID_ARGS   Given name is too long.
      *
      */
-    otError SetNetworkName(const char *aNetworkName);
+    otError SetNetworkName(const char *aNetworkName)
+    {
+        return SetNetworkName(aNetworkName, OT_NETWORK_NAME_MAX_SIZE + 1);
+    }
 
     /**
      * This method sets the IEEE 802.15.4 Network Name.
@@ -463,13 +476,13 @@ public:
      * This method returns if an active scan is in progress.
      *
      */
-    bool IsActiveScanInProgress(void);
+    bool IsActiveScanInProgress(void) const { return (mOperation == kOperationActiveScan) || (mPendingActiveScan); }
 
     /**
      * This method returns if an energy scan is in progress.
      *
      */
-    bool IsEnergyScanInProgress(void);
+    bool IsEnergyScanInProgress(void) const { return (mOperation == kOperationEnergyScan) || (mPendingEnergyScan); }
 
     /**
      * This method returns if the MAC layer is in transmit state.
@@ -479,7 +492,7 @@ public:
      * Requests.
      *
      */
-    bool IsInTransmitState(void);
+    bool IsInTransmitState(void) const;
 
     /**
      * This method registers a callback to provide received raw IEEE 802.15.4 frames.
@@ -489,7 +502,10 @@ public:
      * @param[in]  aCallbackContext  A pointer to application-specific context.
      *
      */
-    void SetPcapCallback(otLinkPcapCallback aPcapCallback, void *aCallbackContext);
+    void SetPcapCallback(otLinkPcapCallback aPcapCallback, void *aCallbackContext)
+    {
+        mSubMac.SetPcapCallback(aPcapCallback, aCallbackContext);
+    }
 
     /**
      * This method indicates whether or not promiscuous mode is enabled at the link layer.
@@ -549,7 +565,7 @@ public:
      * @param[in]  aEnable The requested State for the MAC layer. true - Start, false - Stop.
      *
      */
-    void SetEnabled(bool aEnable);
+    void SetEnabled(bool aEnable) { mEnabled = aEnable; }
 
     /**
      * This method indicates whether or not the link layer is enabled.
@@ -558,7 +574,7 @@ public:
      * @retval false  Link layer is not enabled.
      *
      */
-    bool IsEnabled(void) { return mEnabled; }
+    bool IsEnabled(void) const { return mEnabled; }
 
     /**
      * This method performs AES CCM on the frame which is going to be sent.
@@ -585,6 +601,7 @@ private:
         kOperationEnergyScan,
         kOperationTransmitBeacon,
         kOperationTransmitData,
+        kOperationTransmitPoll,
         kOperationWaitingForData,
         kOperationTransmitOutOfBandFrame,
     };
@@ -612,8 +629,9 @@ private:
     void    StartOperation(Operation aOperation);
     void    FinishOperation(void);
     void    PerformNextOperation(void);
-    void    SendBeaconRequest(Frame &aFrame);
-    void    SendBeacon(Frame &aFrame);
+    otError PrepareDataRequest(Frame &aFrame);
+    void    PrepareBeaconRequest(Frame &aFrame);
+    void    PrepareBeacon(Frame &aFrame);
     bool    ShouldSendBeacon(void) const;
     void    BeginTransmit(void);
     otError HandleMacCommand(Frame &aFrame);
@@ -645,8 +663,10 @@ private:
     bool mPendingEnergyScan : 1;
     bool mPendingTransmitBeacon : 1;
     bool mPendingTransmitData : 1;
+    bool mPendingTransmitPoll : 1;
     bool mPendingTransmitOobFrame : 1;
     bool mPendingWaitingForData : 1;
+    bool mShouldTxPollBeforeData : 1;
     bool mRxOnWhenIdle : 1;
     bool mPromiscuous : 1;
     bool mBeaconsEnabled : 1;

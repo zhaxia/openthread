@@ -45,8 +45,7 @@ static otPlatMcuPowerState gPlatMcuPowerState = OT_PLAT_MCU_POWER_STATE_ON;
 
 void otPlatReset(otInstance *aInstance)
 {
-    OT_UNUSED_VARIABLE(aInstance);
-
+    otInstanceFinalize(aInstance);
     otSysDeinit();
 
     longjmp(gResetJump, 1);
@@ -112,6 +111,8 @@ void SuccessOrDie(otError aError)
     }
 
     otLogCritPlat("Error: %s", otThreadErrorToString(aError));
+    // For better user experience.
+    fprintf(stderr, "Error: %s\r\n", otThreadErrorToString(aError));
     exit(exitCode);
 }
 

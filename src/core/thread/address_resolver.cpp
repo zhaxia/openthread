@@ -33,8 +33,6 @@
 
 #if OPENTHREAD_FTD
 
-#define WPP_NAME "address_resolver.tmh"
-
 #include "address_resolver.hpp"
 
 #include "coap/coap_message.hpp"
@@ -324,8 +322,8 @@ otError AddressResolver::SendAddressQuery(const Ip6::Address &aEid)
     VerifyOrExit((message = Get<Coap::Coap>().NewMessage()) != NULL, error = OT_ERROR_NO_BUFS);
 
     message->Init(OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_POST);
-    message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_QUERY);
-    message->SetPayloadMarker();
+    SuccessOrExit(error = message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_QUERY));
+    SuccessOrExit(error = message->SetPayloadMarker());
 
     targetTlv.Init();
     targetTlv.SetTarget(aEid);
@@ -335,7 +333,6 @@ otError AddressResolver::SendAddressQuery(const Ip6::Address &aEid)
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(0x0002);
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     messageInfo.SetPeerPort(kCoapUdpPort);
-    messageInfo.SetInterfaceId(Get<ThreadNetif>().GetInterfaceId());
 
     SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
 
@@ -374,9 +371,11 @@ void AddressResolver::HandleAddressNotification(Coap::Message &aMessage, const I
 
     SuccessOrExit(ThreadTlv::GetTlv(aMessage, ThreadTlv::kTarget, sizeof(targetTlv), targetTlv));
     VerifyOrExit(targetTlv.IsValid());
+    targetTlv.Init(); // reset TLV length
 
     SuccessOrExit(ThreadTlv::GetTlv(aMessage, ThreadTlv::kMeshLocalEid, sizeof(mlIidTlv), mlIidTlv));
     VerifyOrExit(mlIidTlv.IsValid());
+    mlIidTlv.Init(); // reset TLV length
 
     SuccessOrExit(ThreadTlv::GetTlv(aMessage, ThreadTlv::kRloc16, sizeof(rloc16Tlv), rloc16Tlv));
     VerifyOrExit(rloc16Tlv.IsValid());
@@ -461,8 +460,8 @@ otError AddressResolver::SendAddressError(const ThreadTargetTlv &      aTarget,
     VerifyOrExit((message = Get<Coap::Coap>().NewMessage()) != NULL, error = OT_ERROR_NO_BUFS);
 
     message->Init(aDestination == NULL ? OT_COAP_TYPE_NON_CONFIRMABLE : OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
-    message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_ERROR);
-    message->SetPayloadMarker();
+    SuccessOrExit(error = message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_ERROR));
+    SuccessOrExit(error = message->SetPayloadMarker());
 
     SuccessOrExit(error = message->AppendTlv(aTarget));
     SuccessOrExit(error = message->AppendTlv(aEid));
@@ -479,7 +478,6 @@ otError AddressResolver::SendAddressError(const ThreadTargetTlv &      aTarget,
 
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
     messageInfo.SetPeerPort(kCoapUdpPort);
-    messageInfo.SetInterfaceId(Get<ThreadNetif>().GetInterfaceId());
 
     SuccessOrExit(error = Get<Coap::Coap>().SendMessage(*message, messageInfo));
 
@@ -524,9 +522,11 @@ void AddressResolver::HandleAddressError(Coap::Message &aMessage, const Ip6::Mes
 
     SuccessOrExit(error = ThreadTlv::GetTlv(aMessage, ThreadTlv::kTarget, sizeof(targetTlv), targetTlv));
     VerifyOrExit(targetTlv.IsValid(), error = OT_ERROR_PARSE);
+    targetTlv.Init(); // reset TLV length
 
     SuccessOrExit(error = ThreadTlv::GetTlv(aMessage, ThreadTlv::kMeshLocalEid, sizeof(mlIidTlv), mlIidTlv));
     VerifyOrExit(mlIidTlv.IsValid(), error = OT_ERROR_PARSE);
+    mlIidTlv.Init(); // reset TLV length
 
     for (const Ip6::NetifUnicastAddress *address = Get<ThreadNetif>().GetUnicastAddresses(); address;
          address                                 = address->GetNext())
@@ -593,6 +593,7 @@ void AddressResolver::HandleAddressQuery(Coap::Message &aMessage, const Ip6::Mes
 
     SuccessOrExit(ThreadTlv::GetTlv(aMessage, ThreadTlv::kTarget, sizeof(targetTlv), targetTlv));
     VerifyOrExit(targetTlv.IsValid());
+    targetTlv.Init(); // reset TLV length
 
     mlIidTlv.Init();
 
@@ -643,8 +644,8 @@ void AddressResolver::SendAddressQueryResponse(const ThreadTargetTlv &          
     VerifyOrExit((message = Get<Coap::Coap>().NewMessage()) != NULL, error = OT_ERROR_NO_BUFS);
 
     message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
-    message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_NOTIFY);
-    message->SetPayloadMarker();
+    SuccessOrExit(error = message->AppendUriPathOptions(OT_URI_PATH_ADDRESS_NOTIFY));
+    SuccessOrExit(error = message->SetPayloadMarker());
 
     SuccessOrExit(error = message->AppendTlv(aTargetTlv));
     SuccessOrExit(error = message->AppendTlv(aMlEidTlv));

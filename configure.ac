@@ -1342,36 +1342,6 @@ AM_CONDITIONAL([OPENTHREAD_ENABLE_CHILD_SUPERVISION], [test "${enable_child_supe
 AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_CHILD_SUPERVISION],[${OPENTHREAD_ENABLE_CHILD_SUPERVISION}],[Define to 1 if you want to use child supervision feature])
 
 #
-# Log for certification test
-#
-
-AC_ARG_ENABLE(cert_log,
-    [AS_HELP_STRING([--enable-cert-log],[Enable certification log support @<:@default=no@:>@.])],
-    [
-        case "${enableval}" in
-
-        no|yes)
-            enable_cert_log=${enableval}
-            ;;
-
-        *)
-            AC_MSG_ERROR([Invalid value ${enable_cert_log} for --enable-cert-log])
-            ;;
-        esac
-    ],
-    [enable_cert_log=no])
-
-if test "$enable_cert_log" = "yes"; then
-    OPENTHREAD_ENABLE_CERT_LOG=1
-else
-    OPENTHREAD_ENABLE_CERT_LOG=0
-fi
-
-AC_SUBST(OPENTHREAD_ENABLE_CERT_LOG)
-AM_CONDITIONAL([OPENTHREAD_ENABLE_CERT_LOG], [test "${enable_cert_log}" = "yes"])
-AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_CERT_LOG],[${OPENTHREAD_ENABLE_CERT_LOG}],[Define to 1 if you want to enable log for certification test])
-
-#
 # DHCPv6 Client
 #
 
@@ -1691,12 +1661,12 @@ AC_DEFINE_UNQUOTED([OPENTHREAD_ENABLE_ECDSA], [${OPENTHREAD_ENABLE_ECDSA}], [Def
 
 AC_ARG_WITH(examples,
     [AS_HELP_STRING([--with-examples=TARGET],
-        [Specify the examples from one of: none, posix, cc1352, cc2538, cc2650, cc2652, efr32, emsk, gp712, kw41z, nrf52811, nrf52840, qpg6095, samr21 @<:@default=none@:>@.])],
+        [Specify the examples from one of: none, posix, cc1352, cc2538, cc2650, cc2652, efr32mg12, efr32mg21, emsk, gp712, kw41z, nrf52811, nrf52840, qpg6095, samr21 @<:@default=none@:>@.])],
     [
         case "${with_examples}" in
         none)
             ;;
-        posix|cc1352|cc2538|cc2650|cc2652|efr32|emsk|gp712|kw41z|nrf52811|nrf52840|qpg6095|samr21)
+        posix|cc1352|cc2538|cc2650|cc2652|efr32mg12|efr32mg21|emsk|gp712|kw41z|nrf52811|nrf52840|qpg6095|samr21)
             if test ${enable_posix_app} = "yes"; then
                 AC_MSG_ERROR([--with-examples must be none when POSIX apps are enabled by --enable-posix-app])
             fi
@@ -1737,9 +1707,14 @@ case ${with_examples} in
         AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_CC2652],[${OPENTHREAD_EXAMPLES_CC2652}],[Define to 1 if you want to use cc2652 examples])
         ;;
 
-    efr32)
-        OPENTHREAD_EXAMPLES_EFR32=1
-        AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_EFR32],[${OPENTHREAD_EXAMPLES_EFR32}],[Define to 1 if you want to use efr32 examples])
+    efr32mg12)
+        OPENTHREAD_EXAMPLES_EFR32MG12=1
+        AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_EFR32MG12],[${OPENTHREAD_EXAMPLES_EFR32MG12}],[Define to 1 if you want to use efr32mg12 examples])
+        ;;
+
+    efr32mg21)
+        OPENTHREAD_EXAMPLES_EFR32MG21=1
+        AC_DEFINE_UNQUOTED([OPENTHREAD_EXAMPLES_EFR32MG21],[${OPENTHREAD_EXAMPLES_EFR32MG21}],[Define to 1 if you want to use efr32mg21 examples])
         ;;
 
      emsk)
@@ -1801,8 +1776,11 @@ AM_CONDITIONAL([OPENTHREAD_EXAMPLES_CC2650], [test "${with_examples}" = "cc2650"
 AC_SUBST(OPENTHREAD_EXAMPLES_CC2652)
 AM_CONDITIONAL([OPENTHREAD_EXAMPLES_CC2652], [test "${with_examples}" = "cc2652"])
 
-AC_SUBST(OPENTHREAD_EXAMPLES_EFR32)
-AM_CONDITIONAL([OPENTHREAD_EXAMPLES_EFR32], [test "${with_examples}" = "efr32"])
+AC_SUBST(OPENTHREAD_EXAMPLES_EFR32MG12)
+AM_CONDITIONAL([OPENTHREAD_EXAMPLES_EFR32MG12], [test "${with_examples}" = "efr32mg12"])
+
+AC_SUBST(OPENTHREAD_EXAMPLES_EFR32MG21)
+AM_CONDITIONAL([OPENTHREAD_EXAMPLES_EFR32MG21], [test "${with_examples}" = "efr32mg21"])
 
 AC_SUBST(OPENTHREAD_EXAMPLES_EMSK)
 AM_CONDITIONAL([OPENTHREAD_EXAMPLES_EMSK], [test "${with_examples}" = "emsk"])
@@ -1965,6 +1943,7 @@ third_party/Makefile
 third_party/jlink/Makefile
 third_party/mbedtls/Makefile
 third_party/NordicSemiconductor/Makefile
+third_party/silabs/Makefile
 examples/Makefile
 examples/apps/Makefile
 examples/apps/cli/Makefile
@@ -1974,10 +1953,11 @@ examples/platforms/cc1352/Makefile
 examples/platforms/cc2538/Makefile
 examples/platforms/cc2650/Makefile
 examples/platforms/cc2652/Makefile
-examples/platforms/efr32/Makefile
-examples/platforms/efr32/sleepy-demo/Makefile
-examples/platforms/efr32/sleepy-demo/efr32-sleepy-demo-ftd/Makefile
-examples/platforms/efr32/sleepy-demo/efr32-sleepy-demo-mtd/Makefile
+examples/platforms/efr32mg12/Makefile
+examples/platforms/efr32mg12/sleepy-demo/Makefile
+examples/platforms/efr32mg12/sleepy-demo/sleepy-demo-ftd/Makefile
+examples/platforms/efr32mg12/sleepy-demo/sleepy-demo-mtd/Makefile
+examples/platforms/efr32mg21/Makefile
 examples/platforms/emsk/Makefile
 examples/platforms/gp712/Makefile
 examples/platforms/kw41z/Makefile
@@ -2080,7 +2060,6 @@ AC_MSG_NOTICE([
   OpenThread Diagnostics support            : ${enable_diag}
   OpenThread Child Supervision support      : ${enable_child_supervision}
   OpenThread Legacy network support         : ${enable_legacy}
-  OpenThread Certification log support      : ${enable_cert_log}
   OpenThread DHCPv6 Server support          : ${enable_dhcp6_server}
   OpenThread DHCPv6 Client support          : ${enable_dhcp6_client}
   OpenThread DNS Client support             : ${enable_dns_client}

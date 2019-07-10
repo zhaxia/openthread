@@ -171,6 +171,8 @@ static int sSpiSmallPacketSize  = 32; // in bytes
 
 static bool sSlaveDidReset = false;
 
+static int sCaughtSignal = -1;
+
 // If sUseRawFrames is set to true, HDLC encoding/encoding
 // is skipped and the raw frames are read-from/written-to
 // the sHdlcInputFd/sHdlcOutputFd whole. See `--raw`.
@@ -212,6 +214,7 @@ static void signal_SIGINT(int sig)
     // Can't use syslog() because it isn't async signal safe.
     // So we write to stderr
     IGNORE_RETURN_VALUE(write(STDERR_FILENO, message, sizeof(message) - 1));
+    sCaughtSignal = sig;
 
     // Restore the previous handler so that if we end up getting
     // this signal again we perform the system default action.
@@ -231,6 +234,7 @@ static void signal_SIGTERM(int sig)
     // Can't use syslog() because it isn't async signal safe.
     // So we write to stderr
     IGNORE_RETURN_VALUE(write(STDERR_FILENO, message, sizeof(message) - 1));
+    sCaughtSignal = sig;
 
     // Restore the previous handler so that if we end up getting
     // this signal again we perform the system default action.
@@ -250,6 +254,7 @@ static void signal_SIGHUP(int sig)
     // Can't use syslog() because it isn't async signal safe.
     // So we write to stderr
     IGNORE_RETURN_VALUE(write(STDERR_FILENO, message, sizeof(message) - 1));
+    sCaughtSignal = sig;
 
     // We don't restore the "previous handler"
     // because we always want to let the main
@@ -569,7 +574,8 @@ static int push_pull_spi(void)
 
     if (ret < 0)
     {
-        perror("do_spi_xfer");
+        perror("push_pull_spi:do_spi_xfer");
+        syslog(LOG_ERR, "push_pull_spi:do_spi_xfer: errno=%d (%s)", errno, strerror(errno));
 
         // Print out a helpful error message for
         // a common error.
@@ -1562,6 +1568,8 @@ int main(int argc, char *argv[])
                 break;
 
             case ARG_SPI_ALIGN_ALLOWANCE:
+                assert(optarg);
+
                 errno                = 0;
                 sSpiRxAlignAllowance = atoi(optarg);
 
@@ -1581,6 +1589,8 @@ int main(int argc, char *argv[])
                 break;
 
             case ARG_SPI_MODE:
+                assert(optarg);
+
                 if (!update_spi_mode(atoi(optarg)))
                 {
                     syslog(LOG_ERR, "Unable to set SPI mode to \"%s\", %s", optarg, strerror(errno));
@@ -1589,6 +1599,8 @@ int main(int argc, char *argv[])
                 break;
 
             case ARG_SPI_SPEED:
+                assert(optarg);
+
                 if (!update_spi_speed(atoi(optarg)))
                 {
                     syslog(LOG_ERR, "Unable to set SPI speed to \"%s\", %s", optarg, strerror(errno));
@@ -1597,6 +1609,8 @@ int main(int argc, char *argv[])
                 break;
 
             case ARG_SPI_SMALL_PACKET:
+                assert(optarg);
+
                 sSpiSmallPacketSize = atoi(optarg);
                 if (sSpiSmallPacketSize > MAX_FRAME_SIZE - HEADER_LEN)
                 {
@@ -1613,6 +1627,8 @@ int main(int argc, char *argv[])
                 break;
 
             case ARG_SPI_CS_DELAY:
+                assert(optarg);
+
                 sSpiCsDelay = atoi(optarg);
                 if (sSpiCsDelay < 0)
                 {
@@ -1628,6 +1644,8 @@ int main(int argc, char *argv[])
                 break;
 
             case ARG_MTU:
+                assert(optarg);
+
                 sMTU = atoi(optarg);
                 if (sMTU > MAX_FRAME_SIZE - HEADER_LEN)
                 {
@@ -1981,6 +1999,11 @@ int main(int argc, char *argv[])
     // SHUTDOWN
 
 bail:
+    if (sCaughtSignal != -1)
+    {
+        syslog(LOG_ERR, "Caught %s", strsignal(sCaughtSignal));
+    }
+
     syslog(LOG_NOTICE, "Shutdown. (sRet = %d)", sRet);
 
     syslog(LOG_NOTICE, "Reset NCP/RCP");

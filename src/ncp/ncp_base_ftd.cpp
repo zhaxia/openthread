@@ -40,6 +40,7 @@
 #include <openthread/child_supervision.h>
 #endif
 #include <openthread/dataset.h>
+#include <openthread/dataset_ftd.h>
 #include <openthread/diag.h>
 #include <openthread/icmp6.h>
 #include <openthread/ncp.h>
@@ -330,6 +331,19 @@ exit:
     return error;
 }
 
+template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_NET_PARTITION_ID>(void)
+{
+    uint32_t partitionId = 0;
+    otError  error       = OT_ERROR_NONE;
+
+    SuccessOrExit(error = mDecoder.ReadUint32(partitionId));
+
+    otThreadSetLocalLeaderPartitionId(mInstance, partitionId);
+
+exit:
+    return error;
+}
+
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_CHILD_COUNT_MAX>(void)
 {
     return mEncoder.WriteUint8(otThreadGetMaxAllowedChildren(mInstance));
@@ -438,6 +452,25 @@ exit:
     return error;
 }
 
+template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_NEW_DATASET>(void)
+{
+    otError              error;
+    otOperationalDataset dataset;
+
+    error = otDatasetCreateNewNetwork(mInstance, &dataset);
+
+    if (error == OT_ERROR_NONE)
+    {
+        error = EncodeOperationalDataset(dataset);
+    }
+    else
+    {
+        error = mEncoder.OverwriteWithLastStatusError(ThreadErrorToSpinelStatus(error));
+    }
+
+    return error;
+}
+
 #if OPENTHREAD_ENABLE_COMMISSIONER
 
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_MESHCOP_COMMISSIONER_STATE>(void)
@@ -476,7 +509,7 @@ template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_MESHCOP_COMMISSIONER_
         break;
 
     case SPINEL_MESHCOP_COMMISSIONER_STATE_ACTIVE:
-        error = otCommissionerStart(mInstance);
+        error = otCommissionerStart(mInstance, NULL, NULL, NULL);
         break;
 
     default:
@@ -742,7 +775,7 @@ otError NcpBase::HandlePropertySet_SPINEL_PROP_THREAD_COMMISSIONER_ENABLED(uint8
     }
     else
     {
-        error = otCommissionerStart(mInstance);
+        error = otCommissionerStart(mInstance, NULL, NULL, NULL);
     }
 
 exit:

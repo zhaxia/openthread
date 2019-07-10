@@ -33,8 +33,6 @@
 
 #if OPENTHREAD_FTD
 
-#define WPP_NAME "joiner_router.tmh"
-
 #include "joiner_router.hpp"
 
 #include <stdio.h>
@@ -148,10 +146,8 @@ void JoinerRouter::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &a
 
     VerifyOrExit((message = NewMeshCoPMessage(Get<Coap::Coap>())) != NULL, error = OT_ERROR_NO_BUFS);
 
-    message->Init(OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_POST);
-    message->SetToken(Coap::Message::kDefaultTokenLength);
-    message->AppendUriPathOptions(OT_URI_PATH_RELAY_RX);
-    message->SetPayloadMarker();
+    SuccessOrExit(error = message->Init(OT_COAP_TYPE_NON_CONFIRMABLE, OT_COAP_CODE_POST, OT_URI_PATH_RELAY_RX));
+    SuccessOrExit(error = message->SetPayloadMarker());
 
     udpPort.Init();
     udpPort.SetUdpPort(aMessageInfo.GetPeerPort());
@@ -246,7 +242,6 @@ void JoinerRouter::HandleRelayTransmit(Coap::Message &aMessage, const Ip6::Messa
     messageInfo.mPeerAddr.mFields.m16[0] = HostSwap16(0xfe80);
     memcpy(messageInfo.mPeerAddr.mFields.m8 + 8, joinerIid.GetIid(), 8);
     messageInfo.SetPeerPort(joinerPort.GetUdpPort());
-    messageInfo.SetInterfaceId(Get<ThreadNetif>().GetInterfaceId());
 
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
 
@@ -283,8 +278,8 @@ otError JoinerRouter::DelaySendingJoinerEntrust(const Ip6::MessageInfo &aMessage
     VerifyOrExit((message = NewMeshCoPMessage(Get<Coap::Coap>())) != NULL, error = OT_ERROR_NO_BUFS);
 
     message->Init(OT_COAP_TYPE_CONFIRMABLE, OT_COAP_CODE_POST);
-    message->AppendUriPathOptions(OT_URI_PATH_JOINER_ENTRUST);
-    message->SetPayloadMarker();
+    SuccessOrExit(error = message->AppendUriPathOptions(OT_URI_PATH_JOINER_ENTRUST));
+    SuccessOrExit(error = message->SetPayloadMarker());
     message->SetSubType(Message::kSubTypeJoinerEntrust);
 
     masterKey.Init();

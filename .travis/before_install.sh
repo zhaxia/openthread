@@ -63,6 +63,11 @@ cd /tmp || die
         clang-format --version || die
     }
 
+    [ $BUILD_TARGET != py-pretty-check ] || {
+        pip install --upgrade pip || die
+        python -m pip install flake8 || die
+    }
+
     [ $BUILD_TARGET != posix-app-pty ] || {
         sudo apt-get install socat expect || die
         JOBS=$(getconf _NPROCESSORS_ONLN)
@@ -78,10 +83,6 @@ cd /tmp || die
         make -j $JOBS
         sudo make install
         ) || die
-    }
-
-    [ $BUILD_TARGET != scan-build ] || {
-        sudo apt-get install clang || die
     }
 
     [ $BUILD_TARGET != arm-gcc-4 ] || {
@@ -131,12 +132,7 @@ cd /tmp || die
     }
 
     [ $BUILD_TARGET != posix-distcheck ] || {
-        sudo apt-get install clang || die
-        sudo apt-get install llvm-3.4-runtime || die
-    }
-
-    [ $BUILD_TARGET != posix -o "$CC" != clang ] || {
-        sudo apt-get install clang || die
+        sudo apt-get install llvm-runtime || die
     }
 
     [ $BUILD_TARGET != toranj-test-framework ] || {

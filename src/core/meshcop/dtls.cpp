@@ -31,8 +31,6 @@
  *   This file implements the necessary hooks for mbedTLS.
  */
 
-#define WPP_NAME "dtls.tmh"
-
 #include "dtls.hpp"
 
 #include <mbedtls/debug.h>
@@ -153,15 +151,6 @@ otError Dtls::Connect(const Ip6::SockAddr &aSockAddr)
     memcpy(&mPeerAddress.mPeerAddr, &aSockAddr.mAddress, sizeof(mPeerAddress.mPeerAddr));
     mPeerAddress.mPeerPort = aSockAddr.mPort;
 
-    if (aSockAddr.GetAddress().IsLinkLocal() || aSockAddr.GetAddress().IsMulticast())
-    {
-        mPeerAddress.mInterfaceId = aSockAddr.mScopeId;
-    }
-    else
-    {
-        mPeerAddress.mInterfaceId = 0;
-    }
-
     error = Setup(true);
 
 exit:
@@ -191,7 +180,6 @@ void Dtls::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageI
 
         mPeerAddress.SetPeerAddr(aMessageInfo.GetPeerAddr());
         mPeerAddress.SetPeerPort(aMessageInfo.GetPeerPort());
-        mPeerAddress.SetInterfaceId(aMessageInfo.GetInterfaceId());
 
         if (Get<ThreadNetif>().IsUnicastAddress(aMessageInfo.GetSockAddr()))
         {
@@ -439,11 +427,6 @@ void Dtls::Disconnect(void)
 
     new (&mPeerAddress) Ip6::MessageInfo();
     mSocket.Connect(Ip6::SockAddr());
-
-    if (mConnectedHandler != NULL)
-    {
-        mConnectedHandler(mContext, false);
-    }
 
     FreeMbedtls();
 
@@ -802,6 +785,11 @@ void Dtls::HandleTimer(void)
     case kStateCloseNotify:
         mState = kStateOpen;
         mTimer.Stop();
+
+        if (mConnectedHandler != NULL)
+        {
+            mConnectedHandler(mContext, false);
+        }
         break;
 
     default:

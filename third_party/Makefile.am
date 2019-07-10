@@ -33,14 +33,9 @@ EXTRA_DIST                              = \
     nlbuild-autotools                     \
     openthread-test-driver                \
     NordicSemiconductor                   \
+    silabs                                \
     synopsys                              \
     $(NULL)
-
-if OPENTHREAD_EXAMPLES_EFR32
-EXTRA_DIST                             += \
-    silabs                                \
-    $(NULL)
-endif
 
 # Always package (e.g. for 'make dist') these subdirectories.
 
@@ -51,8 +46,16 @@ DIST_SUBDIRS                            = \
 
 SUBDIRS =
 
-if OPENTHREAD_EXAMPLES_EFR32
+if OPENTHREAD_EXAMPLES_EFR32MG12
 SUBDIRS                                += \
+    silabs                                \
+    jlink                                 \
+    $(NULL)
+endif
+
+if OPENTHREAD_EXAMPLES_EFR32MG21
+SUBDIRS                                += \
+    silabs                                \
     jlink                                 \
     $(NULL)
 endif

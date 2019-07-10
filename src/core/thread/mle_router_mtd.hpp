@@ -62,12 +62,12 @@ public:
 
     bool IsRouterRoleEnabled(void) const { return false; }
 
-    bool IsSingleton(void) { return false; }
+    bool IsSingleton(void) const { return false; }
 
     otError BecomeRouter(ThreadStatusTlv::Status) { return OT_ERROR_NOT_CAPABLE; }
     otError BecomeLeader(void) { return OT_ERROR_NOT_CAPABLE; }
 
-    uint8_t GetRouterSelectionJitterTimeout(void) { return 0; }
+    uint8_t GetRouterSelectionJitterTimeout(void) const { return 0; }
 
     uint32_t GetPreviousPartitionId(void) const { return 0; }
     void     SetPreviousPartitionId(uint32_t) {}
@@ -81,10 +81,9 @@ public:
     uint8_t GetLinkCost(uint16_t) { return 0; }
     uint8_t GetCost(uint16_t) { return 0; }
 
-    otError RemoveNeighbor(const Mac::Address &) { return BecomeDetached(); }
     otError RemoveNeighbor(Neighbor &) { return BecomeDetached(); }
 
-    bool IsMinimalChild(uint16_t) { return false; }
+    bool IsMinimalChild(uint16_t) const { return false; }
 
     void    RestoreChildren(void) {}
     otError RemoveStoredChild(uint16_t) { return OT_ERROR_NOT_IMPLEMENTED; }

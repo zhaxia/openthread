@@ -60,6 +60,14 @@ extern "C" {
  */
 void otPlatSettingsInit(otInstance *aInstance);
 
+/**
+ * Performs any de-initialization for the settings subsystem, if necessary.
+ *
+ * @param[in]  aInstance The OpenThread instance structure.
+ *
+ */
+void otPlatSettingsDeinit(otInstance *aInstance);
+
 /// Fetches the value of a setting
 /** This function fetches the value of the setting identified
  *  by aKey and write it to the memory pointed to by aValue.
@@ -130,6 +138,8 @@ otError otPlatSettingsGet(otInstance *aInstance, uint16_t aKey, int aIndex, uint
  *          The given setting was changed or staged.
  *  @retval OT_ERROR_NOT_IMPLEMENTED
  *          This function is not implemented on this platform.
+ *  @retval OT_ERROR_NO_BUFS
+ *          No space remaining to store the given setting.
  */
 otError otPlatSettingsSet(otInstance *aInstance, uint16_t aKey, const uint8_t *aValue, uint16_t aValueLength);
 
@@ -163,6 +173,8 @@ otError otPlatSettingsSet(otInstance *aInstance, uint16_t aKey, const uint8_t *a
  *         The given setting was added or staged to be added.
  * @retval OT_ERROR_NOT_IMPLEMENTED
  *         This function is not implemented on this platform.
+ * @retval OT_ERROR_NO_BUFS
+ *         No space remaining to store the given setting.
  */
 otError otPlatSettingsAdd(otInstance *aInstance, uint16_t aKey, const uint8_t *aValue, uint16_t aValueLength);
 
