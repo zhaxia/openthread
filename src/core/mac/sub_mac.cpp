@@ -31,8 +31,6 @@
  *   This file implements the subset of IEEE 802.15.4 MAC primitives.
  */
 
-#define WPP_NAME "sub_mac.tmh"
-
 #include "sub_mac.hpp"
 
 #include <stdio.h>
@@ -421,8 +419,7 @@ otError SubMac::EnergyScan(uint8_t aScanChannel, uint16_t aScanDuration)
         SetState(kStateEnergyScan);
         mEnergyScanMaxRssi = kInvalidRssiValue;
         mEnergyScanEndTime = TimerMilli::GetNow() + aScanDuration;
-        mTimer.Start(kEnergyScanRssiSampleInterval);
-        SampleRssi();
+        mTimer.Start(0);
     }
     else
     {
@@ -577,6 +574,8 @@ void SubMac::SetState(State aState)
     }
 }
 
+// LCOV_EXCL_START
+
 const char *SubMac::StateToString(State aState)
 {
     const char *str = "Unknown";
@@ -605,6 +604,8 @@ const char *SubMac::StateToString(State aState)
 
     return str;
 }
+
+// LCOV_EXCL_STOP
 
 //---------------------------------------------------------------------------------------------------------------------
 // otPlatRadio callbacks

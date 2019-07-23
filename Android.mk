@@ -54,12 +54,12 @@ endif
 ifeq ($(TARGET_PRODUCT),generic)
 OPENTHREAD_COMMON_FLAGS                                          += \
     -DOPENTHREAD_ENABLE_APPLICATION_COAP=1                          \
-    -DOPENTHREAD_ENABLE_CERT_LOG=1                                  \
     -DOPENTHREAD_ENABLE_COMMISSIONER=1                              \
     -DOPENTHREAD_ENABLE_DHCP6_CLIENT=1                              \
     -DOPENTHREAD_ENABLE_DHCP6_SERVER=1                              \
     -DOPENTHREAD_ENABLE_DNS_CLIENT=1                                \
     -DOPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC=1                    \
+    -DOPENTHREAD_ENABLE_REFERENCE_DEVICE=0                          \
     $(NULL)
 endif
 
@@ -123,6 +123,8 @@ LOCAL_SRC_FILES                                          := \
     src/core/api/logging_api.cpp                            \
     src/core/api/message_api.cpp                            \
     src/core/api/netdata_api.cpp                            \
+    src/core/api/random_crypto_api.cpp                      \
+    src/core/api/random_noncrypto_api.cpp                   \
     src/core/api/server_api.cpp                             \
     src/core/api/tasklet_api.cpp                            \
     src/core/api/thread_api.cpp                             \
@@ -132,14 +134,11 @@ LOCAL_SRC_FILES                                          := \
     src/core/coap/coap_message.cpp                          \
     src/core/coap/coap_secure.cpp                           \
     src/core/common/crc16.cpp                               \
-    src/core/common/entropy.cpp                             \
     src/core/common/instance.cpp                            \
     src/core/common/logging.cpp                             \
     src/core/common/message.cpp                             \
     src/core/common/notifier.cpp                            \
-    src/core/common/random_crypto.cpp                       \
     src/core/common/random_manager.cpp                      \
-    src/core/common/random_noncrypto.cpp                    \
     src/core/common/settings.cpp                            \
     src/core/common/string.cpp                              \
     src/core/common/tasklet.cpp                             \
@@ -153,6 +152,7 @@ LOCAL_SRC_FILES                                          := \
     src/core/crypto/pbkdf2_cmac.cpp                         \
     src/core/crypto/sha256.cpp                              \
     src/core/mac/channel_mask.cpp                           \
+    src/core/mac/data_poll_sender.cpp                       \
     src/core/mac/mac.cpp                                    \
     src/core/mac/mac_filter.cpp                             \
     src/core/mac/mac_frame.cpp                              \
@@ -183,7 +183,6 @@ LOCAL_SRC_FILES                                          := \
     src/core/net/ip6_filter.cpp                             \
     src/core/net/ip6_headers.cpp                            \
     src/core/net/ip6_mpl.cpp                                \
-    src/core/net/ip6_routes.cpp                             \
     src/core/net/netif.cpp                                  \
     src/core/net/udp6.cpp                                   \
     src/core/phy/radio_weak.cpp                             \
@@ -191,7 +190,6 @@ LOCAL_SRC_FILES                                          := \
     src/core/thread/announce_begin_server.cpp               \
     src/core/thread/announce_sender.cpp                     \
     src/core/thread/child_table.cpp                         \
-    src/core/thread/data_poll_manager.cpp                   \
     src/core/thread/energy_scan_server.cpp                  \
     src/core/thread/key_manager.cpp                         \
     src/core/thread/link_quality.cpp                        \
@@ -310,8 +308,10 @@ LOCAL_LDLIBS                               := \
 LOCAL_SRC_FILES                            := \
     src/cli/cli.cpp                           \
     src/cli/cli_coap.cpp                      \
+    src/cli/cli_commissioner.cpp              \
     src/cli/cli_console.cpp                   \
     src/cli/cli_dataset.cpp                   \
+    src/cli/cli_joiner.cpp                    \
     src/cli/cli_server.cpp                    \
     src/cli/cli_uart.cpp                      \
     src/cli/cli_udp.cpp                       \

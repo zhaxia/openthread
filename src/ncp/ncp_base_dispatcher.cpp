@@ -581,6 +581,9 @@ NcpBase::PropertyHandler NcpBase::FindGetPropertyHandler(spinel_prop_key_t aKey)
     case SPINEL_PROP_THREAD_ADDRESS_CACHE_TABLE:
         handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_ADDRESS_CACHE_TABLE>;
         break;
+    case SPINEL_PROP_THREAD_NEW_DATASET:
+        handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_THREAD_NEW_DATASET>;
+        break;
 #if OPENTHREAD_ENABLE_JOINER
     case SPINEL_PROP_MESHCOP_JOINER_STATE:
         handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_MESHCOP_JOINER_STATE>;
@@ -879,6 +882,9 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
 #if OPENTHREAD_FTD
     case SPINEL_PROP_NET_PSKC:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_NET_PSKC>;
+        break;
+    case SPINEL_PROP_NET_PARTITION_ID:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_NET_PARTITION_ID>;
         break;
     case SPINEL_PROP_THREAD_NETWORK_ID_TIMEOUT:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_NETWORK_ID_TIMEOUT>;

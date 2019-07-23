@@ -31,8 +31,6 @@
  *   This file implements the OpenThread IPv6 API.
  */
 
-#define WPP_NAME "ip6_api.tmh"
-
 #include "openthread-core-config.h"
 
 #include <openthread/ip6.h>
@@ -164,13 +162,9 @@ void otIp6SetReceiveFilterEnabled(otInstance *aInstance, bool aEnabled)
 
 otError otIp6Send(otInstance *aInstance, otMessage *aMessage)
 {
-    otError   error;
     Instance &instance = *static_cast<Instance *>(aInstance);
 
-    error = instance.Get<Ip6::Ip6>().SendRaw(*static_cast<Message *>(aMessage),
-                                             instance.Get<ThreadNetif>().GetInterfaceId());
-
-    return error;
+    return instance.Get<Ip6::Ip6>().SendRaw(*static_cast<Message *>(aMessage));
 }
 
 otMessage *otIp6NewMessage(otInstance *aInstance, const otMessageSettings *aSettings)

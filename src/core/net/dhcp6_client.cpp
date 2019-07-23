@@ -31,8 +31,6 @@
  *   This file implements DHCPv6 Client.
  */
 
-#define WPP_NAME "dhcp6_client.tmh"
-
 #include "dhcp6_client.hpp"
 
 #include "common/code_utils.hpp"
@@ -284,8 +282,7 @@ otError Dhcp6Client::Solicit(uint16_t aRloc16)
     messageInfo.GetPeerAddr().mFields.m16[6] = HostSwap16(0xfe00);
     messageInfo.GetPeerAddr().mFields.m16[7] = HostSwap16(aRloc16);
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
-    messageInfo.mPeerPort    = kDhcpServerPort;
-    messageInfo.mInterfaceId = Get<ThreadNetif>().GetInterfaceId();
+    messageInfo.mPeerPort = kDhcpServerPort;
 
     SuccessOrExit(error = mSocket.SendTo(*message, messageInfo));
     otLogInfoIp6("solicit");
@@ -345,7 +342,8 @@ otError Dhcp6Client::AppendIaNa(Message &aMessage, uint16_t aRloc16)
 
     for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mIdentityAssociations); ++i)
     {
-        if (mIdentityAssociations[i].mStatus == kIaStatusSolicitReplied)
+        if (mIdentityAssociations[i].mStatus == kIaStatusInvalid ||
+            mIdentityAssociations[i].mStatus == kIaStatusSolicitReplied)
         {
             continue;
         }
@@ -381,7 +379,8 @@ otError Dhcp6Client::AppendIaAddress(Message &aMessage, uint16_t aRloc16)
 
     for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mIdentityAssociations); ++i)
     {
-        if ((mIdentityAssociations[i].mStatus != kIaStatusSolicitReplied) &&
+        if ((mIdentityAssociations[i].mStatus == kIaStatusSolicit ||
+             mIdentityAssociations[i].mStatus == kIaStatusSoliciting) &&
             (mIdentityAssociations[i].mPrefixAgentRloc == aRloc16))
         {
             option.SetAddress(mIdentityAssociations[i].mNetifAddress.mAddress);

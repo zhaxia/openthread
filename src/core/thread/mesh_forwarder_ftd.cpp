@@ -33,8 +33,6 @@
 
 #if OPENTHREAD_FTD
 
-#define WPP_NAME "mesh_forwarder_ftd.tmh"
-
 #include "mesh_forwarder.hpp"
 
 #include "common/locator-getters.hpp"
@@ -434,7 +432,7 @@ otError MeshForwarder::GetIndirectTransmission(void)
 
         mIndirectStartingChild = &child;
 
-        Get<Mac::Mac>().SendFrameRequest();
+        Get<Mac::Mac>().RequestFrameTransmission();
         ExitNow(error = OT_ERROR_NONE);
     }
 
@@ -570,7 +568,7 @@ void MeshForwarder::HandleDataRequest(const Mac::Frame &      aFrame,
     child->ResetLinkFailures();
     indirectMsgCount = child->GetIndirectMessageCount();
 
-    otLogInfoMac("Rx data poll, src:0x%04x, qed_msgs:%d, rss:%d ack-fp:%d", child->GetRloc16(), indirectMsgCount,
+    otLogInfoMac("Rx data poll, src:0x%04x, qed_msgs:%d, rss:%d, ack-fp:%d", child->GetRloc16(), indirectMsgCount,
                  aLinkInfo.mRss, aFrame.IsAckedWithFramePending());
     VerifyOrExit(aFrame.IsAckedWithFramePending());
 
@@ -879,7 +877,7 @@ exit:
 }
 
 otError MeshForwarder::GetIp6Header(const uint8_t *     aFrame,
-                                    uint8_t             aFrameLength,
+                                    uint16_t            aFrameLength,
                                     const Mac::Address &aMacSource,
                                     const Mac::Address &aMacDest,
                                     Ip6::Header &       aIp6Header)
@@ -892,7 +890,7 @@ otError MeshForwarder::GetIp6Header(const uint8_t *     aFrame,
 }
 
 otError MeshForwarder::CheckReachability(uint8_t *           aFrame,
-                                         uint8_t             aFrameLength,
+                                         uint16_t            aFrameLength,
                                          const Mac::Address &aMeshSource,
                                          const Mac::Address &aMeshDest)
 {
@@ -917,7 +915,7 @@ exit:
 }
 
 void MeshForwarder::HandleMesh(uint8_t *               aFrame,
-                               uint8_t                 aFrameLength,
+                               uint16_t                aFrameLength,
                                const Mac::Address &    aMacSource,
                                const otThreadLinkInfo &aLinkInfo)
 {
@@ -997,7 +995,7 @@ exit:
 }
 
 void MeshForwarder::UpdateRoutes(uint8_t *           aFrame,
-                                 uint8_t             aFrameLength,
+                                 uint16_t            aFrameLength,
                                  const Mac::Address &aMeshSource,
                                  const Mac::Address &aMeshDest)
 {
@@ -1042,7 +1040,7 @@ bool MeshForwarder::UpdateFragmentLifetime(void)
 }
 
 void MeshForwarder::UpdateFragmentPriority(Lowpan::FragmentHeader &aFragmentHeader,
-                                           uint8_t                 aFragmentLength,
+                                           uint16_t                aFragmentLength,
                                            uint16_t                aSrcRloc16,
                                            uint8_t                 aPriority)
 {
@@ -1125,7 +1123,7 @@ exit:
 }
 
 otError MeshForwarder::GetForwardFramePriority(const uint8_t *     aFrame,
-                                               uint8_t             aFrameLength,
+                                               uint16_t            aFrameLength,
                                                const Mac::Address &aMacDest,
                                                const Mac::Address &aMacSource,
                                                uint8_t &           aPriority)
@@ -1229,6 +1227,8 @@ exit:
     return error;
 }
 #endif // OPENTHREAD_ENABLE_SERVICE
+
+// LCOV_EXCL_START
 
 #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_NOTE) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
 
@@ -1409,6 +1409,8 @@ exit:
 }
 
 #endif // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_NOTE) && (OPENTHREAD_CONFIG_LOG_MAC == 1)
+
+// LCOV_EXCL_STOP
 
 } // namespace ot
 

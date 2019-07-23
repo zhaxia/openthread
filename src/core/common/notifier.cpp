@@ -31,8 +31,6 @@
  *   This file implements the Notifier class.
  */
 
-#define WPP_NAME "notifier.tmh"
-
 #include "notifier.hpp"
 
 #include "common/code_utils.hpp"
@@ -172,6 +170,8 @@ exit:
     return;
 }
 
+// LCOV_EXCL_START
+
 #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_INFO) && (OPENTHREAD_CONFIG_LOG_CORE == 1)
 
 void Notifier::LogChangedFlags(otChangedFlags aFlags) const
@@ -273,14 +273,6 @@ const char *Notifier::FlagToString(otChangedFlags aFlag) const
         retval = "Ip6Mult-";
         break;
 
-    case OT_CHANGED_COMMISSIONER_STATE:
-        retval = "CommissionerState";
-        break;
-
-    case OT_CHANGED_JOINER_STATE:
-        retval = "JoinerState";
-        break;
-
     case OT_CHANGED_THREAD_CHANNEL:
         retval = "Channel";
         break;
@@ -344,5 +336,7 @@ const char *Notifier::FlagToString(otChangedFlags) const
 }
 
 #endif // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_INFO) && (OPENTHREAD_CONFIG_LOG_CORE == 1)
+
+// LCOV_EXCL_STOP
 
 } // namespace ot

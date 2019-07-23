@@ -31,8 +31,6 @@
  *   This file implements the OpenThread Thread API (for both FTD and MTD).
  */
 
-#define WPP_NAME "thread_api.tmh"
-
 #include "openthread-core-config.h"
 
 #include <openthread/thread.h>
@@ -183,7 +181,7 @@ exit:
     return error;
 }
 
-const otIp6Address *OTCALL otThreadGetRloc(otInstance *aInstance)
+const otIp6Address *otThreadGetRloc(otInstance *aInstance)
 {
     Instance &instance = *static_cast<Instance *>(aInstance);
 
@@ -459,38 +457,6 @@ otError otThreadSetEnabled(otInstance *aInstance, bool aEnabled)
 
 exit:
     return error;
-}
-
-bool otThreadGetAutoStart(otInstance *aInstance)
-{
-#if OPENTHREAD_CONFIG_ENABLE_AUTO_START_SUPPORT
-    uint8_t   autoStart = 0;
-    Instance &instance  = *static_cast<Instance *>(aInstance);
-
-    if (instance.Get<Settings>().ReadThreadAutoStart(autoStart) != OT_ERROR_NONE)
-    {
-        autoStart = 0;
-    }
-
-    return autoStart != 0;
-#else
-    OT_UNUSED_VARIABLE(aInstance);
-    return false;
-#endif
-}
-
-otError otThreadSetAutoStart(otInstance *aInstance, bool aStartAutomatically)
-{
-#if OPENTHREAD_CONFIG_ENABLE_AUTO_START_SUPPORT
-    uint8_t   autoStart = aStartAutomatically ? 1 : 0;
-    Instance &instance  = *static_cast<Instance *>(aInstance);
-
-    return instance.Get<Settings>().SaveThreadAutoStart(autoStart);
-#else
-    OT_UNUSED_VARIABLE(aInstance);
-    OT_UNUSED_VARIABLE(aStartAutomatically);
-    return OT_ERROR_NOT_IMPLEMENTED;
-#endif
 }
 
 bool otThreadIsSingleton(otInstance *aInstance)

@@ -62,6 +62,12 @@ namespace Ncp {
 class NcpBase
 {
 public:
+    enum
+    {
+        kSpinelCmdHeaderSize = 2, ///< Size of spinel command header (in bytes).
+        kSpinelPropIdSize    = 3, ///< Size of spinel property identifier (in bytes).
+    };
+
     /**
      * This constructor creates and initializes an NcpBase instance.
      *
@@ -219,7 +225,7 @@ protected:
                                                    uint16_t          aValueLen);
 
     otError SendQueuedResponses(void);
-    bool    IsResponseQueueEmpty(void) { return (mResponseQueueHead == mResponseQueueTail); }
+    bool    IsResponseQueueEmpty(void) const { return (mResponseQueueHead == mResponseQueueTail); }
     otError EnqueueResponse(uint8_t aHeader, ResponseType aType, unsigned int aPropKeyOrStatus);
 
     otError PrepareGetResponse(uint8_t aHeader, spinel_prop_key_t aPropKey)
@@ -400,7 +406,8 @@ protected:
     otError HandlePropertySet_SPINEL_PROP_HOST_POWER_STATE(uint8_t aHeader);
 
 #if OPENTHREAD_ENABLE_DIAG
-    OT_STATIC_ASSERT(OPENTHREAD_CONFIG_DIAG_OUTPUT_BUFFER_SIZE <= OPENTHREAD_CONFIG_NCP_TX_BUFFER_SIZE,
+    OT_STATIC_ASSERT(OPENTHREAD_CONFIG_DIAG_OUTPUT_BUFFER_SIZE <=
+                         OPENTHREAD_CONFIG_NCP_TX_BUFFER_SIZE - kSpinelCmdHeaderSize - kSpinelPropIdSize,
                      "diag output buffer should be smaller than NCP UART tx buffer");
 
     otError HandlePropertySet_SPINEL_PROP_NEST_STREAM_MFG(uint8_t aHeader);

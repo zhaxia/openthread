@@ -217,7 +217,7 @@ otError Coap::ProcessRequest(int argc, char *argv[])
 
         if (payloadLength > 0)
         {
-            otCoapMessageSetPayloadMarker(message);
+            SuccessOrExit(error = otCoapMessageSetPayloadMarker(message));
         }
     }
 
@@ -228,9 +228,8 @@ otError Coap::ProcessRequest(int argc, char *argv[])
     }
 
     memset(&messageInfo, 0, sizeof(messageInfo));
-    messageInfo.mPeerAddr    = coapDestinationIp;
-    messageInfo.mPeerPort    = OT_DEFAULT_COAP_PORT;
-    messageInfo.mInterfaceId = OT_NETIF_INTERFACE_ID_THREAD;
+    messageInfo.mPeerAddr = coapDestinationIp;
+    messageInfo.mPeerPort = OT_DEFAULT_COAP_PORT;
 
     if ((coapType == OT_COAP_TYPE_CONFIRMABLE) || (coapCode == OT_COAP_CODE_GET))
     {
@@ -333,11 +332,12 @@ void Coap::HandleRequest(otMessage *aMessage, const otMessageInfo *aMessageInfo)
 
         otCoapMessageInit(responseMessage, OT_COAP_TYPE_ACKNOWLEDGMENT, responseCode);
         otCoapMessageSetMessageId(responseMessage, otCoapMessageGetMessageId(aMessage));
-        otCoapMessageSetToken(responseMessage, otCoapMessageGetToken(aMessage), otCoapMessageGetTokenLength(aMessage));
+        SuccessOrExit(error = otCoapMessageSetToken(responseMessage, otCoapMessageGetToken(aMessage),
+                                                    otCoapMessageGetTokenLength(aMessage)));
 
         if (otCoapMessageGetCode(aMessage) == OT_COAP_CODE_GET)
         {
-            otCoapMessageSetPayloadMarker(responseMessage);
+            SuccessOrExit(error = otCoapMessageSetPayloadMarker(responseMessage));
             SuccessOrExit(error = otMessageAppend(responseMessage, &responseContent, sizeof(responseContent)));
         }
 

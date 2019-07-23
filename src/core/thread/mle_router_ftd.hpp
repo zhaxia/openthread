@@ -282,7 +282,7 @@ public:
      * @returns The current router selection jitter timeout value.
      *
      */
-    uint8_t GetRouterSelectionJitterTimeout(void) { return mRouterSelectionJitterTimeout; }
+    uint8_t GetRouterSelectionJitterTimeout(void) const { return mRouterSelectionJitterTimeout; }
 
     /**
      * This method returns the ROUTER_UPGRADE_THRESHOLD value.
@@ -315,17 +315,6 @@ public:
      *
      */
     void SetRouterDowngradeThreshold(uint8_t aThreshold) { mRouterDowngradeThreshold = aThreshold; }
-
-    /**
-     * This method removes a link to a neighbor.
-     *
-     * @param[in]  aAddress  The link address of the neighbor.
-     *
-     * @retval OT_ERROR_NONE       Successfully removed the neighbor.
-     * @retval OT_ERROR_NOT_FOUND  Could not find the neighbor.
-     *
-     */
-    otError RemoveNeighbor(const Mac::Address &aAddress);
 
     /**
      * This method removes a link to a neighbor.

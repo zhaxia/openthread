@@ -26,8 +26,6 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#define WPP_NAME "coap.tmh"
-
 #include "coap.hpp"
 
 #include "common/code_utils.hpp"
@@ -241,7 +239,7 @@ otError CoapBase::SendHeaderResponse(Message::Code aCode, const Message &aReques
         break;
     }
 
-    message->SetToken(aRequest.GetToken(), aRequest.GetTokenLength());
+    SuccessOrExit(error = message->SetToken(aRequest.GetToken(), aRequest.GetTokenLength()));
 
     SuccessOrExit(error = SendMessage(*message, aMessageInfo));
 
@@ -303,7 +301,6 @@ void CoapBase::HandleRetransmissionTimer(void)
                 messageInfo.SetPeerAddr(coapMetadata.mDestinationAddress);
                 messageInfo.SetPeerPort(coapMetadata.mDestinationPort);
                 messageInfo.SetSockAddr(coapMetadata.mSourceAddress);
-                messageInfo.SetInterfaceId(Get<ThreadNetif>().GetInterfaceId());
 
                 SendCopy(*message, messageInfo);
             }

@@ -111,6 +111,8 @@ void SuccessOrDie(otError aError)
     }
 
     otLogCritPlat("Error: %s", otThreadErrorToString(aError));
+    // For better user experience.
+    fprintf(stderr, "Error: %s\r\n", otThreadErrorToString(aError));
     exit(exitCode);
 }
 
