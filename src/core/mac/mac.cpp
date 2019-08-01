@@ -50,6 +50,7 @@
 #include "thread/link_quality.hpp"
 #include "thread/mle_router.hpp"
 #include "thread/thread_netif.hpp"
+#include "thread/topology.hpp"
 
 namespace ot {
 namespace Mac {
@@ -72,7 +73,10 @@ Mac::Mac(Instance &aInstance)
     , mPendingActiveScan(false)
     , mPendingEnergyScan(false)
     , mPendingTransmitBeacon(false)
-    , mPendingTransmitData(false)
+    , mPendingTransmitDataDirect(false)
+#if OPENTHREAD_FTD
+    , mPendingTransmitDataIndirect(false)
+#endif
     , mPendingTransmitPoll(false)
     , mPendingTransmitOobFrame(false)
     , mPendingWaitingForData(false)
@@ -96,7 +100,7 @@ Mac::Mac(Instance &aInstance)
     , mScanDuration(0)
     , mScanChannelMask()
     , mActiveScanHandler(NULL) /* Initialize `mActiveScanHandler` and `mEnergyScanHandler` union */
-    , mSubMac(aInstance, *this)
+    , mSubMac(aInstance)
     , mOperationTask(aInstance, &Mac::HandleOperationTask, this)
     , mTimer(aInstance, &Mac::HandleTimer, this)
     , mOobFrame(NULL)
@@ -180,7 +184,10 @@ bool Mac::IsInTransmitState(void) const
 
     switch (mOperation)
     {
-    case kOperationTransmitData:
+    case kOperationTransmitDataDirect:
+#if OPENTHREAD_FTD
+    case kOperationTransmitDataIndirect:
+#endif
     case kOperationTransmitBeacon:
     case kOperationTransmitPoll:
     case kOperationTransmitOutOfBandFrame:
@@ -478,18 +485,34 @@ exit:
     return;
 }
 
-otError Mac::RequestFrameTransmission(void)
+otError Mac::RequestDirectFrameTransmission(void)
 {
     otError error = OT_ERROR_NONE;
 
     VerifyOrExit(mEnabled, error = OT_ERROR_INVALID_STATE);
-    VerifyOrExit(!mPendingTransmitData && (mOperation != kOperationTransmitData), error = OT_ERROR_ALREADY);
+    VerifyOrExit(!mPendingTransmitDataDirect && (mOperation != kOperationTransmitDataDirect), error = OT_ERROR_ALREADY);
 
-    StartOperation(kOperationTransmitData);
+    StartOperation(kOperationTransmitDataDirect);
 
 exit:
     return error;
 }
+
+#if OPENTHREAD_FTD
+otError Mac::RequestIndirectFrameTransmission(void)
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(mEnabled, error = OT_ERROR_INVALID_STATE);
+    VerifyOrExit(!mPendingTransmitDataIndirect && (mOperation != kOperationTransmitDataIndirect),
+                 error = OT_ERROR_ALREADY);
+
+    StartOperation(kOperationTransmitDataIndirect);
+
+exit:
+    return error;
+}
+#endif
 
 otError Mac::RequestOutOfBandFrameTransmission(otRadioFrame *aOobFrame)
 {
@@ -516,10 +539,10 @@ otError Mac::RequestDataPollTransmission(void)
     VerifyOrExit(!mPendingTransmitPoll && (mOperation != kOperationTransmitPoll), error = OT_ERROR_ALREADY);
 
     // We ensure data frame and data poll tx requests are handled in the
-    // order they are requested. So if we have a pending data frame tx
-    // request, it should be sent before the poll frame.
+    // order they are requested. So if we have a pending direct data frame
+    // tx request, it should be sent before the poll frame.
 
-    mShouldTxPollBeforeData = !mPendingTransmitData;
+    mShouldTxPollBeforeData = !mPendingTransmitDataDirect;
 
     StartOperation(kOperationTransmitPoll);
 
@@ -597,9 +620,15 @@ void Mac::StartOperation(Operation aOperation)
         mPendingTransmitBeacon = true;
         break;
 
-    case kOperationTransmitData:
-        mPendingTransmitData = true;
+    case kOperationTransmitDataDirect:
+        mPendingTransmitDataDirect = true;
         break;
+
+#if OPENTHREAD_FTD
+    case kOperationTransmitDataIndirect:
+        mPendingTransmitDataIndirect = true;
+        break;
+#endif
 
     case kOperationTransmitPoll:
         mPendingTransmitPoll = true;
@@ -631,13 +660,16 @@ void Mac::PerformNextOperation(void)
 
     if (!mEnabled)
     {
-        mPendingWaitingForData   = false;
-        mPendingTransmitOobFrame = false;
-        mPendingActiveScan       = false;
-        mPendingEnergyScan       = false;
-        mPendingTransmitBeacon   = false;
-        mPendingTransmitData     = false;
-        mPendingTransmitPoll     = false;
+        mPendingWaitingForData     = false;
+        mPendingTransmitOobFrame   = false;
+        mPendingActiveScan         = false;
+        mPendingEnergyScan         = false;
+        mPendingTransmitBeacon     = false;
+        mPendingTransmitDataDirect = false;
+#if OPENTHREAD_FTD
+        mPendingTransmitDataIndirect = false;
+#endif
+        mPendingTransmitPoll = false;
         mTimer.Stop();
 #if OPENTHREAD_CONFIG_STAY_AWAKE_BETWEEN_FRAGMENTS
         mDelayingSleep    = false;
@@ -674,15 +706,22 @@ void Mac::PerformNextOperation(void)
         mPendingTransmitBeacon = false;
         mOperation             = kOperationTransmitBeacon;
     }
-    else if (mPendingTransmitPoll && (!mPendingTransmitData || mShouldTxPollBeforeData))
+#if OPENTHREAD_FTD
+    else if (mPendingTransmitDataIndirect)
+    {
+        mPendingTransmitDataIndirect = false;
+        mOperation                   = kOperationTransmitDataIndirect;
+    }
+#endif
+    else if (mPendingTransmitPoll && (!mPendingTransmitDataDirect || mShouldTxPollBeforeData))
     {
         mPendingTransmitPoll = false;
         mOperation           = kOperationTransmitPoll;
     }
-    else if (mPendingTransmitData)
+    else if (mPendingTransmitDataDirect)
     {
-        mPendingTransmitData = false;
-        mOperation           = kOperationTransmitData;
+        mPendingTransmitDataDirect = false;
+        mOperation                 = kOperationTransmitDataDirect;
     }
 
     if (mOperation != kOperationIdle)
@@ -705,7 +744,10 @@ void Mac::PerformNextOperation(void)
         break;
 
     case kOperationTransmitBeacon:
-    case kOperationTransmitData:
+    case kOperationTransmitDataDirect:
+#if OPENTHREAD_FTD
+    case kOperationTransmitDataIndirect:
+#endif
     case kOperationTransmitPoll:
     case kOperationTransmitOutOfBandFrame:
         BeginTransmit();
@@ -1013,18 +1055,28 @@ void Mac::BeginTransmit(void)
         sendFrame.SetMaxFrameRetries(kMaxFrameRetriesDirect);
         break;
 
-    case kOperationTransmitData:
+    case kOperationTransmitDataDirect:
         sendFrame.SetChannel(mRadioChannel);
-
+        sendFrame.SetMaxCsmaBackoffs(kMaxCsmaBackoffsDirect);
+        sendFrame.SetMaxFrameRetries(kMaxFrameRetriesDirect);
         SuccessOrExit(error = Get<MeshForwarder>().HandleFrameRequest(sendFrame));
+        sendFrame.SetSequence(mDataSequence++);
+        break;
+
+#if OPENTHREAD_FTD
+    case kOperationTransmitDataIndirect:
+        sendFrame.SetChannel(mRadioChannel);
+        sendFrame.SetMaxCsmaBackoffs(kMaxCsmaBackoffsIndirect);
+        sendFrame.SetMaxFrameRetries(kMaxFrameRetriesIndirect);
+        SuccessOrExit(error = Get<DataPollHandler>().HandleFrameRequest(sendFrame));
 
         // If the frame is marked as a retransmission, then data sequence number is already set.
         if (!sendFrame.IsARetransmission())
         {
-            sendFrame.SetSequence(mDataSequence);
+            sendFrame.SetSequence(mDataSequence++);
         }
-
         break;
+#endif
 
     case kOperationTransmitOutOfBandFrame:
         sendFrame.CopyFrom(*mOobFrame);
@@ -1264,19 +1316,23 @@ void Mac::HandleTransmitDone(Frame &aFrame, Frame *aAckFrame, otError aError)
         PerformNextOperation();
         break;
 
-    case kOperationTransmitData:
+    case kOperationTransmitDataDirect:
         mCounters.mTxData++;
-
-        if (!aFrame.IsARetransmission())
-        {
-            mDataSequence++;
-        }
-
         otDumpDebgMac("TX", aFrame.GetHeader(), aFrame.GetLength());
         FinishOperation();
         Get<MeshForwarder>().HandleSentFrame(aFrame, aError);
         PerformNextOperation();
         break;
+
+#if OPENTHREAD_FTD
+    case kOperationTransmitDataIndirect:
+        mCounters.mTxData++;
+        otDumpDebgMac("TX", aFrame.GetHeader(), aFrame.GetLength());
+        FinishOperation();
+        Get<DataPollHandler>().HandleSentFrame(aFrame, aError);
+        PerformNextOperation();
+        break;
+#endif
 
     case kOperationTransmitOutOfBandFrame:
         FinishOperation();
@@ -1708,7 +1764,7 @@ void Mac::HandleReceivedFrame(Frame *aFrame, otError aError)
     switch (aFrame->GetType())
     {
     case Frame::kFcfFrameMacCmd:
-        if (HandleMacCommand(*aFrame) == OT_ERROR_DROP)
+        if (HandleMacCommand(*aFrame)) // returns `true` when handled
         {
             ExitNow(error = OT_ERROR_NONE);
         }
@@ -1778,9 +1834,9 @@ exit:
     }
 }
 
-otError Mac::HandleMacCommand(Frame &aFrame)
+bool Mac::HandleMacCommand(Frame &aFrame)
 {
-    otError error = OT_ERROR_NONE;
+    bool    didHandle = false;
     uint8_t commandId;
 
     aFrame.GetCommandId(commandId);
@@ -1795,11 +1851,15 @@ otError Mac::HandleMacCommand(Frame &aFrame)
         {
             StartOperation(kOperationTransmitBeacon);
         }
-
-        ExitNow(error = OT_ERROR_DROP);
+        didHandle = true;
+        break;
 
     case Frame::kMacCmdDataRequest:
         mCounters.mRxDataPoll++;
+#if OPENTHREAD_FTD
+        Get<DataPollHandler>().HandleDataPoll(aFrame);
+        didHandle = true;
+#endif
         break;
 
     default:
@@ -1807,8 +1867,7 @@ otError Mac::HandleMacCommand(Frame &aFrame)
         break;
     }
 
-exit:
-    return error;
+    return didHandle;
 }
 
 void Mac::SetPromiscuous(bool aPromiscuous)
@@ -1861,9 +1920,15 @@ const char *Mac::OperationToString(Operation aOperation)
         retval = "TransmitBeacon";
         break;
 
-    case kOperationTransmitData:
-        retval = "TransmitData";
+    case kOperationTransmitDataDirect:
+        retval = "TransmitDataDirect";
         break;
+
+#if OPENTHREAD_FTD
+    case kOperationTransmitDataIndirect:
+        retval = "TransmitDataIndirect";
+        break;
+#endif
 
     case kOperationTransmitPoll:
         retval = "TransmitPoll";

@@ -48,9 +48,10 @@
 #include "mac/sub_mac.hpp"
 #include "thread/key_manager.hpp"
 #include "thread/link_quality.hpp"
-#include "thread/topology.hpp"
 
 namespace ot {
+
+class Neighbor;
 
 /**
  * @addtogroup core-mac
@@ -93,7 +94,7 @@ enum
  * This class implements the IEEE 802.15.4 MAC.
  *
  */
-class Mac : public InstanceLocator, public SubMac::Callbacks
+class Mac : public InstanceLocator
 {
     friend class ot::Instance;
 
@@ -208,14 +209,26 @@ public:
     void SetRxOnWhenIdle(bool aRxOnWhenIdle);
 
     /**
-     * This method requests a new MAC frame transmission.
+     * This method requests a direct data frame transmission.
      *
      * @retval OT_ERROR_NONE           Frame transmission request is scheduled successfully.
      * @retval OT_ERROR_ALREADY        MAC is busy sending earlier transmission request.
      * @retval OT_ERROR_INVALID_STATE  The MAC layer is not enabled.
      *
      */
-    otError RequestFrameTransmission(void);
+    otError RequestDirectFrameTransmission(void);
+
+#if OPENTHREAD_FTD
+    /**
+     * This method requests an indirect data frame transmission.
+     *
+     * @retval OT_ERROR_NONE           Frame transmission request is scheduled successfully.
+     * @retval OT_ERROR_ALREADY        MAC is busy sending earlier transmission request.
+     * @retval OT_ERROR_INVALID_STATE  The MAC layer is not enabled.
+     *
+     */
+    otError RequestIndirectFrameTransmission(void);
+#endif
 
     /**
      * This method requests an Out of Band frame for MAC Transmission.
@@ -484,6 +497,16 @@ public:
      */
     bool IsEnergyScanInProgress(void) const { return (mOperation == kOperationEnergyScan) || (mPendingEnergyScan); }
 
+#if OPENTHREAD_FTD
+    /**
+     * This method indicates whether the MAC layer is performing an indirect transmission (in middle of a tx).
+     *
+     * @returns TRUE if in middle of an indirect transmission, FALSE otherwise.
+     *
+     */
+    bool IsPerformingIndirectTransmit(void) const { return (mOperation == kOperationTransmitDataIndirect); }
+#endif
+
     /**
      * This method returns if the MAC layer is in transmit state.
      *
@@ -600,7 +623,10 @@ private:
         kOperationActiveScan,
         kOperationEnergyScan,
         kOperationTransmitBeacon,
-        kOperationTransmitData,
+        kOperationTransmitDataDirect,
+#if OPENTHREAD_FTD
+        kOperationTransmitDataIndirect,
+#endif
         kOperationTransmitPoll,
         kOperationWaitingForData,
         kOperationTransmitOutOfBandFrame,
@@ -634,7 +660,7 @@ private:
     void    PrepareBeacon(Frame &aFrame);
     bool    ShouldSendBeacon(void) const;
     void    BeginTransmit(void);
-    otError HandleMacCommand(Frame &aFrame);
+    bool    HandleMacCommand(Frame &aFrame);
     Frame * GetOperationFrame(void);
 
     static void HandleTimer(Timer &aTimer);
@@ -662,7 +688,10 @@ private:
     bool mPendingActiveScan : 1;
     bool mPendingEnergyScan : 1;
     bool mPendingTransmitBeacon : 1;
-    bool mPendingTransmitData : 1;
+    bool mPendingTransmitDataDirect : 1;
+#if OPENTHREAD_FTD
+    bool mPendingTransmitDataIndirect : 1;
+#endif
     bool mPendingTransmitPoll : 1;
     bool mPendingTransmitOobFrame : 1;
     bool mPendingWaitingForData : 1;

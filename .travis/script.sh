@@ -43,7 +43,7 @@ python --version || die
 }
 
 [ $BUILD_TARGET != py-pretty-check ] || {
-    flake8 --config=script/pystyle.cfg tools/harness-thci/ || die
+    flake8 --config=script/pystyle.cfg tests tools || die
 }
 
 [ $BUILD_TARGET != scan-build ] || {
@@ -54,6 +54,7 @@ python --version || die
     export CPPFLAGS="${CPPFLAGS} -I${TRAVIS_BUILD_DIR}/third_party/mbedtls/repo/include"
     export CPPFLAGS="${CPPFLAGS} -DMBEDTLS_CONFIG_FILE=\\\"mbedtls-config.h\\\""
 
+    # UART transport
     scan-build ./configure                \
         --enable-application-coap         \
         --enable-application-coap-secure  \
@@ -81,6 +82,43 @@ python --version || die
         --enable-mtd-network-diagnostic   \
         --enable-ncp                      \
         --with-ncp-bus=uart               \
+        --enable-radio-only               \
+        --enable-raw-link-api             \
+        --enable-service                  \
+        --enable-sntp-client              \
+        --enable-udp-forward              \
+        --with-examples=posix || die
+
+    scan-build --status-bugs -analyze-headers -v make -j2 || die
+
+    # SPI transport
+    scan-build ./configure                \
+        --enable-application-coap         \
+        --enable-application-coap-secure  \
+        --enable-border-agent             \
+        --enable-border-router            \
+        --enable-builtin-mbedtls=no       \
+        --enable-cert-log                 \
+        --enable-channel-manager          \
+        --enable-channel-monitor          \
+        --enable-child-supervision        \
+        --enable-cli                      \
+        --enable-commissioner             \
+        --enable-dhcp6-client             \
+        --enable-dhcp6-server             \
+        --enable-diag                     \
+        --enable-dns-client               \
+        --enable-ecdsa                    \
+        --enable-executable=no            \
+        --enable-ftd                      \
+        --enable-jam-detection            \
+        --enable-joiner                   \
+        --enable-legacy                   \
+        --enable-mac-filter               \
+        --enable-mtd                      \
+        --enable-mtd-network-diagnostic   \
+        --enable-ncp                      \
+        --with-ncp-bus=spi                \
         --enable-radio-only               \
         --enable-raw-link-api             \
         --enable-service                  \
@@ -135,19 +173,6 @@ build_cc2652() {
     arm-none-eabi-size  output/cc2652/bin/ot-cli-mtd || die
     arm-none-eabi-size  output/cc2652/bin/ot-ncp-ftd || die
     arm-none-eabi-size  output/cc2652/bin/ot-ncp-mtd || die
-}
-
-build_emsk() {
-    export PATH=/tmp/arc_gnu_2017.03-rc2_prebuilt_elf32_le_linux_install/bin:$PATH || die
-
-    git checkout -- . || die
-    git clean -xfd || die
-    ./bootstrap || die
-    COMMISSIONER=1 JOINER=1 SLAAC=1 DHCP6_CLIENT=1 DHCP6_SERVER=1 DNS_CLIENT=1 make -f examples/Makefile-emsk || die
-    arc-elf32-size  output/emsk/bin/ot-cli-ftd || die
-    arc-elf32-size  output/emsk/bin/ot-cli-mtd || die
-    arc-elf32-size  output/emsk/bin/ot-ncp-ftd || die
-    arc-elf32-size  output/emsk/bin/ot-ncp-mtd || die
 }
 
 build_kw41z() {
@@ -296,8 +321,6 @@ build_samr21() {
     build_nrf52840
     build_qpg6095
     build_samr21
-
-    build_emsk
 }
 
 [ $BUILD_TARGET != arm-gcc-7 ] || {

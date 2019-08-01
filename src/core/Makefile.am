@@ -156,6 +156,7 @@ SOURCES_COMMON                      = \
     crypto/pbkdf2_cmac.cpp            \
     crypto/sha256.cpp                 \
     mac/channel_mask.cpp              \
+    mac/data_poll_handler.cpp         \
     mac/data_poll_sender.cpp          \
     mac/link_raw.cpp                  \
     mac/mac.cpp                       \
@@ -197,6 +198,7 @@ SOURCES_COMMON                      = \
     thread/announce_sender.cpp        \
     thread/child_table.cpp            \
     thread/energy_scan_server.cpp     \
+    thread/indirect_sender.cpp        \
     thread/key_manager.cpp            \
     thread/link_quality.cpp           \
     thread/lowpan.cpp                 \
@@ -321,6 +323,7 @@ HEADERS_COMMON                      = \
     crypto/pbkdf2_cmac.h              \
     crypto/sha256.hpp                 \
     mac/channel_mask.hpp              \
+    mac/data_poll_handler.hpp         \
     mac/data_poll_sender.hpp          \
     mac/link_raw.hpp                  \
     mac/mac.hpp                       \
@@ -364,6 +367,7 @@ HEADERS_COMMON                      = \
     thread/announce_sender.hpp        \
     thread/child_table.hpp            \
     thread/energy_scan_server.hpp     \
+    thread/indirect_sender.hpp        \
     thread/key_manager.hpp            \
     thread/link_quality.hpp           \
     thread/lowpan.hpp                 \

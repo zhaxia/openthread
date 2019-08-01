@@ -217,8 +217,8 @@ otError otPlatUdpSocket(otUdpSocket *aUdpSocket)
 
     assert(aUdpSocket->mHandle == NULL);
 
-    fd = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-    VerifyOrExit(fd > 0, error = OT_ERROR_FAILED);
+    fd = SocketWithCloseExec(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    VerifyOrExit(fd >= 0, error = OT_ERROR_FAILED);
 
     aUdpSocket->mHandle = FdToHandle(fd);
 
@@ -388,7 +388,7 @@ void platformUdpInit(const char *aIfName)
 {
     if (aIfName == NULL)
     {
-        exit(OT_EXIT_INVALID_ARGUMENTS);
+        DieNow(OT_EXIT_INVALID_ARGUMENTS);
     }
 
     sPlatNetifIndex = if_nametoindex(aIfName);
