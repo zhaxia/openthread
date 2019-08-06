@@ -40,26 +40,26 @@ OPENTHREAD_COMMON_FLAGS                                          := \
     -DPACKAGE_TARNAME=\"openthread\"                                \
     -DVERSION=\"$(OPENTHREAD_DEFAULT_VERSION)\"                     \
     -DPACKAGE_URL=\"http://github.com/openthread/openthread\"       \
-    -DOPENTHREAD_ENABLE_MAC_FILTER=1                                \
+    -DOPENTHREAD_CONFIG_MAC_FILTER_ENABLE=1                         \
     $(NULL)
 
 # Enable required features for on-device tests.
 ifeq ($(TARGET_BUILD_VARIANT),eng)
 OPENTHREAD_COMMON_FLAGS                                          += \
-    -DOPENTHREAD_ENABLE_DIAG=1                                      \
+    -DOPENTHREAD_CONFIG_DIAG_ENABLE=1                               \
     $(NULL)
 endif
 
 # Enable all optional features for CI tests.
 ifeq ($(TARGET_PRODUCT),generic)
 OPENTHREAD_COMMON_FLAGS                                          += \
-    -DOPENTHREAD_ENABLE_APPLICATION_COAP=1                          \
-    -DOPENTHREAD_ENABLE_COMMISSIONER=1                              \
-    -DOPENTHREAD_ENABLE_DHCP6_CLIENT=1                              \
-    -DOPENTHREAD_ENABLE_DHCP6_SERVER=1                              \
-    -DOPENTHREAD_ENABLE_DNS_CLIENT=1                                \
-    -DOPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC=1                    \
-    -DOPENTHREAD_ENABLE_REFERENCE_DEVICE=0                          \
+    -DOPENTHREAD_CONFIG_COAP_API_ENABLE=1                           \
+    -DOPENTHREAD_CONFIG_COMMISSIONER_ENABLE=1                       \
+    -DOPENTHREAD_CONFIG_DHCP6_CLIENT_ENABLE=1                       \
+    -DOPENTHREAD_CONFIG_DHCP6_SERVER_ENABLE=1                       \
+    -DOPENTHREAD_CONFIG_DNS_CLIENT_ENABLE=1                         \
+    -DOPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE=0                   \
+    -DOPENTHREAD_CONFIG_TMF_NETWORK_DIAG_MTD_ENABLE=1               \
     $(NULL)
 endif
 
@@ -112,6 +112,7 @@ LOCAL_SRC_FILES                                          := \
     src/core/api/crypto_api.cpp                             \
     src/core/api/dataset_api.cpp                            \
     src/core/api/dataset_ftd_api.cpp                        \
+    src/core/api/diags_api.cpp                              \
     src/core/api/dns_api.cpp                                \
     src/core/api/icmp6_api.cpp                              \
     src/core/api/instance_api.cpp                           \
@@ -151,6 +152,7 @@ LOCAL_SRC_FILES                                          := \
     src/core/crypto/mbedtls.cpp                             \
     src/core/crypto/pbkdf2_cmac.cpp                         \
     src/core/crypto/sha256.cpp                              \
+    src/core/diags/factory_diags.cpp                        \
     src/core/mac/channel_mask.cpp                           \
     src/core/mac/data_poll_handler.cpp                      \
     src/core/mac/data_poll_sender.cpp                       \
@@ -191,6 +193,7 @@ LOCAL_SRC_FILES                                          := \
     src/core/thread/announce_begin_server.cpp               \
     src/core/thread/announce_sender.cpp                     \
     src/core/thread/child_table.cpp                         \
+    src/core/thread/device_mode.cpp                         \
     src/core/thread/energy_scan_server.cpp                  \
     src/core/thread/indirect_sender.cpp                     \
     src/core/thread/key_manager.cpp                         \
@@ -221,8 +224,6 @@ LOCAL_SRC_FILES                                          := \
     src/core/utils/missing_strnlen.c                        \
     src/core/utils/parse_cmdline.cpp                        \
     src/core/utils/slaac_address.cpp                        \
-    src/diag/diag_process.cpp                               \
-    src/diag/openthread-diag.cpp                            \
     src/ncp/hdlc.cpp                                        \
     src/ncp/spinel.c                                        \
     src/ncp/spinel_decoder.cpp                              \

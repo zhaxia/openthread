@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2018, The OpenThread Authors.
+ *  Copyright (c) 2019, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -28,44 +28,39 @@
 
 /**
  * @file
- *   Sanity checking for configuration options.
+ *   This file implements of MLE device mode.
  */
 
-#ifndef OPENTHREAD_CORE_CONFIG_CHECK_H_
-#define OPENTHREAD_CORE_CONFIG_CHECK_H_
+#include "device_mode.hpp"
 
-#if OPENTHREAD_ENABLE_PLATFORM_UDP && OPENTHREAD_ENABLE_UDP_FORWARD
-#error "OPENTHREAD_ENABLE_PLATFORM_UDP and OPENTHREAD_ENABLE_UDP_FORWARD must not both be set."
-#endif
+#include "common/code_utils.hpp"
 
-/*
- * Removed or replaced OPENTHREAD_CONFIG options.
- *
- */
+namespace ot {
+namespace Mle {
 
-#ifdef OPENTHREAD_CONFIG_DISABLE_CCA_ON_LAST_ATTEMPT
-#error \
-    "OPENTHREAD_CONFIG_DISABLE_CCA_ON_LAST_ATTEMPT was replaced by OPENTHREAD_CONFIG_DISABLE_CSMA_CA_ON_LAST_ATTEMPT."
-#endif
+void DeviceMode::Get(ModeConfig &aModeConfig) const
+{
+    aModeConfig.mRxOnWhenIdle       = IsRxOnWhenIdle();
+    aModeConfig.mSecureDataRequests = IsSecureDataRequest();
+    aModeConfig.mDeviceType         = IsFullThreadDevice();
+    aModeConfig.mNetworkData        = IsFullNetworkData();
+}
 
-#ifdef OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_DIRECT
-#error "OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_DIRECT was replaced by OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_DIRECT."
-#endif
+void DeviceMode::Set(const ModeConfig &aModeConfig)
+{
+    mMode = 0;
+    mMode |= aModeConfig.mRxOnWhenIdle ? kModeRxOnWhenIdle : 0;
+    mMode |= aModeConfig.mSecureDataRequests ? kModeSecureDataRequest : 0;
+    mMode |= aModeConfig.mDeviceType ? kModeFullThreadDevice : 0;
+    mMode |= aModeConfig.mNetworkData ? kModeFullNetworkData : 0;
+}
 
-#ifdef OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_PER_POLL
-#error \
-    "OPENTHREAD_CONFIG_MAX_TX_ATTEMPTS_INDIRECT_PER_POLL was replaced by OPENTHREAD_CONFIG_MAC_MAX_FRAME_RETRIES_INDIRECT."
-#endif
+DeviceMode::InfoString DeviceMode::ToString(void) const
+{
+    return InfoString("rx-on:%s sec-poll:%s ftd:%s full-net:%s", IsRxOnWhenIdle() ? "yes" : "no",
+                      IsSecureDataRequest() ? "yes" : "no", IsFullThreadDevice() ? "yes" : "no",
+                      IsFullNetworkData() ? "yes" : "no");
+}
 
-#ifdef OPENTHREAD_CONFIG_MAX_SERVER_ALOCS
-#error "OPENTHREAD_CONFIG_MAX_SERVER_ALOCS was replaced by OPENTHREAD_CONFIG_MAX_SERVICE_ALOCS."
-#endif
-
-#ifdef OPENTHREAD_CONFIG_ENABLE_AUTO_START_SUPPORT
-#error "OPENTHREAD_CONFIG_ENABLE_AUTO_START_SUPPORT was removed."
-#endif
-
-#ifdef OPENTHREAD_ENABLE_CERT_LOG
-#error "OPENTHREAD_ENABLE_CERT_LOG was replaced by OPENTHREAD_ENABLE_REFERENCE_DEVICE."
-#endif
-#endif // OPENTHREAD_CORE_CONFIG_CHECK_H_
+} // namespace Mle
+} // namespace ot

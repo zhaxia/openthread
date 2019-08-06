@@ -65,7 +65,6 @@ IndirectSender::IndirectSender(Instance &aInstance)
     , mEnabled(false)
     , mSourceMatchController(aInstance)
     , mDataPollHandler(aInstance)
-    , mMessageNextOffset(0)
 {
 }
 
@@ -164,10 +163,8 @@ exit:
     return;
 }
 
-void IndirectSender::HandleChildModeChange(Child &aChild, uint8_t aOldMode)
+void IndirectSender::HandleChildModeChange(Child &aChild, Mle::DeviceMode aOldMode)
 {
-    bool wasRxOnWhenIdle = ((aOldMode & Mle::ModeTlv::kModeRxOnWhenIdle) != 0);
-
     if (!aChild.IsRxOnWhenIdle() && (aChild.GetState() == Neighbor::kStateValid))
     {
         SetChildUseShortAddress(aChild, true);
@@ -176,7 +173,7 @@ void IndirectSender::HandleChildModeChange(Child &aChild, uint8_t aOldMode)
     // On sleepy to non-sleepy mode change, convert indirect messages in
     // the send queue destined to the child to direct.
 
-    if (!wasRxOnWhenIdle && aChild.IsRxOnWhenIdle() && (aChild.GetIndirectMessageCount() > 0))
+    if (!aOldMode.IsRxOnWhenIdle() && aChild.IsRxOnWhenIdle() && (aChild.GetIndirectMessageCount() > 0))
     {
         uint8_t childIndex = Get<ChildTable>().GetChildIndex(aChild);
 
@@ -322,7 +319,7 @@ void IndirectSender::UpdateIndirectMessage(Child &aChild)
     }
 }
 
-otError IndirectSender::PrepareFrameForChild(Mac::Frame &aFrame, Child &aChild)
+otError IndirectSender::PrepareFrameForChild(Mac::TxFrame &aFrame, FrameContext &aContext, Child &aChild)
 {
     otError  error   = OT_ERROR_NONE;
     Message *message = aChild.GetIndirectMessage();
@@ -338,12 +335,12 @@ otError IndirectSender::PrepareFrameForChild(Mac::Frame &aFrame, Child &aChild)
     switch (message->GetType())
     {
     case Message::kTypeIp6:
-        mMessageNextOffset = PrepareDataFrame(aFrame, aChild, *message);
+        aContext.mMessageNextOffset = PrepareDataFrame(aFrame, aChild, *message);
         break;
 
     case Message::kTypeSupervision:
         PrepareEmptyFrame(aFrame, aChild, kSupervisionMsgAckRequest);
-        mMessageNextOffset = message->GetLength();
+        aContext.mMessageNextOffset = message->GetLength();
         break;
 
     default:
@@ -355,7 +352,7 @@ exit:
     return error;
 }
 
-uint16_t IndirectSender::PrepareDataFrame(Mac::Frame &aFrame, Child &aChild, Message &aMessage)
+uint16_t IndirectSender::PrepareDataFrame(Mac::TxFrame &aFrame, Child &aChild, Message &aMessage)
 {
     Ip6::Header  ip6Header;
     Mac::Address macSource, macDest;
@@ -399,7 +396,7 @@ uint16_t IndirectSender::PrepareDataFrame(Mac::Frame &aFrame, Child &aChild, Mes
     return nextOffset;
 }
 
-void IndirectSender::PrepareEmptyFrame(Mac::Frame &aFrame, Child &aChild, bool aAckRequest)
+void IndirectSender::PrepareEmptyFrame(Mac::TxFrame &aFrame, Child &aChild, bool aAckRequest)
 {
     uint16_t     fcf;
     Mac::Address macSource, macDest;
@@ -434,9 +431,13 @@ void IndirectSender::PrepareEmptyFrame(Mac::Frame &aFrame, Child &aChild, bool a
     aFrame.SetFramePending(false);
 }
 
-void IndirectSender::HandleSentFrameToChild(const Mac::Frame &aFrame, otError aError, Child &aChild)
+void IndirectSender::HandleSentFrameToChild(const Mac::TxFrame &aFrame,
+                                            const FrameContext &aContext,
+                                            otError             aError,
+                                            Child &             aChild)
 {
-    Message *message = aChild.GetIndirectMessage();
+    Message *message    = aChild.GetIndirectMessage();
+    uint16_t nextOffset = aContext.mMessageNextOffset;
 
     VerifyOrExit(mEnabled);
 
@@ -453,13 +454,13 @@ void IndirectSender::HandleSentFrameToChild(const Mac::Frame &aFrame, otError aE
         aChild.SetIndirectTxSuccess(false);
 
 #if OPENTHREAD_CONFIG_DROP_MESSAGE_ON_FRAGMENT_TX_FAILURE
-        // We set the NextOffset to end of message, since there is no need to
+        // We set the nextOffset to end of message, since there is no need to
         // send any remaining fragments in the message to the child, if all tx
         // attempts of current frame already failed.
 
         if (message != NULL)
         {
-            mMessageNextOffset = message->GetLength();
+            nextOffset = message->GetLength();
         }
 #endif
         break;
@@ -469,9 +470,9 @@ void IndirectSender::HandleSentFrameToChild(const Mac::Frame &aFrame, otError aE
         break;
     }
 
-    if ((message != NULL) && (mMessageNextOffset < message->GetLength()))
+    if ((message != NULL) && (nextOffset < message->GetLength()))
     {
-        aChild.SetIndirectFragmentOffset(mMessageNextOffset);
+        aChild.SetIndirectFragmentOffset(nextOffset);
         mDataPollHandler.HandleNewFrame(aChild);
         ExitNow();
     }

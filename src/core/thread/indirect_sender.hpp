@@ -40,6 +40,8 @@
 #include "common/message.hpp"
 #include "mac/data_poll_handler.hpp"
 #include "mac/mac_frame.hpp"
+#include "thread/device_mode.hpp"
+#include "thread/indirect_sender_frame_context.hpp"
 #include "thread/src_match_controller.hpp"
 
 namespace ot {
@@ -59,7 +61,7 @@ class Child;
  * This class implements indirect transmission.
  *
  */
-class IndirectSender : public InstanceLocator
+class IndirectSender : public InstanceLocator, public IndirectSenderBase
 {
     friend class Instance;
     friend class DataPollHandler::Callbacks;
@@ -193,7 +195,7 @@ public:
      * @param[in]  aOldMode  The old device mode of the child.
      *
      */
-    void HandleChildModeChange(Child &aChild, uint8_t aOldMode);
+    void HandleChildModeChange(Child &aChild, Mle::DeviceMode aOldMode);
 
 private:
     enum
@@ -202,25 +204,27 @@ private:
          * Indicates whether to set/enable 15.4 ack request in the MAC header of a supervision message.
          *
          */
-        kSupervisionMsgAckRequest = (OPENTHREAD_CONFIG_SUPERVISION_MSG_NO_ACK_REQUEST == 0) ? true : false,
+        kSupervisionMsgAckRequest = (OPENTHREAD_CONFIG_CHILD_SUPERVISION_MSG_NO_ACK_REQUEST == 0) ? true : false,
     };
 
     // Callbacks from DataPollHandler
-    otError PrepareFrameForChild(Mac::Frame &aFrame, Child &aChild);
-    void    HandleSentFrameToChild(const Mac::Frame &aFrame, otError aError, Child &aChild);
+    otError PrepareFrameForChild(Mac::TxFrame &aFrame, FrameContext &aContext, Child &aChild);
+    void    HandleSentFrameToChild(const Mac::TxFrame &aFrame,
+                                   const FrameContext &aContext,
+                                   otError             aError,
+                                   Child &             aChild);
     void    HandleFrameChangeDone(Child &aChild);
 
     void     UpdateIndirectMessage(Child &aChild);
     Message *FindIndirectMessage(Child &aChild);
     void     RequestMessageUpdate(Child &aChild);
-    uint16_t PrepareDataFrame(Mac::Frame &aFrame, Child &aChild, Message &aMessage);
-    void     PrepareEmptyFrame(Mac::Frame &aFrame, Child &aChild, bool aAckRequest);
+    uint16_t PrepareDataFrame(Mac::TxFrame &aFrame, Child &aChild, Message &aMessage);
+    void     PrepareEmptyFrame(Mac::TxFrame &aFrame, Child &aChild, bool aAckRequest);
     void     ClearMessagesForRemovedChildren(void);
 
     bool                  mEnabled;
     SourceMatchController mSourceMatchController;
     DataPollHandler       mDataPollHandler;
-    uint16_t              mMessageNextOffset;
 };
 
 /**

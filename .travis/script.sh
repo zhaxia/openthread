@@ -55,75 +55,53 @@ python --version || die
     export CPPFLAGS="${CPPFLAGS} -DMBEDTLS_CONFIG_FILE=\\\"mbedtls-config.h\\\""
 
     # UART transport
+    export CPPFLAGS="${CPPFLAGS}                          \
+        -DOPENTHREAD_CONFIG_BORDER_AGENT_ENABLE=1         \
+        -DOPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE=1        \
+        -DOPENTHREAD_CONFIG_CHANNEL_MANAGER_ENABLE=1      \
+        -DOPENTHREAD_CONFIG_CHANNEL_MONITOR_ENABLE=1      \
+        -DOPENTHREAD_CONFIG_CHILD_SUPERVISION_ENABLE=1    \
+        -DOPENTHREAD_CONFIG_COAP_API_ENABLE=1             \
+        -DOPENTHREAD_CONFIG_COAP_SECURE_API_ENABLE=1      \
+        -DOPENTHREAD_CONFIG_COMMISSIONER_ENABLE=1         \
+        -DOPENTHREAD_CONFIG_DHCP6_CLIENT_ENABLE=1         \
+        -DOPENTHREAD_CONFIG_DHCP6_SERVER_ENABLE=1         \
+        -DOPENTHREAD_CONFIG_DIAG_ENABLE=1                 \
+        -DOPENTHREAD_CONFIG_DNS_CLIENT_ENABLE=1           \
+        -DOPENTHREAD_CONFIG_ECDSA_ENABLE=1                \
+        -DOPENTHREAD_CONFIG_LEGACY_ENABLE=1               \
+        -DOPENTHREAD_CONFIG_JAM_DETECTION_ENABLE=1        \
+        -DOPENTHREAD_CONFIG_JOINER_ENABLE=1               \
+        -DOPENTHREAD_CONFIG_LINK_RAW_ENABLE=1             \
+        -DOPENTHREAD_CONFIG_MAC_FILTER_ENABLE=1           \
+        -DOPENTHREAD_CONFIG_NCP_UART_ENABLE=1             \
+        -DOPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE=1     \
+        -DOPENTHREAD_CONFIG_SNTP_CLIENT_ENABLE=1          \
+        -DOPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE=1  \
+        -DOPENTHREAD_CONFIG_TMF_NETWORK_DIAG_MTD_ENABLE=1 \
+        -DOPENTHREAD_CONFIG_UDP_FORWARD_ENABLE=1"
+
     scan-build ./configure                \
-        --enable-application-coap         \
-        --enable-application-coap-secure  \
-        --enable-border-agent             \
-        --enable-border-router            \
         --enable-builtin-mbedtls=no       \
-        --enable-cert-log                 \
-        --enable-channel-manager          \
-        --enable-channel-monitor          \
-        --enable-child-supervision        \
         --enable-cli                      \
-        --enable-commissioner             \
-        --enable-dhcp6-client             \
-        --enable-dhcp6-server             \
-        --enable-diag                     \
-        --enable-dns-client               \
-        --enable-ecdsa                    \
         --enable-executable=no            \
         --enable-ftd                      \
-        --enable-jam-detection            \
-        --enable-joiner                   \
-        --enable-legacy                   \
-        --enable-mac-filter               \
         --enable-mtd                      \
-        --enable-mtd-network-diagnostic   \
         --enable-ncp                      \
-        --with-ncp-bus=uart               \
         --enable-radio-only               \
-        --enable-raw-link-api             \
-        --enable-service                  \
-        --enable-sntp-client              \
-        --enable-udp-forward              \
         --with-examples=posix || die
 
     scan-build --status-bugs -analyze-headers -v make -j2 || die
 
     # SPI transport
     scan-build ./configure                \
-        --enable-application-coap         \
-        --enable-application-coap-secure  \
-        --enable-border-agent             \
-        --enable-border-router            \
         --enable-builtin-mbedtls=no       \
-        --enable-cert-log                 \
-        --enable-channel-manager          \
-        --enable-channel-monitor          \
-        --enable-child-supervision        \
         --enable-cli                      \
-        --enable-commissioner             \
-        --enable-dhcp6-client             \
-        --enable-dhcp6-server             \
-        --enable-diag                     \
-        --enable-dns-client               \
-        --enable-ecdsa                    \
         --enable-executable=no            \
         --enable-ftd                      \
-        --enable-jam-detection            \
-        --enable-joiner                   \
-        --enable-legacy                   \
-        --enable-mac-filter               \
         --enable-mtd                      \
-        --enable-mtd-network-diagnostic   \
         --enable-ncp                      \
-        --with-ncp-bus=spi                \
         --enable-radio-only               \
-        --enable-raw-link-api             \
-        --enable-service                  \
-        --enable-sntp-client              \
-        --enable-udp-forward              \
         --with-examples=posix || die
 
     scan-build --status-bugs -analyze-headers -v make -j2 || die
@@ -362,6 +340,18 @@ build_samr21() {
     ./bootstrap || die
     CPPFLAGS=-DOPENTHREAD_CONFIG_LOG_LEVEL=OT_LOG_LEVEL_DEBG make -f examples/Makefile-posix || die
 
+    export CPPFLAGS="                                    \
+        -DOPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE=1       \
+        -DOPENTHREAD_CONFIG_CHANNEL_MANAGER_ENABLE=1     \
+        -DOPENTHREAD_CONFIG_CHANNEL_MONITOR_ENABLE=1     \
+        -DOPENTHREAD_CONFIG_CHILD_SUPERVISION_ENABLE=1   \
+        -DOPENTHREAD_CONFIG_DIAG_ENABLE=1                \
+        -DOPENTHREAD_CONFIG_JAM_DETECTION_ENABLE=1       \
+        -DOPENTHREAD_CONFIG_LEGACY_ENABLE=1              \
+        -DOPENTHREAD_CONFIG_MAC_FILTER_ENABLE=1          \
+        -DOPENTHREAD_CONFIG_NCP_SPI_ENABLE=1             \
+        -DOPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE=1"
+
     git checkout -- . || die
     git clean -xfd || die
     ./bootstrap || die
@@ -369,17 +359,7 @@ build_samr21() {
         --enable-ncp                        \
         --enable-ftd                        \
         --enable-mtd                        \
-        --with-ncp-bus=spi                  \
         --with-examples=posix               \
-        --enable-border-router              \
-        --enable-child-supervision          \
-        --enable-diag                       \
-        --enable-jam-detection              \
-        --enable-legacy                     \
-        --enable-mac-filter                 \
-        --enable-service                    \
-        --enable-channel-manager            \
-        --enable-channel-monitor            \
         --disable-docs                      \
         --disable-tests                     \
         --with-vendor-extension=./src/core/common/extension_example.cpp || die
@@ -391,18 +371,15 @@ build_samr21() {
     ./configure                             \
         --enable-cli                        \
         --enable-mtd                        \
-        --with-ncp-bus=spi                  \
         --with-examples=posix               \
-        --enable-border-router              \
-        --enable-child-supervision          \
-        --enable-legacy                     \
-        --enable-mac-filter                 \
-        --enable-service                    \
         --disable-docs                      \
         --disable-tests || die
     make -j 8 || die
 
-    export CPPFLAGS="-DOPENTHREAD_CONFIG_ENABLE_TIME_SYNC=1 -DOPENTHREAD_CONFIG_ENABLE_ANNOUNCE_SENDER=1"
+    export CPPFLAGS="                               \
+        -DOPENTHREAD_CONFIG_ANOUNCE_SENDER_ENABLE=1 \
+        -DOPENTHREAD_CONFIG_TIME_SYNC_ENABLE=1      \
+        -DOPENTHREAD_CONFIG_NCP_UART_ENABLE=1"
 
     git checkout -- . || die
     git clean -xfd || die
@@ -413,7 +390,6 @@ build_samr21() {
         --enable-ftd                        \
         --enable-mtd                        \
         --enable-radio-only                 \
-        --with-ncp-bus=uart                 \
         --with-examples=posix || die
     make -j 8 || die
 }
@@ -451,8 +427,10 @@ build_samr21() {
 }
 
 [ $BUILD_TARGET != posix-ncp-spi ] || {
+    CPPFLAGS="-DOPENTHREAD_CONFIG_NCP_SPI_ENABLE=1"
+
     ./bootstrap || die
-    make -f examples/Makefile-posix check configure_OPTIONS="--enable-ncp --enable-ftd --with-ncp-bus=spi --with-examples=posix" || die
+    make -f examples/Makefile-posix check configure_OPTIONS="--enable-ncp --enable-ftd --with-examples=posix" || die
 }
 
 [ $BUILD_TARGET != posix-app-ncp ] || {

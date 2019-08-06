@@ -42,7 +42,7 @@
 
 using namespace ot;
 
-static void HandleActiveScanResult(Instance &aInstance, Mac::Frame *aFrame);
+static void HandleActiveScanResult(Instance &aInstance, Mac::RxFrame *aFrame);
 static void HandleEnergyScanResult(Instance &aInstance, otEnergyScanResult *aResult);
 
 uint8_t otLinkGetChannel(otInstance *aInstance)
@@ -50,7 +50,7 @@ uint8_t otLinkGetChannel(otInstance *aInstance)
     Instance &instance = *static_cast<Instance *>(aInstance);
     uint8_t   channel;
 
-#if OPENTHREAD_ENABLE_RAW_LINK_API
+#if OPENTHREAD_CONFIG_LINK_RAW_ENABLE
     if (instance.Get<Mac::LinkRaw>().IsEnabled())
     {
         channel = instance.Get<Mac::LinkRaw>().GetChannel();
@@ -69,7 +69,7 @@ otError otLinkSetChannel(otInstance *aInstance, uint8_t aChannel)
     otError   error;
     Instance &instance = *static_cast<Instance *>(aInstance);
 
-#if OPENTHREAD_ENABLE_RAW_LINK_API
+#if OPENTHREAD_CONFIG_LINK_RAW_ENABLE
     if (instance.Get<Mac::LinkRaw>().IsEnabled())
     {
         error = instance.Get<Mac::LinkRaw>().SetChannel(aChannel);
@@ -185,7 +185,7 @@ otShortAddress otLinkGetShortAddress(otInstance *aInstance)
     return instance.Get<Mac::Mac>().GetShortAddress();
 }
 
-#if OPENTHREAD_ENABLE_MAC_FILTER
+#if OPENTHREAD_CONFIG_MAC_FILTER_ENABLE
 
 otMacFilterAddressMode otLinkFilterGetAddressMode(otInstance *aInstance)
 {
@@ -295,7 +295,7 @@ int8_t otLinkConvertLinkQualityToRss(otInstance *aInstance, uint8_t aLinkQuality
     return LinkQualityInfo::ConvertLinkQualityToRss(instance.Get<Mac::Mac>().GetNoiseFloor(), aLinkQuality);
 }
 
-#endif // OPENTHREAD_ENABLE_MAC_FILTER
+#endif // OPENTHREAD_CONFIG_MAC_FILTER_ENABLE
 
 void otLinkSetPcapCallback(otInstance *aInstance, otLinkPcapCallback aPcapCallback, void *aCallbackContext)
 {
@@ -317,7 +317,7 @@ otError otLinkSetPromiscuous(otInstance *aInstance, bool aPromiscuous)
     Instance &instance = *static_cast<Instance *>(aInstance);
 
     // cannot enable IEEE 802.15.4 promiscuous mode if the Thread interface is enabled
-    VerifyOrExit(instance.Get<ThreadNetif>().IsUp() == false, error = OT_ERROR_INVALID_STATE);
+    VerifyOrExit(!instance.Get<ThreadNetif>().IsUp(), error = OT_ERROR_INVALID_STATE);
 
     instance.Get<Mac::Mac>().SetPromiscuous(aPromiscuous);
 
@@ -331,7 +331,7 @@ otError otLinkSetEnabled(otInstance *aInstance, bool aEnable)
     Instance &instance = *static_cast<Instance *>(aInstance);
 
     // cannot disable the link layer if the Thread interface is enabled
-    VerifyOrExit(instance.Get<ThreadNetif>().IsUp() == false, error = OT_ERROR_INVALID_STATE);
+    VerifyOrExit(!instance.Get<ThreadNetif>().IsUp(), error = OT_ERROR_INVALID_STATE);
 
     instance.Get<Mac::Mac>().SetEnabled(aEnable);
 
@@ -372,7 +372,7 @@ bool otLinkIsActiveScanInProgress(otInstance *aInstance)
     return instance.Get<Mac::Mac>().IsActiveScanInProgress();
 }
 
-void HandleActiveScanResult(Instance &aInstance, Mac::Frame *aFrame)
+void HandleActiveScanResult(Instance &aInstance, Mac::RxFrame *aFrame)
 {
     if (aFrame == NULL)
     {
