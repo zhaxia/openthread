@@ -2922,6 +2922,14 @@ bool nrf_802154_core_cca_cfg_update(void)
     return true;
 }
 
+#if NRF_802154_COEX_ENABLED
+void nrf_coex_radio_restart(void)
+{
+    nrf_raal_timeslot_ended();
+    nrf_raal_timeslot_started();
+}
+#endif // NRF_802154_COEX_ENABLED
+
 #if NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
 void RADIO_IRQHandler(void)
 #else // NRF_802154_INTERNAL_RADIO_IRQ_HANDLING

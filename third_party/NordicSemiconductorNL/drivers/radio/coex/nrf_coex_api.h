@@ -22,6 +22,8 @@ void nrf_coex_critical_section_exit(void);
 void nrf_coex_rx_ended_hook(bool success);
 void nrf_coex_tx_ended_hook(bool success);
 
+extern void nrf_coex_radio_restart(void);
+
 #ifdef __cplusplus
 }
 #endif

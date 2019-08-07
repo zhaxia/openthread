@@ -3110,6 +3110,16 @@ bool nrf_802154_core_cca_cfg_update(void)
     return result;
 }
 
+#if NRF_802154_COEX_ENABLED
+void nrf_coex_radio_restart(void)
+{
+    nrf_802154_critical_section_forcefully_enter();
+    nrf_802154_critical_section_rsch_prec_denied();
+    nrf_802154_critical_section_rsch_prec_approved();
+    nrf_802154_critical_section_exit();
+}
+#endif // NRF_802154_COEX_ENABLED
+
 #if NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
 void RADIO_IRQHandler(void)
 #else // NRF_802154_INTERNAL_RADIO_IRQ_HANDLING
