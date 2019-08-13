@@ -313,7 +313,7 @@ void MeshForwarder::RemoveDataResponseMessages(void)
     }
 }
 
-void MeshForwarder::SendMesh(Message &aMessage, Mac::Frame &aFrame)
+void MeshForwarder::SendMesh(Message &aMessage, Mac::TxFrame &aFrame)
 {
     uint16_t fcf;
 
@@ -396,7 +396,7 @@ otError MeshForwarder::UpdateIp6RouteFtd(Ip6::Header &ip6Header)
             SuccessOrExit(error = MeshCoP::GetBorderAgentRloc(Get<ThreadNetif>(), mMeshDest));
         }
 
-#if OPENTHREAD_ENABLE_DHCP6_SERVER || OPENTHREAD_ENABLE_DHCP6_CLIENT
+#if OPENTHREAD_CONFIG_DHCP6_SERVER_ENABLE || OPENTHREAD_CONFIG_DHCP6_CLIENT_ENABLE
         else if (aloc16 <= Mle::kAloc16DhcpAgentEnd)
         {
             uint16_t agentRloc16;
@@ -419,8 +419,8 @@ otError MeshForwarder::UpdateIp6RouteFtd(Ip6::Header &ip6Header)
             }
         }
 
-#endif // OPENTHREAD_ENABLE_DHCP6_SERVER || OPENTHREAD_ENABLE_DHCP6_CLIENT
-#if OPENTHREAD_ENABLE_SERVICE
+#endif // OPENTHREAD_CONFIG_DHCP6_SERVER_ENABLE || OPENTHREAD_CONFIG_DHCP6_CLIENT_ENABLE
+#if OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
         else if ((aloc16 >= Mle::kAloc16ServiceStart) && (aloc16 <= Mle::kAloc16ServiceEnd))
         {
             SuccessOrExit(error = GetDestinationRlocByServiceAloc(aloc16, mMeshDest));
@@ -756,7 +756,7 @@ exit:
     return error;
 }
 
-#if OPENTHREAD_ENABLE_SERVICE
+#if OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
 otError MeshForwarder::GetDestinationRlocByServiceAloc(uint16_t aServiceAloc, uint16_t &aMeshDest)
 {
     otError                  error      = OT_ERROR_NONE;
@@ -814,7 +814,7 @@ otError MeshForwarder::GetDestinationRlocByServiceAloc(uint16_t aServiceAloc, ui
 exit:
     return error;
 }
-#endif // OPENTHREAD_ENABLE_SERVICE
+#endif // OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
 
 // LCOV_EXCL_START
 
@@ -863,7 +863,7 @@ otError MeshForwarder::LogMeshFragmentHeader(MessageAction       aAction,
 
     if (hasFragmentHeader)
     {
-        otLogMac(aLogLevel, "\tFrag tag:%04x, offset:%d, size:%d", fragmentHeader.GetDatagramTag(),
+        otLogMac(aLogLevel, "    Frag tag:%04x, offset:%d, size:%d", fragmentHeader.GetDatagramTag(),
                  fragmentHeader.GetDatagramOffset(), fragmentHeader.GetDatagramSize());
 
         VerifyOrExit(fragmentHeader.GetDatagramOffset() == 0);
@@ -961,7 +961,7 @@ void MeshForwarder::LogMeshIpHeader(const Message &     aMessage,
     SuccessOrExit(DecompressIp6UdpTcpHeader(aMessage, aOffset, aMeshSource, aMeshDest, ip6Header, checksum, sourcePort,
                                             destPort));
 
-    otLogMac(aLogLevel, "\tIPv6 %s msg, chksum:%04x, prio:%s", Ip6::Ip6::IpProtoToString(ip6Header.GetNextHeader()),
+    otLogMac(aLogLevel, "    IPv6 %s msg, chksum:%04x, prio:%s", Ip6::Ip6::IpProtoToString(ip6Header.GetNextHeader()),
              checksum, MessagePriorityToString(aMessage));
 
     LogIp6SourceDestAddresses(ip6Header, sourcePort, destPort, aLogLevel);

@@ -43,7 +43,7 @@
 #include <openthread/link.h>
 #include <openthread/ncp.h>
 #include <openthread/thread.h>
-#if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+#if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
 #include <openthread/network_time.h>
 #endif
 
@@ -52,10 +52,10 @@
 #include <openthread/thread_ftd.h>
 #endif
 
-#if OPENTHREAD_ENABLE_BORDER_ROUTER
+#if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
 #include <openthread/border_router.h>
 #endif
-#if OPENTHREAD_ENABLE_SERVICE
+#if OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
 #include <openthread/server.h>
 #endif
 
@@ -68,11 +68,11 @@
 
 #include "cli_dataset.hpp"
 
-#if OPENTHREAD_ENABLE_CHANNEL_MANAGER && OPENTHREAD_FTD
+#if OPENTHREAD_CONFIG_CHANNEL_MANAGER_ENABLE && OPENTHREAD_FTD
 #include <openthread/channel_manager.h>
 #endif
 
-#if OPENTHREAD_ENABLE_CHANNEL_MONITOR
+#if OPENTHREAD_CONFIG_CHANNEL_MONITOR_ENABLE
 #include <openthread/channel_monitor.h>
 #endif
 
@@ -100,13 +100,13 @@ const struct Command Interpreter::sCommands[] = {
     {"childmax", &Interpreter::ProcessChildMax},
 #endif
     {"childtimeout", &Interpreter::ProcessChildTimeout},
-#if OPENTHREAD_ENABLE_APPLICATION_COAP
+#if OPENTHREAD_CONFIG_COAP_API_ENABLE
     {"coap", &Interpreter::ProcessCoap},
 #endif
-#if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
+#if OPENTHREAD_CONFIG_COAP_SECURE_API_ENABLE
     {"coaps", &Interpreter::ProcessCoapSecure},
 #endif
-#if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
+#if OPENTHREAD_CONFIG_COMMISSIONER_ENABLE && OPENTHREAD_FTD
     {"commissioner", &Interpreter::ProcessCommissioner},
 #endif
 #if OPENTHREAD_FTD
@@ -117,11 +117,11 @@ const struct Command Interpreter::sCommands[] = {
 #if OPENTHREAD_FTD
     {"delaytimermin", &Interpreter::ProcessDelayTimerMin},
 #endif
-#if OPENTHREAD_ENABLE_DIAG
+#if OPENTHREAD_CONFIG_DIAG_ENABLE
     {"diag", &Interpreter::ProcessDiag},
 #endif
     {"discover", &Interpreter::ProcessDiscover},
-#if OPENTHREAD_ENABLE_DNS_CLIENT
+#if OPENTHREAD_CONFIG_DNS_CLIENT_ENABLE
     {"dns", &Interpreter::ProcessDns},
 #endif
 #if OPENTHREAD_FTD
@@ -140,7 +140,7 @@ const struct Command Interpreter::sCommands[] = {
     {"ifconfig", &Interpreter::ProcessIfconfig},
     {"ipaddr", &Interpreter::ProcessIpAddr},
     {"ipmaddr", &Interpreter::ProcessIpMulticastAddr},
-#if OPENTHREAD_ENABLE_JOINER
+#if OPENTHREAD_CONFIG_JOINER_ENABLE
     {"joiner", &Interpreter::ProcessJoiner},
 #endif
 #if OPENTHREAD_FTD
@@ -152,7 +152,7 @@ const struct Command Interpreter::sCommands[] = {
     {"leaderpartitionid", &Interpreter::ProcessLeaderPartitionId},
     {"leaderweight", &Interpreter::ProcessLeaderWeight},
 #endif
-#if OPENTHREAD_ENABLE_MAC_FILTER
+#if OPENTHREAD_CONFIG_MAC_FILTER_ENABLE
     {"macfilter", &Interpreter::ProcessMacFilter},
 #endif
     {"masterkey", &Interpreter::ProcessMasterKey},
@@ -160,20 +160,20 @@ const struct Command Interpreter::sCommands[] = {
 #if OPENTHREAD_FTD
     {"neighbor", &Interpreter::ProcessNeighbor},
 #endif
-#if OPENTHREAD_ENABLE_BORDER_ROUTER || OPENTHREAD_ENABLE_SERVICE
+#if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE || OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
     {"netdataregister", &Interpreter::ProcessNetworkDataRegister},
 #endif
-#if OPENTHREAD_ENABLE_SERVICE
+#if OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
     {"netdatashow", &Interpreter::ProcessNetworkDataShow},
 #endif
-#if OPENTHREAD_FTD || OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC
+#if OPENTHREAD_FTD || OPENTHREAD_CONFIG_TMF_NETWORK_DIAG_MTD_ENABLE
     {"networkdiagnostic", &Interpreter::ProcessNetworkDiagnostic},
-#endif // OPENTHREAD_FTD || OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC
+#endif // OPENTHREAD_FTD || OPENTHREAD_CONFIG_TMF_NETWORK_DIAG_MTD_ENABLE
 #if OPENTHREAD_FTD
     {"networkidtimeout", &Interpreter::ProcessNetworkIdTimeout},
 #endif
     {"networkname", &Interpreter::ProcessNetworkName},
-#if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+#if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     {"networktime", &Interpreter::ProcessNetworkTime},
 #endif
     {"panid", &Interpreter::ProcessPanId},
@@ -184,7 +184,7 @@ const struct Command Interpreter::sCommands[] = {
     {"ping", &Interpreter::ProcessPing},
     {"pollperiod", &Interpreter::ProcessPollPeriod},
     {"promiscuous", &Interpreter::ProcessPromiscuous},
-#if OPENTHREAD_ENABLE_BORDER_ROUTER
+#if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
     {"prefix", &Interpreter::ProcessPrefix},
 #endif
 #if OPENTHREAD_FTD
@@ -193,7 +193,7 @@ const struct Command Interpreter::sCommands[] = {
 #endif
     {"reset", &Interpreter::ProcessReset},
     {"rloc16", &Interpreter::ProcessRloc16},
-#if OPENTHREAD_ENABLE_BORDER_ROUTER
+#if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
     {"route", &Interpreter::ProcessRoute},
 #endif
 #if OPENTHREAD_FTD
@@ -204,11 +204,11 @@ const struct Command Interpreter::sCommands[] = {
     {"routerupgradethreshold", &Interpreter::ProcessRouterUpgradeThreshold},
 #endif
     {"scan", &Interpreter::ProcessScan},
-#if OPENTHREAD_ENABLE_SERVICE
+#if OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
     {"service", &Interpreter::ProcessService},
 #endif
     {"singleton", &Interpreter::ProcessSingleton},
-#if OPENTHREAD_ENABLE_SNTP_CLIENT
+#if OPENTHREAD_CONFIG_SNTP_CLIENT_ENABLE
     {"sntp", &Interpreter::ProcessSntp},
 #endif
     {"state", &Interpreter::ProcessState},
@@ -226,26 +226,26 @@ Interpreter::Interpreter(Instance *aInstance)
     , mCount(1)
     , mInterval(1000)
     , mPingTimer(*aInstance, &Interpreter::HandlePingTimer, this)
-#if OPENTHREAD_ENABLE_DNS_CLIENT
+#if OPENTHREAD_CONFIG_DNS_CLIENT_ENABLE
     , mResolvingInProgress(0)
 #endif
     , mUdp(*this)
     , mDataset(*this)
-#if OPENTHREAD_ENABLE_APPLICATION_COAP
+#if OPENTHREAD_CONFIG_COAP_API_ENABLE
     , mCoap(*this)
 #endif
-#if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
+#if OPENTHREAD_CONFIG_COAP_SECURE_API_ENABLE
     , mCoapSecure(*this)
 #endif
-#if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
+#if OPENTHREAD_CONFIG_COMMISSIONER_ENABLE && OPENTHREAD_FTD
     , mCommissioner(*this)
 #endif
-#if OPENTHREAD_ENABLE_JOINER
+#if OPENTHREAD_CONFIG_JOINER_ENABLE
     , mJoiner(*this)
 #endif
     , mInstance(aInstance)
 {
-#if OPENTHREAD_FTD || OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC
+#if OPENTHREAD_FTD || OPENTHREAD_CONFIG_TMF_NETWORK_DIAG_MTD_ENABLE
     otThreadSetReceiveDiagnosticGetCallback(mInstance, &Interpreter::HandleDiagnosticGetResponse, this);
 #endif
 
@@ -253,9 +253,9 @@ Interpreter::Interpreter(Instance *aInstance)
     mIcmpHandler.mContext         = this;
     otIcmp6RegisterHandler(mInstance, &mIcmpHandler);
 
-#if OPENTHREAD_ENABLE_DNS_CLIENT
+#if OPENTHREAD_CONFIG_DNS_CLIENT_ENABLE
     memset(mResolvingHostname, 0, sizeof(mResolvingHostname));
-#endif // OPENTHREAD_ENABLE_DNS_CLIENT
+#endif // OPENTHREAD_CONFIG_DNS_CLIENT_ENABLE
 }
 
 int Interpreter::Hex2Bin(const char *aHex, uint8_t *aBin, uint16_t aBinLength)
@@ -447,7 +447,7 @@ void Interpreter::ProcessChannel(int argc, char *argv[])
     {
         mServer->OutputFormat("%d\r\n", otLinkGetChannel(mInstance));
     }
-#if OPENTHREAD_ENABLE_CHANNEL_MONITOR
+#if OPENTHREAD_CONFIG_CHANNEL_MONITOR_ENABLE
     else if (strcmp(argv[0], "monitor") == 0)
     {
         if (argc == 1)
@@ -496,7 +496,7 @@ void Interpreter::ProcessChannel(int argc, char *argv[])
         }
     }
 #endif
-#if OPENTHREAD_ENABLE_CHANNEL_MANAGER && OPENTHREAD_FTD
+#if OPENTHREAD_CONFIG_CHANNEL_MANAGER_ENABLE && OPENTHREAD_FTD
     else if (strcmp(argv[0], "manager") == 0)
     {
         if (argc == 1)
@@ -759,7 +759,7 @@ exit:
     AppendResult(error);
 }
 
-#if OPENTHREAD_ENABLE_APPLICATION_COAP
+#if OPENTHREAD_CONFIG_COAP_API_ENABLE
 
 void Interpreter::ProcessCoap(int argc, char *argv[])
 {
@@ -768,9 +768,9 @@ void Interpreter::ProcessCoap(int argc, char *argv[])
     AppendResult(error);
 }
 
-#endif // OPENTHREAD_ENABLE_APPLICATION_COAP
+#endif // OPENTHREAD_CONFIG_COAP_API_ENABLE
 
-#if OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
+#if OPENTHREAD_CONFIG_COAP_SECURE_API_ENABLE
 
 void Interpreter::ProcessCoapSecure(int argc, char *argv[])
 {
@@ -779,7 +779,7 @@ void Interpreter::ProcessCoapSecure(int argc, char *argv[])
     AppendResult(error);
 }
 
-#endif // OPENTHREAD_ENABLE_APPLICATION_COAP_SECURE
+#endif // OPENTHREAD_CONFIG_COAP_SECURE_API_ENABLE
 
 #if OPENTHREAD_FTD
 void Interpreter::ProcessContextIdReuseDelay(int argc, char *argv[])
@@ -928,7 +928,7 @@ exit:
     AppendResult(error);
 }
 
-#if OPENTHREAD_ENABLE_DNS_CLIENT
+#if OPENTHREAD_CONFIG_DNS_CLIENT_ENABLE
 void Interpreter::ProcessDns(int argc, char *argv[])
 {
     otError          error = OT_ERROR_NONE;
@@ -1023,7 +1023,7 @@ void Interpreter::ProcessEidCache(int argc, char *argv[])
     {
         SuccessOrExit(otThreadGetEidCacheEntry(mInstance, i, &entry));
 
-        if (entry.mValid == false)
+        if (!entry.mValid)
         {
             continue;
         }
@@ -1627,7 +1627,7 @@ exit:
 }
 #endif
 
-#if OPENTHREAD_ENABLE_SERVICE
+#if OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
 void Interpreter::ProcessNetworkDataShow(int argc, char *argv[])
 {
     OT_UNUSED_VARIABLE(argc);
@@ -1699,14 +1699,14 @@ exit:
 }
 #endif
 
-#if OPENTHREAD_ENABLE_BORDER_ROUTER || OPENTHREAD_ENABLE_SERVICE
+#if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE || OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
 void Interpreter::ProcessNetworkDataRegister(int argc, char *argv[])
 {
     OT_UNUSED_VARIABLE(argc);
     OT_UNUSED_VARIABLE(argv);
 
     otError error = OT_ERROR_NONE;
-#if OPENTHREAD_ENABLE_BORDER_ROUTER
+#if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
     SuccessOrExit(error = otBorderRouterRegister(mInstance));
 #else
     SuccessOrExit(error = otServerRegister(mInstance));
@@ -1715,7 +1715,7 @@ void Interpreter::ProcessNetworkDataRegister(int argc, char *argv[])
 exit:
     AppendResult(error);
 }
-#endif // OPENTHREAD_ENABLE_BORDER_ROUTER || OPENTHREAD_ENABLE_SERVICE
+#endif // OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE || OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
 
 #if OPENTHREAD_FTD
 void Interpreter::ProcessNetworkIdTimeout(int argc, char *argv[])
@@ -1756,7 +1756,7 @@ exit:
     AppendResult(error);
 }
 
-#if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+#if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
 void Interpreter::ProcessNetworkTime(int argc, char *argv[])
 {
     otError error = OT_ERROR_NONE;
@@ -1808,7 +1808,7 @@ void Interpreter::ProcessNetworkTime(int argc, char *argv[])
 exit:
     AppendResult(error);
 }
-#endif // OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+#endif // OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
 
 void Interpreter::ProcessPanId(int argc, char *argv[])
 {
@@ -1817,7 +1817,7 @@ void Interpreter::ProcessPanId(int argc, char *argv[])
 
     if (argc == 0)
     {
-        mServer->OutputFormat("%04x\r\n", otLinkGetPanId(mInstance));
+        mServer->OutputFormat("0x%04x\r\n", otLinkGetPanId(mInstance));
     }
     else
     {
@@ -2138,7 +2138,7 @@ void Interpreter::HandleLinkPcapReceive(const otRadioFrame *aFrame, bool aIsTx)
     mServer->OutputFormat("\r\n");
 }
 
-#if OPENTHREAD_ENABLE_BORDER_ROUTER
+#if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
 otError Interpreter::ProcessPrefixAdd(int argc, char *argv[])
 {
     otError              error = OT_ERROR_NONE;
@@ -2358,7 +2358,7 @@ void Interpreter::ProcessPrefix(int argc, char *argv[])
 exit:
     AppendResult(error);
 }
-#endif // OPENTHREAD_ENABLE_BORDER_ROUTER
+#endif // OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
 
 #if OPENTHREAD_FTD
 void Interpreter::ProcessReleaseRouterId(int argc, char *argv[])
@@ -2393,7 +2393,7 @@ void Interpreter::ProcessRloc16(int argc, char *argv[])
     mServer->OutputFormat("Done\r\n");
 }
 
-#if OPENTHREAD_ENABLE_BORDER_ROUTER
+#if OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
 otError Interpreter::ProcessRouteAdd(int argc, char *argv[])
 {
     otError               error = OT_ERROR_NONE;
@@ -2549,7 +2549,7 @@ void Interpreter::ProcessRoute(int argc, char *argv[])
 exit:
     AppendResult(error);
 }
-#endif // OPENTHREAD_ENABLE_BORDER_ROUTER
+#endif // OPENTHREAD_CONFIG_BORDER_ROUTER_ENABLE
 
 #if OPENTHREAD_FTD
 void Interpreter::ProcessRouter(int argc, char *argv[])
@@ -2857,7 +2857,7 @@ void Interpreter::ProcessSingleton(int argc, char *argv[])
     AppendResult(error);
 }
 
-#if OPENTHREAD_ENABLE_SNTP_CLIENT
+#if OPENTHREAD_CONFIG_SNTP_CLIENT_ENABLE
 void Interpreter::ProcessSntp(int argc, char *argv[])
 {
     otError          error = OT_ERROR_NONE;
@@ -3070,7 +3070,7 @@ void Interpreter::ProcessVersion(int argc, char *argv[])
     AppendResult(OT_ERROR_NONE);
 }
 
-#if OPENTHREAD_ENABLE_COMMISSIONER && OPENTHREAD_FTD
+#if OPENTHREAD_CONFIG_COMMISSIONER_ENABLE && OPENTHREAD_FTD
 
 void Interpreter::ProcessCommissioner(int argc, char *argv[])
 {
@@ -3081,7 +3081,7 @@ void Interpreter::ProcessCommissioner(int argc, char *argv[])
 
 #endif
 
-#if OPENTHREAD_ENABLE_JOINER
+#if OPENTHREAD_CONFIG_JOINER_ENABLE
 
 void Interpreter::ProcessJoiner(int argc, char *argv[])
 {
@@ -3113,7 +3113,7 @@ exit:
 }
 #endif
 
-#if OPENTHREAD_ENABLE_MAC_FILTER
+#if OPENTHREAD_CONFIG_MAC_FILTER_ENABLE
 void Interpreter::ProcessMacFilter(int argc, char *argv[])
 {
     otError error = OT_ERROR_NONE;
@@ -3404,16 +3404,16 @@ exit:
     return error;
 }
 
-#endif // OPENTHREAD_ENABLE_MAC_FILTER
+#endif // OPENTHREAD_CONFIG_MAC_FILTER_ENABLE
 
-#if OPENTHREAD_ENABLE_DIAG
+#if OPENTHREAD_CONFIG_DIAG_ENABLE
 void Interpreter::ProcessDiag(int argc, char *argv[])
 {
     char output[OPENTHREAD_CONFIG_DIAG_OUTPUT_BUFFER_SIZE];
 
     // all diagnostics related features are processed within diagnostics module
     output[sizeof(output) - 1] = '\0';
-    otDiagProcessCmd(argc, argv, output, sizeof(output) - 1);
+    otDiagProcessCmd(mInstance, argc, argv, output, sizeof(output) - 1);
     mServer->Output(output, static_cast<uint16_t>(strlen(output)));
 }
 #endif
@@ -3434,9 +3434,9 @@ void Interpreter::ProcessLine(char *aBuf, uint16_t aBufLength, Server &aServer)
 
     cmd = argv[0];
 
-#if OPENTHREAD_ENABLE_DIAG
+#if OPENTHREAD_CONFIG_DIAG_ENABLE
     VerifyOrExit(
-        (!otDiagIsEnabled() || (strcmp(cmd, "diag") == 0)),
+        (!otDiagIsEnabled(mInstance) || (strcmp(cmd, "diag") == 0)),
         mServer->OutputFormat("under diagnostics mode, execute 'diag stop' before running any other commands.\r\n"));
 #endif
 
@@ -3472,7 +3472,7 @@ exit:
     return;
 }
 
-#if OPENTHREAD_FTD || OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC
+#if OPENTHREAD_FTD || OPENTHREAD_CONFIG_TMF_NETWORK_DIAG_MTD_ENABLE
 void Interpreter::ProcessNetworkDiagnostic(int argc, char *argv[])
 {
     otError             error = OT_ERROR_NONE;
@@ -3516,7 +3516,7 @@ exit:
         AppendResult(error);
     }
 }
-#endif // OPENTHREAD_FTD || OPENTHREAD_ENABLE_MTD_NETWORK_DIAGNOSTIC
+#endif // OPENTHREAD_FTD || OPENTHREAD_CONFIG_TMF_NETWORK_DIAG_MTD_ENABLE
 
 void Interpreter::HandleDiagnosticGetResponse(otMessage *aMessage, const otMessageInfo *aMessageInfo, void *aContext)
 {
@@ -3555,7 +3555,7 @@ void Interpreter::SetUserCommands(const otCliCommand *aCommands, uint8_t aLength
 
 Interpreter &Interpreter::GetOwner(OwnerLocator &aOwnerLocator)
 {
-#if OPENTHREAD_ENABLE_MULTIPLE_INSTANCES
+#if OPENTHREAD_CONFIG_MULTIPLE_INSTANCE_ENABLE
     Interpreter &interpreter = (aOwnerLocator.GetOwner<Interpreter>());
 #else
     OT_UNUSED_VARIABLE(aOwnerLocator);
@@ -3610,7 +3610,7 @@ exit:
 } // namespace Cli
 } // namespace ot
 
-#if OPENTHREAD_ENABLE_LEGACY
+#if OPENTHREAD_CONFIG_LEGACY_ENABLE
 OT_TOOL_WEAK void otNcpRegisterLegacyHandlers(const otNcpLegacyHandlers *aHandlers)
 {
     OT_UNUSED_VARIABLE(aHandlers);
@@ -3625,4 +3625,4 @@ OT_TOOL_WEAK void otNcpHandleLegacyNodeDidJoin(const otExtAddress *aExtAddr)
 {
     OT_UNUSED_VARIABLE(aExtAddr);
 }
-#endif // OPENTHREAD_ENABLE_LEGACY
+#endif // OPENTHREAD_CONFIG_LEGACY_ENABLE

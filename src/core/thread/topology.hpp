@@ -42,6 +42,7 @@
 #include "common/random.hpp"
 #include "mac/mac_frame.hpp"
 #include "net/ip6.hpp"
+#include "thread/device_mode.hpp"
 #include "thread/indirect_sender.hpp"
 #include "thread/link_quality.hpp"
 #include "thread/mle_tlvs.hpp"
@@ -113,7 +114,7 @@ public:
      * @returns The device mode flags.
      *
      */
-    uint8_t GetDeviceMode(void) const { return mMode; }
+    Mle::DeviceMode GetDeviceMode(void) const { return Mle::DeviceMode(mMode); }
 
     /**
      * This method sets the device mode flags.
@@ -121,7 +122,7 @@ public:
      * @param[in]  aMode  The device mode flags.
      *
      */
-    void SetDeviceMode(uint8_t aMode) { mMode = aMode; }
+    void SetDeviceMode(Mle::DeviceMode aMode) { mMode = aMode.Get(); }
 
     /**
      * This method indicates whether or not the device is rx-on-when-idle.
@@ -129,7 +130,7 @@ public:
      * @returns TRUE if rx-on-when-idle, FALSE otherwise.
      *
      */
-    bool IsRxOnWhenIdle(void) const { return (mMode & Mle::ModeTlv::kModeRxOnWhenIdle) != 0; }
+    bool IsRxOnWhenIdle(void) const { return GetDeviceMode().IsRxOnWhenIdle(); }
 
     /**
      * This method indicates whether or not the device is a Full Thread Device.
@@ -137,7 +138,7 @@ public:
      * @returns TRUE if a Full Thread Device, FALSE otherwise.
      *
      */
-    bool IsFullThreadDevice(void) const { return (mMode & Mle::ModeTlv::kModeFullThreadDevice) != 0; }
+    bool IsFullThreadDevice(void) const { return GetDeviceMode().IsFullThreadDevice(); }
 
     /**
      * This method indicates whether or not the device uses secure IEEE 802.15.4 Data Request messages.
@@ -145,7 +146,7 @@ public:
      * @returns TRUE if using secure IEEE 802.15.4 Data Request messages, FALSE otherwise.
      *
      */
-    bool IsSecureDataRequest(void) const { return (mMode & Mle::ModeTlv::kModeSecureDataRequest) != 0; }
+    bool IsSecureDataRequest(void) const { return GetDeviceMode().IsSecureDataRequest(); }
 
     /**
      * This method indicates whether or not the device requests Full Network Data.
@@ -153,7 +154,7 @@ public:
      * @returns TRUE if requests Full Network Data, FALSE otherwise.
      *
      */
-    bool IsFullNetworkData(void) const { return (mMode & Mle::ModeTlv::kModeFullNetworkData) != 0; }
+    bool IsFullNetworkData(void) const { return GetDeviceMode().IsFullNetworkData(); }
 
     /**
      * This method sets all bytes of the Extended Address to zero.
@@ -323,7 +324,7 @@ public:
      */
     uint8_t GetChallengeSize(void) const { return sizeof(mValidPending.mPending.mChallenge); }
 
-#if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+#if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     /**
      * This method indicates whether or not time sync feature is enabled.
      *
@@ -361,7 +362,7 @@ private:
     uint16_t mRloc16;      ///< The RLOC16
     uint8_t  mState : 4;   ///< The link state
     uint8_t  mMode : 4;    ///< The MLE device mode
-#if OPENTHREAD_CONFIG_ENABLE_TIME_SYNC
+#if OPENTHREAD_CONFIG_TIME_SYNC_ENABLE
     uint8_t mLinkFailures : 7;    ///< Consecutive link failure count
     bool    mTimeSyncEnabled : 1; ///< Indicates whether or not time sync feature is enabled.
 #else
@@ -592,7 +593,7 @@ public:
      */
     void SetRequestTlv(uint8_t aIndex, uint8_t aType) { mRequestTlvs[aIndex] = aType; }
 
-#if OPENTHREAD_ENABLE_CHILD_SUPERVISION
+#if OPENTHREAD_CONFIG_CHILD_SUPERVISION_ENABLE
 
     /**
      * This method increments the number of seconds since last supervision of the child.
@@ -614,16 +615,16 @@ public:
      */
     void ResetSecondsSinceLastSupervision(void) { mSecondsSinceSupervision = 0; }
 
-#endif // #if OPENTHREAD_ENABLE_CHILD_SUPERVISION
+#endif // #if OPENTHREAD_CONFIG_CHILD_SUPERVISION_ENABLE
 
 private:
-#if OPENTHREAD_CONFIG_IP_ADDRS_PER_CHILD < 2
-#error OPENTHREAD_CONFIG_IP_ADDRS_PER_CHILD should be at least set to 2.
+#if OPENTHREAD_CONFIG_MLE_IP_ADDRS_PER_CHILD < 2
+#error OPENTHREAD_CONFIG_MLE_IP_ADDRS_PER_CHILD should be at least set to 2.
 #endif
 
     enum
     {
-        kNumIp6Addresses = OPENTHREAD_CONFIG_IP_ADDRS_PER_CHILD - 1,
+        kNumIp6Addresses = OPENTHREAD_CONFIG_MLE_IP_ADDRS_PER_CHILD - 1,
     };
 
     uint8_t      mNetworkDataVersion;                                   ///< Current Network Data version
@@ -638,9 +639,9 @@ private:
         uint8_t mAttachChallenge[Mle::ChallengeTlv::kMaxSize]; ///< The challenge value
     };
 
-#if OPENTHREAD_ENABLE_CHILD_SUPERVISION
+#if OPENTHREAD_CONFIG_CHILD_SUPERVISION_ENABLE
     uint16_t mSecondsSinceSupervision; ///< Number of seconds since last supervision of the child.
-#endif                                 // OPENTHREAD_ENABLE_CHILD_SUPERVISION
+#endif
 
     OT_STATIC_ASSERT(OPENTHREAD_CONFIG_NUM_MESSAGE_BUFFERS < 8192, "mQueuedMessageCount cannot fit max required!");
 };
@@ -704,7 +705,7 @@ private:
     uint8_t mNextHop;            ///< The next hop towards this router
     uint8_t mLinkQualityOut : 2; ///< The link quality out for this router
 
-#if OPENTHREAD_CONFIG_ENABLE_LONG_ROUTES
+#if OPENTHREAD_CONFIG_MLE_LONG_ROUTES_ENABLE
     uint8_t mCost; ///< The cost to this router via neighbor router
 #else
     uint8_t mCost : 4;     ///< The cost to this router via neighbor router
