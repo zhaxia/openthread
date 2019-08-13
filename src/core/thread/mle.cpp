@@ -240,7 +240,7 @@ otError Mle::Start(bool aAnnounceAttach)
     otError error = OT_ERROR_NONE;
 
     // cannot bring up the interface if IEEE 802.15.4 promiscuous mode is enabled
-    VerifyOrExit(!otPlatRadioGetPromiscuous(&GetInstance()), error = OT_ERROR_INVALID_STATE);
+    VerifyOrExit(!Get<Radio>().GetPromiscuous(), error = OT_ERROR_INVALID_STATE);
     VerifyOrExit(Get<ThreadNetif>().IsUp(), error = OT_ERROR_INVALID_STATE);
 
     if (Get<Mac::Mac>().GetPanId() == Mac::kPanIdBroadcast)
@@ -382,6 +382,7 @@ otError Mle::Restore(void)
     Get<KeyManager>().SetCurrentKeySequence(networkInfo.mKeySequence);
     Get<KeyManager>().SetMleFrameCounter(networkInfo.mMleFrameCounter);
     Get<KeyManager>().SetMacFrameCounter(networkInfo.mMacFrameCounter);
+    mDeviceMode.Set(networkInfo.mDeviceMode);
 
     switch (networkInfo.mRole)
     {
@@ -394,7 +395,6 @@ otError Mle::Restore(void)
         ExitNow();
     }
 
-    mDeviceMode.Set(networkInfo.mDeviceMode);
     Get<Mac::Mac>().SetShortAddress(networkInfo.mRloc16);
     Get<Mac::Mac>().SetExtAddress(networkInfo.mExtAddress);
 
@@ -458,7 +458,6 @@ otError Mle::Store(void)
         // avoid losing/overwriting previous information when a reboot
         // occurs after a message is sent but before attaching.
 
-        networkInfo.mDeviceMode          = mDeviceMode.Get();
         networkInfo.mRole                = mRole;
         networkInfo.mRloc16              = GetRloc16();
         networkInfo.mPreviousPartitionId = mLeaderData.GetPartitionId();
@@ -491,6 +490,7 @@ otError Mle::Store(void)
     networkInfo.mKeySequence     = Get<KeyManager>().GetCurrentKeySequence();
     networkInfo.mMleFrameCounter = Get<KeyManager>().GetMleFrameCounter() + OPENTHREAD_CONFIG_STORE_FRAME_COUNTER_AHEAD;
     networkInfo.mMacFrameCounter = Get<KeyManager>().GetMacFrameCounter() + OPENTHREAD_CONFIG_STORE_FRAME_COUNTER_AHEAD;
+    networkInfo.mDeviceMode      = mDeviceMode.Get();
 
     SuccessOrExit(error = Get<Settings>().SaveNetworkInfo(networkInfo));
 
@@ -527,7 +527,7 @@ otError Mle::Discover(const Mac::ChannelMask &aScanChannels,
         Crc16           ccitt(Crc16::kCcitt);
         Crc16           ansi(Crc16::kAnsi);
 
-        otPlatRadioGetIeeeEui64(&GetInstance(), extAddress.m8);
+        Get<Radio>().GetIeeeEui64(extAddress);
         MeshCoP::ComputeJoinerId(extAddress, extAddress);
 
         // Compute bloom filter (for steering data)
@@ -842,6 +842,8 @@ otError Mle::SetDeviceMode(DeviceMode aDeviceMode)
 
     otLogNoteMle("Mode 0x%02x -> 0x%02x [%s]", oldMode.Get(), mDeviceMode.Get(), mDeviceMode.ToString().AsCString());
 
+    Store();
+
     switch (mRole)
     {
     case OT_DEVICE_ROLE_DISABLED:
@@ -1079,26 +1081,6 @@ otError Mle::GetLeaderData(otLeaderData &aLeaderData)
 
 exit:
     return error;
-}
-
-void Mle::GenerateNonce(const Mac::ExtAddress &aMacAddr,
-                        uint32_t               aFrameCounter,
-                        uint8_t                aSecurityLevel,
-                        uint8_t *              aNonce)
-{
-    // source address
-    memcpy(aNonce, aMacAddr.m8, sizeof(aMacAddr));
-    aNonce += sizeof(aMacAddr);
-
-    // frame counter
-    aNonce[0] = (aFrameCounter >> 24) & 0xff;
-    aNonce[1] = (aFrameCounter >> 16) & 0xff;
-    aNonce[2] = (aFrameCounter >> 8) & 0xff;
-    aNonce[3] = aFrameCounter & 0xff;
-    aNonce += 4;
-
-    // security level
-    aNonce[0] = aSecurityLevel;
 }
 
 Message *Mle::NewMleMessage(void)
@@ -2511,7 +2493,7 @@ otError Mle::SendMessage(Message &aMessage, const Ip6::Address &aDestination)
     otError          error = OT_ERROR_NONE;
     Header           header;
     uint32_t         keySequence;
-    uint8_t          nonce[13];
+    uint8_t          nonce[KeyManager::kNonceSize];
     uint8_t          tag[4];
     uint8_t          tagLength;
     Crypto::AesCcm   aesCcm;
@@ -2530,8 +2512,8 @@ otError Mle::SendMessage(Message &aMessage, const Ip6::Address &aDestination)
 
         aMessage.Write(0, header.GetLength(), &header);
 
-        GenerateNonce(Get<Mac::Mac>().GetExtAddress(), Get<KeyManager>().GetMleFrameCounter(), Mac::Frame::kSecEncMic32,
-                      nonce);
+        KeyManager::GenerateNonce(Get<Mac::Mac>().GetExtAddress(), Get<KeyManager>().GetMleFrameCounter(),
+                                  Mac::Frame::kSecEncMic32, nonce);
 
         aesCcm.SetKey(Get<KeyManager>().GetCurrentMleKey(), 16);
         error = aesCcm.Init(16 + 16 + header.GetHeaderLength(), aMessage.GetLength() - (header.GetLength() - 1),
@@ -2614,7 +2596,7 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
     const uint8_t * mleKey;
     uint32_t        frameCounter;
     uint8_t         messageTag[4];
-    uint8_t         nonce[13];
+    uint8_t         nonce[KeyManager::kNonceSize];
     Mac::ExtAddress macAddr;
     Crypto::AesCcm  aesCcm;
     uint16_t        mleOffset;
@@ -2673,7 +2655,7 @@ void Mle::HandleUdpReceive(Message &aMessage, const Ip6::MessageInfo &aMessageIn
 
     aMessageInfo.GetPeerAddr().ToExtAddress(macAddr);
     frameCounter = header.GetFrameCounter();
-    GenerateNonce(macAddr, frameCounter, Mac::Frame::kSecEncMic32, nonce);
+    KeyManager::GenerateNonce(macAddr, frameCounter, Mac::Frame::kSecEncMic32, nonce);
 
     aesCcm.SetKey(mleKey, 16);
     SuccessOrExit(

@@ -46,7 +46,7 @@
 
 #include "common/code_utils.hpp"
 #include "common/debug.hpp"
-#include "phy/phy.hpp"
+#include "radio/radio.hpp"
 
 namespace ot {
 namespace Ncp {
@@ -204,7 +204,7 @@ NcpBase::NcpBase(Instance *aInstance)
     , mDecoder()
     , mHostPowerStateInProgress(false)
     , mLastStatus(SPINEL_STATUS_OK)
-    , mScanChannelMask(Phy::kSupportedChannels)
+    , mScanChannelMask(Radio::kSupportedChannels)
     , mScanPeriod(200)
     , mDiscoveryScanJoinerFlag(false)
     , mDiscoveryScanEnableFiltering(false)
@@ -604,7 +604,7 @@ void NcpBase::Log(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aLog
     otError error  = OT_ERROR_NONE;
     uint8_t header = SPINEL_HEADER_FLAG | SPINEL_HEADER_IID_0;
 
-    VerifyOrExit(!mDisableStreamWrite);
+    VerifyOrExit(!mDisableStreamWrite, error = OT_ERROR_INVALID_STATE);
     VerifyOrExit(!mChangedPropsSet.IsPropertyFiltered(SPINEL_PROP_STREAM_LOG));
 
     // If there is a pending queued response we do not allow any new log
@@ -1171,6 +1171,8 @@ otError NcpBase::CommandHandler_RESET(uint8_t aHeader)
         mChangedPropsSet.AddLastStatus(SPINEL_STATUS_RESET_UNKNOWN);
         mUpdateChangedPropsTask.Post();
     }
+
+    sNcpInstance = NULL;
 
     return error;
 }

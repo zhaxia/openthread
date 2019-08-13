@@ -46,7 +46,7 @@
 #include "crypto/aes_ccm.hpp"
 #include "crypto/sha256.hpp"
 #include "mac/mac_frame.hpp"
-#include "phy/phy.hpp"
+#include "radio/radio.hpp"
 #include "thread/link_quality.hpp"
 #include "thread/mle_router.hpp"
 #include "thread/thread_netif.hpp"
@@ -95,8 +95,8 @@ Mac::Mac(Instance &aInstance)
     , mPanChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL)
     , mRadioChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL)
     , mRadioChannelAcquisitionId(0)
-    , mSupportedChannelMask(otPlatRadioGetSupportedChannelMask(&aInstance))
-    , mScanChannel(Phy::kChannelMin)
+    , mSupportedChannelMask(Get<Radio>().GetSupportedChannelMask())
+    , mScanChannel(Radio::kChannelMin)
     , mScanDuration(0)
     , mScanChannelMask()
     , mActiveScanHandler(NULL) /* Initialize `mActiveScanHandler` and `mEnergyScanHandler` union */
@@ -435,7 +435,7 @@ void Mac::SetSupportedChannelMask(const ChannelMask &aMask)
 {
     ChannelMask newMask = aMask;
 
-    newMask.Intersect(ChannelMask(otPlatRadioGetSupportedChannelMask(&GetInstance())));
+    newMask.Intersect(ChannelMask(Get<Radio>().GetSupportedChannelMask()));
     VerifyOrExit(newMask != mSupportedChannelMask, Get<Notifier>().SignalIfFirst(OT_CHANGED_SUPPORTED_CHANNEL_MASK));
 
     mSupportedChannelMask = newMask;
@@ -768,27 +768,6 @@ void Mac::FinishOperation(void)
     mOperation = kOperationIdle;
 }
 
-void Mac::GenerateNonce(const ExtAddress &aAddress, uint32_t aFrameCounter, uint8_t aSecurityLevel, uint8_t *aNonce)
-{
-    // source address
-    for (int i = 0; i < 8; i++)
-    {
-        aNonce[i] = aAddress.m8[i];
-    }
-
-    aNonce += 8;
-
-    // frame counter
-    aNonce[0] = (aFrameCounter >> 24) & 0xff;
-    aNonce[1] = (aFrameCounter >> 16) & 0xff;
-    aNonce[2] = (aFrameCounter >> 8) & 0xff;
-    aNonce[3] = (aFrameCounter >> 0) & 0xff;
-    aNonce += 4;
-
-    // security level
-    aNonce[0] = aSecurityLevel;
-}
-
 otError Mac::PrepareDataRequest(TxFrame &aFrame)
 {
     otError  error = OT_ERROR_NONE;
@@ -913,7 +892,7 @@ void Mac::ProcessTransmitAesCcm(TxFrame &aFrame, const ExtAddress *aExtAddress)
 {
     uint32_t       frameCounter = 0;
     uint8_t        securityLevel;
-    uint8_t        nonce[kNonceSize];
+    uint8_t        nonce[KeyManager::kNonceSize];
     uint8_t        tagLength;
     Crypto::AesCcm aesCcm;
     otError        error;
@@ -921,7 +900,7 @@ void Mac::ProcessTransmitAesCcm(TxFrame &aFrame, const ExtAddress *aExtAddress)
     aFrame.GetSecurityLevel(securityLevel);
     aFrame.GetFrameCounter(frameCounter);
 
-    GenerateNonce(*aExtAddress, frameCounter, securityLevel, nonce);
+    KeyManager::GenerateNonce(*aExtAddress, frameCounter, securityLevel, nonce);
 
     aesCcm.SetKey(aFrame.GetAesKey(), 16);
     tagLength = aFrame.GetFooterLength() - Frame::kFcsSize;
@@ -1182,7 +1161,7 @@ void Mac::RecordFrameTransmitStatus(const TxFrame &aFrame,
 
     if (aError != OT_ERROR_NONE)
     {
-        LogFrameTxFailure(aFrame, aError, aRetryCount);
+        LogFrameTxFailure(aFrame, aError, aRetryCount, aWillRetx);
         otDumpDebgMac("TX ERR", aFrame.GetHeader(), 16);
 
         if (aWillRetx)
@@ -1380,7 +1359,7 @@ otError Mac::ProcessReceiveSecurity(RxFrame &aFrame, const Address &aSrcAddr, Ne
     uint8_t           securityLevel;
     uint8_t           keyIdMode;
     uint32_t          frameCounter;
-    uint8_t           nonce[kNonceSize];
+    uint8_t           nonce[KeyManager::kNonceSize];
     uint8_t           tag[Frame::kMaxMicSize];
     uint8_t           tagLength;
     uint8_t           keyid;
@@ -1472,7 +1451,7 @@ otError Mac::ProcessReceiveSecurity(RxFrame &aFrame, const Address &aSrcAddr, Ne
         break;
     }
 
-    GenerateNonce(*extAddress, frameCounter, securityLevel, nonce);
+    KeyManager::GenerateNonce(*extAddress, frameCounter, securityLevel, nonce);
     tagLength = aFrame.GetFooterLength() - Frame::kFcsSize;
 
     aesCcm.SetKey(macKey, 16);
@@ -1846,7 +1825,7 @@ bool Mac::HandleMacCommand(RxFrame &aFrame)
 void Mac::SetPromiscuous(bool aPromiscuous)
 {
     mPromiscuous = aPromiscuous;
-    otPlatRadioSetPromiscuous(&GetInstance(), aPromiscuous);
+    Get<Radio>().SetPromiscuous(aPromiscuous);
 
 #if OPENTHREAD_CONFIG_MAC_STAY_AWAKE_BETWEEN_FRAGMENTS
     mDelayingSleep    = false;
@@ -1864,7 +1843,7 @@ void Mac::ResetCounters(void)
 
 int8_t Mac::GetNoiseFloor(void)
 {
-    return otPlatRadioGetReceiveSensitivity(&GetInstance());
+    return Get<Radio>().GetReceiveSensitivity();
 }
 
 // LCOV_EXCL_START
@@ -1947,10 +1926,13 @@ void Mac::LogFrameRxFailure(const RxFrame *aFrame, otError aError) const
     }
 }
 
-void Mac::LogFrameTxFailure(const TxFrame &aFrame, otError aError, uint8_t aRetryCount) const
+void Mac::LogFrameTxFailure(const TxFrame &aFrame, otError aError, uint8_t aRetryCount, bool aWillRetx) const
 {
-    otLogInfoMac("Frame tx failed, error:%s, retries:%d/%d, %s", otThreadErrorToString(aError), aRetryCount,
-                 aFrame.GetMaxFrameRetries(), aFrame.ToInfoString().AsCString());
+    uint8_t maxAttempts = aFrame.GetMaxFrameRetries() + 1;
+    uint8_t curAttempt  = aWillRetx ? (aRetryCount + 1) : maxAttempts;
+
+    otLogInfoMac("Frame tx attempt %d/%d failed, error:%s, %s", curAttempt, maxAttempts, otThreadErrorToString(aError),
+                 aFrame.ToInfoString().AsCString());
 }
 
 void Mac::LogBeacon(const char *aActionText, const BeaconPayload &aBeaconPayload) const
@@ -1968,7 +1950,7 @@ void Mac::LogBeacon(const char *, const BeaconPayload &) const
 {
 }
 
-void Mac::LogFrameTxFailure(const TxFrame &, otError, uint8_t) const
+void Mac::LogFrameTxFailure(const TxFrame &, otError, uint8_t, bool) const
 {
 }
 
