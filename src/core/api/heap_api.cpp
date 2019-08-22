@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2019, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,20 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
+/**
+ * @file
+ *   This file implements the OpenThread external heap API.
+ */
+
 #include "openthread-core-config.h"
-#include "platform-posix.h"
 
-#include <assert.h>
-#include <stdarg.h>
-#include <syslog.h>
+#include <openthread/heap.h>
 
-#include <openthread/platform/logging.h>
+#include "common/instance.hpp"
 
-#if OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
-void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...)
+#if OPENTHREAD_CONFIG_HEAP_EXTERNAL_ENABLE
+void otHeapSetCAllocFree(otHeapCAllocFn aCAlloc, otHeapFreeFn aFree)
 {
-    OT_UNUSED_VARIABLE(aLogRegion);
-
-    va_list args;
-
-    switch (aLogLevel)
-    {
-    case OT_LOG_LEVEL_NONE:
-        aLogLevel = LOG_ALERT;
-        break;
-    case OT_LOG_LEVEL_CRIT:
-        aLogLevel = LOG_CRIT;
-        break;
-    case OT_LOG_LEVEL_WARN:
-        aLogLevel = LOG_WARNING;
-        break;
-    case OT_LOG_LEVEL_NOTE:
-        aLogLevel = LOG_NOTICE;
-        break;
-    case OT_LOG_LEVEL_INFO:
-        aLogLevel = LOG_INFO;
-        break;
-    case OT_LOG_LEVEL_DEBG:
-        aLogLevel = LOG_DEBUG;
-        break;
-    default:
-        assert(false);
-        aLogLevel = LOG_DEBUG;
-        break;
-    }
-
-    va_start(args, aFormat);
-    vsyslog(aLogLevel, aFormat, args);
-    va_end(args);
+    ot::Instance::HeapSetCAllocFree(aCAlloc, aFree);
 }
-#endif // OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
+#endif // OPENTHREAD_CONFIG_HEAP_EXTERNAL_ENABLE

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2016, The OpenThread Authors.
+ *  Copyright (c) 2019, The OpenThread Authors.
  *  All rights reserved.
  *
  *  Redistribution and use in source and binary forms, with or without
@@ -26,50 +26,71 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include "openthread-core-config.h"
-#include "platform-posix.h"
+/**
+ * @file
+ * @brief
+ *  This file defines the API for setting external heap in OpenThread.
+ */
 
-#include <assert.h>
-#include <stdarg.h>
-#include <syslog.h>
+#ifndef OPENTHREAD_HEAP_H_
+#define OPENTHREAD_HEAP_H_
 
-#include <openthread/platform/logging.h>
+#include <openthread/instance.h>
 
-#if OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
-void otPlatLog(otLogLevel aLogLevel, otLogRegion aLogRegion, const char *aFormat, ...)
-{
-    OT_UNUSED_VARIABLE(aLogRegion);
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-    va_list args;
+/**
+ * @addtogroup api-heap
+ *
+ * @brief
+ *   This module includes functions that set the external OpenThread heap.
+ *
+ * @{
+ *
+ */
 
-    switch (aLogLevel)
-    {
-    case OT_LOG_LEVEL_NONE:
-        aLogLevel = LOG_ALERT;
-        break;
-    case OT_LOG_LEVEL_CRIT:
-        aLogLevel = LOG_CRIT;
-        break;
-    case OT_LOG_LEVEL_WARN:
-        aLogLevel = LOG_WARNING;
-        break;
-    case OT_LOG_LEVEL_NOTE:
-        aLogLevel = LOG_NOTICE;
-        break;
-    case OT_LOG_LEVEL_INFO:
-        aLogLevel = LOG_INFO;
-        break;
-    case OT_LOG_LEVEL_DEBG:
-        aLogLevel = LOG_DEBUG;
-        break;
-    default:
-        assert(false);
-        aLogLevel = LOG_DEBUG;
-        break;
-    }
+/**
+ * Function pointer used to set external CAlloc function for OpenThread.
+ *
+ * @param[in]   aCount  Number of allocate units.
+ * @param[in]   aSize   Unit size in bytes.
+ *
+ * @returns A pointer to the allocated memory.
+ *
+ * @retval  NULL    Indicates not enough memory.
+ *
+ */
+typedef void *(*otHeapCAllocFn)(size_t aCount, size_t aSize);
 
-    va_start(args, aFormat);
-    vsyslog(aLogLevel, aFormat, args);
-    va_end(args);
-}
-#endif // OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
+/**
+ * Function pointer used to set external Free function for OpenThread.
+ *
+ * @param[in]   aPointer    A pointer to the memory to free.
+ *
+ */
+typedef void (*otHeapFreeFn)(void *aPointer);
+
+/**
+ * This function sets the external heap CAlloc and Free
+ * functions to be used by the OpenThread stack.
+ *
+ * This function must be used before invoking instance initialization.
+ *
+ * @param[in]  aCAlloc  A pointer to external CAlloc function.
+ * @param[in]  aFree    A pointer to external Free function.
+ *
+ */
+void otHeapSetCAllocFree(otHeapCAllocFn aCAlloc, otHeapFreeFn aFree);
+
+/**
+ * @}
+ *
+ */
+
+#ifdef __cplusplus
+} // extern "C"
+#endif
+
+#endif // OPENTHREAD_HEAP_H_
