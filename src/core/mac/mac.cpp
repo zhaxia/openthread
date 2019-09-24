@@ -55,17 +55,18 @@
 namespace ot {
 namespace Mac {
 
-static const uint8_t sMode2Key[] = {0x78, 0x58, 0x16, 0x86, 0xfd, 0xb4, 0x58, 0x0f,
-                                    0xb0, 0x92, 0x54, 0x6a, 0xec, 0xbd, 0x15, 0x66};
+const uint8_t Mac::sMode2Key[] = {0x78, 0x58, 0x16, 0x86, 0xfd, 0xb4, 0x58, 0x0f,
+                                  0xb0, 0x92, 0x54, 0x6a, 0xec, 0xbd, 0x15, 0x66};
 
-static const otExtAddress sMode2ExtAddress = {
+const otExtAddress Mac::sMode2ExtAddress = {
     {0x35, 0x06, 0xfe, 0xb8, 0x23, 0xd4, 0x87, 0x12},
 };
 
-static const otExtendedPanId sExtendedPanidInit = {
+const otExtendedPanId Mac::sExtendedPanidInit = {
     {0xde, 0xad, 0x00, 0xbe, 0xef, 0x00, 0xca, 0xfe},
 };
-static const char sNetworkNameInit[] = "OpenThread";
+
+const char Mac::sNetworkNameInit[] = "OpenThread";
 
 Mac::Mac(Instance &aInstance)
     : InstanceLocator(aInstance)
@@ -96,6 +97,7 @@ Mac::Mac(Instance &aInstance)
     , mRadioChannel(OPENTHREAD_CONFIG_DEFAULT_CHANNEL)
     , mRadioChannelAcquisitionId(0)
     , mSupportedChannelMask(Get<Radio>().GetSupportedChannelMask())
+    , mNetworkName()
     , mScanChannel(Radio::kChannelMin)
     , mScanDuration(0)
     , mScanChannelMask()
@@ -116,12 +118,11 @@ Mac::Mac(Instance &aInstance)
 
     mCcaSuccessRateTracker.Reset();
     memset(&mCounters, 0, sizeof(otMacCounters));
-    memset(&mNetworkName, 0, sizeof(otNetworkName));
-    memset(&mExtendedPanId, 0, sizeof(otExtendedPanId));
+    memset(&mExtendedPanId, 0, sizeof(ExtendedPanId));
 
     mSubMac.Enable();
 
-    SetExtendedPanId(sExtendedPanidInit);
+    SetExtendedPanId(static_cast<const ExtendedPanId &>(sExtendedPanidInit));
     SetNetworkName(sNetworkNameInit);
     SetPanId(mPanId);
     SetExtAddress(randomExtAddress);
@@ -237,8 +238,8 @@ otError Mac::ConvertBeaconToActiveScanResult(RxFrame *aBeaconFrame, otActiveScan
         aResult.mVersion    = beaconPayload->GetProtocolVersion();
         aResult.mIsJoinable = beaconPayload->IsJoiningPermitted();
         aResult.mIsNative   = beaconPayload->IsNative();
-        memcpy(&aResult.mNetworkName, beaconPayload->GetNetworkName(), BeaconPayload::kNetworkNameSize);
-        memcpy(&aResult.mExtendedPanId, beaconPayload->GetExtendedPanId(), BeaconPayload::kExtPanIdSize);
+        static_cast<NetworkName &>(aResult.mNetworkName).Set(beaconPayload->GetNetworkName());
+        aResult.mExtendedPanId = beaconPayload->GetExtendedPanId();
     }
 
     LogBeacon("Received", *beaconPayload);
@@ -445,17 +446,33 @@ exit:
     return;
 }
 
-otError Mac::SetNetworkName(const char *aBuffer, uint8_t aLength)
+otError Mac::SetNetworkName(const char *aNameString)
 {
-    otError error  = OT_ERROR_NONE;
-    uint8_t newLen = static_cast<uint8_t>(strnlen(aBuffer, aLength));
+    // When setting Network Name from a string, we treat it as `Data`
+    // with `kMaxSize + 1` chars. `NetworkName::Set(data)` will look
+    // for null char in the data (within its given size) to calculate
+    // the name's length and ensure that the name fits in `kMaxSize`
+    // chars. The `+ 1` ensures that a `aNameString` with length
+    // longer than `kMaxSize` is correctly rejected (returning error
+    // `OT_ERROR_INVALID_ARGS`).
 
-    VerifyOrExit(newLen <= OT_NETWORK_NAME_MAX_SIZE, error = OT_ERROR_INVALID_ARGS);
-    VerifyOrExit(newLen != strlen(mNetworkName.m8) || memcmp(mNetworkName.m8, aBuffer, newLen) != 0,
-                 Get<Notifier>().SignalIfFirst(OT_CHANGED_THREAD_NETWORK_NAME));
+    NetworkName::Data data(aNameString, NetworkName::kMaxSize + 1);
 
-    memcpy(mNetworkName.m8, aBuffer, newLen);
-    mNetworkName.m8[newLen] = 0;
+    return SetNetworkName(data);
+}
+
+otError Mac::SetNetworkName(const NetworkName::Data &aName)
+{
+    otError error = mNetworkName.Set(aName);
+
+    if (error == OT_ERROR_ALREADY)
+    {
+        Get<Notifier>().SignalIfFirst(OT_CHANGED_THREAD_NETWORK_NAME);
+        error = OT_ERROR_NONE;
+        ExitNow();
+    }
+
+    SuccessOrExit(error);
     Get<Notifier>().Signal(OT_CHANGED_THREAD_NETWORK_NAME);
 
 exit:
@@ -473,10 +490,9 @@ exit:
     return;
 }
 
-void Mac::SetExtendedPanId(const otExtendedPanId &aExtendedPanId)
+void Mac::SetExtendedPanId(const ExtendedPanId &aExtendedPanId)
 {
-    VerifyOrExit(memcmp(mExtendedPanId.m8, aExtendedPanId.m8, sizeof(mExtendedPanId)) != 0,
-                 Get<Notifier>().SignalIfFirst(OT_CHANGED_THREAD_EXT_PANID));
+    VerifyOrExit(mExtendedPanId != aExtendedPanId, Get<Notifier>().SignalIfFirst(OT_CHANGED_THREAD_EXT_PANID));
 
     mExtendedPanId = aExtendedPanId;
     Get<Notifier>().Signal(OT_CHANGED_THREAD_EXT_PANID);
@@ -815,7 +831,6 @@ void Mac::PrepareBeaconRequest(TxFrame &aFrame)
 
 void Mac::PrepareBeacon(TxFrame &aFrame)
 {
-    uint8_t        numUnsecurePorts;
     uint8_t        beaconLength;
     uint16_t       fcf;
     Beacon *       beacon        = NULL;
@@ -836,10 +851,7 @@ void Mac::PrepareBeacon(TxFrame &aFrame)
     {
         beaconPayload->Init();
 
-        // set the Joining Permitted flag
-        Get<Ip6::Filter>().GetUnsecurePorts(numUnsecurePorts);
-
-        if (numUnsecurePorts)
+        if (IsJoinable())
         {
             beaconPayload->SetJoiningPermitted();
         }
@@ -848,8 +860,8 @@ void Mac::PrepareBeacon(TxFrame &aFrame)
             beaconPayload->ClearJoiningPermitted();
         }
 
-        beaconPayload->SetNetworkName(mNetworkName.m8);
-        beaconPayload->SetExtendedPanId(mExtendedPanId.m8);
+        beaconPayload->SetNetworkName(mNetworkName.GetAsData());
+        beaconPayload->SetExtendedPanId(mExtendedPanId);
 
         beaconLength += sizeof(*beaconPayload);
     }
@@ -877,15 +889,21 @@ bool Mac::ShouldSendBeacon(void) const
         // false) but only if it is in joinable state (unsecure port
         // list is not empty).
 
-        uint8_t numUnsecurePorts;
-
-        Get<Ip6::Filter>().GetUnsecurePorts(numUnsecurePorts);
-        shouldSend = (numUnsecurePorts != 0);
+        shouldSend = IsJoinable();
     }
 #endif
 
 exit:
     return shouldSend;
+}
+
+bool Mac::IsJoinable(void) const
+{
+    uint8_t numUnsecurePorts;
+
+    Get<Ip6::Filter>().GetUnsecurePorts(numUnsecurePorts);
+
+    return (numUnsecurePorts != 0);
 }
 
 void Mac::ProcessTransmitAesCcm(TxFrame &aFrame, const ExtAddress *aExtAddress)

@@ -84,7 +84,7 @@ otError AddressResolver::GetEntry(uint8_t aIndex, otEidCacheEntry &aEntry) const
     otError error = OT_ERROR_NONE;
 
     VerifyOrExit(aIndex < kCacheEntries, error = OT_ERROR_INVALID_ARGS);
-    memcpy(&aEntry.mTarget, &mCache[aIndex].mTarget, sizeof(aEntry.mTarget));
+    aEntry.mTarget = mCache[aIndex].mTarget;
     aEntry.mRloc16 = mCache[aIndex].mRloc16;
     aEntry.mAge    = mCache[aIndex].mAge;
     aEntry.mValid  = mCache[aIndex].mState == Cache::kStateCached;
@@ -212,8 +212,10 @@ void AddressResolver::InvalidateCacheEntry(Cache &aEntry, InvalidationReason aRe
     aEntry.mState = Cache::kStateInvalid;
 }
 
-void AddressResolver::UpdateCacheEntry(const Ip6::Address &aEid, Mac::ShortAddress aRloc16)
+otError AddressResolver::UpdateCacheEntry(const Ip6::Address &aEid, Mac::ShortAddress aRloc16)
 {
+    otError error = OT_ERROR_NOT_FOUND;
+
     for (int i = 0; i < kCacheEntries; i++)
     {
         if (mCache[i].mState == Cache::kStateInvalid || mCache[i].mTarget != aEid)
@@ -240,11 +242,48 @@ void AddressResolver::UpdateCacheEntry(const Ip6::Address &aEid, Mac::ShortAddre
             otLogNoteArp("Cache entry updated (snoop): %s, 0x%04x", aEid.ToString().AsCString(), aRloc16);
         }
 
-        ExitNow();
+        error = OT_ERROR_NONE;
     }
 
+    return error;
+}
+
+otError AddressResolver::AddCacheEntry(const Ip6::Address &aEid, Mac::ShortAddress aRloc16)
+{
+    otError error = OT_ERROR_NONE;
+    Cache * entry = NewCacheEntry();
+
+    VerifyOrExit(entry != NULL, error = OT_ERROR_NO_BUFS);
+
+    entry->mTarget   = aEid;
+    entry->mRloc16   = aRloc16;
+    entry->mTimeout  = 0;
+    entry->mFailures = 0;
+    entry->mState    = Cache::kStateCached;
+
+    MarkCacheEntryAsUsed(*entry);
+
 exit:
-    return;
+    return error;
+}
+
+void AddressResolver::RestartAddressQueries(void)
+{
+    for (int i = 0; i < kCacheEntries; i++)
+    {
+        Cache &entry = mCache[i];
+
+        if (entry.mState != Cache::kStateQuery)
+        {
+            continue;
+        }
+
+        SendAddressQuery(entry.mTarget);
+
+        entry.mTimeout      = kAddressQueryTimeout;
+        entry.mFailures     = 0;
+        entry.mRetryTimeout = kAddressQueryInitialRetryDelay;
+    }
 }
 
 otError AddressResolver::Resolve(const Ip6::Address &aEid, uint16_t &aRloc16)
@@ -473,7 +512,7 @@ otError AddressResolver::SendAddressError(const ThreadTargetTlv &      aTarget,
     }
     else
     {
-        memcpy(&messageInfo.GetPeerAddr(), aDestination, sizeof(messageInfo.GetPeerAddr()));
+        messageInfo.SetPeerAddr(*aDestination);
     }
 
     messageInfo.SetSockAddr(Get<Mle::MleRouter>().GetMeshLocal16());
@@ -540,8 +579,8 @@ void AddressResolver::HandleAddressError(Coap::Message &aMessage, const Ip6::Mes
         }
     }
 
-    memcpy(&macAddr, mlIidTlv.GetIid(), sizeof(macAddr));
-    macAddr.m8[0] ^= 0x2;
+    macAddr.Set(mlIidTlv.GetIid());
+    macAddr.ToggleLocal();
 
     for (ChildTable::Iterator iter(GetInstance(), ChildTable::kInStateValid); !iter.IsDone(); iter++)
     {

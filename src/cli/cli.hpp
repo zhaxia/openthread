@@ -208,7 +208,7 @@ private:
 #if OPENTHREAD_CONFIG_COAP_SECURE_API_ENABLE
     void ProcessCoapSecure(int argc, char *argv[]);
 #endif // OPENTHREAD_CONFIG_COAP_API_ENABLE
-#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_METRICS_ENABLE
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
     void ProcessCoexMetrics(int argc, char *argv[]);
 #endif
 #if OPENTHREAD_CONFIG_COMMISSIONER_ENABLE && OPENTHREAD_FTD
@@ -298,7 +298,7 @@ private:
 #endif
     void ProcessPromiscuous(int argc, char *argv[]);
 #if OPENTHREAD_FTD
-    void ProcessPSKc(int argc, char *argv[]);
+    void ProcessPskc(int argc, char *argv[]);
     void ProcessReleaseRouterId(int argc, char *argv[]);
 #endif
     void ProcessReset(int argc, char *argv[]);

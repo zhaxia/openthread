@@ -91,7 +91,6 @@ namespace ot {
 namespace Cli {
 
 const struct Command Interpreter::sCommands[] = {
-    {"help", &Interpreter::ProcessHelp},
     {"bufferinfo", &Interpreter::ProcessBufferInfo},
     {"channel", &Interpreter::ProcessChannel},
 #if OPENTHREAD_FTD
@@ -106,7 +105,7 @@ const struct Command Interpreter::sCommands[] = {
 #if OPENTHREAD_CONFIG_COAP_SECURE_API_ENABLE
     {"coaps", &Interpreter::ProcessCoapSecure},
 #endif
-#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_METRICS_ENABLE
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
     {"coex", &Interpreter::ProcessCoexMetrics},
 #endif
 #if OPENTHREAD_CONFIG_COMMISSIONER_ENABLE && OPENTHREAD_FTD
@@ -140,6 +139,7 @@ const struct Command Interpreter::sCommands[] = {
     {"extaddr", &Interpreter::ProcessExtAddress},
     {"extpanid", &Interpreter::ProcessExtPanId},
     {"factoryreset", &Interpreter::ProcessFactoryReset},
+    {"help", &Interpreter::ProcessHelp},
     {"ifconfig", &Interpreter::ProcessIfconfig},
     {"ipaddr", &Interpreter::ProcessIpAddr},
     {"ipmaddr", &Interpreter::ProcessIpMulticastAddr},
@@ -191,7 +191,7 @@ const struct Command Interpreter::sCommands[] = {
     {"prefix", &Interpreter::ProcessPrefix},
 #endif
 #if OPENTHREAD_FTD
-    {"pskc", &Interpreter::ProcessPSKc},
+    {"pskc", &Interpreter::ProcessPskc},
     {"releaserouterid", &Interpreter::ProcessReleaseRouterId},
 #endif
     {"reset", &Interpreter::ProcessReset},
@@ -524,12 +524,14 @@ void Interpreter::ProcessChannel(int argc, char *argv[])
             SuccessOrExit(error = ParseLong(argv[2], value));
             otChannelManagerRequestChannelChange(mInstance, static_cast<uint8_t>(value));
         }
+#if OPENTHREAD_CONFIG_CHANNEL_MONITOR_ENABLE
         else if (strcmp(argv[1], "select") == 0)
         {
             VerifyOrExit(argc > 2, error = OT_ERROR_INVALID_ARGS);
             SuccessOrExit(error = ParseLong(argv[2], value));
             error = otChannelManagerRequestChannelSelect(mInstance, (value != 0) ? true : false);
         }
+#endif
         else if (strcmp(argv[1], "auto") == 0)
         {
             VerifyOrExit(argc > 2, error = OT_ERROR_INVALID_ARGS);
@@ -590,7 +592,7 @@ void Interpreter::ProcessChild(int argc, char *argv[])
 
     if (isTable || strcmp(argv[0], "list") == 0)
     {
-        uint8_t maxChildren;
+        uint16_t maxChildren;
 
         if (isTable)
         {
@@ -602,7 +604,7 @@ void Interpreter::ProcessChild(int argc, char *argv[])
 
         maxChildren = otThreadGetMaxAllowedChildren(mInstance);
 
-        for (uint8_t i = 0; i < maxChildren; i++)
+        for (uint16_t i = 0; i < maxChildren; i++)
         {
             if ((otThreadGetChildInfoByIndex(mInstance, i, &childInfo) != OT_ERROR_NONE) || childInfo.mIsStateRestoring)
             {
@@ -689,14 +691,14 @@ exit:
 
 void Interpreter::ProcessChildIp(int argc, char *argv[])
 {
-    otError error = OT_ERROR_NONE;
-    uint8_t maxChildren;
+    otError  error = OT_ERROR_NONE;
+    uint16_t maxChildren;
 
     VerifyOrExit(argc == 0, error = OT_ERROR_INVALID_ARGS);
 
     maxChildren = otThreadGetMaxAllowedChildren(mInstance);
 
-    for (uint8_t childIndex = 0; childIndex < maxChildren; childIndex++)
+    for (uint16_t childIndex = 0; childIndex < maxChildren; childIndex++)
     {
         otChildIp6AddressIterator iterator = OT_CHILD_IP6_ADDRESS_ITERATOR_INIT;
         otIp6Address              ip6Address;
@@ -735,7 +737,7 @@ void Interpreter::ProcessChildMax(int argc, char *argv[])
     else
     {
         SuccessOrExit(error = ParseLong(argv[0], value));
-        SuccessOrExit(error = otThreadSetMaxAllowedChildren(mInstance, static_cast<uint8_t>(value)));
+        SuccessOrExit(error = otThreadSetMaxAllowedChildren(mInstance, static_cast<uint16_t>(value)));
     }
 
 exit:
@@ -784,43 +786,62 @@ void Interpreter::ProcessCoapSecure(int argc, char *argv[])
 
 #endif // OPENTHREAD_CONFIG_COAP_SECURE_API_ENABLE
 
-#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_METRICS_ENABLE
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
 void Interpreter::ProcessCoexMetrics(int argc, char *argv[])
 {
-    OT_UNUSED_VARIABLE(argc);
-    OT_UNUSED_VARIABLE(argv);
+    otError error = OT_ERROR_NONE;
 
-    otRadioCoexMetrics metrics;
-    otError            error = otPlatRadioGetCoexMetrics(mInstance, &metrics);
+    if (argc == 0)
+    {
+        mServer->OutputFormat("%s\r\n", otPlatRadioIsCoexEnabled(mInstance) ? "Enabled" : "Disabled");
+    }
+    else if (strcmp(argv[0], "enable") == 0)
+    {
+        error = otPlatRadioSetCoexEnabled(mInstance, true);
+    }
+    else if (strcmp(argv[0], "disable") == 0)
+    {
+        error = otPlatRadioSetCoexEnabled(mInstance, false);
+    }
+    else if (strcmp(argv[0], "metrics") == 0)
+    {
+        otRadioCoexMetrics metrics;
 
-    SuccessOrExit(error);
+        SuccessOrExit(error = otPlatRadioGetCoexMetrics(mInstance, &metrics));
 
-    mServer->OutputFormat("Stopped: %s\r\n", metrics.mStopped ? "true" : "false");
-    mServer->OutputFormat("Grant Glitch: %u\r\n", metrics.mNumGrantGlitch);
-    mServer->OutputFormat("Transmit metrics\r\n");
-    mServer->OutputFormat("    Request: %u\r\n", metrics.mNumTxRequest);
-    mServer->OutputFormat("    Grant Immediate: %u\r\n", metrics.mNumTxGrantImmediate);
-    mServer->OutputFormat("    Grant Wait: %u\r\n", metrics.mNumTxGrantWait);
-    mServer->OutputFormat("    Grant Wait Activated: %u\r\n", metrics.mNumTxGrantWaitActivated);
-    mServer->OutputFormat("    Grant Wait Timeout: %u\r\n", metrics.mNumTxGrantWaitTimeout);
-    mServer->OutputFormat("    Grant Deactivated During Request: %u\r\n", metrics.mNumTxGrantDeactivatedDuringRequest);
-    mServer->OutputFormat("    Delayed Grant: %u\r\n", metrics.mNumTxDelayedGrant);
-    mServer->OutputFormat("    Average Request To Grant Time: %u\r\n", metrics.mAvgTxRequestToGrantTime);
-    mServer->OutputFormat("Receive metrics\r\n");
-    mServer->OutputFormat("    Request: %u\r\n", metrics.mNumRxRequest);
-    mServer->OutputFormat("    Grant Immediate: %u\r\n", metrics.mNumRxGrantImmediate);
-    mServer->OutputFormat("    Grant Wait: %u\r\n", metrics.mNumRxGrantWait);
-    mServer->OutputFormat("    Grant Wait Activated: %u\r\n", metrics.mNumRxGrantWaitActivated);
-    mServer->OutputFormat("    Grant Wait Timeout: %u\r\n", metrics.mNumRxGrantWaitTimeout);
-    mServer->OutputFormat("    Grant Deactivated During Request: %u\r\n", metrics.mNumRxGrantDeactivatedDuringRequest);
-    mServer->OutputFormat("    Delayed Grant: %u\r\n", metrics.mNumRxDelayedGrant);
-    mServer->OutputFormat("    Average Request To Grant Time: %u\r\n", metrics.mAvgRxRequestToGrantTime);
-    mServer->OutputFormat("    Grant None: %u\r\n", metrics.mNumRxGrantNone);
+        mServer->OutputFormat("Stopped: %s\r\n", metrics.mStopped ? "true" : "false");
+        mServer->OutputFormat("Grant Glitch: %u\r\n", metrics.mNumGrantGlitch);
+        mServer->OutputFormat("Transmit metrics\r\n");
+        mServer->OutputFormat("    Request: %u\r\n", metrics.mNumTxRequest);
+        mServer->OutputFormat("    Grant Immediate: %u\r\n", metrics.mNumTxGrantImmediate);
+        mServer->OutputFormat("    Grant Wait: %u\r\n", metrics.mNumTxGrantWait);
+        mServer->OutputFormat("    Grant Wait Activated: %u\r\n", metrics.mNumTxGrantWaitActivated);
+        mServer->OutputFormat("    Grant Wait Timeout: %u\r\n", metrics.mNumTxGrantWaitTimeout);
+        mServer->OutputFormat("    Grant Deactivated During Request: %u\r\n",
+                              metrics.mNumTxGrantDeactivatedDuringRequest);
+        mServer->OutputFormat("    Delayed Grant: %u\r\n", metrics.mNumTxDelayedGrant);
+        mServer->OutputFormat("    Average Request To Grant Time: %u\r\n", metrics.mAvgTxRequestToGrantTime);
+        mServer->OutputFormat("Receive metrics\r\n");
+        mServer->OutputFormat("    Request: %u\r\n", metrics.mNumRxRequest);
+        mServer->OutputFormat("    Grant Immediate: %u\r\n", metrics.mNumRxGrantImmediate);
+        mServer->OutputFormat("    Grant Wait: %u\r\n", metrics.mNumRxGrantWait);
+        mServer->OutputFormat("    Grant Wait Activated: %u\r\n", metrics.mNumRxGrantWaitActivated);
+        mServer->OutputFormat("    Grant Wait Timeout: %u\r\n", metrics.mNumRxGrantWaitTimeout);
+        mServer->OutputFormat("    Grant Deactivated During Request: %u\r\n",
+                              metrics.mNumRxGrantDeactivatedDuringRequest);
+        mServer->OutputFormat("    Delayed Grant: %u\r\n", metrics.mNumRxDelayedGrant);
+        mServer->OutputFormat("    Average Request To Grant Time: %u\r\n", metrics.mAvgRxRequestToGrantTime);
+        mServer->OutputFormat("    Grant None: %u\r\n", metrics.mNumRxGrantNone);
+    }
+    else
+    {
+        ExitNow(error = OT_ERROR_INVALID_ARGS);
+    }
 
 exit:
     AppendResult(error);
 }
-#endif // OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_METRICS_ENABLE
+#endif // OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
 
 #if OPENTHREAD_FTD
 void Interpreter::ProcessContextIdReuseDelay(int argc, char *argv[])
@@ -1486,13 +1507,13 @@ exit:
 #endif // OPENTHREAD_FTD
 
 #if OPENTHREAD_FTD
-void Interpreter::ProcessPSKc(int argc, char *argv[])
+void Interpreter::ProcessPskc(int argc, char *argv[])
 {
     otError error = OT_ERROR_NONE;
 
     if (argc == 0)
     {
-        const otPSKc *pskc = otThreadGetPSKc(mInstance);
+        const otPskc *pskc = otThreadGetPskc(mInstance);
 
         for (int i = 0; i < OT_PSKC_MAX_SIZE; i++)
         {
@@ -1503,10 +1524,10 @@ void Interpreter::ProcessPSKc(int argc, char *argv[])
     }
     else
     {
-        otPSKc pskc;
+        otPskc pskc;
 
         VerifyOrExit(Hex2Bin(argv[0], pskc.m8, sizeof(pskc)) == OT_PSKC_MAX_SIZE, error = OT_ERROR_PARSE);
-        SuccessOrExit(error = otThreadSetPSKc(mInstance, &pskc));
+        SuccessOrExit(error = otThreadSetPskc(mInstance, &pskc));
     }
 
 exit:

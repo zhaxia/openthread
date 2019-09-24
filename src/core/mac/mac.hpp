@@ -366,36 +366,32 @@ public:
     /**
      * This method returns the IEEE 802.15.4 Network Name.
      *
-     * @returns A pointer to the IEEE 802.15.4 Network Name.
+     * @returns The IEEE 802.15.4 Network Name.
      *
      */
-    const char *GetNetworkName(void) const { return mNetworkName.m8; }
+    const NetworkName &GetNetworkName(void) const { return mNetworkName; }
 
     /**
      * This method sets the IEEE 802.15.4 Network Name.
      *
-     * @param[in]  aNetworkName  A pointer to the string. Must be null terminated.
+     * @param[in]  aNameString   A pointer to a string character array. Must be null terminated.
      *
      * @retval OT_ERROR_NONE           Successfully set the IEEE 802.15.4 Network Name.
      * @retval OT_ERROR_INVALID_ARGS   Given name is too long.
      *
      */
-    otError SetNetworkName(const char *aNetworkName)
-    {
-        return SetNetworkName(aNetworkName, OT_NETWORK_NAME_MAX_SIZE + 1);
-    }
+    otError SetNetworkName(const char *aNameString);
 
     /**
      * This method sets the IEEE 802.15.4 Network Name.
      *
-     * @param[in]  aBuffer  A pointer to the char buffer containing the name. Does not need to be null terminated.
-     * @param[in]  aLength  Number of chars in the buffer.
+     * @param[in]  aNameData     A name data (pointer to char buffer and length).
      *
      * @retval OT_ERROR_NONE           Successfully set the IEEE 802.15.4 Network Name.
      * @retval OT_ERROR_INVALID_ARGS   Given name is too long.
      *
      */
-    otError SetNetworkName(const char *aBuffer, uint8_t aLength);
+    otError SetNetworkName(const NetworkName::Data &aNameData);
 
     /**
      * This method returns the IEEE 802.15.4 PAN ID.
@@ -414,20 +410,20 @@ public:
     void SetPanId(PanId aPanId);
 
     /**
-     * This method returns the IEEE 802.15.4 Extended PAN ID.
+     * This method returns the IEEE 802.15.4 Extended PAN Identifier.
      *
-     * @returns A pointer to the IEEE 802.15.4 Extended PAN ID.
+     * @returns The IEEE 802.15.4 Extended PAN Identifier.
      *
      */
-    const otExtendedPanId &GetExtendedPanId(void) const { return mExtendedPanId; }
+    const ExtendedPanId &GetExtendedPanId(void) const { return mExtendedPanId; }
 
     /**
-     * This method sets the IEEE 802.15.4 Extended PAN ID.
+     * This method sets the IEEE 802.15.4 Extended PAN Identifier.
      *
-     * @param[in]  aExtendedPanId  The IEEE 802.15.4 Extended PAN ID.
+     * @param[in]  aExtendedPanId  The IEEE 802.15.4 Extended PAN Identifier.
      *
      */
-    void SetExtendedPanId(const otExtendedPanId &aExtendedPanId);
+    void SetExtendedPanId(const ExtendedPanId &aExtendedPanId);
 
     /**
      * This method is called to handle a received frame.
@@ -653,6 +649,7 @@ private:
     void    PrepareBeaconRequest(TxFrame &aFrame);
     void    PrepareBeacon(TxFrame &aFrame);
     bool    ShouldSendBeacon(void) const;
+    bool    IsJoinable(void) const;
     void    BeginTransmit(void);
     bool    HandleMacCommand(RxFrame &aFrame);
     Frame * GetOperationFrame(void);
@@ -677,6 +674,11 @@ private:
 
     static const char *OperationToString(Operation aOperation);
 
+    static const uint8_t         sMode2Key[];
+    static const otExtAddress    sMode2ExtAddress;
+    static const otExtendedPanId sExtendedPanidInit;
+    static const char            sNetworkNameInit[];
+
     bool mEnabled : 1;
     bool mPendingActiveScan : 1;
     bool mPendingEnergyScan : 1;
@@ -697,20 +699,20 @@ private:
     bool mDelayingSleep : 1;
 #endif
 
-    Operation       mOperation;
-    uint8_t         mBeaconSequence;
-    uint8_t         mDataSequence;
-    uint8_t         mBroadcastTransmitCount;
-    PanId           mPanId;
-    uint8_t         mPanChannel;
-    uint8_t         mRadioChannel;
-    uint16_t        mRadioChannelAcquisitionId;
-    ChannelMask     mSupportedChannelMask;
-    otExtendedPanId mExtendedPanId;
-    otNetworkName   mNetworkName;
-    uint8_t         mScanChannel;
-    uint16_t        mScanDuration;
-    ChannelMask     mScanChannelMask;
+    Operation     mOperation;
+    uint8_t       mBeaconSequence;
+    uint8_t       mDataSequence;
+    uint8_t       mBroadcastTransmitCount;
+    PanId         mPanId;
+    uint8_t       mPanChannel;
+    uint8_t       mRadioChannel;
+    uint16_t      mRadioChannelAcquisitionId;
+    ChannelMask   mSupportedChannelMask;
+    ExtendedPanId mExtendedPanId;
+    NetworkName   mNetworkName;
+    uint8_t       mScanChannel;
+    uint16_t      mScanDuration;
+    ChannelMask   mScanChannelMask;
     union
     {
         ActiveScanHandler mActiveScanHandler;

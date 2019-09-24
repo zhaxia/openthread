@@ -97,10 +97,33 @@ public:
     typedef String<kInfoStringSize> InfoString;
 
     /**
+     * This enumeration type specifies the copy byte order when Extended Address is being copied to/from a buffer.
+     *
+     */
+    enum CopyByteOrder
+    {
+        kNormalByteOrder,  // Copy address bytes in normal order (as provided in array buffer).
+        kReverseByteOrder, // Copy address bytes in reverse byte order.
+    };
+
+    /**
      * This method generates a random IEEE 802.15.4 Extended Address.
      *
      */
     void GenerateRandom(void);
+
+    /**
+     * This method sets the Extended Address from a given byte array.
+     *
+     * @param[in] aBuffer    Pointer to an array containing the Extended Address. `OT_EXT_ADDRESS_SIZE` bytes from
+     *                       buffer are copied to form the Extended Address.
+     * @param[in] aByteOrder The byte order to use when copying the address.
+     *
+     */
+    void Set(const uint8_t *aBuffer, CopyByteOrder aByteOrder = kNormalByteOrder)
+    {
+        CopyAddress(m8, aBuffer, aByteOrder);
+    }
 
     /**
      * This method indicates whether or not the Group bit is set.
@@ -169,6 +192,18 @@ public:
     void ToggleLocal(void) { m8[0] ^= kLocalFlag; }
 
     /**
+     * This method copies the Extended Address into a given buffer.
+     *
+     * @param[out] aBuffer     A pointer to a buffer to copy the Extended Address into.
+     * @param[in]  aByteOrder  The byte order to copy the address.
+     *
+     */
+    void CopyTo(uint8_t *aBuffer, CopyByteOrder aByteOrder = kNormalByteOrder) const
+    {
+        CopyAddress(aBuffer, m8, aByteOrder);
+    }
+
+    /**
      * This method evaluates whether or not the Extended Addresses match.
      *
      * @param[in]  aOther  The Extended Address to compare.
@@ -188,7 +223,7 @@ public:
      * @retval FALSE  If the Extended Addresses match.
      *
      */
-    bool operator!=(const ExtAddress &aOther) const;
+    bool operator!=(const ExtAddress &aOther) const { return !(*this == aOther); }
 
     /**
      * This method converts an address to a string.
@@ -199,6 +234,8 @@ public:
     InfoString ToString(void) const;
 
 private:
+    static void CopyAddress(uint8_t *aDst, const uint8_t *aSrc, CopyByteOrder aByteOrder);
+
     enum
     {
         kGroupFlag = 1 << 0,
@@ -338,17 +375,20 @@ public:
     }
 
     /**
-     * This method sets the address with an Extended Address given as byte array.
+     * This method sets the address with an Extended Address given as a byte array.
      *
      * The type is also updated to indicate that the address is Extended.
      *
-     * @param[in]  aBuffer   Pointer to a array containing the Extended Address. `OT_EXT_ADDRESS_SIZE` bytes from buffer
-     *                       are copied to form the Extended Address.
-     * @param[in]  aReverse  If `true` then `OT_EXT_ADDRESS_SIZE` bytes from @p aBuffer are copied in reverse order,
-     *                       otherwise they are copied as provided.
+     * @param[in] aBuffer    Pointer to an array containing the Extended Address. `OT_EXT_ADDRESS_SIZE` bytes from
+     *                       buffer are copied to form the Extended Address.
+     * @param[in] aByteOrder The byte order to copy the address from @p aBuffer.
      *
      */
-    void SetExtended(const uint8_t *aBuffer, bool aReverse);
+    void SetExtended(const uint8_t *aBuffer, ExtAddress::CopyByteOrder aByteOrder = ExtAddress::kNormalByteOrder)
+    {
+        mShared.mExtAddress.Set(aBuffer, aByteOrder);
+        mType = kTypeExtended;
+    }
 
     /**
      * This method indicates whether or not the address is a Short Broadcast Address.
@@ -382,6 +422,161 @@ private:
     } mShared;
 
     Type mType; ///< The address type (Short, Extended, or none).
+};
+
+/**
+ * This structure represents an IEEE 802.15.4 Extended PAN Identifier.
+ *
+ */
+OT_TOOL_PACKED_BEGIN
+class ExtendedPanId : public otExtendedPanId
+{
+public:
+    enum
+    {
+        kInfoStringSize = 17, // Max chars for the info string (`ToString()`).
+    };
+
+    /**
+     * This type defines the fixed-length `String` object returned from `ToString()`.
+     *
+     */
+    typedef String<kInfoStringSize> InfoString;
+
+    /**
+     * This method evaluates whether or not the Extended PAN Identifiers match.
+     *
+     * @param[in]  aOther  The Extended PAN Id to compare.
+     *
+     * @retval TRUE   If the Extended PAN Identifiers match.
+     * @retval FALSE  If the Extended PAN Identifiers do not match.
+     *
+     */
+    bool operator==(const ExtendedPanId &aOther) const;
+
+    /**
+     * This method evaluates whether or not the Extended PAN Identifiers match.
+     *
+     * @param[in]  aOther  The Extended PAN Id to compare.
+     *
+     * @retval TRUE   If the Extended Addresses do not match.
+     * @retval FALSE  If the Extended Addresses match.
+     *
+     */
+    bool operator!=(const ExtendedPanId &aOther) const { return !(*this == aOther); }
+
+    /**
+     * This method converts an address to a string.
+     *
+     * @returns An `InfoString` containing the string representation of the Extended PAN Identifier.
+     *
+     */
+    InfoString ToString(void) const;
+
+} OT_TOOL_PACKED_END;
+
+/**
+ * This structure represents an IEEE802.15.4 Network Name.
+ *
+ */
+class NetworkName : public otNetworkName
+{
+public:
+    enum
+    {
+        kMaxSize = OT_NETWORK_NAME_MAX_SIZE, // Maximum number of chars in Network Name (excludes null char).
+    };
+
+    /**
+     * This class represents an IEEE802.15.4 Network Name as Data (pointer to a char buffer along with a length).
+     *
+     * @note The char array does NOT need to be null terminated.
+     *
+     */
+    class Data
+    {
+    public:
+        /**
+         * This constructor initializes the Data object.
+         *
+         * @param[in] aBuffer   A pointer to a `char` buffer (does not need to be null terminated).
+         * @param[in] aLength   The length (number of chars) in the buffer.
+         *
+         */
+        Data(const char *aBuffer, uint8_t aLength)
+            : mBuffer(aBuffer)
+            , mLength(aLength)
+        {
+        }
+
+        /**
+         * This method returns the pointer to char buffer (not necessarily null terminated).
+         *
+         * @returns The pointer to the char buffer.
+         *
+         */
+        const char *GetBuffer(void) const { return mBuffer; }
+
+        /**
+         * This method returns the length (number of chars in buffer).
+         *
+         * @returns The name length.
+         *
+         */
+        uint8_t GetLength(void) const { return mLength; }
+
+        /**
+         * This method copies the name data into a given char buffer with a given size.
+         *
+         * The given buffer is cleared (`memset` to zero) before copying the Network Name into it. The copied string
+         * in @p aBuffer is NOT necessarily null terminated.
+         *
+         * @param[out] aBuffer   A pointer to a buffer where to copy the Network Name into.
+         * @param[in]  aMaxSize  Size of @p aBuffer (maximum number of chars to write into @p aBuffer).
+         *
+         * @returns The actual number of chars copied into @p aBuffer.
+         *
+         */
+        uint8_t CopyTo(char *aBuffer, uint8_t aMaxSize) const;
+
+    private:
+        const char *mBuffer;
+        uint8_t     mLength;
+    };
+
+    /**
+     * This constructor initializes the IEEE802.15.4 Network Name as an empty string.
+     *
+     */
+    NetworkName(void) { m8[0] = '\0'; }
+
+    /**
+     * This method gets the IEEE802.15.4 Network Name as a null terminated C string.
+     *
+     * @returns The Network Name as a null terminated C string array.
+     *
+     */
+    const char *GetAsCString(void) const { return m8; }
+
+    /**
+     * This method gets the IEEE802.15.4 Network Name as Data.
+     *
+     * @returns The Network Name as Data.
+     *
+     */
+    Data GetAsData(void) const;
+
+    /**
+     * This method sets the IEEE 802.15.4 Network Name.
+     *
+     * @param[in]  aNameData           A reference to name data.
+     *
+     * @retval OT_ERROR_NONE           Successfully set the IEEE 802.15.4 Network Name.
+     * @retval OT_ERROR_ALREADY        The name is already set to the same string.
+     * @retval OT_ERROR_INVALID_ARGS   Given name is too long.
+     *
+     */
+    otError Set(const Data &aNameData);
 };
 
 /**
@@ -1500,10 +1695,8 @@ class BeaconPayload
 public:
     enum
     {
-        kProtocolId      = 3,  ///< Thread Protocol ID.
-        kNetworkNameSize = 16, ///< Size of Thread Network Name (bytes).
-        kExtPanIdSize    = 8,  ///< Size of Thread Extended PAN ID.
-        kInfoStringSize  = 92, ///< Max chars for the info string (@sa ToInfoString()).
+        kProtocolId     = 3,  ///< Thread Protocol ID.
+        kInfoStringSize = 92, ///< Max chars for the info string (@sa ToInfoString()).
     };
 
     enum
@@ -1607,41 +1800,36 @@ public:
     }
 
     /**
-     * This method returns a pointer to the Network Name field.
+     * This method gets the Network Name field.
      *
-     * @returns A pointer to the network name field.
+     * @returns The Network Name field as `NetworkName::Data`.
      *
      */
-    const char *GetNetworkName(void) const { return mNetworkName; }
+    NetworkName::Data GetNetworkName(void) const { return NetworkName::Data(mNetworkName, sizeof(mNetworkName)); }
 
     /**
      * This method sets the Network Name field.
      *
-     * @param[in]  aNetworkName  A pointer to the Network Name.
+     * @param[in]  aNameData  The Network Name (as a `NetworkName::Data`).
      *
      */
-    void SetNetworkName(const char *aNetworkName)
-    {
-        size_t length = strnlen(aNetworkName, sizeof(mNetworkName));
-        memset(mNetworkName, 0, sizeof(mNetworkName));
-        memcpy(mNetworkName, aNetworkName, length);
-    }
+    void SetNetworkName(const NetworkName::Data &aNameData) { aNameData.CopyTo(mNetworkName, sizeof(mNetworkName)); }
 
     /**
-     * This method returns a pointer to the Extended PAN ID field.
+     * This method returns the Extended PAN ID field.
      *
-     * @returns A pointer to the Extended PAN ID field.
+     * @returns The Extended PAN ID field.
      *
      */
-    const uint8_t *GetExtendedPanId(void) const { return mExtendedPanId; }
+    const ExtendedPanId &GetExtendedPanId(void) const { return mExtendedPanId; }
 
     /**
      * This method sets the Extended PAN ID field.
      *
-     * @param[in]  aExtPanId  A pointer to the Extended PAN ID.
+     * @param[in]  aExtPanId  An Extended PAN ID.
      *
      */
-    void SetExtendedPanId(const uint8_t *aExtPanId) { memcpy(mExtendedPanId, aExtPanId, sizeof(mExtendedPanId)); }
+    void SetExtendedPanId(const ExtendedPanId &aExtPanId) { mExtendedPanId = aExtPanId; }
 
     /**
      * This method returns information about the Beacon as a `InfoString`.
@@ -1652,10 +1840,10 @@ public:
     InfoString ToInfoString(void) const;
 
 private:
-    uint8_t mProtocolId;
-    uint8_t mFlags;
-    char    mNetworkName[kNetworkNameSize];
-    uint8_t mExtendedPanId[kExtPanIdSize];
+    uint8_t       mProtocolId;
+    uint8_t       mFlags;
+    char          mNetworkName[NetworkName::kMaxSize];
+    ExtendedPanId mExtendedPanId;
 } OT_TOOL_PACKED_END;
 
 /**

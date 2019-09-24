@@ -103,7 +103,7 @@ typedef struct otEidCacheEntry
  * @sa otThreadSetMaxAllowedChildren
  *
  */
-uint8_t otThreadGetMaxAllowedChildren(otInstance *aInstance);
+uint16_t otThreadGetMaxAllowedChildren(otInstance *aInstance);
 
 /**
  * Set the maximum number of children currently allowed.
@@ -120,7 +120,7 @@ uint8_t otThreadGetMaxAllowedChildren(otInstance *aInstance);
  * @sa otThreadGetMaxAllowedChildren
  *
  */
-otError otThreadSetMaxAllowedChildren(otInstance *aInstance, uint8_t aMaxChildren);
+otError otThreadSetMaxAllowedChildren(otInstance *aInstance, uint16_t aMaxChildren);
 
 /**
  * This function indicates whether or not the Router Role is enabled.
@@ -232,8 +232,7 @@ otError otThreadSetJoinerUdpPort(otInstance *aInstance, uint16_t aJoinerUdpPort)
  * Set Steering data out of band.
  *
  * Configuration option `OPENTHREAD_CONFIG_MLE_STEERING_DATA_SET_OOB_ENABLE` should be set to enable setting of steering
- * data out of band. Otherwise calling this function does nothing and it returns `OT_ERROR_DISABLED_FEATURE`
- * error.
+ * data out of band.
  *
  * @param[in]  aInstance       A pointer to an OpenThread instance.
  * @param[in]  aExtAddress     Address used to update the steering data.
@@ -241,11 +240,8 @@ otError otThreadSetJoinerUdpPort(otInstance *aInstance, uint16_t aJoinerUdpPort)
  *                             All 0xFFs to set steering data/bloom filter to accept/allow all.
  *                             A specific EUI64 which is then added to current steering data/bloom filter.
  *
- * @retval  OT_ERROR_NONE              Successfully set/updated the steering data.
- * @retval  OT_ERROR_DISABLED_FEATURE  Feature is disabled, not capable of setting steering data out of band.
- *
  */
-otError otThreadSetSteeringData(otInstance *aInstance, const otExtAddress *aExtAddress);
+void otThreadSetSteeringData(otInstance *aInstance, const otExtAddress *aExtAddress);
 
 /**
  * Get the CONTEXT_ID_REUSE_DELAY parameter used in the Leader role.
@@ -449,7 +445,7 @@ otError otThreadGetChildInfoById(otInstance *aInstance, uint16_t aChildId, otChi
  * @sa otGetMaxAllowedChildren
  *
  */
-otError otThreadGetChildInfoByIndex(otInstance *aInstance, uint8_t aChildIndex, otChildInfo *aChildInfo);
+otError otThreadGetChildInfoByIndex(otInstance *aInstance, uint16_t aChildIndex, otChildInfo *aChildInfo);
 
 /**
  * This function gets the next IPv6 address (using an iterator) for a given child.
@@ -469,7 +465,7 @@ otError otThreadGetChildInfoByIndex(otInstance *aInstance, uint8_t aChildIndex, 
  *
  */
 otError otThreadGetChildNextIp6Address(otInstance *               aInstance,
-                                       uint8_t                    aChildIndex,
+                                       uint16_t                   aChildIndex,
                                        otChildIp6AddressIterator *aIterator,
                                        otIp6Address *             aAddress);
 
@@ -521,34 +517,34 @@ otError otThreadGetRouterInfo(otInstance *aInstance, uint16_t aRouterId, otRoute
 otError otThreadGetEidCacheEntry(otInstance *aInstance, uint8_t aIndex, otEidCacheEntry *aEntry);
 
 /**
- * Get the thrPSKc.
+ * Get the Thread PSKc
  *
  * @param[in]   aInstance   A pointer to an OpenThread instance.
  *
- * @returns A pointer to a buffer containing the thrPSKc.
+ * @returns A pointer to Thread PSKc
  *
- * @sa otThreadSetPSKc
+ * @sa otThreadSetPskc
  *
  */
-const otPSKc *otThreadGetPSKc(otInstance *aInstance);
+const otPskc *otThreadGetPskc(otInstance *aInstance);
 
 /**
- * Set the thrPSKc.
+ * Set the Thread PSKc
  *
  * This function will only succeed when Thread protocols are disabled.  A successful
  * call to this function will also invalidate the Active and Pending Operational Datasets in
  * non-volatile memory.
  *
  * @param[in]  aInstance   A pointer to an OpenThread instance.
- * @param[in]  aPSKc       A pointer to a buffer containing the thrPSKc.
+ * @param[in]  aPskc       A pointer to the new Thread PSKc.
  *
- * @retval OT_ERROR_NONE           Successfully set the thrPSKc.
+ * @retval OT_ERROR_NONE           Successfully set the Thread PSKc.
  * @retval OT_ERROR_INVALID_STATE  Thread protocols are enabled.
  *
- * @sa otThreadGetPSKc
+ * @sa otThreadGetPskc
  *
  */
-otError otThreadSetPSKc(otInstance *aInstance, const otPSKc *aPSKc);
+otError otThreadSetPskc(otInstance *aInstance, const otPskc *aPskc);
 
 /**
  * Get the assigned parent priority.

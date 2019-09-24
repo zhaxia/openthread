@@ -169,19 +169,22 @@ void Address::SetIid(const uint8_t *aIid)
 
 void Address::SetIid(const Mac::ExtAddress &aExtAddress)
 {
-    memcpy(mFields.m8 + kInterfaceIdentifierOffset, aExtAddress.m8, kInterfaceIdentifierSize);
-    mFields.m8[kInterfaceIdentifierOffset] ^= 0x02;
+    Mac::ExtAddress addr;
+
+    addr = aExtAddress;
+    addr.ToggleLocal();
+    addr.CopyTo(mFields.m8 + kInterfaceIdentifierOffset);
 }
 
 void Address::ToExtAddress(Mac::ExtAddress &aExtAddress) const
 {
-    memcpy(aExtAddress.m8, mFields.m8 + kInterfaceIdentifierOffset, sizeof(aExtAddress.m8));
+    aExtAddress.Set(mFields.m8 + kInterfaceIdentifierOffset);
     aExtAddress.ToggleLocal();
 }
 
 void Address::ToExtAddress(Mac::Address &aMacAddress) const
 {
-    aMacAddress.SetExtended(mFields.m8 + kInterfaceIdentifierOffset, /* reverse */ false);
+    aMacAddress.SetExtended(mFields.m8 + kInterfaceIdentifierOffset);
     aMacAddress.GetExtended().ToggleLocal();
 }
 
@@ -250,11 +253,6 @@ uint8_t Address::PrefixMatch(const otIp6Address &aOther) const
 bool Address::operator==(const Address &aOther) const
 {
     return memcmp(mFields.m8, aOther.mFields.m8, sizeof(mFields.m8)) == 0;
-}
-
-bool Address::operator!=(const Address &aOther) const
-{
-    return memcmp(mFields.m8, aOther.mFields.m8, sizeof(mFields.m8)) != 0;
 }
 
 otError Address::FromString(const char *aBuf)

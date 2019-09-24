@@ -140,9 +140,12 @@ NcpBase::PropertyHandler NcpBase::FindGetPropertyHandler(spinel_prop_key_t aKey)
     case SPINEL_PROP_PHY_CHAN_PREFERRED:
         handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_PHY_CHAN_PREFERRED>;
         break;
-#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_METRICS_ENABLE
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
     case SPINEL_PROP_RADIO_COEX_METRICS:
         handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_RADIO_COEX_METRICS>;
+        break;
+    case SPINEL_PROP_RADIO_COEX_ENABLE:
+        handler = &NcpBase::HandlePropertyGet<SPINEL_PROP_RADIO_COEX_ENABLE>;
         break;
 #endif
 
@@ -682,9 +685,11 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
     case SPINEL_PROP_POWER_STATE:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_POWER_STATE>;
         break;
+#if OPENTHREAD_CONFIG_NCP_ENABLE_MCU_POWER_STATE_CONTROL
     case SPINEL_PROP_MCU_POWER_STATE:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_MCU_POWER_STATE>;
         break;
+#endif
     case SPINEL_PROP_UNSOL_UPDATE_FILTER:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_UNSOL_UPDATE_FILTER>;
         break;
@@ -715,6 +720,11 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
     case SPINEL_PROP_MAC_SCAN_PERIOD:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_MAC_SCAN_PERIOD>;
         break;
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
+    case SPINEL_PROP_RADIO_COEX_ENABLE:
+        handler = &NcpBase::HandlePropertySet<SPINEL_PROP_RADIO_COEX_ENABLE>;
+        break;
+#endif
 
         // --------------------------------------------------------------------------
         // MTD (or FTD) Properties (Set Handler)
@@ -805,9 +815,11 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
     case SPINEL_PROP_NET_REQUIRE_JOIN_EXISTING:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_NET_REQUIRE_JOIN_EXISTING>;
         break;
+#if OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
     case SPINEL_PROP_DEBUG_NCP_LOG_LEVEL:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_DEBUG_NCP_LOG_LEVEL>;
         break;
+#endif
     case SPINEL_PROP_THREAD_DISCOVERY_SCAN_JOINER_FLAG:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_THREAD_DISCOVERY_SCAN_JOINER_FLAG>;
         break;
@@ -969,9 +981,11 @@ NcpBase::PropertyHandler NcpBase::FindSetPropertyHandler(spinel_prop_key_t aKey)
     case SPINEL_PROP_CHANNEL_MANAGER_FAVORED_CHANNELS:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_CHANNEL_MANAGER_FAVORED_CHANNELS>;
         break;
+#if OPENTHREAD_CONFIG_CHANNEL_MONITOR_ENABLE
     case SPINEL_PROP_CHANNEL_MANAGER_CHANNEL_SELECT:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_CHANNEL_MANAGER_CHANNEL_SELECT>;
         break;
+#endif
     case SPINEL_PROP_CHANNEL_MANAGER_AUTO_SELECT_ENABLED:
         handler = &NcpBase::HandlePropertySet<SPINEL_PROP_CHANNEL_MANAGER_AUTO_SELECT_ENABLED>;
         break;

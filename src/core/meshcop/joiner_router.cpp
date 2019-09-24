@@ -76,11 +76,11 @@ void JoinerRouter::HandleStateChanged(otChangedFlags aFlags)
     VerifyOrExit(Get<Mle::MleRouter>().IsFullThreadDevice());
     VerifyOrExit(aFlags & OT_CHANGED_THREAD_NETDATA);
 
-    Get<Ip6::Filter>().RemoveUnsecurePort(mSocket.GetSockName().mPort);
-
     if (Get<NetworkData::Leader>().IsJoiningEnabled())
     {
         Ip6::SockAddr sockaddr;
+
+        VerifyOrExit(!mSocket.IsBound());
 
         sockaddr.mPort = GetJoinerUdpPort();
 
@@ -91,6 +91,8 @@ void JoinerRouter::HandleStateChanged(otChangedFlags aFlags)
     }
     else
     {
+        Get<Ip6::Filter>().RemoveUnsecurePort(mSocket.GetSockName().mPort);
+
         mSocket.Close();
     }
 
@@ -295,7 +297,7 @@ otError JoinerRouter::DelaySendingJoinerEntrust(const Ip6::MessageInfo &aMessage
     SuccessOrExit(error = message->AppendTlv(extendedPanId));
 
     networkName.Init();
-    networkName.SetNetworkName(Get<Mac::Mac>().GetNetworkName());
+    networkName.SetNetworkName(Get<Mac::Mac>().GetNetworkName().GetAsData());
     SuccessOrExit(error = message->AppendTlv(networkName));
 
     Get<ActiveDataset>().Read(dataset);
@@ -322,13 +324,13 @@ otError JoinerRouter::DelaySendingJoinerEntrust(const Ip6::MessageInfo &aMessage
         SuccessOrExit(error = message->AppendTlv(channelMask));
     }
 
-    if ((tlv = dataset.Get(Tlv::kPSKc)) != NULL)
+    if ((tlv = dataset.Get(Tlv::kPskc)) != NULL)
     {
         SuccessOrExit(error = message->AppendTlv(*tlv));
     }
     else
     {
-        PSKcTlv pskc;
+        PskcTlv pskc;
         pskc.Init();
         SuccessOrExit(error = message->AppendTlv(pskc));
     }

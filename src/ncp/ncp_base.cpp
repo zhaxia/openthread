@@ -132,10 +132,6 @@ spinel_status_t NcpBase::ThreadErrorToSpinelStatus(otError aError)
         ret = SPINEL_STATUS_ITEM_NOT_FOUND;
         break;
 
-    case OT_ERROR_DISABLED_FEATURE:
-        ret = SPINEL_STATUS_INVALID_COMMAND_FOR_PROP;
-        break;
-
     default:
         // Unknown error code. Wrap it as a Spinel status and return that.
         ret = static_cast<spinel_status_t>(SPINEL_STATUS_STACK_NATIVE__BEGIN + static_cast<uint32_t>(aError));
@@ -1805,6 +1801,10 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_CAPS>(void)
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_SLAAC));
 #endif
 
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
+    SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_RADIO_COEX));
+#endif
+
 #if OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
     SuccessOrExit(error = mEncoder.WriteUintPacked(SPINEL_CAP_PEEK_POKE));
 #endif
@@ -1937,11 +1937,6 @@ exit:
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_MCU_POWER_STATE>(void)
 {
     return mEncoder.WriteUint8(SPINEL_MCU_POWER_STATE_ON);
-}
-
-template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_MCU_POWER_STATE>(void)
-{
-    return OT_ERROR_DISABLED_FEATURE;
 }
 
 #endif // OPENTHREAD_CONFIG_NCP_ENABLE_MCU_POWER_STATE_CONTROL
@@ -2139,11 +2134,12 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_DEBUG_NCP_LOG_LEVEL>(
     return mEncoder.WriteUint8(ConvertLogLevel(otLoggingGetLevel()));
 }
 
+#if OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
 template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_DEBUG_NCP_LOG_LEVEL>(void)
 {
+    otError    error;
     uint8_t    spinelNcpLogLevel = 0;
     otLogLevel logLevel;
-    otError    error = OT_ERROR_NONE;
 
     SuccessOrExit(error = mDecoder.ReadUint8(spinelNcpLogLevel));
 
@@ -2180,11 +2176,12 @@ template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_DEBUG_NCP_LOG_LEVEL>(
         break;
     }
 
-    error = otLoggingSetLevel(logLevel);
+    otLoggingSetLevel(logLevel);
 
 exit:
     return error;
 }
+#endif // OPENTHREAD_CONFIG_ENABLE_DYNAMIC_LOG_LEVEL
 
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_PHY_CHAN_SUPPORTED>(void)
 {
@@ -2200,7 +2197,24 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_PHY_CHAN_PREFERRED>(v
     return EncodeChannelMask(otPlatRadioGetPreferredChannelMask(mInstance));
 }
 
-#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_METRICS_ENABLE
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
+template <> otError NcpBase::HandlePropertySet<SPINEL_PROP_RADIO_COEX_ENABLE>(void)
+{
+    bool    enabled;
+    otError error = OT_ERROR_NONE;
+
+    SuccessOrExit(error = mDecoder.ReadBool(enabled));
+    error = otPlatRadioSetCoexEnabled(mInstance, enabled);
+
+exit:
+    return error;
+}
+
+template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_RADIO_COEX_ENABLE>(void)
+{
+    return mEncoder.WriteBool(otPlatRadioIsCoexEnabled(mInstance));
+}
+
 template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_RADIO_COEX_METRICS>(void)
 {
     otRadioCoexMetrics coexMetrics;
@@ -2208,7 +2222,7 @@ template <> otError NcpBase::HandlePropertyGet<SPINEL_PROP_RADIO_COEX_METRICS>(v
 
     if (error != OT_ERROR_NONE)
     {
-        error = mEncoder.OverwriteWithLastStatusError(SPINEL_STATUS_INVALID_COMMAND_FOR_PROP);
+        error = mEncoder.OverwriteWithLastStatusError(ThreadErrorToSpinelStatus(error));
         ExitNow();
     }
 
@@ -2253,28 +2267,18 @@ exit:
 // MARK: Peek/Poke delegate API
 // ----------------------------------------------------------------------------
 
-otError otNcpRegisterPeekPokeDelagates(otNcpDelegateAllowPeekPoke aAllowPeekDelegate,
-                                       otNcpDelegateAllowPeekPoke aAllowPokeDelegate)
-{
-    OT_UNUSED_VARIABLE(aAllowPeekDelegate);
-    OT_UNUSED_VARIABLE(aAllowPokeDelegate);
-
-    otError error = OT_ERROR_NONE;
-
 #if OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
+void otNcpRegisterPeekPokeDelagates(otNcpDelegateAllowPeekPoke aAllowPeekDelegate,
+                                    otNcpDelegateAllowPeekPoke aAllowPokeDelegate)
+{
     ot::Ncp::NcpBase *ncp = ot::Ncp::NcpBase::GetNcpInstance();
 
     if (ncp != NULL)
     {
         ncp->RegisterPeekPokeDelagates(aAllowPeekDelegate, aAllowPokeDelegate);
     }
-#else
-    error = OT_ERROR_DISABLED_FEATURE;
-
-#endif // OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
-
-    return error;
 }
+#endif // OPENTHREAD_CONFIG_NCP_ENABLE_PEEK_POKE
 
 // ----------------------------------------------------------------------------
 // MARK: Virtual Datastream I/O (Public API)

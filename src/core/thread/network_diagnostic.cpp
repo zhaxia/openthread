@@ -224,7 +224,7 @@ exit:
 otError NetworkDiagnostic::AppendChildTable(Message &aMessage)
 {
     otError         error   = OT_ERROR_NONE;
-    uint8_t         count   = 0;
+    uint16_t        count   = 0;
     uint8_t         timeout = 0;
     ChildTableTlv   tlv;
     ChildTableEntry entry;
@@ -232,12 +232,24 @@ otError NetworkDiagnostic::AppendChildTable(Message &aMessage)
     tlv.Init();
 
     count = Get<ChildTable>().GetNumChildren(ChildTable::kInStateValid);
-    tlv.SetLength(count * sizeof(ChildTableEntry));
+
+    // The length of the Child Table TLV may exceed the outgoing link's MTU (1280B).
+    // As a workaround we limit the number of entries in the Child Table TLV,
+    // also to avoid using extended TLV format. The issue is processed by the
+    // Thread Group (SPEC-894).
+    if (count > (Tlv::kBaseTlvMaxLength / sizeof(ChildTableEntry)))
+    {
+        count = Tlv::kBaseTlvMaxLength / sizeof(ChildTableEntry);
+    }
+
+    tlv.SetLength(static_cast<uint8_t>(count * sizeof(ChildTableEntry)));
 
     SuccessOrExit(error = aMessage.Append(&tlv, sizeof(ChildTableTlv)));
 
     for (ChildTable::Iterator iter(GetInstance(), ChildTable::kInStateValid); !iter.IsDone(); iter++)
     {
+        VerifyOrExit(count--);
+
         Child &child = *iter.GetChild();
 
         timeout = 0;
@@ -330,7 +342,7 @@ otError NetworkDiagnostic::FillRequestedTlvs(Message &             aRequest,
             {
                 TimeoutTlv tlv;
                 tlv.Init();
-                tlv.SetTimeout(TimerMilli::MsecToSec(Get<DataPollSender>().GetKeepAlivePollPeriod()));
+                tlv.SetTimeout(Get<Mle::MleRouter>().GetTimeout());
                 SuccessOrExit(error = aResponse.AppendTlv(tlv));
             }
 

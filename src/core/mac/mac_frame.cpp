@@ -56,30 +56,26 @@ bool ExtAddress::operator==(const ExtAddress &aOther) const
     return memcmp(m8, aOther.m8, sizeof(ExtAddress)) == 0;
 }
 
-bool ExtAddress::operator!=(const ExtAddress &aOther) const
-{
-    return memcmp(m8, aOther.m8, sizeof(ExtAddress)) != 0;
-}
-
 ExtAddress::InfoString ExtAddress::ToString(void) const
 {
     return InfoString("%02x%02x%02x%02x%02x%02x%02x%02x", m8[0], m8[1], m8[2], m8[3], m8[4], m8[5], m8[6], m8[7]);
 }
 
-void Address::SetExtended(const uint8_t *aBuffer, bool aReverse)
+void ExtAddress::CopyAddress(uint8_t *aDst, const uint8_t *aSrc, CopyByteOrder aByteOrder)
 {
-    mType = kTypeExtended;
+    switch (aByteOrder)
+    {
+    case kNormalByteOrder:
+        memcpy(aDst, aSrc, sizeof(ExtAddress));
+        break;
 
-    if (aReverse)
-    {
-        for (unsigned int i = 0; i < sizeof(ExtAddress); i++)
+    case kReverseByteOrder:
+        aSrc += sizeof(ExtAddress) - 1;
+        for (uint8_t len = sizeof(ExtAddress); len > 0; len--)
         {
-            mShared.mExtAddress.m8[i] = aBuffer[sizeof(ExtAddress) - 1 - i];
+            *aDst++ = *aSrc--;
         }
-    }
-    else
-    {
-        memcpy(mShared.mExtAddress.m8, aBuffer, sizeof(ExtAddress));
+        break;
     }
 }
 
@@ -87,6 +83,56 @@ Address::InfoString Address::ToString(void) const
 {
     return (mType == kTypeExtended) ? GetExtended().ToString()
                                     : (mType == kTypeNone ? InfoString("None") : InfoString("0x%04x", GetShort()));
+}
+
+bool ExtendedPanId::operator==(const ExtendedPanId &aOther) const
+{
+    return memcmp(m8, aOther.m8, sizeof(ExtendedPanId)) == 0;
+}
+
+ExtendedPanId::InfoString ExtendedPanId::ToString(void) const
+{
+    return InfoString("%02x%02x%02x%02x%02x%02x%02x%02x", m8[0], m8[1], m8[2], m8[3], m8[4], m8[5], m8[6], m8[7]);
+}
+
+uint8_t NetworkName::Data::CopyTo(char *aBuffer, uint8_t aMaxSize) const
+{
+    uint8_t len = GetLength();
+
+    memset(aBuffer, 0, aMaxSize);
+
+    if (len > aMaxSize)
+    {
+        len = aMaxSize;
+    }
+
+    memcpy(aBuffer, GetBuffer(), len);
+
+    return len;
+}
+
+NetworkName::Data NetworkName::GetAsData(void) const
+{
+    uint8_t len = static_cast<uint8_t>(strnlen(m8, kMaxSize + 1));
+
+    return Data(m8, len);
+}
+
+otError NetworkName::Set(const Data &aNameData)
+{
+    otError error  = OT_ERROR_NONE;
+    uint8_t newLen = static_cast<uint8_t>(strnlen(aNameData.GetBuffer(), aNameData.GetLength()));
+
+    VerifyOrExit(newLen <= kMaxSize, error = OT_ERROR_INVALID_ARGS);
+
+    // Ensure the new name does not match the current one.
+    VerifyOrExit(memcmp(m8, aNameData.GetBuffer(), newLen) || (m8[newLen] != '\0'), error = OT_ERROR_ALREADY);
+
+    memcpy(m8, aNameData.GetBuffer(), newLen);
+    m8[newLen] = '\0';
+
+exit:
+    return error;
 }
 
 void Frame::InitMacHeader(uint16_t aFcf, uint8_t aSecurityControl)
@@ -275,7 +321,7 @@ otError Frame::GetDstAddr(Address &aAddress) const
         break;
 
     case kFcfDstAddrExt:
-        aAddress.SetExtended(GetPsdu() + index, /* reverse */ true);
+        aAddress.SetExtended(GetPsdu() + index, ExtAddress::kReverseByteOrder);
         break;
 
     default:
@@ -295,16 +341,12 @@ void Frame::SetDstAddr(ShortAddress aShortAddress)
 
 void Frame::SetDstAddr(const ExtAddress &aExtAddress)
 {
-    uint8_t  index = FindDstAddrIndex();
-    uint8_t *buf   = GetPsdu() + index;
+    uint8_t index = FindDstAddrIndex();
 
     assert((GetFrameControlField() & kFcfDstAddrMask) == kFcfDstAddrExt);
     assert(index != kInvalidIndex);
 
-    for (unsigned int i = 0; i < sizeof(ExtAddress); i++)
-    {
-        buf[i] = aExtAddress.m8[sizeof(ExtAddress) - 1 - i];
-    }
+    aExtAddress.CopyTo(GetPsdu() + index, ExtAddress::kReverseByteOrder);
 }
 
 void Frame::SetDstAddr(const Address &aAddress)
@@ -447,7 +489,7 @@ otError Frame::GetSrcAddr(Address &aAddress) const
         break;
 
     case kFcfSrcAddrExt:
-        aAddress.SetExtended(GetPsdu() + index, /* reverse */ true);
+        aAddress.SetExtended(GetPsdu() + index, ExtAddress::kReverseByteOrder);
         break;
 
     default:
@@ -471,16 +513,12 @@ void Frame::SetSrcAddr(ShortAddress aShortAddress)
 
 void Frame::SetSrcAddr(const ExtAddress &aExtAddress)
 {
-    uint8_t  index = FindSrcAddrIndex();
-    uint8_t *buf   = GetPsdu() + index;
+    uint8_t index = FindSrcAddrIndex();
 
     assert((GetFrameControlField() & kFcfSrcAddrMask) == kFcfSrcAddrExt);
     assert(index != kInvalidIndex);
 
-    for (unsigned int i = 0; i < sizeof(aExtAddress); i++)
-    {
-        buf[i] = aExtAddress.m8[sizeof(aExtAddress) - 1 - i];
-    }
+    aExtAddress.CopyTo(GetPsdu() + index, ExtAddress::kReverseByteOrder);
 }
 
 void Frame::SetSrcAddr(const Address &aAddress)
@@ -1131,15 +1169,13 @@ Frame::InfoString Frame::ToInfoString(void) const
 
 BeaconPayload::InfoString BeaconPayload::ToInfoString(void) const
 {
-    const uint8_t *xpanid = GetExtendedPanId();
-    otNetworkName  networkname;
+    NetworkName name;
 
-    strlcpy(networkname.m8, GetNetworkName(), sizeof(networkname.m8));
+    name.Set(GetNetworkName());
 
-    return InfoString("name:%s, xpanid:%02x%02x%02x%02x%02x%02x%02x%02x, id:%d ver:%d, joinable:%s, native:%s",
-                      networkname.m8, xpanid[0], xpanid[1], xpanid[2], xpanid[3], xpanid[4], xpanid[5], xpanid[6],
-                      xpanid[7], GetProtocolId(), GetProtocolVersion(), IsJoiningPermitted() ? "yes" : "no",
-                      IsNative() ? "yes" : "no");
+    return InfoString("name:%s, xpanid:%s, id:%d, ver:%d, joinable:%s, native:%s", name.GetAsCString(),
+                      mExtendedPanId.ToString().AsCString(), GetProtocolId(), GetProtocolVersion(),
+                      IsJoiningPermitted() ? "yes" : "no", IsNative() ? "yes" : "no");
 }
 
 #endif // #if (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_NOTE) && (OPENTHREAD_CONFIG_LOG_MAC == 1)

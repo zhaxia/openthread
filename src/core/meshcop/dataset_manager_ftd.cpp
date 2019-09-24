@@ -157,8 +157,7 @@ otError DatasetManager::HandleSet(Coap::Message &aMessage, const Ip6::MessageInf
 
     // check network master key
     if (Tlv::GetTlv(aMessage, Tlv::kNetworkMasterKey, sizeof(masterKey), masterKey) == OT_ERROR_NONE &&
-        masterKey.IsValid() &&
-        memcmp(&masterKey.GetNetworkMasterKey(), &Get<KeyManager>().GetMasterKey(), OT_MASTER_KEY_SIZE))
+        masterKey.IsValid() && (masterKey.GetNetworkMasterKey() != Get<KeyManager>().GetMasterKey()))
     {
         doesAffectConnectivity = true;
         doesAffectMasterKey    = true;
@@ -166,8 +165,7 @@ otError DatasetManager::HandleSet(Coap::Message &aMessage, const Ip6::MessageInf
 
     // check active timestamp rollback
     if (type == Tlv::kPendingTimestamp &&
-        (masterKey.GetLength() == 0 ||
-         memcmp(&masterKey.GetNetworkMasterKey(), &Get<KeyManager>().GetMasterKey(), OT_MASTER_KEY_SIZE) == 0))
+        ((masterKey.GetLength() == 0) || (masterKey.GetNetworkMasterKey() == Get<KeyManager>().GetMasterKey())))
     {
         // no change to master key, active timestamp must be ahead
         const Timestamp *localActiveTimestamp = Get<ActiveDataset>().GetTimestamp();
@@ -262,16 +260,15 @@ otError DatasetManager::HandleSet(Coap::Message &aMessage, const Ip6::MessageInf
     // notify commissioner if update is from thread device
     if (!isUpdateFromCommissioner)
     {
-        BorderAgentLocatorTlv *borderAgentLocator;
-        Ip6::Address           destination;
+        CommissionerSessionIdTlv *localSessionId;
+        Ip6::Address              destination;
 
-        borderAgentLocator = static_cast<BorderAgentLocatorTlv *>(
-            Get<NetworkData::Leader>().GetCommissioningDataSubTlv(Tlv::kBorderAgentLocator));
-        VerifyOrExit(borderAgentLocator != NULL);
+        localSessionId = static_cast<CommissionerSessionIdTlv *>(
+            Get<NetworkData::Leader>().GetCommissioningDataSubTlv(Tlv::kCommissionerSessionId));
+        VerifyOrExit(localSessionId != NULL);
 
-        memset(&destination, 0, sizeof(destination));
-        destination                = Get<Mle::MleRouter>().GetMeshLocal16();
-        destination.mFields.m16[7] = HostSwap16(borderAgentLocator->GetBorderAgentLocator());
+        SuccessOrExit(
+            Get<Mle::MleRouter>().GetCommissionerAloc(destination, localSessionId->GetCommissionerSessionId()));
 
         Get<Leader>().SendDatasetChanged(destination);
     }
@@ -326,7 +323,7 @@ otError ActiveDataset::CreateNewNetwork(otOperationalDataset &aDataset)
     aDataset.mActiveTimestamp = 1;
 
     SuccessOrExit(error = Random::Crypto::FillBuffer(aDataset.mMasterKey.m8, sizeof(aDataset.mMasterKey)));
-    SuccessOrExit(error = Random::Crypto::FillBuffer(aDataset.mPSKc.m8, sizeof(aDataset.mPSKc)));
+    SuccessOrExit(error = static_cast<Pskc &>(aDataset.mPskc).GenerateRandom());
     SuccessOrExit(error = Random::Crypto::FillBuffer(aDataset.mExtendedPanId.m8, sizeof(aDataset.mExtendedPanId)));
 
     aDataset.mMeshLocalPrefix.m8[0] = 0xfd;
@@ -362,7 +359,7 @@ otError ActiveDataset::CreateNewNetwork(otOperationalDataset &aDataset)
     aDataset.mComponents.mIsMeshLocalPrefixPresent = true;
     aDataset.mComponents.mIsPanIdPresent           = true;
     aDataset.mComponents.mIsChannelPresent         = true;
-    aDataset.mComponents.mIsPSKcPresent            = true;
+    aDataset.mComponents.mIsPskcPresent            = true;
     aDataset.mComponents.mIsSecurityPolicyPresent  = true;
     aDataset.mComponents.mIsChannelMaskPresent     = true;
 
@@ -439,7 +436,7 @@ otError ActiveDataset::GenerateLocal(void)
     {
         NetworkNameTlv tlv;
         tlv.Init();
-        tlv.SetNetworkName(Get<Mac::Mac>().GetNetworkName());
+        tlv.SetNetworkName(Get<Mac::Mac>().GetNetworkName().GetAsData());
         dataset.Set(tlv);
     }
 
@@ -453,24 +450,24 @@ otError ActiveDataset::GenerateLocal(void)
     }
 
     // PSKc
-    if (dataset.Get(Tlv::kPSKc) == NULL)
+    if (dataset.Get(Tlv::kPskc) == NULL)
     {
-        PSKcTlv tlv;
+        PskcTlv tlv;
 
         tlv.Init();
 
-        if (Get<KeyManager>().IsPSKcSet())
+        if (Get<KeyManager>().IsPskcSet())
         {
             // use configured PSKc
-            tlv.SetPSKc(Get<KeyManager>().GetPSKc());
+            tlv.SetPskc(Get<KeyManager>().GetPskc());
         }
         else
         {
             // PSKc has not yet been configured, generate new PSKc at random
-            otPSKc pskc;
+            Pskc pskc;
 
-            SuccessOrExit(error = Random::Crypto::FillBuffer(pskc.m8, sizeof(pskc)));
-            tlv.SetPSKc(pskc);
+            SuccessOrExit(error = pskc.GenerateRandom());
+            tlv.SetPskc(pskc);
         }
 
         dataset.Set(tlv);

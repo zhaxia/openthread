@@ -51,6 +51,7 @@
 #include <common/code_utils.hpp>
 #include <common/encoding.hpp>
 #include <common/logging.hpp>
+#include <common/new.hpp>
 #include <openthread/platform/alarm-milli.h>
 #include <openthread/platform/diag.h>
 #include <openthread/platform/radio.h>
@@ -308,6 +309,8 @@ exit:
 void RadioSpinel::Deinit(void)
 {
     mHdlcInterface.Deinit();
+    // This allows implementing pseudo reset.
+    new (this) RadioSpinel();
 }
 
 void RadioSpinel::HandleSpinelFrame(HdlcInterface::RxFrameBuffer &aFrameBuffer)
@@ -527,11 +530,11 @@ void RadioSpinel::HandleValueIs(spinel_prop_key_t aKey, const uint8_t *aBuffer, 
 
         if (status >= SPINEL_STATUS_RESET__BEGIN && status <= SPINEL_STATUS_RESET__END)
         {
-            otLogCritPlat("RCP reset: %s", spinel_status_to_cstr(status));
-            mIsReady = true;
-
             // If RCP crashes/resets while radio was enabled, posix app exits.
             VerifyOrDie(!IsEnabled(), OT_EXIT_RADIO_SPINEL_RESET);
+
+            otLogInfoPlat("RCP reset: %s", spinel_status_to_cstr(status));
+            mIsReady = true;
         }
         else
         {
@@ -892,7 +895,21 @@ int8_t RadioSpinel::GetRssi(void)
     return rssi;
 }
 
-#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_METRICS_ENABLE
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
+otError RadioSpinel::SetCoexEnabled(bool aEnabled)
+{
+    return Set(SPINEL_PROP_RADIO_COEX_ENABLE, SPINEL_DATATYPE_BOOL_S, aEnabled);
+}
+
+bool RadioSpinel::IsCoexEnabled(void)
+{
+    bool    enabled;
+    otError error = Get(SPINEL_PROP_RADIO_COEX_ENABLE, SPINEL_DATATYPE_BOOL_S, &enabled);
+
+    LogIfFail("Get Coex State failed", error);
+    return enabled;
+}
+
 otError RadioSpinel::GetCoexMetrics(otRadioCoexMetrics &aCoexMetrics)
 {
     otError error;
@@ -1670,7 +1687,19 @@ int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
     return sRadioSpinel.GetReceiveSensitivity();
 }
 
-#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_METRICS_ENABLE
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
+otError otPlatRadioSetCoexEnabled(otInstance *aInstance, bool aEnabled)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    return sRadioSpinel.SetCoexEnabled(aEnabled);
+}
+
+bool otPlatRadioIsCoexEnabled(otInstance *aInstance)
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    return sRadioSpinel.IsCoexEnabled();
+}
+
 otError otPlatRadioGetCoexMetrics(otInstance *aInstance, otRadioCoexMetrics *aCoexMetrics)
 {
     OT_UNUSED_VARIABLE(aInstance);

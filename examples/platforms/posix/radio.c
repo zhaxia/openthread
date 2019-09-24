@@ -28,6 +28,8 @@
 
 #include "platform-posix.h"
 
+#include <errno.h>
+
 #include <openthread/dataset.h>
 #include <openthread/random_noncrypto.h>
 #include <openthread/platform/alarm-micro.h>
@@ -139,11 +141,15 @@ static bool     sPromiscuous = false;
 static bool     sTxWait      = false;
 static int8_t   sTxPower     = 0;
 
-static uint8_t      sShortAddressMatchTableCount = 0;
-static uint8_t      sExtAddressMatchTableCount   = 0;
+static uint16_t     sShortAddressMatchTableCount = 0;
+static uint16_t     sExtAddressMatchTableCount   = 0;
 static uint16_t     sShortAddressMatchTable[POSIX_MAX_SRC_MATCH_ENTRIES];
 static otExtAddress sExtAddressMatchTable[POSIX_MAX_SRC_MATCH_ENTRIES];
 static bool         sSrcMatchEnabled = false;
+
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
+static bool sRadioCoexEnabled = true;
+#endif
 
 static bool findShortAddress(uint16_t aShortAddress)
 {
@@ -815,15 +821,22 @@ void platformRadioProcess(otInstance *aInstance, const fd_set *aReadFdSet, const
     {
         ssize_t rval = recvfrom(sRxFd, (char *)&sReceiveMessage, sizeof(sReceiveMessage), 0, NULL, NULL);
 
-        if (rval < 0)
+        if (rval > 0)
+        {
+            sReceiveFrame.mLength = (uint8_t)(rval - 1);
+
+            radioReceive(aInstance);
+        }
+        else if (rval == 0)
+        {
+            // socket is closed, which should not happen
+            assert(false);
+        }
+        else if (errno != EINTR && errno != EAGAIN)
         {
             perror("recvfrom(sRxFd)");
             exit(EXIT_FAILURE);
         }
-
-        sReceiveFrame.mLength = (uint8_t)(rval - 1);
-
-        radioReceive(aInstance);
     }
 #endif
 
@@ -1084,7 +1097,22 @@ int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
     return POSIX_RECEIVE_SENSITIVITY;
 }
 
-#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_METRICS_ENABLE
+#if OPENTHREAD_CONFIG_PLATFORM_RADIO_COEX_ENABLE
+otError otPlatRadioSetCoexEnabled(otInstance *aInstance, bool aEnabled)
+{
+    assert(aInstance != NULL);
+
+    sRadioCoexEnabled = aEnabled;
+    return OT_ERROR_NONE;
+}
+
+bool otPlatRadioIsCoexEnabled(otInstance *aInstance)
+{
+    assert(aInstance != NULL);
+
+    return sRadioCoexEnabled;
+}
+
 otError otPlatRadioGetCoexMetrics(otInstance *aInstance, otRadioCoexMetrics *aCoexMetrics)
 {
     otError error = OT_ERROR_NONE;

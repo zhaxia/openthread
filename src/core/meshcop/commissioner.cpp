@@ -132,8 +132,8 @@ void Commissioner::HandleCoapsConnected(bool aConnected)
 
     event = aConnected ? OT_COMMISSIONER_JOINER_CONNECTED : OT_COMMISSIONER_JOINER_END;
 
-    memcpy(&joinerId, mJoinerIid, sizeof(joinerId));
-    joinerId.m8[0] ^= 0x2;
+    joinerId.Set(mJoinerIid);
+    joinerId.ToggleLocal();
 
     SignalJoinerEvent(event, joinerId);
 }
@@ -144,6 +144,7 @@ otError Commissioner::Start(otCommissionerStateCallback  aStateCallback,
 {
     otError error = OT_ERROR_NONE;
 
+    VerifyOrExit(Get<Mle::MleRouter>().IsAttached(), error = OT_ERROR_INVALID_STATE);
     VerifyOrExit(mState == OT_COMMISSIONER_STATE_DISABLED, error = OT_ERROR_INVALID_STATE);
 
     SuccessOrExit(error = Get<Coap::CoapSecure>().Start(SendRelayTransmit, this));
@@ -243,13 +244,13 @@ void Commissioner::ClearJoiners(void)
     SendCommissionerSet();
 }
 
-otError Commissioner::AddJoiner(const Mac::ExtAddress *aEui64, const char *aPSKd, uint32_t aTimeout)
+otError Commissioner::AddJoiner(const Mac::ExtAddress *aEui64, const char *aPskd, uint32_t aTimeout)
 {
     otError error = OT_ERROR_NO_BUFS;
 
     VerifyOrExit(mState == OT_COMMISSIONER_STATE_ACTIVE, error = OT_ERROR_INVALID_STATE);
 
-    VerifyOrExit(strlen(aPSKd) <= Dtls::kPskMaxLength, error = OT_ERROR_INVALID_ARGS);
+    VerifyOrExit(strlen(aPskd) <= Dtls::kPskMaxLength, error = OT_ERROR_INVALID_ARGS);
     RemoveJoiner(aEui64, 0); // remove immediately
 
     for (size_t i = 0; i < OT_ARRAY_LENGTH(mJoiners); i++)
@@ -261,15 +262,15 @@ otError Commissioner::AddJoiner(const Mac::ExtAddress *aEui64, const char *aPSKd
 
         if (aEui64 != NULL)
         {
-            memcpy(&mJoiners[i].mEui64, aEui64, sizeof(mJoiners[i].mEui64));
-            mJoiners[i].mAny = false;
+            mJoiners[i].mEui64 = *aEui64;
+            mJoiners[i].mAny   = false;
         }
         else
         {
             mJoiners[i].mAny = true;
         }
 
-        (void)strlcpy(mJoiners[i].mPsk, aPSKd, sizeof(mJoiners[i].mPsk));
+        (void)strlcpy(mJoiners[i].mPsk, aPskd, sizeof(mJoiners[i].mPsk));
         mJoiners[i].mValid          = true;
         mJoiners[i].mExpirationTime = TimerMilli::GetNow() + TimerMilli::SecToMsec(aTimeout);
 
@@ -277,22 +278,40 @@ otError Commissioner::AddJoiner(const Mac::ExtAddress *aEui64, const char *aPSKd
 
         SendCommissionerSet();
 
+        otLogInfoMeshCoP("Added Joiner (%s, %s)", (aEui64 != NULL) ? aEui64->ToString().AsCString() : "*", aPskd);
+
         ExitNow(error = OT_ERROR_NONE);
     }
 
 exit:
-    if (error == OT_ERROR_NONE)
+    return error;
+}
+
+otError Commissioner::GetNextJoinerInfo(uint16_t &aIterator, otJoinerInfo &aJoiner) const
+{
+    otError error = OT_ERROR_NONE;
+    size_t  index;
+
+    for (index = aIterator; index < OT_ARRAY_LENGTH(mJoiners); index++)
     {
-        if (aEui64)
+        if (!mJoiners[index].mValid)
         {
-            otLogInfoMeshCoP("Added Joiner (%s, %s)", aEui64->ToString().AsCString(), aPSKd);
+            continue;
         }
-        else
-        {
-            otLogInfoMeshCoP("Added Joiner (*, %s)", aPSKd);
-        }
+
+        memset(&aJoiner, 0, sizeof(aJoiner));
+
+        aJoiner.mAny   = mJoiners[index].mAny;
+        aJoiner.mEui64 = mJoiners[index].mEui64;
+        strlcpy(aJoiner.mPsk, mJoiners[index].mPsk, sizeof(aJoiner.mPsk));
+        aJoiner.mExpirationTime = mJoiners[index].mExpirationTime - TimerMilli::GetNow();
+        aIterator               = static_cast<uint16_t>(index) + 1;
+        ExitNow();
     }
 
+    error = OT_ERROR_NOT_FOUND;
+
+exit:
     return error;
 }
 
@@ -304,8 +323,6 @@ otError Commissioner::RemoveJoiner(const Mac::ExtAddress *aEui64, uint32_t aDela
 
     for (size_t i = 0; i < OT_ARRAY_LENGTH(mJoiners); i++)
     {
-        Mac::ExtAddress joinerId;
-
         if (!mJoiners[i].mValid)
         {
             continue;
@@ -313,7 +330,7 @@ otError Commissioner::RemoveJoiner(const Mac::ExtAddress *aEui64, uint32_t aDela
 
         if (aEui64 != NULL)
         {
-            if (memcmp(&mJoiners[i].mEui64, aEui64, sizeof(mJoiners[i].mEui64)))
+            if (mJoiners[i].mEui64 != *aEui64)
             {
                 continue;
             }
@@ -336,18 +353,13 @@ otError Commissioner::RemoveJoiner(const Mac::ExtAddress *aEui64, uint32_t aDela
         }
         else
         {
+            Mac::ExtAddress joinerId;
+
             mJoiners[i].mValid = false;
             UpdateJoinerExpirationTimer();
             SendCommissionerSet();
 
-            if (aEui64)
-            {
-                otLogInfoMeshCoP("Removed Joiner (%s)", aEui64->ToString().AsCString());
-            }
-            else
-            {
-                otLogInfoMeshCoP("Removed Joiner (*)");
-            }
+            otLogInfoMeshCoP("Removed Joiner (%s)", (aEui64 != NULL) ? aEui64->ToString().AsCString() : "*");
 
             ComputeJoinerId(mJoiners[i].mEui64, joinerId);
             SignalJoinerEvent(OT_COMMISSIONER_JOINER_REMOVED, joinerId);
@@ -832,6 +844,7 @@ void Commissioner::HandleRelayReceive(Coap::Message &aMessage, const Ip6::Messag
     uint16_t               offset;
     uint16_t               length;
     bool                   enableJoiner = false;
+    Mac::ExtAddress        receivedId;
     Mac::ExtAddress        joinerId;
 
     VerifyOrExit(mState == OT_COMMISSIONER_STATE_ACTIVE, error = OT_ERROR_INVALID_STATE);
@@ -853,7 +866,9 @@ void Commissioner::HandleRelayReceive(Coap::Message &aMessage, const Ip6::Messag
     if (!Get<Coap::CoapSecure>().IsConnectionActive())
     {
         memcpy(mJoinerIid, joinerIid.GetIid(), sizeof(mJoinerIid));
-        mJoinerIid[0] ^= 0x2;
+
+        receivedId.Set(mJoinerIid);
+        receivedId.ToggleLocal();
 
         for (uint8_t i = 0; i < OT_ARRAY_LENGTH(mJoiners); i++)
         {
@@ -864,7 +879,7 @@ void Commissioner::HandleRelayReceive(Coap::Message &aMessage, const Ip6::Messag
 
             ComputeJoinerId(mJoiners[i].mEui64, joinerId);
 
-            if (mJoiners[i].mAny || !memcmp(&joinerId, mJoinerIid, sizeof(joinerId)))
+            if (mJoiners[i].mAny || (joinerId == receivedId))
             {
                 error = Get<Coap::CoapSecure>().SetPsk(reinterpret_cast<const uint8_t *>(mJoiners[i].mPsk),
                                                        static_cast<uint8_t>(strlen(mJoiners[i].mPsk)));
@@ -878,8 +893,6 @@ void Commissioner::HandleRelayReceive(Coap::Message &aMessage, const Ip6::Messag
                 break;
             }
         }
-
-        mJoinerIid[0] ^= 0x2;
     }
     else
     {
@@ -1000,8 +1013,8 @@ void Commissioner::SendJoinFinalizeResponse(const Coap::Message &aRequest, State
 
     SuccessOrExit(error = Get<Coap::CoapSecure>().SendMessage(*message, joinerMessageInfo));
 
-    memcpy(&joinerId, mJoinerIid, sizeof(joinerId));
-    joinerId.m8[0] ^= 0x2;
+    joinerId.Set(mJoinerIid);
+    joinerId.ToggleLocal();
     SignalJoinerEvent(OT_COMMISSIONER_JOINER_FINALIZE, joinerId);
 
     if (!mJoiners[mJoinerIndex].mAny)
@@ -1089,10 +1102,10 @@ exit:
     return error;
 }
 
-otError Commissioner::GeneratePSKc(const char *           aPassPhrase,
-                                   const char *           aNetworkName,
-                                   const otExtendedPanId &aExtPanId,
-                                   uint8_t *              aPSKc)
+otError Commissioner::GeneratePskc(const char *              aPassPhrase,
+                                   const char *              aNetworkName,
+                                   const Mac::ExtendedPanId &aExtPanId,
+                                   uint8_t *                 aPskc)
 {
     otError     error      = OT_ERROR_NONE;
     const char *saltPrefix = "Thread";
@@ -1114,7 +1127,7 @@ otError Commissioner::GeneratePSKc(const char *           aPassPhrase,
     saltLen += static_cast<uint16_t>(strlen(aNetworkName));
 
     otPbkdf2Cmac(reinterpret_cast<const uint8_t *>(aPassPhrase), static_cast<uint16_t>(strlen(aPassPhrase)),
-                 reinterpret_cast<const uint8_t *>(salt), saltLen, 16384, OT_PSKC_MAX_SIZE, aPSKc);
+                 reinterpret_cast<const uint8_t *>(salt), saltLen, 16384, OT_PSKC_MAX_SIZE, aPskc);
 
 exit:
     return error;

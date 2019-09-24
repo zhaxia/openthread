@@ -1427,7 +1427,8 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
     uint8_t cost;
     uint8_t linkQuality;
     bool    update;
-    bool    changed = false;
+    bool    resetAdvInterval = false;
+    bool    changed          = false;
 
     neighbor = mRouterTable.GetRouter(aRouterId);
     VerifyOrExit(neighbor != NULL);
@@ -1461,7 +1462,16 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
 
                 if (neighbor->GetLinkQualityOut() != linkQuality)
                 {
+                    uint8_t oldLinkCost = mRouterTable.GetLinkCost(*neighbor);
                     neighbor->SetLinkQualityOut(linkQuality);
+                    nextHop = mRouterTable.GetRouter(neighbor->GetNextHop());
+
+                    // reset MLE advertisement timer if neighbor route cost changed to or from infinite
+                    if (nextHop == NULL &&
+                        (oldLinkCost >= kMaxRouteCost) != (mRouterTable.GetLinkCost(*neighbor) >= kMaxRouteCost))
+                    {
+                        resetAdvInterval = true;
+                    }
                     update = true;
                 }
             }
@@ -1494,7 +1504,7 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
                         {
                             if (nextHop == NULL && mRouterTable.GetLinkCost(*router) >= kMaxRouteCost)
                             {
-                                ResetAdvertiseInterval();
+                                resetAdvInterval = true;
                             }
 
                             router->SetNextHop(aRouterId);
@@ -1505,7 +1515,7 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
                         {
                             if (mRouterTable.GetLinkCost(*router) >= kMaxRouteCost)
                             {
-                                ResetAdvertiseInterval();
+                                resetAdvInterval = true;
                             }
 
                             router->SetNextHop(kInvalidRouterId);
@@ -1537,6 +1547,11 @@ void MleRouter::UpdateRoutes(const RouteTlv &aRoute, uint8_t aRouterId)
         changed |= update;
 
     } while (update);
+
+    if (resetAdvInterval)
+    {
+        ResetAdvertiseInterval();
+    }
 
 #if (OPENTHREAD_CONFIG_LOG_MLE && (OPENTHREAD_CONFIG_LOG_LEVEL >= OT_LOG_LEVEL_INFO))
 
@@ -2586,9 +2601,8 @@ exit:
 }
 
 #if OPENTHREAD_CONFIG_MLE_STEERING_DATA_SET_OOB_ENABLE
-otError MleRouter::SetSteeringData(const Mac::ExtAddress *aExtAddress)
+void MleRouter::SetSteeringData(const Mac::ExtAddress *aExtAddress)
 {
-    otError         error = OT_ERROR_NONE;
     Mac::ExtAddress nullExtAddr;
     Mac::ExtAddress allowAnyExtAddr;
 
@@ -2617,8 +2631,6 @@ otError MleRouter::SetSteeringData(const Mac::ExtAddress *aExtAddress)
         // compute Bloom Filter
         mSteeringData.ComputeBloomFilter(joinerId);
     }
-
-    return error;
 }
 #endif // OPENTHREAD_CONFIG_MLE_STEERING_DATA_SET_OOB_ENABLE
 
@@ -2749,7 +2761,7 @@ otError MleRouter::SendDiscoveryResponse(const Ip6::Address &aDestination, uint1
 
     // Network Name TLV
     networkName.Init();
-    networkName.SetNetworkName(Get<Mac::Mac>().GetNetworkName());
+    networkName.SetNetworkName(Get<Mac::Mac>().GetNetworkName().GetAsData());
     SuccessOrExit(error = message->AppendTlv(networkName));
 
 #if OPENTHREAD_CONFIG_MLE_STEERING_DATA_SET_OOB_ENABLE
@@ -2903,7 +2915,7 @@ otError MleRouter::SendChildUpdateRequest(Child &aChild)
 
     if (!aChild.IsRxOnWhenIdle())
     {
-        uint8_t childIndex = Get<ChildTable>().GetChildIndex(aChild);
+        uint16_t childIndex = Get<ChildTable>().GetChildIndex(aChild);
 
         for (message = Get<MeshForwarder>().GetSendQueue().GetHead(); message; message = message->GetNext())
         {
@@ -3466,7 +3478,7 @@ exit:
     return error;
 }
 
-otError MleRouter::GetChildInfoByIndex(uint8_t aChildIndex, otChildInfo &aChildInfo)
+otError MleRouter::GetChildInfoByIndex(uint16_t aChildIndex, otChildInfo &aChildInfo)
 {
     otError error = OT_ERROR_NONE;
     Child * child = NULL;
@@ -3480,7 +3492,7 @@ exit:
     return error;
 }
 
-otError MleRouter::GetChildNextIp6Address(uint8_t                    aChildIndex,
+otError MleRouter::GetChildNextIp6Address(uint16_t                   aChildIndex,
                                           Child::Ip6AddressIterator &aIterator,
                                           Ip6::Address &             aAddress)
 {
@@ -3499,9 +3511,9 @@ exit:
 
 void MleRouter::RestoreChildren(void)
 {
-    otError error          = OT_ERROR_NONE;
-    bool    foundDuplicate = false;
-    uint8_t numChildren    = 0;
+    otError  error          = OT_ERROR_NONE;
+    bool     foundDuplicate = false;
+    uint16_t numChildren    = 0;
 
     for (Settings::ChildInfoIterator iter(GetInstance()); !iter.IsDone(); iter++)
     {
@@ -3660,7 +3672,7 @@ otError MleRouter::GetNextNeighborInfo(otNeighborInfoIterator &aIterator, otNeig
     {
         for (index = aIterator;; index++)
         {
-            Child *child = mChildTable.GetChildAtIndex(static_cast<uint8_t>(index));
+            Child *child = mChildTable.GetChildAtIndex(static_cast<uint16_t>(index));
 
             if (child == NULL)
             {
@@ -4181,8 +4193,8 @@ void MleRouter::FillConnectivityTlv(ConnectivityTlv &aTlv)
     }
     else
     {
-        uint8_t numChildren = mChildTable.GetNumChildren(ChildTable::kInStateValid);
-        uint8_t maxAllowed  = mChildTable.GetMaxChildrenAllowed();
+        uint16_t numChildren = mChildTable.GetNumChildren(ChildTable::kInStateValid);
+        uint16_t maxAllowed  = mChildTable.GetMaxChildrenAllowed();
 
         if ((maxAllowed - numChildren) < (maxAllowed / 3))
         {
@@ -4343,16 +4355,8 @@ otError MleRouter::AppendChildAddresses(Message &aMessage, Child &aChild)
         length += entry.GetLength();
     }
 
-    if (length > 0)
-    {
-        tlv.SetLength(length);
-        aMessage.Write(startOffset, sizeof(tlv), &tlv);
-    }
-    else
-    {
-        // remove AddressRegistrationTlv if no address to be echoed back
-        aMessage.SetLength(startOffset);
-    }
+    tlv.SetLength(length);
+    aMessage.Write(startOffset, sizeof(tlv), &tlv);
 
 exit:
     return error;
@@ -4562,8 +4566,8 @@ void MleRouter::RemoveChildren(void)
 
 bool MleRouter::HasSmallNumberOfChildren(void)
 {
-    uint8_t numChildren = 0;
-    uint8_t routerCount = mRouterTable.GetActiveRouterCount();
+    uint16_t numChildren = 0;
+    uint8_t  routerCount = mRouterTable.GetActiveRouterCount();
 
     VerifyOrExit(routerCount > mRouterDowngradeThreshold);
 
