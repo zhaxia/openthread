@@ -65,14 +65,32 @@ static jmp_buf gResetJump;
 
 void __gcov_flush();
 
+ enum
+ {
+     ARG_NO_RESET            = 1001,
+     ARG_RADIO_VERSION       = 1002,
+     ARG_SPI_MODE            = 1003,
+     ARG_SPI_SPEED           = 1004,
+     ARG_SPI_CS_DELAY        = 1005,
+     ARG_SPI_RESET_DELAY     = 1006,
+ };
+
 static const struct option kOptions[] = {{"dry-run", no_argument, NULL, 'n'},
                                          {"help", no_argument, NULL, 'h'},
                                          {"interface-name", required_argument, NULL, 'I'},
-                                         {"no-reset", no_argument, NULL, 0},
-                                         {"radio-version", no_argument, NULL, 0},
+                                         {"no-reset", no_argument, NULL, ARG_NO_RESET},
+                                         {"radio-version", no_argument, NULL, ARG_RADIO_VERSION},
                                          {"time-speed", required_argument, NULL, 's'},
                                          {"verbose", no_argument, NULL, 'v'},
-                                         {0, 0, 0, 0}};
+#if OPENTHREAD_CONFIG_NCP_SPI_ENABLE
+                                         {"gpio-int", required_argument, NULL, 'i'},
+                                         {"gpio-reset", required_argument, NULL, 'r'},
+                                         {"spi-mode", required_argument, NULL, ARG_SPI_MODE},
+                                         {"spi-speed", required_argument, NULL, ARG_SPI_SPEED},
+                                         {"spi-cs-delay", required_argument, NULL, ARG_SPI_CS_DELAY},
+                                         {"spi-reset-delay", required_argument, NULL, ARG_SPI_RESET_DELAY},
+#endif
+                                         {NULL, 0, NULL, 0}};
 
 static void PrintUsage(const char *aProgramName, FILE *aStream, int aExitCode)
 {
@@ -86,30 +104,38 @@ static void PrintUsage(const char *aProgramName, FILE *aStream, int aExitCode)
             "        --radio-version         Print radio firmware version\n"
             "    -s  --time-speed factor     Time speed up factor.\n"
             "    -v  --verbose               Also log to stderr.\n"
+#if OPENTHREAD_CONFIG_NCP_SPI_ENABLE
+            "    -i  --gpio-int[=gpio-path]   Specify a path to the Linux sysfs-exported\n"
+            "                                 GPIO directory for the `I̅N̅T̅` pin. If not\n"
+            "                                 specified, `spi-hdlc` will fall back to\n"
+            "                                 polling, which is inefficient.\n"
+            "    -r  --gpio-reset[=gpio-path] Specify a path to the Linux sysfs-exported\n"
+            "                                 GPIO directory for the `R̅E̅S̅` pin.\n"
+            "        --spi-mode[=mode]        Specify the SPI mode to use (0-3).\n"
+            "        --spi-speed[=hertz]      Specify the SPI speed in hertz.\n"
+            "        --spi-cs-delay[=usec]    Specify the delay after C̅S̅ assertion, in µsec\n"
+            "        --spi-reset-delay[=ms]   Specify the delay after R̅E̅S̅E̅T̅ assertion, in miliseconds\n"
+#endif
             "    -h  --help                  Display this usage information.\n",
             aProgramName);
     exit(aExitCode);
 }
 
-static otInstance *InitInstance(int aArgCount, char *aArgVector[])
+static void ParseArg(int aArgc, char *aArgv[], otPlatformConfig *aConfig)
 {
-    otPlatformConfig config;
-    otInstance *     instance          = NULL;
-    bool             isDryRun          = false;
-    bool             printRadioVersion = false;
-    bool             isVerbose         = false;
+    assert(aConfig != NULL);
 
-    memset(&config, 0, sizeof(config));
+    memset(aConfig, 0, sizeof(otPlatformConfig));
 
-    config.mSpeedUpFactor = 1;
-    config.mResetRadio    = true;
+    aConfig->mSpeedUpFactor = 1;
+    aConfig->mResetRadio    = true;
 
     optind = 1;
 
     while (true)
     {
         int index  = 0;
-        int option = getopt_long(aArgCount, aArgVector, "hI:ns:v", kOptions, &index);
+        int option = getopt_long(aArgc, aArgv, "hI:ns:v", kOptions, &index);
 
         if (option == -1)
         {
@@ -119,74 +145,109 @@ static otInstance *InitInstance(int aArgCount, char *aArgVector[])
         switch (option)
         {
         case 'h':
-            PrintUsage(aArgVector[0], stdout, OT_EXIT_SUCCESS);
+            PrintUsage(aArgv[0], stdout, OT_EXIT_SUCCESS);
             break;
+
         case 'I':
-            config.mInterfaceName = optarg;
+            aConfig->mInterfaceName = optarg;
             break;
+
         case 'n':
-            isDryRun = true;
+            aConfig->mIsDryRun = true;
             break;
+
         case 's':
         {
             char *endptr          = NULL;
-            config.mSpeedUpFactor = (uint32_t)strtol(optarg, &endptr, 0);
+            aConfig->mSpeedUpFactor = (uint32_t)strtol(optarg, &endptr, 0);
 
-            if (*endptr != '\0' || config.mSpeedUpFactor == 0)
+            if (*endptr != '\0' || aConfig->mSpeedUpFactor == 0)
             {
                 fprintf(stderr, "Invalid value for TimerSpeedUpFactor: %s\n", optarg);
                 exit(OT_EXIT_INVALID_ARGUMENTS);
             }
             break;
         }
+
         case 'v':
-            isVerbose = true;
+            aConfig->mIsVerbose = true;
             break;
 
-        case 0:
-            if (!strcmp(kOptions[index].name, "radio-version"))
-            {
-                printRadioVersion = true;
-            }
-            else if (!strcmp(kOptions[index].name, "no-reset"))
-            {
-                config.mResetRadio = false;
-            }
+        case ARG_NO_RESET:
+            aConfig->mResetRadio = false;
             break;
+
+        case ARG_RADIO_VERSION:
+            aConfig->mPrintVersion = true;
+            break;
+
+        case ARG_SPI_MODE:
+            aConfig->mMode = (uint8_t)(atoi(optarg));
+            break;
+
+        case ARG_SPI_SPEED:
+            aConfig->mSpeed = atoi(optarg);
+           break;
+
+        case ARG_SPI_CS_DELAY:
+            aConfig->mCsDelay = atoi(optarg);
+            break;
+
+        case ARG_SPI_RESET_DELAY:
+            aConfig->mResetDelay = atoi(optarg);
+           break;
+
+        case 'i':
+            aConfig->mIntPinPath = optarg;
+            break;
+
+        case 'r':
+            aConfig->mResetPinPath = optarg;
+            break;
+
         case '?':
-            PrintUsage(aArgVector[0], stderr, OT_EXIT_INVALID_ARGUMENTS);
+            PrintUsage(aArgv[0], stderr, OT_EXIT_INVALID_ARGUMENTS);
             break;
+
         default:
             assert(false);
             break;
         }
     }
 
+    if (optind >= aArgc)
+    {
+        PrintUsage(aArgv[0], stderr, OT_EXIT_INVALID_ARGUMENTS);
+    }
+
+    aConfig->mRadioFile = aArgv[optind];
+
+    if (optind + 1 < aArgc)
+    {
+        aConfig->mRadioConfig = aArgv[optind + 1];
+    }
+}
+
+static otInstance *InitInstance(int aArgCount, char *aArgVector[])
+{
+    otPlatformConfig config;
+    otInstance *     instance = NULL;
+
+    ParseArg(aArgCount, aArgVector, &config);
+
 #if OPENTHREAD_CONFIG_LOG_OUTPUT == OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
-    openlog(aArgVector[0], LOG_PID | (isVerbose ? LOG_PERROR : 0), LOG_DAEMON);
+    openlog(aArgVector[0], LOG_PID | (config.mIsVerbose ? LOG_PERROR : 0), LOG_DAEMON);
     setlogmask(setlogmask(0) & LOG_UPTO(LOG_DEBUG));
 #endif
 
-    if (optind >= aArgCount)
-    {
-        PrintUsage(aArgVector[0], stderr, OT_EXIT_INVALID_ARGUMENTS);
-    }
-
-    config.mRadioFile = aArgVector[optind];
-
-    if (optind + 1 < aArgCount)
-    {
-        config.mRadioConfig = aArgVector[optind + 1];
-    }
-
     instance = otSysInit(&config);
 
-    if (printRadioVersion)
+    if (config.mPrintVersion)
     {
         printf("%s\n", otPlatRadioGetVersionString(instance));
     }
 
-    if (isDryRun)
+    if (config.mIsDryRun)
     {
         exit(OT_EXIT_SUCCESS);
     }

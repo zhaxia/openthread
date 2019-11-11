@@ -37,13 +37,14 @@
 #include <openthread/platform/radio.h>
 
 #include "hdlc_interface.hpp"
+#include "spi_interface.hpp"
 #include "ncp/ncp_config.h"
 #include "ncp/spinel.h"
 
 namespace ot {
 namespace PosixApp {
 
-class RadioSpinel : public HdlcInterface::Callbacks
+class RadioSpinel : public SpinelInterface::Callbacks
 {
 public:
     /**
@@ -60,7 +61,7 @@ public:
      * @param[in]   aReset        Whether to reset RCP when initializing.
      *
      */
-    void Init(const char *aRadioFile, const char *aRadioConfig, bool aReset);
+    void Init(otPlatformConfig *aConfig);
 
     /**
      * Deinitialize this radio transceiver.
@@ -435,11 +436,13 @@ public:
      *
      * @param[inout]  aReadFdSet   A reference to the read file descriptors.
      * @param[inout]  aWriteFdSet  A reference to the write file descriptors.
+     * @param[inout]  aErrorFdSet  A reference to the error file descriptors.
      * @param[inout]  aMaxFd       A reference to the max file descriptor.
      * @param[inout]  aTimeout     A reference to the timeout.
      *
      */
-    void UpdateFdSet(fd_set &aReadFdSet, fd_set &aWriteFdSet, int &aMaxFd, struct timeval &aTimeout);
+    void UpdateFdSet(fd_set &aReadFdSet, fd_set &aWriteFdSet, fd_set &aErrorFdSet, int &aMaxFd,
+                     struct timeval &aTimeout);
 
     /**
      * This method performs radio driver processing.
@@ -517,12 +520,12 @@ public:
      *
      * @param[in] aFrameBuffer The frame buffer constaining the newly received frame.
      */
-    void HandleSpinelFrame(HdlcInterface::RxFrameBuffer &aFrameBuffer);
+    void HandleSpinelFrame(SpinelInterface::RxFrameBuffer &aFrameBuffer);
 
 private:
     enum
     {
-        kMaxSpinelFrame        = HdlcInterface::kMaxFrameSize,
+        kMaxSpinelFrame        = SpinelInterface::kMaxFrameSize,
         kMaxWaitTime           = 2000, ///< Max time to wait for response in milliseconds.
         kVersionStringSize     = 128,  ///< Max size of version string.
         kCapsBufferSize        = 100,  ///< Max buffer size used to store `SPINEL_PROP_CAPS` value.
@@ -631,7 +634,7 @@ private:
                  (aKey == SPINEL_PROP_STREAM_RAW || aKey == SPINEL_PROP_MAC_ENERGY_SCAN_RESULT));
     }
 
-    void HandleNotification(HdlcInterface::RxFrameBuffer &aFrameBuffer);
+    void HandleNotification(SpinelInterface::RxFrameBuffer &aFrameBuffer);
     void HandleNotification(const uint8_t *aBuffer, uint16_t aLength);
     void HandleValueIs(spinel_prop_key_t aKey, const uint8_t *aBuffer, uint16_t aLength);
 
@@ -644,7 +647,14 @@ private:
 
     otInstance *mInstance;
 
+#if OPENTHREAD_POSIX_NCP_UART_ENABLE
     HdlcInterface mHdlcInterface;
+#endif
+
+#if OPENTHREAD_POSIX_NCP_SPI_ENABLE
+
+    SpiInterface mHdlcInterface;
+#endif
 
     uint16_t          mCmdTidsInUse;    ///< Used transaction ids.
     spinel_tid_t      mCmdNextTid;      ///< Next available transaction id.

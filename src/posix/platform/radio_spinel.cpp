@@ -150,7 +150,7 @@ static void LogIfFail(const char *aText, otError aError)
     }
 }
 
-void HdlcInterface::Callbacks::HandleReceivedFrame(HdlcInterface &aInterface)
+void SpinelInterface::Callbacks::HandleReceivedFrame(SpinelInterface &aInterface)
 {
     static_cast<RadioSpinel *>(this)->HandleSpinelFrame(aInterface.GetRxFrameBuffer());
 }
@@ -186,13 +186,13 @@ RadioSpinel::RadioSpinel(void)
     mVersion[0] = '\0';
 }
 
-void RadioSpinel::Init(const char *aRadioFile, const char *aRadioConfig, bool aReset)
+void RadioSpinel::Init(otPlatformConfig *aConfig)
 {
     otError error = OT_ERROR_NONE;
 
-    SuccessOrExit(error = mHdlcInterface.Init(aRadioFile, aRadioConfig));
+    SuccessOrExit(error = mHdlcInterface.Init(aConfig));
 
-    if (aReset)
+    if (aConfig->mResetRadio)
     {
         SuccessOrExit(error = SendReset());
     }
@@ -313,7 +313,7 @@ void RadioSpinel::Deinit(void)
     new (this) RadioSpinel();
 }
 
-void RadioSpinel::HandleSpinelFrame(HdlcInterface::RxFrameBuffer &aFrameBuffer)
+void RadioSpinel::HandleSpinelFrame(SpinelInterface::RxFrameBuffer &aFrameBuffer)
 {
     otError        error = OT_ERROR_NONE;
     uint8_t        header;
@@ -343,7 +343,7 @@ exit:
     }
 }
 
-void RadioSpinel::HandleNotification(HdlcInterface::RxFrameBuffer &aFrameBuffer)
+void RadioSpinel::HandleNotification(SpinelInterface::RxFrameBuffer &aFrameBuffer)
 {
     spinel_prop_key_t key;
     spinel_size_t     len = 0;
@@ -703,22 +703,12 @@ exit:
     return;
 }
 
-void RadioSpinel::UpdateFdSet(fd_set &aReadFdSet, fd_set &aWriteFdSet, int &aMaxFd, struct timeval &aTimeout)
+void RadioSpinel::UpdateFdSet(fd_set &aReadFdSet, fd_set &aWriteFdSet, fd_set &aErrorFdSet, int &aMaxFd,
+                              struct timeval &aTimeout)
 {
-    int sockFd = mHdlcInterface.GetSocket();
+    mHdlcInterface.UpdateFdSet(aReadFdSet, aWriteFdSet, aErrorFdSet, aMaxFd, aTimeout);
 
-    FD_SET(sockFd, &aReadFdSet);
-
-    if (aMaxFd < sockFd)
-    {
-        aMaxFd = sockFd;
-    }
-
-    if (mState == kStateTransmitPending)
-    {
-        FD_SET(sockFd, &aWriteFdSet);
-    }
-    else if (mState == kStateTransmitting)
+    if (mState == kStateTransmitting)
     {
         uint64_t now = platformGetTime();
 
@@ -754,9 +744,10 @@ void RadioSpinel::Process(const fd_set &aReadFdSet, const fd_set &aWriteFdSet)
         ProcessFrameQueue();
     }
 
-    if (FD_ISSET(mHdlcInterface.GetSocket(), &aReadFdSet))
+    mHdlcInterface.Process(aReadFdSet, aWriteFdSet);
+
+    if (mHdlcInterface.GetRxFrameBuffer().HasSavedFrame())
     {
-        mHdlcInterface.Read();
         ProcessFrameQueue();
     }
 
@@ -779,14 +770,22 @@ void RadioSpinel::Process(const fd_set &aReadFdSet, const fd_set &aWriteFdSet)
     }
     else if (mState == kStateTransmitting && platformGetTime() >= mTxRadioEndUs)
     {
-        DieNowWithMessage("radio tx timeout", OT_EXIT_FAILURE);
-    }
-
-    if (FD_ISSET(mHdlcInterface.GetSocket(), &aWriteFdSet))
-    {
-        if (mState == kStateTransmitPending)
+        if (mTxError == OT_ERROR_NONE)
         {
-            RadioTransmit();
+            DieNowWithMessage("radio tx timeout", OT_EXIT_FAILURE);
+        }
+        else
+        {
+#if OPENTHREAD_CONFIG_DIAG_ENABLE
+            if (otPlatDiagModeGet())
+            {
+                otPlatDiagRadioTransmitDone(mInstance, mTransmitFrame, mTxError);
+            }
+            else
+#endif
+            {
+                otPlatRadioTxDone(mInstance, mTransmitFrame, NULL, mTxError);
+            }
         }
     }
 }
@@ -1054,68 +1053,12 @@ otError RadioSpinel::WaitResponse(void)
 
     do
     {
-#if OPENTHREAD_POSIX_VIRTUAL_TIME
-        struct Event event;
-
-        platformSimSendSleepEvent(&timeout);
-        platformSimReceiveEvent(&event);
-
-        switch (event.mEvent)
-        {
-        case OT_SIM_EVENT_RADIO_SPINEL_WRITE:
-            mHdlcInterface.ProcessReadData(event.mData, event.mDataLength);
-            break;
-
-        case OT_SIM_EVENT_ALARM_FIRED:
-            FreeTid(mWaitingTid);
-            mWaitingTid = 0;
-            ExitNow(mError = OT_ERROR_RESPONSE_TIMEOUT);
-            break;
-
-        default:
-            assert(false);
-            break;
-        }
-#else  // OPENTHREAD_POSIX_VIRTUAL_TIME
-        int    sockFd = mHdlcInterface.GetSocket();
-        fd_set read_fds;
-        fd_set error_fds;
-        int    rval;
-
-        FD_ZERO(&read_fds);
-        FD_ZERO(&error_fds);
-        FD_SET(sockFd, &read_fds);
-        FD_SET(sockFd, &error_fds);
-
-        rval = select(sockFd + 1, &read_fds, NULL, &error_fds, &timeout);
-
-        if (rval > 0)
-        {
-            if (FD_ISSET(sockFd, &read_fds))
-            {
-                mHdlcInterface.Read();
-            }
-            else if (FD_ISSET(sockFd, &error_fds))
-            {
-                DieNowWithMessage("NCP error", OT_EXIT_FAILURE);
-            }
-            else
-            {
-                assert(false);
-                DieNow(OT_EXIT_FAILURE);
-            }
-        }
-        else if (rval == 0)
+        if (mHdlcInterface.WaitResponse(timeout) == OT_ERROR_RESPONSE_TIMEOUT)
         {
             FreeTid(mWaitingTid);
             mWaitingTid = 0;
             ExitNow(mError = OT_ERROR_RESPONSE_TIMEOUT);
         }
-        else if (errno != EINTR)
-        {
-            DieNowWithMessage("wait response", OT_EXIT_FAILURE);
-        }
-#endif // OPENTHREAD_POSIX_VIRTUAL_TIME
 
         now = platformGetTime();
 
@@ -1178,26 +1121,19 @@ void RadioSpinel::RadioTransmit(void)
                     mTransmitFrame->mInfo.mTxInfo.mMaxCsmaBackoffs, mTransmitFrame->mInfo.mTxInfo.mMaxFrameRetries,
                     mTransmitFrame->mInfo.mTxInfo.mCsmaCaEnabled);
 
+    mState   = kStateTransmitting;
+    mTxError = error;
+
     if (error == OT_ERROR_NONE)
     {
+        // Waiting for the state becomes kStateTransmitDone.
         mTxRadioEndUs = platformGetTime() + TX_WAIT_US;
-        mState        = kStateTransmitting;
     }
     else
     {
-        mState = kStateReceive;
-
-#if OPENTHREAD_CONFIG_DIAG_ENABLE
-
-        if (otPlatDiagModeGet())
-        {
-            otPlatDiagRadioTransmitDone(mInstance, mTransmitFrame, error);
-        }
-        else
-#endif
-        {
-            otPlatRadioTxDone(mInstance, mTransmitFrame, NULL, error);
-        }
+        // Indirectly call the function "otPlatRadioTxDone()" and "otPlatDiagRadioTransmitDone()" to avoid
+        // reentrant issue.
+        mTxRadioEndUs = platformGetTime();
     }
 }
 
@@ -1347,6 +1283,8 @@ otError RadioSpinel::Transmit(otRadioFrame &aFrame)
     mState         = kStateTransmitPending;
     error          = OT_ERROR_NONE;
     mTransmitFrame = &aFrame;
+
+    RadioTransmit();
 
 exit:
     return error;
@@ -1535,9 +1473,9 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
     OT_UNUSED_VARIABLE(aInstance);
 }
 
-void platformRadioInit(const char *aRadioFile, const char *aRadioConfig, bool aReset)
+void platformRadioInit(otPlatformConfig *aConfig)
 {
-    sRadioSpinel.Init(aRadioFile, aRadioConfig, aReset);
+    sRadioSpinel.Init(aConfig);
 }
 
 void platformRadioDeinit(void)
@@ -1610,9 +1548,10 @@ bool otPlatRadioGetPromiscuous(otInstance *aInstance)
     return sRadioSpinel.IsPromiscuous();
 }
 
-void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd, struct timeval *aTimeout)
+void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aErrorFdSet, int *aMaxFd,
+                              struct timeval *aTimeout)
 {
-    sRadioSpinel.UpdateFdSet(*aReadFdSet, *aWriteFdSet, *aMaxFd, *aTimeout);
+    sRadioSpinel.UpdateFdSet(*aReadFdSet, *aWriteFdSet, *aErrorFdSet, *aMaxFd, *aTimeout);
 }
 
 void platformRadioProcess(otInstance *aInstance, const fd_set *aReadFdSet, const fd_set *aWriteFdSet)

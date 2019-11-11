@@ -59,6 +59,8 @@
 #include <common/code_utils.hpp>
 #include <common/logging.hpp>
 
+#if OPENTHREAD_POSIX_NCP_UART_ENABLE
+
 #ifndef SOCKET_UTILS_DEFAULT_SHELL
 #define SOCKET_UTILS_DEFAULT_SHELL "/bin/sh"
 #endif
@@ -123,38 +125,38 @@ namespace ot {
 namespace PosixApp {
 
 HdlcInterface::HdlcInterface(Callbacks &aCallbacks)
-    : mCallbacks(aCallbacks)
+    : SpinelInterface()
+    , mCallbacks(aCallbacks)
     , mSockFd(-1)
     , mIsDecoding(false)
-    , mRxFrameBuffer()
-    , mHdlcDecoder(mRxFrameBuffer, HandleHdlcFrame, this)
+    , mHdlcDecoder(GetRxFrameBuffer(), HandleHdlcFrame, this)
 {
 }
 
-otError HdlcInterface::Init(const char *aRadioFile, const char *aRadioConfig)
+otError HdlcInterface::Init(otPlatformConfig *aConfig)
 {
     otError     error = OT_ERROR_NONE;
     struct stat st;
 
     VerifyOrExit(mSockFd == -1, error = OT_ERROR_ALREADY);
 
-    VerifyOrDie(stat(aRadioFile, &st) == 0, OT_EXIT_INVALID_ARGUMENTS);
+    VerifyOrDie(stat(aConfig->mRadioFile, &st) == 0, OT_EXIT_INVALID_ARGUMENTS);
 
     if (S_ISCHR(st.st_mode))
     {
-        mSockFd = OpenFile(aRadioFile, aRadioConfig);
+        mSockFd = OpenFile(aConfig->mRadioFile, aConfig->mRadioConfig);
         VerifyOrExit(mSockFd != -1, error = OT_ERROR_INVALID_ARGS);
     }
 #if OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE
     else if (S_ISREG(st.st_mode))
     {
-        mSockFd = ForkPty(aRadioFile, aRadioConfig);
+        mSockFd = ForkPty(aConfig->mRadioFile, aConfig->mRadioConfig);
         VerifyOrExit(mSockFd != -1, error = OT_ERROR_INVALID_ARGS);
     }
 #endif // OPENTHREAD_CONFIG_POSIX_APP_ENABLE_PTY_DEVICE
     else
     {
-        otLogCritPlat("Radio file '%s' not supported", aRadioFile);
+        otLogCritPlat("Radio file '%s' not supported", aConfig->mRadioFile);
         ExitNow(error = OT_ERROR_INVALID_ARGS);
     }
 
@@ -226,6 +228,8 @@ otError HdlcInterface::Write(const uint8_t *aFrame, uint16_t aLength)
 #if OPENTHREAD_POSIX_VIRTUAL_TIME
     platformSimSendRadioSpinelWriteEvent(aFrame, aLength);
 #else
+    SuccessOrExit(error = WaitForWritable());
+
     while (aLength)
     {
         ssize_t rval = write(mSockFd, aFrame, aLength);
@@ -308,6 +312,96 @@ otError HdlcInterface::WaitForWritable(void)
 
 exit:
     return error;
+}
+
+otError HdlcInterface::WaitResponse(struct timeval &aTimeout)
+{
+    otError error = OT_ERROR_NONE;
+
+#if OPENTHREAD_POSIX_VIRTUAL_TIME
+    struct Event event;
+
+    platformSimSendSleepEvent(&aTimeout);
+    platformSimReceiveEvent(&event);
+
+    switch (event.mEvent)
+    {
+    case OT_SIM_EVENT_RADIO_SPINEL_WRITE:
+        ProcessReadData(event.mData, event.mDataLength);
+        break;
+
+    case OT_SIM_EVENT_ALARM_FIRED:
+        ExitNow(error = OT_ERROR_RESPONSE_TIMEOUT);
+        break;
+
+    default:
+        assert(false);
+        break;
+    }
+#else // OPENTHREAD_POSIX_VIRTUAL_TIME
+    fd_set read_fds;
+    fd_set error_fds;
+    int rval;
+
+    FD_ZERO(&read_fds);
+    FD_ZERO(&error_fds);
+    FD_SET(mSockFd, &read_fds);
+    FD_SET(mSockFd, &error_fds);
+
+    rval = select(mSockFd + 1, &read_fds, NULL, &error_fds, &aTimeout);
+
+    if (rval > 0)
+    {
+        if (FD_ISSET(mSockFd, &read_fds))
+        {
+            Read();
+        }
+        else if (FD_ISSET(mSockFd, &error_fds))
+        {
+            DieNowWithMessage("NCP error", OT_EXIT_FAILURE);
+        }
+        else
+        {
+            DieNow(OT_EXIT_FAILURE);
+        }
+    }
+    else if (rval == 0)
+    {
+        ExitNow(error = OT_ERROR_RESPONSE_TIMEOUT);
+    }
+    else if (errno != EINTR)
+    {
+        DieNowWithMessage("wait response", OT_EXIT_FAILURE);
+    }
+#endif
+
+exit:
+    return error;
+}
+
+void HdlcInterface::UpdateFdSet(fd_set &aReadFdSet, fd_set &aWriteFdSet, fd_set &aErrorFdSet, int &aMaxFd,
+                             struct timeval &aTimeout)
+{
+    FD_SET(mSockFd, &aReadFdSet);
+
+    if (aMaxFd < mSockFd)
+    {
+        aMaxFd = mSockFd;
+    }
+
+    OT_UNUSED_VARIABLE(aWriteFdSet);
+    OT_UNUSED_VARIABLE(aErrorFdSet);
+    OT_UNUSED_VARIABLE(aTimeout);
+}
+
+void HdlcInterface::Process(const fd_set &aReadFdSet, const fd_set &aWriteFdSet)
+{
+    if (FD_ISSET(mSockFd, &aReadFdSet))
+    {
+        Read();
+    }
+
+    OT_UNUSED_VARIABLE(aWriteFdSet);
 }
 
 int HdlcInterface::OpenFile(const char *aFile, const char *aConfig)
@@ -531,10 +625,12 @@ void HdlcInterface::HandleHdlcFrame(otError aError)
     }
     else
     {
-        mRxFrameBuffer.DiscardFrame();
+        GetRxFrameBuffer().DiscardFrame();
         otLogWarnPlat("Error decoding hdlc frame: %s", otThreadErrorToString(aError));
     }
 }
 
 } // namespace PosixApp
 } // namespace ot
+
+#endif // OPENTHREAD_POSIX_NCP_UART_ENABLE

@@ -52,7 +52,7 @@ otInstance *otSysInit(otPlatformConfig *aPlatformConfig)
     platformSimInit();
 #endif
     platformAlarmInit(aPlatformConfig->mSpeedUpFactor);
-    platformRadioInit(aPlatformConfig->mRadioFile, aPlatformConfig->mRadioConfig, aPlatformConfig->mResetRadio);
+    platformRadioInit(aPlatformConfig);
     platformRandomInit();
 
     instance = otInstanceInitSingle();
@@ -124,7 +124,8 @@ void otSysMainloopUpdate(otInstance *aInstance, otSysMainloopContext *aMainloop)
     platformSimUpdateFdSet(&aMainloop->mReadFdSet, &aMainloop->mWriteFdSet, &aMainloop->mErrorFdSet, &aMainloop->mMaxFd,
                            &aMainloop->mTimeout);
 #else
-    platformRadioUpdateFdSet(&aMainloop->mReadFdSet, &aMainloop->mWriteFdSet, &aMainloop->mMaxFd, &aMainloop->mTimeout);
+    platformRadioUpdateFdSet(&aMainloop->mReadFdSet, &aMainloop->mWriteFdSet, &aMainloop->mErrorFdSet,
+                             &aMainloop->mMaxFd, &aMainloop->mTimeout);
 #endif
 
     if (otTaskletsArePending(aInstance))

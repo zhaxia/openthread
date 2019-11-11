@@ -96,6 +96,15 @@ typedef struct otPlatformConfig
     const char *mRadioConfig;   /// Radio configurations.
     uint32_t    mSpeedUpFactor; /// Speed up factor.
     bool        mResetRadio;    /// Whether to reset RCP when initializing.
+    bool        mIsDryRun;      /// Verify if arguments is valid and radio spinel is compatible.
+    bool        mPrintVersion;  /// Print radio firmware version.
+    bool        mIsVerbose;     /// Log to syslog and stderr.
+    uint8_t     mMode;          /// SPI mode to use (0-3).
+    uint32_t    mSpeed;         /// SPI speed in hertz.
+    uint32_t    mCsDelay;       /// The delay after SPI C̅S̅ assertion, in µsec.
+    uint32_t    mResetDelay;    /// The delay after R̅E̅S̅E̅T̅ assertion, in miliseconds.
+    char       *mResetPinPath;  /// Path to the Linux sysfs-exported GPIO directory for the `R̅E̅S̅E̅T̅` pin.
+    char       *mIntPinPath;    /// Path to the Linux sysfs-exported GPIO directory for the `I̅N̅T̅` pin.
 } otPlatformConfig;
 
 /**

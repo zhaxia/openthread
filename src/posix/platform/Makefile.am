@@ -49,6 +49,7 @@ libopenthread_posix_a_SOURCES             = \
     radio_spinel.cpp                        \
     settings.cpp                            \
     sim.c                                   \
+    spi_interface.cpp                       \
     system.c                                \
     uart.c                                  \
     udp.cpp                                 \
@@ -58,6 +59,8 @@ noinst_HEADERS                            = \
     platform-posix.h                        \
     hdlc_interface.hpp                      \
     radio_spinel.hpp                        \
+    spi_interface.hpp                       \
+    spinel_interface.hpp                    \
     $(NULL)
 
 openthread_HEADERS                        = \

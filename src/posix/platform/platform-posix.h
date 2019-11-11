@@ -200,7 +200,7 @@ void platformAlarmAdvanceNow(uint64_t aDelta);
  * @param[in]  aReset           Whether to reset RCP when initializing.
  *
  */
-void platformRadioInit(const char *aRadioFile, const char *aRadioConfig, bool aReset);
+void platformRadioInit(otPlatformConfig *aConfig);
 
 /**
  * This function shuts down the radio service used by OpenThread.
@@ -223,11 +223,13 @@ void platformRadioReceive(otInstance *aInstance, uint8_t *aBuf, uint16_t aBufLen
  *
  * @param[inout]  aReadFdSet   A pointer to the read file descriptors.
  * @param[inout]  aWriteFdSet  A pointer to the write file descriptors.
+ * @param[inout]  aErrorFdSet  A pointer to the error file descriptors.
  * @param[inout]  aMaxFd       A pointer to the max file descriptor.
  * @param[inout]  aTimeout     A pointer to the timeout.
  *
  */
-void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, int *aMaxFd, struct timeval *aTimeout);
+void platformRadioUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aErrorFdSet, int *aMaxFd,
+                              struct timeval *aTimeout);
 
 /**
  * This function performs radio driver processing.
