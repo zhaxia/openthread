@@ -31,6 +31,8 @@
  *   This file implements the spinel based radio transceiver.
  */
 
+//#define SPI_DELAY_TEST 1
+
 #include "openthread-core-config.h"
 #include "platform-posix.h"
 
@@ -615,7 +617,12 @@ otError RadioSpinel::ParseRadioFrame(otRadioFrame &aFrame, const uint8_t *aBuffe
     otError        error        = OT_ERROR_NONE;
     uint16_t       flags        = 0;
     int8_t         noiseFloor   = -128;
+#if SPI_DELAY_TEST
+    spinel_size_t  size         = OT_RADIO_FRAME_MAX_SIZE + 16;
+#else
     spinel_size_t  size         = OT_RADIO_FRAME_MAX_SIZE;
+#endif
+
     unsigned int   receiveError = 0;
     spinel_ssize_t unpacked;
 
@@ -639,6 +646,34 @@ otError RadioSpinel::ParseRadioFrame(otRadioFrame &aFrame, const uint8_t *aBuffe
 
     if (receiveError == OT_ERROR_NONE)
     {
+#if SPI_DELAY_TEST
+        if (size > 8)
+        {
+            struct timeval  rx_tv;           
+            struct timeval  now_tv;          
+            struct timeval  diff_tv;         
+            static uint32_t counter = 0;    
+            
+            gettimeofday(&now_tv, NULL);    
+            
+            rx_tv.tv_sec  = *((int *)&aFrame.mPsdu[size - 8]);
+            rx_tv.tv_usec = *((int *)&aFrame.mPsdu[size - 4]);
+            
+            timersub(&now_tv, &rx_tv, &diff_tv);
+            
+            if (diff_tv.tv_sec < 50)
+            {
+                counter++;
+                size -= 8;
+
+                otLogCritPlat("RadioHdlcDelay: %3d %3d  %3ld.%06ld\r\n", counter, size, diff_tv.tv_sec, diff_tv.tv_usec);
+            }
+            else
+            {
+                otLogCritPlat("RadioHdlcDelay: %3d %3d  %3ld.%06ld invalid\r\n", counter, size, diff_tv.tv_sec, diff_tv.tv_usec);
+            }
+        }
+#endif
         aFrame.mLength = static_cast<uint8_t>(size);
 
         aFrame.mInfo.mRxInfo.mAckedWithFramePending = ((flags & SPINEL_MD_FLAG_ACKED_FP) != 0);

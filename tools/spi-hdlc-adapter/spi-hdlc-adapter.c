@@ -25,6 +25,8 @@
  *    SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+//#define SPI_DELAY_TEST 1
+
 #define _GNU_SOURCE 1
 
 #if HAVE_CONFIG_H
@@ -113,6 +115,11 @@
 
 #define AUTO_PRINT_BACKTRACE_STACK_DEPTH 20
 
+#include <sys/time.h>
+#define SPINEL_CMD_PROP_VALUE_IS  6
+#define SPINEL_PROP_STREAM__BEGIN 0x70
+#define SPINEL_PROP_STREAM_RAW    (SPINEL_PROP_STREAM__BEGIN + 1)
+
 static const uint8_t  kHdlcResetSignal[] = {0x7E, 0x13, 0x11, 0x7E};
 static const uint16_t kHdlcCrcCheckValue = 0xf0b8;
 static const uint16_t kHdlcCrcResetValue = 0xffff;
@@ -159,14 +166,22 @@ static uint8_t sSpiMode       = 0;
 static int     sSpiCsDelay    = 20; // in microseconds
 static int     sSpiResetDelay = 0;  // in milliseconds
 
+
 static uint16_t sSpiRxPayloadSize;
+#if SPI_DELAY_TEST
+static uint8_t  sSpiRxFrameBuffer[MAX_FRAME_SIZE + SPI_RX_ALIGN_ALLOWANCE_MAX + 16];
+#else
 static uint8_t  sSpiRxFrameBuffer[MAX_FRAME_SIZE + SPI_RX_ALIGN_ALLOWANCE_MAX];
+#endif
 
 static uint16_t sSpiTxPayloadSize;
 static bool     sSpiTxIsReady      = false;
 static int      sSpiTxRefusedCount = 0;
+#if SPI_DELAY_TEST
+static uint8_t  sSpiTxFrameBuffer[MAX_FRAME_SIZE + SPI_RX_ALIGN_ALLOWANCE_MAX + 16];
+#else
 static uint8_t  sSpiTxFrameBuffer[MAX_FRAME_SIZE + SPI_RX_ALIGN_ALLOWANCE_MAX];
-
+#endif
 static int sSpiRxAlignAllowance = 0;
 static int sSpiSmallPacketSize  = 32; // in bytes
 
@@ -797,7 +812,7 @@ static bool hdlc_byte_needs_escape(uint8_t byte)
 static int push_hdlc(void)
 {
     int             ret              = 0;
-    const uint8_t * spiRxFrameBuffer = get_real_rx_frame_start();
+    uint8_t *       spiRxFrameBuffer = get_real_rx_frame_start();
     static uint8_t  escaped_frame_buffer[MAX_FRAME_SIZE * 2];
     static uint16_t unescaped_frame_len;
     static uint16_t escaped_frame_len;
@@ -822,6 +837,51 @@ static int push_hdlc(void)
             uint16_t fcs = kHdlcCrcResetValue;
             uint16_t i;
 
+#if SPI_DELAY_TEST
+            uint8_t *spinelBuf = &spiRxFrameBuffer[HEADER_LEN];
+
+            if ((spinelBuf[1] == SPINEL_CMD_PROP_VALUE_IS) && (spinelBuf[2] == SPINEL_PROP_STREAM_RAW))
+            {
+                // Spinel frame format:
+                // |----------|----------|----------|----------|----------|----------|----------|----------|
+                // |     1    |     1    |     1    |     1    |     1    |        length       |    1     |
+                // |----------|----------|----------|----------|----------|----------|----------|----------|
+                // |    HDR   |  Key(Is) | Cmd(STR) | Len(Low) | Len(High)|        PSDU         |   Rssi   |
+                // |----------|----------|----------|----------|----------|----------|----------|----------|
+                //
+                static uint32_t counter = 0;
+                uint16_t        len     = ((uint16_t)spinelBuf[3]) | (((uint16_t)spinelBuf[4]) << 8);
+
+                if (len != 0)
+                {
+                    struct timeval tv;
+
+                    memcpy(&spinelBuf[5 + len + 8], &spinelBuf[5 + len], (sSpiRxPayloadSize - 5 - len));
+
+                    gettimeofday(&tv, NULL);
+
+                    *((uint32_t *)&spinelBuf[5 + len])     = tv.tv_sec;
+                    *((uint32_t *)&spinelBuf[5 + len + 4]) = tv.tv_usec;
+
+                    len               += 8;
+                    sSpiRxPayloadSize += 8;
+
+                    spinelBuf[3] = (uint8_t)(len & 0x00ff);
+                    spinelBuf[4] = (uint8_t)((len >> 8) & 0x00ff);
+
+                    syslog(LOG_ERR, "AdapterHdlcDelay: %3d %3d\r\n", counter, len);
+                }
+
+            }
+            else
+            {
+               syslog(LOG_ERR, "AdapterPushHdlc: %02x %02x %02x %02x %02x %02x %02x %02x\r\n",
+                               spinelBuf[0], spinelBuf[1],
+                               spinelBuf[2], spinelBuf[3],
+                               spinelBuf[4], spinelBuf[5],
+                               spinelBuf[6], spinelBuf[7] );
+            }
+#endif
             unescaped_frame_len = sSpiRxPayloadSize;
 
             for (i = 0; i < sSpiRxPayloadSize; i++)
@@ -1717,7 +1777,7 @@ int main(int argc, char *argv[])
         }
     }
 
-    syslog(LOG_NOTICE, "spi-hdlc-adapter " SPI_HDLC_VERSION " (" __TIME__ " " __DATE__ ")\n");
+    syslog(LOG_NOTICE, "spi-hdlc-adapter " SPI_HDLC_VERSION " (" __TIME__ " " __DATE__ ") log_level=%d\n", sLogLevel);
 
     argc -= optind;
     argv += optind;
