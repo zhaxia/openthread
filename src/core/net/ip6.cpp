@@ -1255,6 +1255,16 @@ otError Ip6::HandleDatagram(Message &aMessage, Netif *aNetif, const void *aLinkM
             hopLimit = header.GetHopLimit();
             aMessage.Write(Header::GetHopLimitOffset(), Header::GetHopLimitSize(), &hopLimit);
 
+            {
+                uint8_t  buffer[1280];
+                uint16_t length = aMessage.GetLength() > sizeof(buffer) ? sizeof(buffer) : aMessage.GetLength();
+                uint16_t offset = aMessage.GetOffset();
+
+                aMessage.Read(0, length, buffer);
+                otDumpCritIp6("IP6 TX", buffer, length);
+                aMessage.SetOffset(offset);
+            }
+
             // submit aMessage to interface
             SuccessOrExit(error = Get<ThreadNetif>().SendMessage(aMessage));
         }

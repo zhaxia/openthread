@@ -289,6 +289,15 @@ otError Udp::SendDatagram(Message &aMessage, MessageInfo &aMessageInfo, uint8_t 
 
         SuccessOrExit(error = aMessage.Prepend(&udpHeader, sizeof(udpHeader)));
         aMessage.SetOffset(0);
+        {
+            uint8_t  buffer[1280];
+            uint16_t length = aMessage.GetLength() > sizeof(buffer) ? sizeof(buffer) : aMessage.GetLength();
+            uint16_t offset = aMessage.GetOffset();
+
+            aMessage.Read(0, length, buffer);
+            otDumpCritIp6("UDP TX", buffer, length);
+            aMessage.SetOffset(offset);
+        }
 
         error = Get<Ip6>().SendDatagram(aMessage, aMessageInfo, aIpProto);
     }
@@ -308,6 +317,16 @@ otError Udp::HandleMessage(Message &aMessage, MessageInfo &aMessageInfo)
 
     // check length
     VerifyOrExit(payloadLength >= sizeof(UdpHeader), error = OT_ERROR_PARSE);
+
+    {
+        uint8_t  buffer[1280];
+        uint16_t length = payloadLength > sizeof(buffer) ? sizeof(buffer) : payloadLength;
+        uint16_t offset = aMessage.GetOffset();
+
+        aMessage.Read(offset, length, buffer);
+        otDumpCritIp6("UDP RX", buffer, length);
+        aMessage.SetOffset(offset);
+    }
 
     // verify checksum
     checksum = Ip6::ComputePseudoheaderChecksum(aMessageInfo.GetPeerAddr(), aMessageInfo.GetSockAddr(), payloadLength,

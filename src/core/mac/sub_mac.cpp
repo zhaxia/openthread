@@ -193,6 +193,14 @@ void SubMac::HandleReceiveDone(RxFrame *aFrame, otError aError)
         mPcapCallback(aFrame, false, mPcapCallbackContext);
     }
 
+    if (aFrame != NULL)
+    {
+        uint8_t *buffer = aFrame->GetPsdu();
+        uint16_t length = aFrame->GetPsduLength();
+
+        otDumpCritMac("MAC RX", buffer, length);
+    }
+
     mCallbacks.ReceiveDone(aFrame, aError);
 }
 
@@ -212,6 +220,13 @@ otError SubMac::Send(void)
     case kStateSleep:
     case kStateReceive:
         break;
+    }
+
+    {
+        uint8_t *buffer = mTransmitFrame.GetPsdu();
+        uint16_t length = mTransmitFrame.GetPsduLength();
+
+        otDumpCritMac("MAC TX", buffer, length);
     }
 
     mCsmaBackoffs    = 0;

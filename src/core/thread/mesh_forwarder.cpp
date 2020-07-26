@@ -735,6 +735,7 @@ start:
         uint8_t              hcLength;
         Mac::Address         meshSource, meshDest;
         otError              error;
+        uint8_t *            start = payload;
 
         if (aAddMeshHeader)
         {
@@ -798,12 +799,19 @@ start:
         aMessage.Read(aMessage.GetOffset(), payloadLength, payload);
         aFrame.SetPayloadLength(static_cast<uint8_t>(headerLength + payloadLength));
 
+        {
+            uint16_t length = static_cast<uint16_t>(payload - start) + payloadLength;
+
+            otDumpCritMac("6LOWPAN TX", start, length);
+        }
+
         nextOffset = aMessage.GetOffset() + payloadLength;
         aMessage.SetOffset(0);
     }
     else
     {
         Lowpan::FragmentHeader *fragmentHeader;
+        uint8_t *               start = payload;
 
         payloadLength = aMessage.GetLength() - aMessage.GetOffset();
 
@@ -828,6 +836,10 @@ start:
         aMessage.Read(aMessage.GetOffset(), payloadLength, payload);
         aFrame.SetPayloadLength(static_cast<uint8_t>(headerLength + payloadLength));
 
+        {
+            uint16_t length = fragmentHeader->GetHeaderLength() + payloadLength;
+            otDumpCritMac("6LOWPAN TX", start, length);
+        }
         nextOffset = aMessage.GetOffset() + payloadLength;
     }
 
@@ -1125,6 +1137,7 @@ void MeshForwarder::HandleFragment(uint8_t *               aFrame,
     Message *              message = NULL;
     int                    headerLength;
 
+    otDumpCritMac("6LOWPAN RX", aFrame, aFrameLength);
     // Check the fragment header
     VerifyOrExit(fragmentHeader.Init(aFrame, aFrameLength) == OT_ERROR_NONE, error = OT_ERROR_PARSE);
     aFrame += fragmentHeader.GetHeaderLength();
@@ -1320,6 +1333,7 @@ void MeshForwarder::HandleLowpanHC(uint8_t *               aFrame,
     int      headerLength;
     uint8_t  priority;
 
+    otDumpCritMac("6LOWPAN RX", aFrame, aFrameLength);
 #if OPENTHREAD_FTD
     UpdateRoutes(aFrame, aFrameLength, aMacSource, aMacDest);
 #endif
@@ -1374,6 +1388,16 @@ otError MeshForwarder::HandleDatagram(Message &               aMessage,
     if (aMessage.GetType() == Message::kTypeIp6)
     {
         mIpCounters.mRxSuccess++;
+    }
+
+    {
+        uint8_t  buffer[1280];
+        uint16_t length = aMessage.GetLength() > sizeof(buffer) ? sizeof(buffer) : aMessage.GetLength();
+        uint16_t offset = aMessage.GetOffset();
+
+        aMessage.Read(0, length, buffer);
+        otDumpCritIp6("IP6 RX", buffer, length);
+        aMessage.SetOffset(offset);
     }
 
     return Get<Ip6::Ip6>().HandleDatagram(aMessage, &netif, &aLinkInfo, false);
