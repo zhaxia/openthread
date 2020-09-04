@@ -51,6 +51,8 @@ otInstance *otSysInit(otPlatformConfig *aPlatformConfig)
     otInstance *        instance = nullptr;
     ot::Posix::RadioUrl radioUrl(aPlatformConfig->mRadioUrl);
 
+    platformBacktraceInit();
+
 #if OPENTHREAD_POSIX_VIRTUAL_TIME
     virtualTimeInit(static_cast<uint16_t>(atoi(radioUrl.GetValue("forkpty-arg"))));
 #endif

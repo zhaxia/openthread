@@ -46,6 +46,7 @@ libopenthread_posix_a_CPPFLAGS                                = \
 libopenthread_posix_a_SOURCES             = \
     alarm.cpp                               \
     backbone.cpp                            \
+    backtrace.cpp                           \
     entropy.cpp                             \
     hdlc_interface.cpp                      \
     logging.cpp                             \

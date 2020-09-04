@@ -59,9 +59,12 @@ set(OT_PLATFORM_DEFINES ${OT_PLATFORM_DEFINES} PARENT_SCOPE)
 
 list(APPEND OT_PLATFORM_DEFINES "OPENTHREAD_PROJECT_CORE_CONFIG_FILE=\"${OT_CONFIG}\"")
 
+set (CMAKE_CXX_FLAGS "-rdynamic ${CMAKE_CXX_FLAGS}" PARENT_SCOPE)
+
 add_library(openthread-posix
     alarm.cpp
     backbone.cpp
+    backtrace.cpp
     entropy.cpp
     hdlc_interface.cpp
     logging.cpp

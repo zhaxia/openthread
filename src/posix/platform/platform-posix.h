@@ -396,6 +396,12 @@ enum SocketBlockOption
 int SocketWithCloseExec(int aDomain, int aType, int aProtocol, SocketBlockOption aBlockOption);
 
 /**
+ * This function initializes backtrace.
+ *
+ */
+void platformBacktraceInit(void);
+
+/**
  * The name of Thread network interface.
  *
  */
