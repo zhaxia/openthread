@@ -1941,7 +1941,7 @@ Done
 
 ### uptime
 
-Print how long the device has been running.
+Print how long the device has been running since started or reset.
 
 ```bash
 > uptime

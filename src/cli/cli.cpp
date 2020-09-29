@@ -156,7 +156,9 @@ Interpreter::Interpreter(Instance *aInstance)
     memset(mResolvingHostname, 0, sizeof(mResolvingHostname));
 #endif
 
+#if OPENTHREAD_CONFIG_CLI_COMMAND_UPTIME_ENABLE
     mStartTimeUs = otPlatTimeGet();
+#endif
 }
 
 int Interpreter::Hex2Bin(const char *aHex, uint8_t *aBin, uint16_t aBinLength, bool aAllowTruncate)
@@ -3769,16 +3771,17 @@ exit:
     return error;
 }
 
+#if OPENTHREAD_CONFIG_CLI_COMMAND_UPTIME_ENABLE
 otError Interpreter::ProcessUptime(uint8_t aArgsLength, char *aArgs[])
 {
     OT_UNUSED_VARIABLE(aArgs);
 
     otError  error = OT_ERROR_NONE;
     uint32_t now;
-    uint32_t seconds;
-    uint32_t minutes;
-    uint32_t hours;
     uint32_t days;
+    uint8_t  hours;
+    uint8_t  minutes;
+    uint8_t  seconds;
 
     VerifyOrExit(aArgsLength == 0, error = OT_ERROR_INVALID_ARGS);
 
@@ -3791,11 +3794,12 @@ otError Interpreter::ProcessUptime(uint8_t aArgsLength, char *aArgs[])
     hours   = now % 24;
     days    = now / 24;
 
-    OutputLine("%02d:%02d:%02d up %d days", hours, minutes, seconds, days);
+    OutputLine("%dd%dh%dm%ds", days, hours, minutes, seconds);
 
 exit:
     return error;
 }
+#endif
 
 otError Interpreter::ProcessUdp(uint8_t aArgsLength, char *aArgs[])
 {

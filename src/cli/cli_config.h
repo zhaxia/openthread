@@ -99,4 +99,13 @@
 #error "Unsupported CLI transport!"
 #endif
 
+/**
+ * @def OPENTHREAD_CONFIG_CLI_COMMAND_UPTIME_ENABLE
+ *
+ * Define to 1 to enable the cli command "uptime".
+ *
+ */
+#ifndef OPENTHREAD_CONFIG_CLI_COMMAND_UPTIME_ENABLE
+#define OPENTHREAD_CONFIG_CLI_COMMAND_UPTIME_ENABLE 0
+#endif
 #endif // CONFIG_CLI_H_
