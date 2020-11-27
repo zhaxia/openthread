@@ -1116,7 +1116,7 @@ Done
 Set the preferred Thread Leader Partition ID.
 
 ```bash
-> leaderpartitionid 0xffffffff
+> leaderpartitionid preferred 0xffffffff
 Done
 ```
 
