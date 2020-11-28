@@ -1093,7 +1093,7 @@ Done
 
 ### leaderpartitionid
 
-Get the Thread Leader Partition ID.
+Get the Thread Network Partition ID.
 
 ```bash
 > leaderpartitionid
@@ -1105,6 +1105,8 @@ Done
 
 Get the preferred Thread Leader Partition ID.
 
+`OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE` is required.
+
 ```bash
 > leaderpartitionid preferred
 4294967295
@@ -1114,6 +1116,8 @@ Done
 ### leaderpartitionid preferred \<partitionid\>
 
 Set the preferred Thread Leader Partition ID.
+
+`OPENTHREAD_CONFIG_REFERENCE_DEVICE_ENABLE` is required.
 
 ```bash
 > leaderpartitionid preferred 0xffffffff
