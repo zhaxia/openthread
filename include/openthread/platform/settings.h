@@ -52,6 +52,26 @@ extern "C" {
  */
 
 /**
+ * This enumeration defines the keys of settings.
+ *
+ */
+enum Key
+{
+    OT_SETTINGS_KEY_ACTIVE_DATASET  = 0x0001, ///< Active Operational Dataset
+    OT_SETTINGS_KEY_PENDING_DATASET = 0x0002, ///< Pending Operational Dataset
+    OT_SETTINGS_KEY_NETWORK_INFO    = 0x0003, ///< Thread network information
+    OT_SETTINGS_KEY_PARENT_INFO     = 0x0004, ///< Parent information
+    OT_SETTINGS_KEY_CHILD_INFO      = 0x0005, ///< Child information
+    OT_SETTINGS_KEY_RESERVED        = 0x0006, ///< Reserved (previously auto-start)
+    OT_SETTINGS_KEY_SLAAC_IID_SECRET_KEY =
+        0x0007,                              ///< Secret key used by SLAAC module for generating semantically opaque IID
+    OT_SETTINGS_KEY_DAD_INFO       = 0x0008, ///< Duplicate Address Detection (DAD) information.
+    OT_SETTINGS_KEY_OMR_PREFIX     = 0x0009, ///< Off-mesh routable (OMR) prefix.
+    OT_SETTINGS_KEY_ON_LINK_PREFIX = 0x000a, ///< On-link prefix for infrastructure link.
+    OT_SETTINGS_KEY_SRP_ECDSA_KEY  = 0x000b, ///< SRP client ECDSA public/private key pair.
+};
+
+/**
  * Performs any initialization for the settings subsystem, if necessary.
  *
  * @param[in]  aInstance The OpenThread instance structure.

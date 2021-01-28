@@ -47,6 +47,9 @@
 #include <openthread/platform/misc.h>
 #include <openthread/platform/radio.h>
 #include <openthread/platform/settings.h>
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+#include <openthread/platform/secure_settings.h>
+#endif
 
 #include "common/code_utils.hpp"
 #include "common/encoding.hpp"
@@ -56,6 +59,14 @@ static const size_t kMaxFileNameSize = sizeof(OPENTHREAD_CONFIG_POSIX_SETTINGS_P
 static int sSettingsFd = -1;
 
 static otError platformSettingsDelete(otInstance *aInstance, uint16_t aKey, int aIndex, int *aSwapFd);
+
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+static bool isSensitiveKey(uint16_t aKey)
+{
+    return (aKey == OT_SETTINGS_KEY_ACTIVE_DATASET) || (aKey == OT_SETTINGS_KEY_PENDING_DATASET) ||
+           (aKey == OT_SETTINGS_KEY_SRP_ECDSA_KEY);
+}
+#endif
 
 static void getSettingsFileName(otInstance *aInstance, char aFileName[kMaxFileNameSize], bool aSwap)
 {
@@ -137,6 +148,10 @@ void otPlatSettingsInit(otInstance *aInstance)
 {
     otError error = OT_ERROR_NONE;
 
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+    otPlatSecureSettingsInit(aInstance);
+#endif
+
     {
         struct stat st;
 
@@ -182,6 +197,10 @@ void otPlatSettingsDeinit(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+    otPlatSecureSettingsDeinit(aInstance);
+#endif
+
     assert(sSettingsFd != -1);
     VerifyOrDie(close(sSettingsFd) == 0, OT_EXIT_ERROR_ERRNO);
 }
@@ -193,6 +212,13 @@ otError otPlatSettingsGet(otInstance *aInstance, uint16_t aKey, int aIndex, uint
     otError     error  = OT_ERROR_NOT_FOUND;
     const off_t size   = lseek(sSettingsFd, 0, SEEK_END);
     off_t       offset = lseek(sSettingsFd, 0, SEEK_SET);
+
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+    if (isSensitiveKey(aKey))
+    {
+        ExitNow(error = otPlatSecureSettingsGet(aInstance, aKey, aIndex, aValue, aValueLength));
+    }
+#endif
 
     VerifyOrExit(offset == 0 && size >= 0, error = OT_ERROR_PARSE);
 
@@ -245,7 +271,15 @@ exit:
 
 otError otPlatSettingsSet(otInstance *aInstance, uint16_t aKey, const uint8_t *aValue, uint16_t aValueLength)
 {
-    int swapFd = -1;
+    int     swapFd = -1;
+    otError error  = OT_ERROR_NONE;
+
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+    if (isSensitiveKey(aKey))
+    {
+        ExitNow(error = otPlatSecureSettingsSet(aInstance, aKey, aValue, aValueLength));
+    }
+#endif
 
     switch (platformSettingsDelete(aInstance, aKey, -1, &swapFd))
     {
@@ -265,15 +299,26 @@ otError otPlatSettingsSet(otInstance *aInstance, uint16_t aKey, const uint8_t *a
 
     swapPersist(aInstance, swapFd);
 
-    return OT_ERROR_NONE;
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+exit:
+#endif
+    return error;
 }
 
 otError otPlatSettingsAdd(otInstance *aInstance, uint16_t aKey, const uint8_t *aValue, uint16_t aValueLength)
 {
     OT_UNUSED_VARIABLE(aInstance);
 
-    off_t size   = lseek(sSettingsFd, 0, SEEK_END);
-    int   swapFd = swapOpen(aInstance);
+    otError error  = OT_ERROR_NONE;
+    off_t   size   = lseek(sSettingsFd, 0, SEEK_END);
+    int     swapFd = swapOpen(aInstance);
+
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+    if (isSensitiveKey(aKey))
+    {
+        ExitNow(error = otPlatSecureSettingsAdd(aInstance, aKey, aValue, aValueLength));
+    }
+#endif
 
     if (size > 0)
     {
@@ -288,12 +333,28 @@ otError otPlatSettingsAdd(otInstance *aInstance, uint16_t aKey, const uint8_t *a
 
     swapPersist(aInstance, swapFd);
 
-    return OT_ERROR_NONE;
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+exit:
+#endif
+    return error;
 }
 
 otError otPlatSettingsDelete(otInstance *aInstance, uint16_t aKey, int aIndex)
 {
-    return platformSettingsDelete(aInstance, aKey, aIndex, nullptr);
+    otError error;
+
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+    if (isSensitiveKey(aKey))
+    {
+        error = otPlatSecureSettingsDelete(aInstance, aKey, aIndex);
+    }
+    else
+#endif
+    {
+        error = platformSettingsDelete(aInstance, aKey, aIndex, nullptr);
+    }
+
+    return error;
 }
 
 /**
@@ -393,6 +454,10 @@ exit:
 void otPlatSettingsWipe(otInstance *aInstance)
 {
     OT_UNUSED_VARIABLE(aInstance);
+#if OPENTHREAD_POSIX_CONFIG_SECURE_SETTINGS_ENABLE
+    otPlatSecureSettingsWipe(aInstance);
+#endif
+
     VerifyOrDie(0 == ftruncate(sSettingsFd, 0), OT_EXIT_ERROR_ERRNO);
 }
 
