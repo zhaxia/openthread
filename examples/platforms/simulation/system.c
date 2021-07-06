@@ -49,6 +49,8 @@
 #include <openthread/platform/alarm-milli.h>
 #include <openthread/platform/radio.h>
 
+#include "common/logging.hpp"
+
 uint32_t gNodeId = 1;
 
 extern bool        gPlatformPseudoResetWasRequested;
@@ -154,6 +156,7 @@ void otSysProcessDrivers(otInstance *aInstance)
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
     platformTrelUpdateFdSet(&read_fds, &write_fds, &timeout, &max_fd);
 #endif
+    // platformStreamUpdateFdSet(&read_fds, &write_fds, &error_fds, &max_fd);
 
     if (otTaskletsArePending(aInstance))
     {
@@ -178,6 +181,7 @@ void otSysProcessDrivers(otInstance *aInstance)
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
     platformTrelProcess(aInstance, &read_fds, &write_fds);
 #endif
+    // platformStreamProcess(aInstance, &read_fds, &write_fds, &error_fds);
 
     if (gTerminate)
     {

@@ -69,3 +69,46 @@ target_link_libraries(ot-cli
 
 install(TARGETS ot-cli DESTINATION bin)
 
+#===================================================================
+add_executable(ot-cli-rpc
+    main.c
+    $<$<BOOL:${READLINE}>:console_cli.cpp>
+)
+
+set_target_properties(
+    ot-cli-rpc
+    PROPERTIES
+        C_STANDARD 99
+        CXX_STANDARD 11
+)
+
+target_include_directories(ot-cli-rpc PRIVATE ${COMMON_INCLUDES})
+
+if(OT_READLINE)
+    set(OT_CLI_TRANSPORT "CONSOLE" CACHE STRING "set CLI to use console interpreter" FORCE)
+endif()
+
+target_compile_definitions(ot-cli-rpc PRIVATE
+    $<$<BOOL:${READLINE}>:HAVE_LIB$<UPPER_CASE:${OT_READLINE}>=1>
+    OPENTHREAD_POSIX_APP_TYPE=OT_POSIX_APP_TYPE_CLI
+    ${OT_PLATFORM_DEFINES}
+)
+
+target_compile_options(ot-cli-rpc PRIVATE
+    ${OT_CFLAGS}
+)
+
+target_link_libraries(ot-cli-rpc
+    openthread-rcp-rpc-client
+    openthread-cli-ftd
+    ${OT_PLATFORM_RPC_LIB}
+    openthread-ftd
+    openthread-rcp-rpc-client
+    ${OT_PLATFORM_RPC_LIB}
+    openthread-cli-ftd
+    openthread-rcp-rpc-client
+    ${OT_MBEDTLS}
+    ${READLINE_LINK_LIBRARIES}
+)
+
+install(TARGETS ot-cli-rpc DESTINATION bin)

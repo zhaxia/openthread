@@ -53,9 +53,9 @@
  * Specify where the log output should go.
  *
  */
-#ifndef OPENTHREAD_CONFIG_LOG_OUTPUT /* allow command line override */
+//#ifndef OPENTHREAD_CONFIG_LOG_OUTPUT /* allow command line override */
 #define OPENTHREAD_CONFIG_LOG_OUTPUT OPENTHREAD_CONFIG_LOG_OUTPUT_PLATFORM_DEFINED
-#endif
+//#endif
 
 /**
  * @def OPENTHREAD_CONFIG_IP6_SLAAC_ENABLE

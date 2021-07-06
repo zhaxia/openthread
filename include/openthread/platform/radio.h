@@ -1003,6 +1003,8 @@ otError otPlatRadioConfigureEnhAckProbing(otInstance *        aInstance,
                                           otShortAddress      aShortAddress,
                                           const otExtAddress *aExtAddress);
 
+otError otPlatRadioCliCommand(otInstance *aInstance, uint8_t aArgsLength, char *aArgs[]);
+
 /**
  * @}
  *

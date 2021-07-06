@@ -32,8 +32,8 @@
  *   This file includes the platform abstraction for UART communication.
  */
 
-#ifndef OPENTHREAD_PLATFORM_UART_H_
-#define OPENTHREAD_PLATFORM_UART_H_
+#ifndef OPENTHREAD_PLATFORM_STREAM_H_
+#define OPENTHREAD_PLATFORM_STREAM_H_
 
 #include <stdint.h>
 
@@ -60,7 +60,7 @@ extern "C" {
  * @retval OT_ERROR_FAILED  Failed to enabled the UART.
  *
  */
-otError otPlatUartEnable(void);
+otError otPlatStreamEnable(void);
 
 /**
  * Disable the UART.
@@ -69,7 +69,7 @@ otError otPlatUartEnable(void);
  * @retval OT_ERROR_FAILED  Failed to disable the UART.
  *
  */
-otError otPlatUartDisable(void);
+otError otPlatStreamDisable(void);
 
 /**
  * Send bytes over the UART.
@@ -81,9 +81,9 @@ otError otPlatUartDisable(void);
  * @retval OT_ERROR_FAILED  Failed to start the transmission.
  *
  */
-otError otPlatUartSend(const uint8_t *aBuf, uint16_t aBufLength);
+otError otPlatStreamSend(const uint8_t *aBuf, uint16_t aBufLength);
 
-otError otPlatUartBlockingReceive(uint8_t *aBuf, uint16_t *aBufLength, uint32_t aTimeoutMs);
+otError otPlatStreamBlockingRead(uint8_t *aBuf, uint16_t *aBufLength, uint64_t *aTimeoutUs);
 
 /**
  * Flush the outgoing transmit buffer and wait for the data to be sent.
@@ -96,13 +96,13 @@ otError otPlatUartBlockingReceive(uint8_t *aBuf, uint16_t *aBufLength, uint32_t 
  * @retval OT_ERROR_NOT_IMPLEMENTED     Driver does not support synchronous flush.
  * @retval OT_ERROR_INVALID_STATE       Driver has no data to flush.
  */
-otError otPlatUartFlush(void);
+otError otPlatStreamFlush(void);
 
 /**
  * The UART driver calls this method to notify OpenThread that the requested bytes have been sent.
  *
  */
-extern void otPlatUartSendDone(void);
+extern void otPlatStreamSendDone(void);
 
 /**
  * The UART driver calls this method to notify OpenThread that bytes have been received.
@@ -111,7 +111,7 @@ extern void otPlatUartSendDone(void);
  * @param[in]  aBufLength  The number of bytes received.
  *
  */
-extern void otPlatUartReceived(const uint8_t *aBuf, uint16_t aBufLength);
+extern void otPlatStreamReceived(const uint8_t *aBuf, uint16_t aBufLength);
 
 /**
  * @}
@@ -122,4 +122,4 @@ extern void otPlatUartReceived(const uint8_t *aBuf, uint16_t aBufLength);
 } // extern "C"
 #endif
 
-#endif // OPENTHREAD_PLATFORM_UART_H_
+#endif // OPENTHREAD_PLATFORM_STREAM_H_

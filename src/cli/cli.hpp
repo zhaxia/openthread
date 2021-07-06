@@ -485,6 +485,7 @@ private:
     otError ProcessRouterUpgradeThreshold(uint8_t aArgsLength, char *aArgs[]);
 #endif
     otError ProcessRloc16(uint8_t aArgsLength, char *aArgs[]);
+    otError ProcessRpc(uint8_t aArgsLength, char *aArgs[]);
     otError ProcessScan(uint8_t aArgsLength, char *aArgs[]);
     otError ProcessSingleton(uint8_t aArgsLength, char *aArgs[]);
 #if OPENTHREAD_CONFIG_SNTP_CLIENT_ENABLE
@@ -739,6 +740,7 @@ private:
         {"routerselectionjitter", &Interpreter::ProcessRouterSelectionJitter},
         {"routerupgradethreshold", &Interpreter::ProcessRouterUpgradeThreshold},
 #endif
+        {"rpc", &Interpreter::ProcessRpc},
         {"scan", &Interpreter::ProcessScan},
 #if OPENTHREAD_CONFIG_TMF_NETDATA_SERVICE_ENABLE
         {"service", &Interpreter::ProcessService},

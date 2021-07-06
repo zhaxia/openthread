@@ -546,3 +546,12 @@ otError otPlatRadioSetChannelMaxTransmitPower(otInstance *aInstance, uint8_t aCh
     OT_UNUSED_VARIABLE(aInstance);
     return sRadioSpinel.SetChannelMaxTransmitPower(aChannel, aMaxPower);
 }
+
+otError otPlatRadioCliCommand(otInstance *aInstance, uint8_t aArgsLength, char *aArgs[])
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    OT_UNUSED_VARIABLE(aArgsLength);
+    OT_UNUSED_VARIABLE(aArgs);
+
+    return OT_ERROR_NONE;
+}

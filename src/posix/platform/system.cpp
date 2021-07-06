@@ -84,7 +84,11 @@ otInstance *otSysInit(otPlatformConfig *aPlatformConfig)
 
     VerifyOrDie(radioUrl.GetPath() != nullptr, OT_EXIT_INVALID_ARGUMENTS);
     platformAlarmInit(aPlatformConfig->mSpeedUpFactor, aPlatformConfig->mRealTimeSignal);
+#if OPENTHREAD_RPC_ENABLE
+    platformStreamUartInit(radioUrl);
+#else
     platformRadioInit(&radioUrl);
+#endif
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
     platformTrelInit(aPlatformConfig->mTrelInterface);
 #endif
@@ -115,7 +119,9 @@ void otSysDeinit(void)
 #if OPENTHREAD_POSIX_VIRTUAL_TIME
     virtualTimeDeinit();
 #endif
+#if !OPENTHREAD_RPC_ENABLE
     platformRadioDeinit();
+#endif
 #if OPENTHREAD_CONFIG_PLATFORM_NETIF_ENABLE
     platformNetifDeinit();
 #endif
@@ -173,11 +179,15 @@ void otSysMainloopUpdate(otInstance *aInstance, otSysMainloopContext *aMainloop)
 #if OPENTHREAD_CONFIG_BACKBONE_ROUTER_ENABLE
     platformBackboneUpdateFdSet(aMainloop->mReadFdSet, aMainloop->mMaxFd);
 #endif
+#if OPENTHREAD_RPC_ENABLE
+    platformStreamUartUpdateFdSet(*aMainloop);
+#else
 #if OPENTHREAD_POSIX_VIRTUAL_TIME
     virtualTimeUpdateFdSet(&aMainloop->mReadFdSet, &aMainloop->mWriteFdSet, &aMainloop->mErrorFdSet, &aMainloop->mMaxFd,
                            &aMainloop->mTimeout);
 #else
     platformRadioUpdateFdSet(&aMainloop->mReadFdSet, &aMainloop->mWriteFdSet, &aMainloop->mMaxFd, &aMainloop->mTimeout);
+#endif
 #endif
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
     platformTrelUpdateFdSet(&aMainloop->mReadFdSet, &aMainloop->mWriteFdSet, &aMainloop->mMaxFd, &aMainloop->mTimeout);
@@ -235,10 +245,14 @@ int otSysMainloopPoll(otSysMainloopContext *aMainloop)
 
 void otSysMainloopProcess(otInstance *aInstance, const otSysMainloopContext *aMainloop)
 {
+#if OPENTHREAD_RPC_ENABLE
+    platformStreamUartProcess(*aMainloop);
+#else
 #if OPENTHREAD_POSIX_VIRTUAL_TIME
     virtualTimeProcess(aInstance, &aMainloop->mReadFdSet, &aMainloop->mWriteFdSet, &aMainloop->mErrorFdSet);
 #else
     platformRadioProcess(aInstance, &aMainloop->mReadFdSet, &aMainloop->mWriteFdSet);
+#endif
 #endif
 #if OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
     platformTrelProcess(aInstance, &aMainloop->mReadFdSet, &aMainloop->mWriteFdSet);

@@ -1,0 +1,253 @@
+/*
+ *  Copyright (c) 2021, The OpenThread Authors.
+ *  All rights reserved.
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions are met:
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in the
+ *     documentation and/or other materials provided with the distribution.
+ *  3. Neither the name of the copyright holder nor the
+ *     names of its contributors may be used to endorse or promote products
+ *     derived from this software without specific prior written permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+ *  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ *  IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+ *  ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+ *  LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ *  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ *  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ *  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+ *  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+ *  POSSIBILITY OF SUCH DAMAGE.
+ */
+
+syntax = "proto3";
+
+package ot.rpc;
+
+message Empty {}
+message Error {
+    uint32 mError = 1;
+}
+
+message RadioCaps {
+    uint32 mCaps = 1;
+}
+
+message Eui64 {
+    bytes mEui64 = 1;
+}
+
+message TxPower {
+    sint32 mTxPower = 1;
+}
+
+message Channel
+{
+    uint32 mChannel = 1; ///< The ieee802.15.4 channel.
+}
+
+message AesKey
+{
+    bytes mKey = 1; ///< Aes Key bytes.
+}
+
+message RadioIeInfo
+{
+    int64  mNetworkTimeOffset =  1; ///< The time offset to the Thread network time.
+    uint32 mTimeIeOffset = 2;      ///< The Time IE offset from the start of PSDU.
+    uint32 mTimeSyncSeq = 3;       ///< The Time sync sequence.
+}
+
+message RadioFrame {
+    bytes  mPsdu = 1;      ///< The PSDU.
+    uint32 mChannel = 2;   ///< Channel used to transmit/receive the frame.
+}
+
+message RadioTxInfo {
+    AesKey      mAesKey = 1;               ///< The key used for AES-CCM frame security.
+    RadioIeInfo mIeInfo = 2;               ///< The pointer to the Header IE(s) related information.
+    uint32      mTxDelay = 3;              ///< The delay time for this transmission (based on `mTxDelayBaseTime`).
+    uint32      mTxDelayBaseTime = 4;      ///< The base time for the transmission delay.
+    uint32      mMaxCsmaBackoffs = 5;      ///< Maximum number of backoffs attempts before declaring CCA failure.
+    uint32      mMaxFrameRetries = 6;      ///< Maximum number of retries allowed after a transmission failure.
+    bool        mIsARetx = 7;              ///< True if this frame is a retransmission (ignored by radio driver).
+    bool        mCsmaCaEnabled = 8;        ///< Set to true to enable CSMA-CA for this packet, false otherwise.
+    bool        mCslPresent = 9;           ///< Set to true if CSL header IE is present.
+    bool        mIsSecurityProcessed = 10; ///< True if SubMac should skip the AES processing of this frame.
+}
+
+message RadioRxInfo {
+    uint64 mTimestamp = 1;             ///< The timestamp when the frame was received in microseconds.
+    uint32 mAckFrameCounter = 2;       ///< ACK security frame counter (applicable when `mAckedWithSecEnhAck` is set).
+    uint32 mAckKeyId = 3;              ///< ACK security key index (applicable when `mAckedWithSecEnhAck` is set).
+    sint32 mRssi = 4;                  ///< Received signal strength indicator in dBm for received frames.
+    uint32 mLqi = 5;                   ///< Link Quality Indicator for received frames.
+    bool   mAckedWithFramePending = 6; ///< This indicates if this frame was acknowledged with frame pending set.
+    bool   mAckedWithSecEnhAck = 7;    ///< This indicates if this frame was acknowledged with secured enhance ACK.
+}
+
+message RadioTxFrame {
+    RadioFrame  mFrame  = 1;
+    RadioTxInfo mTxInfo = 2;
+}
+
+message RadioRxFrame {
+    RadioFrame  mFrame  = 1;
+    RadioRxInfo mRxInfo = 2;
+}
+
+message RadioRxDoneFrame {
+    uint32                 mError = 1;    
+    optional RadioRxFrame  mFrame  = 2;
+}
+
+message RadioTxDoneFrame {
+    uint32                mError = 1;    
+    optional RadioRxFrame mAck  = 2;
+    optional uint32       mKeyId = 3;
+    optional uint32       mFrameCounter=4;
+}
+
+message RadioScanConfig
+{
+    uint32 mScanChannel = 1;
+    uint32 mScanDuration = 2;
+}
+
+message RadioScanResult
+{
+    sint32 mMaxRssi = 1;
+}
+
+message ReceiveSensitivity
+{
+    sint32 mRssi = 1;
+}
+
+message PanId
+{
+    uint32 mPanId = 1;
+}
+
+message ExtAddress
+{
+    bytes mAddr = 1;
+}
+
+message ShortAddress
+{
+    uint32 mAddr = 1;
+}
+
+message CcaEnergyDetectThreshold
+{
+    sint32 mThreshold = 1;
+}
+
+message CcaEnergyDetectThresholdResponse
+{
+    uint32 mError     = 1;
+    sint32 mThreshold = 2;
+}
+
+message FemLnaGain
+{
+    sint32 mGain = 1;
+}
+
+message FemLnaGainResponse
+{
+    uint32 mError= 1;
+    sint32 mGain = 2;
+}
+
+message EnableVal
+{
+    bool mEnable = 1;
+}
+
+message PromiscuousResponse
+{
+    uint32 mError  = 1;
+    sint32 mEnable = 2;
+}
+
+message MacKey
+{
+    uint32 mKeyIdMode = 1;
+    uint32 mKeyId     = 2;
+    bytes  mPrevKey   = 3;
+    bytes  mCurrKey   = 4;
+    bytes  mNextKey   = 5;
+}
+
+message MacFrameCounter
+{
+    uint32 mCounter = 1;
+}
+
+message Rssi
+{
+    sint32 mRssi = 1;
+}
+
+message ChannelMask
+{
+    uint32 mChannelMask = 1;
+}
+
+service RcpService {
+    rpc ResetRcp(Empty) returns (Empty) {}
+
+    rpc GetRadioCaps(Empty) returns (RadioCaps) {}
+    rpc GetReceiveSensitivity(Empty) returns (ReceiveSensitivity) {}
+    rpc GetEui64(Empty) returns (Eui64) {}
+
+    rpc SetPanId(PanId) returns (Error) {}
+    rpc SetExtendedAddress(ExtAddress) returns (Error) {}
+    rpc SetShortAddress(ShortAddress) returns (Error) {}
+    rpc SetTransmitPower(TxPower) returns (Error) {}
+    rpc GetTransmitPower(Empty) returns (TxPower) {} ///< Error
+
+    rpc SetCcaEnergyDetectThreshold(CcaEnergyDetectThreshold) returns (Error) {}
+    rpc GetCcaEnergyDetectThreshold(Empty) returns (CcaEnergyDetectThresholdResponse) {} ///< Error
+
+    rpc SetFemLnaGain(FemLnaGain) returns (Error) {}
+    rpc GetFemLnaGain(Empty) returns (FemLnaGainResponse) {} ///< Error
+
+    rpc SetPromiscuous(EnableVal) returns (Error) {}
+    rpc GetPromiscuous(Empty) returns (EnableVal) {}
+
+    rpc SetMacKey(MacKey) returns (Error) {}
+    rpc SetMacFrameCounter(MacFrameCounter) returns (Error) {}
+
+    rpc Enable(Empty) returns (Error) {}
+    rpc Disable(Empty) returns (Error) {}
+    rpc Sleep(Empty) returns (Error) {}
+
+    rpc Receive(Channel) returns (Error) {}
+    rpc Transmit(RadioTxFrame) returns (Error) {}
+    rpc GetRssi(Empty) returns (Rssi) {}
+    rpc RadioEnergyScan(RadioScanConfig) returns (Error) {}
+
+    rpc EnableSrcMatch(EnableVal) returns (Error) {}
+    rpc AddSrcMatchShortEntry(ShortAddress) returns (Error) {}
+    rpc AddSrcMatchExtEntry(ExtAddress) returns (Error) {}
+    rpc ClearSrcMatchShortEntry(ShortAddress) returns (Error) {}
+    rpc ClearSrcMatchExtEntry(ExtAddress) returns (Error) {}
+    rpc ClearSrcMatchShortEntries(Empty) returns (Error) {}
+    rpc ClearSrcMatchExtEntries(Empty) returns (Error) {}
+
+    rpc GetSupportedChannelMask(Empty) returns (ChannelMask) {}
+    rpc GetPreferredChannelMask(Empty) returns (ChannelMask) {}
+
+    rpc ReceiveDoneHandler(Empty) returns (stream RadioRxDoneFrame) {}
+    rpc TransmitDoneHandler(Empty) returns (stream RadioTxDoneFrame) {}
+    rpc EnergyScanDoneHandler(Empty) returns (stream RadioScanResult) {}
+}

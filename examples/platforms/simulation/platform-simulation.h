@@ -270,4 +270,10 @@ void platformTrelProcess(otInstance *aInstance, const fd_set *aReadFdSet, const 
 
 #endif // OPENTHREAD_CONFIG_RADIO_LINK_TREL_ENABLE
 
+void platformStreamUpdateFdSet(fd_set *aReadFdSet, fd_set *aWriteFdSet, fd_set *aErrorFdSet, int *aMaxFd);
+void platformStreamProcess(otInstance *  aInstance,
+                           const fd_set *aReadFdSet,
+                           const fd_set *aWriteFdSet,
+                           const fd_set *aErrorFdSet);
+
 #endif // PLATFORM_SIMULATION_H_

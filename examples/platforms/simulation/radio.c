@@ -773,10 +773,18 @@ void platformRadioDeinit(void)
 }
 #endif // OPENTHREAD_SIMULATION_VIRTUAL_TIME
 
+static bool sEnergyScan = false;
+
 void platformRadioProcess(otInstance *aInstance, const fd_set *aReadFdSet, const fd_set *aWriteFdSet)
 {
     OT_UNUSED_VARIABLE(aReadFdSet);
     OT_UNUSED_VARIABLE(aWriteFdSet);
+
+    if (sEnergyScan)
+    {
+        sEnergyScan = false;
+        otPlatRadioEnergyScanDone(aInstance, -50);
+    }
 
 #if OPENTHREAD_SIMULATION_VIRTUAL_TIME == 0
     if (FD_ISSET(sRxFd, aReadFdSet))
@@ -987,7 +995,9 @@ otError otPlatRadioEnergyScan(otInstance *aInstance, uint8_t aScanChannel, uint1
     assert(aScanChannel >= SIM_RADIO_CHANNEL_MIN && aScanChannel <= SIM_RADIO_CHANNEL_MAX);
     assert(aScanDuration > 0);
 
-    return OT_ERROR_NOT_IMPLEMENTED;
+    // return OT_ERROR_NOT_IMPLEMENTED;
+    sEnergyScan = true;
+    return OT_ERROR_NONE;
 }
 
 otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)
@@ -1223,6 +1233,15 @@ otError otPlatRadioSetChannelMaxTransmitPower(otInstance *aInstance, uint8_t aCh
 
 exit:
     return error;
+}
+
+otError otPlatRadioCliCommand(otInstance *aInstance, uint8_t aArgsLength, char *aArgs[])
+{
+    OT_UNUSED_VARIABLE(aInstance);
+    OT_UNUSED_VARIABLE(aArgsLength);
+    OT_UNUSED_VARIABLE(aArgs);
+
+    return OT_ERROR_NONE;
 }
 
 #if OPENTHREAD_CONFIG_MLE_LINK_METRICS_ENABLE

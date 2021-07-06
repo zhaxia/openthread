@@ -81,6 +81,8 @@
 #include <openthread/platform/debug_uart.h>
 #endif
 
+//#include <openthread/rpc.h>
+
 #include "common/encoding.hpp"
 #include "common/new.hpp"
 #include "common/string.hpp"
@@ -3624,6 +3626,41 @@ exit:
     return error;
 }
 #endif // OPENTHREAD_FTD
+
+#if 1
+otError Interpreter::ProcessRpc(uint8_t aArgsLength, char *aArgs[])
+{
+    otError error = OT_ERROR_NONE;
+
+    VerifyOrExit(aArgsLength > 0, error = OT_ERROR_INVALID_ARGS);
+
+    error = otPlatRadioCliCommand(mInstance, aArgsLength, aArgs);
+
+#if 0
+#if OPENTHREAD_FTD
+    if (strcmp(aArgs[0], "server") == 0)
+    {
+        SuccessOrExit(error = otRpcServerCommand(mInstance, (aArgsLength == 1) ? nullptr : aArgs[1]));
+    }
+    else
+#endif
+
+#if OPENTHREAD_MTD
+        if (strcmp(aArgs[0], "client") == 0)
+    {
+        SuccessOrExit(error = otRpcClientCommand(mInstance, (aArgsLength == 1) ? nullptr : aArgs[1]));
+    }
+    else
+#endif
+    {
+        ExitNow(error = OT_ERROR_INVALID_COMMAND);
+    }
+#endif
+
+exit:
+    return error;
+}
+#endif
 
 otError Interpreter::ProcessScan(uint8_t aArgsLength, char *aArgs[])
 {

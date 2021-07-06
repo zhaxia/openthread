@@ -64,7 +64,7 @@ message(STATUS "CMake build type: ${CMAKE_BUILD_TYPE}")
 if(CMAKE_COMPILER_IS_GNUCC OR CMAKE_C_COMPILER_ID MATCHES "(Apple)?[Cc]lang")
     option(OT_COMPILE_WARNING_AS_ERROR "whether to include -Werror -pedantic-errors with gcc-compatible compilers")
     if (OT_COMPILE_WARNING_AS_ERROR)
-        set(OT_CFLAGS -Werror -pedantic-errors)
+        # set(OT_CFLAGS -Werror -pedantic-errors)
     endif()
 
     if(OT_COVERAGE)

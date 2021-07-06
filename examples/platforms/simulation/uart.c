@@ -54,6 +54,31 @@ static int            s_out_fd;
 static struct termios original_stdin_termios;
 static struct termios original_stdout_termios;
 
+#include "common/logging.hpp"
+void OutputBytes(const char *aPrefix, const uint8_t *aBuf, uint16_t aLength)
+{
+    char     buf[1024];
+    uint16_t offset = 0;
+    int      rval;
+
+    for (int i = 0; i < aLength; i++)
+    {
+        rval = snprintf(&buf[offset], sizeof(buf) - offset, "%02x ", aBuf[i]);
+
+        if (rval > 0)
+        {
+            offset += rval;
+        }
+        else
+        {
+            break;
+        }
+    }
+
+    buf[offset] = '\0';
+    otLogCritMac("%s: %s", aPrefix, buf);
+}
+
 static void restore_stdin_termios(void)
 {
     tcsetattr(s_in_fd, TCSAFLUSH, &original_stdin_termios);
@@ -172,6 +197,8 @@ otError otPlatUartSend(const uint8_t *aBuf, uint16_t aBufLength)
     s_write_buffer = aBuf;
     s_write_length = aBufLength;
 
+    OutputBytes("UartSend", aBuf, aBufLength);
+
 exit:
     return error;
 }
@@ -236,6 +263,81 @@ exit:
     return error;
 }
 
+#if 0
+#ifndef MS_PER_S
+#define MS_PER_S 1000
+#endif
+#ifndef US_PER_MS
+#define US_PER_MS 1000
+#endif
+#ifndef US_PER_S
+#define US_PER_S (MS_PER_S * US_PER_MS)
+#endif
+#ifndef NS_PER_US
+#define NS_PER_US 1000
+#endif
+
+otError otPlatUartBlockingReceive(uint8_t *aBuf, uint16_t *aBufLength, uint32_t aTimeoutMs)
+{
+    otError       error = OT_ERROR_NONE;
+    ssize_t       rval;
+    const int     error_flags = POLLERR | POLLNVAL | POLLHUP;
+    struct pollfd pollfd[]    = {
+        {s_in_fd, POLLIN | error_flags, 0},
+    };
+
+    otEXPECT_ACTION((aBuf != NULL) && (aBufLength != NULL), error = OT_ERROR_INVALID_ARGS);
+
+    errno = 0;
+    rval  = poll(pollfd, sizeof(pollfd) / sizeof(*pollfd), aTimeoutMs);
+
+    if (rval < 0)
+    {
+        perror("poll");
+        exit(EXIT_FAILURE);
+    }
+
+    if (rval == 0)
+    {
+        error = OT_ERROR_RESPONSE_TIMEOUT;
+    }
+    else if (rval > 0)
+    {
+        if ((pollfd[0].revents & error_flags) != 0)
+        {
+            perror("s_in_fd");
+            exit(EXIT_FAILURE);
+        }
+
+        if (pollfd[0].revents & POLLIN)
+        {
+            rval = read(s_in_fd, aBuf, *aBufLength);
+
+            if (rval <= 0)
+            {
+                perror("read");
+                exit(EXIT_FAILURE);
+            }
+            else
+            {
+                *aBufLength = rval;
+            }
+        }
+        else
+        {
+            exit(EXIT_FAILURE);
+        }
+    }
+    else if (errno != EINTR)
+    {
+        exit(EXIT_FAILURE);
+    }
+
+exit:
+    return error;
+}
+#endif
+
 void platformUartProcess(void)
 {
     ssize_t       rval;
@@ -279,6 +381,7 @@ void platformUartProcess(void)
                 exit(EXIT_FAILURE);
             }
 
+            OutputBytes("UartReceived", s_receive_buffer, (uint16_t)rval);
             otPlatUartReceived(s_receive_buffer, (uint16_t)rval);
         }
 

@@ -27,6 +27,7 @@
 #
 
 set(OT_PLATFORM_LIB "openthread-posix" PARENT_SCOPE)
+set(OT_PLATFORM_RPC_LIB "openthread-posix-rpc" PARENT_SCOPE)
 
 option(OT_DAEMON "Enable daemon mode" OFF)
 if(OT_DAEMON)
@@ -110,6 +111,68 @@ target_compile_options(openthread-posix PRIVATE
 )
 
 target_include_directories(openthread-posix PRIVATE
+    ${OT_PUBLIC_INCLUDES}
+    ${PROJECT_SOURCE_DIR}/src
+    ${PROJECT_SOURCE_DIR}/src/core
+    ${PROJECT_SOURCE_DIR}/third_party/mbedtls/repo/include
+    PUBLIC
+        ${PROJECT_SOURCE_DIR}/src/posix/platform/include
+)
+
+#===================================================================
+add_library(openthread-posix-rpc
+    alarm.cpp
+    backbone.cpp
+    entropy.cpp
+    logging.cpp
+    misc.cpp
+    multicast_routing.cpp
+    netif.cpp
+    #hdlc_interface.cpp
+    #radio.cpp
+    #spi_interface.cpp
+    radio_url.cpp
+    settings.cpp
+    stream_uart.cpp
+    system.cpp
+    trel_udp6.cpp
+    uart.cpp
+    udp.cpp
+    virtual_time.cpp
+)
+
+set_target_properties(
+    openthread-posix-rpc
+    PROPERTIES
+        C_STANDARD 99
+        CXX_STANDARD 11
+)
+
+target_link_libraries(openthread-posix-rpc
+    PUBLIC
+        openthread-platform
+    PRIVATE
+        openthread-url
+        ot-config
+        util
+        $<$<STREQUAL:${CMAKE_SYSTEM_NAME},Linux>:rt>
+)
+
+target_compile_definitions(openthread-posix-rpc
+    PUBLIC
+        ${OT_PUBLIC_DEFINES}
+    PRIVATE
+        ${OT_PLATFORM_DEFINES}
+        OPENTHREAD_FTD=1
+        OPENTHREAD_MTD=0
+        OPENTHREAD_RPC_ENABLE=1
+)
+
+target_compile_options(openthread-posix-rpc PRIVATE
+    ${OT_CFLAGS}
+)
+
+target_include_directories(openthread-posix-rpc PRIVATE
     ${OT_PUBLIC_INCLUDES}
     ${PROJECT_SOURCE_DIR}/src
     ${PROJECT_SOURCE_DIR}/src/core

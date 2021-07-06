@@ -1,5 +1,5 @@
 #
-#  Copyright (c) 2020, The OpenThread Authors.
+#  Copyright (c) 2021, The OpenThread Authors.
 #  All rights reserved.
 #
 #  Redistribution and use in source and binary forms, with or without
@@ -26,34 +26,16 @@
 #  POSSIBILITY OF SUCH DAMAGE.
 #
 
-add_executable(ot-rcp
-    main.c
+include(repo/pw_build/pigweed.cmake)
+include(repo/pw_protobuf_compiler/proto.cmake)
+
+pw_set_backend(pw_assert pw_assert_log)
+pw_set_backend(pw_log pw_log_basic)
+pw_set_backend(pw_sys_io pw_sys_io_stdio)
+
+set(dir_pw_third_party_nanopb "${CMAKE_SOURCE_DIR}/third_party/pigweed/nanopb" CACHE PATH
+    "Path to a Nanopb installation to import."
+	FORCE
 )
 
-target_include_directories(ot-rcp PRIVATE ${COMMON_INCLUDES})
-
-target_link_libraries(ot-rcp PRIVATE
-    openthread-rcp
-    ${OT_PLATFORM_LIB}
-    openthread-radio
-    ${OT_PLATFORM_LIB}
-    ot-config
-)
-
-install(TARGETS ot-rcp DESTINATION bin)
-
-add_executable(ot-rcp-server
-    main.c
-)
-
-target_include_directories(ot-rcp-server PRIVATE ${COMMON_INCLUDES})
-
-target_link_libraries(ot-rcp-server PRIVATE
-    openthread-rcp-rpc-server
-    ${OT_PLATFORM_LIB}
-    openthread-radio
-    ${OT_PLATFORM_LIB}
-    ot-config
-)
-
-install(TARGETS ot-rcp-server DESTINATION bin)
+add_subdirectory(repo)

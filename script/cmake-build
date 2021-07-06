@@ -149,7 +149,7 @@ main()
             options+=("${OT_POSIX_SIM_COMMON_OPTIONS[@]}" "${local_options[@]}")
             ;;
         simulation)
-            local_options=("-DOT_LINK_RAW=ON")
+            local_options=("-DOT_LINK_RAW=ON"  "-DOT_LOG_OUTPUT=PLATFORM_DEFINED" )
             options+=("${OT_POSIX_SIM_COMMON_OPTIONS[@]}" "${local_options[@]}")
             ;;
         cc2650)

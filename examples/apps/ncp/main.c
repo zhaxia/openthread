@@ -32,6 +32,7 @@
 
 #include <openthread/diag.h>
 #include <openthread/ncp.h>
+#include <openthread/rpc.h>
 #include <openthread/tasklet.h>
 
 #include "openthread-system.h"
@@ -107,10 +108,13 @@ pseudo_reset:
 
     otNcpInit(instance);
 
+    otRcpInit(instance);
+
     while (!otSysPseudoResetWasRequested())
     {
         otTaskletsProcess(instance);
         otSysProcessDrivers(instance);
+        otRcpProcess(instance);
     }
 
     otInstanceFinalize(instance);
@@ -121,4 +125,14 @@ pseudo_reset:
     goto pseudo_reset;
 
     return 0;
+}
+
+OT_TOOL_WEAK void otRcpInit(otInstance *aInstance)
+{
+    (void)aInstance;
+}
+
+OT_TOOL_WEAK void otRcpProcess(otInstance *aInstance)
+{
+    (void)aInstance;
 }

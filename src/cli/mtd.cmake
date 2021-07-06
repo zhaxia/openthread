@@ -53,6 +53,8 @@ target_sources(openthread-cli-mtd PRIVATE ${COMMON_SOURCES})
 target_link_libraries(openthread-cli-mtd
     PUBLIC
         openthread-mtd
+        #openthread-rcp-rpc-client
+        #openthread-rcp-rpc-server
     PRIVATE
         ${OT_MBEDTLS}
         ot-config

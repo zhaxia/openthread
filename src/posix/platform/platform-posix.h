@@ -498,6 +498,12 @@ extern char gBackboneNetifName[IFNAMSIZ];
  */
 extern unsigned int gBackboneNetifIndex;
 
+otError platformStreamUartInit(const ot::Posix::RadioUrl &aRadioUrl);
+
+void platformStreamUartUpdateFdSet(otSysMainloopContext &aMainloopContext);
+
+void platformStreamUartProcess(const otSysMainloopContext &aMainloopContext);
+
 #ifdef __cplusplus
 }
 #endif
